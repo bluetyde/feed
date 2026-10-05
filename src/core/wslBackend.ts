@@ -70,24 +70,32 @@ export class WslBackend implements RunBackend {
    * yet), then the cancel script, which signals the run's own process group after checking the pid still is that run's script.
    * Rejects when the script could not confirm the stop, so the manager can say so.
    */
-  cancel(id: string): Promise<void> {
+  async cancel(id: string): Promise<void> {
     this.cancelled.add(id);
+    // The flag is written first so that a script with no process to signal yet stops before its next phase. If it cannot be
+    // written (disk, permissions), the cancel script still runs: signalling the process group does not need the flag.
+    let flagError: string | undefined;
     const native = this.nativeDirs.get(id);
     if (native) {
-      mkdirSync(native, { recursive: true });
-      writeFileSync(join(native, "cancel.flag"), "cancelled\n");
+      try {
+        mkdirSync(native, { recursive: true });
+        writeFileSync(join(native, "cancel.flag"), "cancelled\n");
+      } catch (e) {
+        flagError = "could not write cancel.flag: " + String((e as Error).message);
+      }
     }
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       execFile("wsl.exe", cancelArgs(join(this.scripts, "cancel-feed.sh"), id), { timeout: 20_000, encoding: "utf8" }, (err, stdout, stderr) => {
         const child = this.children.get(id);
         // last resort for the Windows side only: stop waiting for a launcher that does not exit
         if (child) setTimeout(() => child.kill(), 15_000).unref();
         if (!err) return resolve();
         const code = (err as unknown as { code?: number | string }).code;
-        // exit 1 (refused: the pid was not this run's script) is not a failure to stop the run: the flag still stops it at the next phase
-        if (code === 1) return resolve();
+        // exit 1 (refused: the pid was not this run's script) is not a failure to stop the run when the flag is in place
+        if (code === 1 && !flagError) return resolve();
         reject(new Error(`cancel script exited ${String(code)}: ${(String(stdout) + String(stderr)).trim().slice(0, 200)}`));
       });
     });
+    if (flagError) throw new Error(flagError + " (the cancel script ran and reported success)");
   }
 }

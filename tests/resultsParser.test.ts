@@ -3,6 +3,7 @@ import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { buildResults, parsePatchValue, parseScalarField, parseVectorField, ResultsError } from "../src/core/resultsParser";
 import { validateCase } from "../src/core/validate";
+import { scalarFieldText, vectorFieldText } from "./helpers/foamText";
 
 const root = join(__dirname, "..");
 const golden = (f: string) => readFileSync(join(root, "tests/golden/offbeat-syn", f), "utf8");
@@ -190,5 +191,59 @@ describe("results parser: Codex review findings", () => {
     const r = build();
     expect(JSON.stringify(r)).not.toMatch(/null.*energyBalance/);
     for (const c of r.checks) if (c.value !== null) expect(Number.isFinite(c.value), c.id).toBe(true);
+  });
+});
+
+describe("results parser: re-review findings", () => {
+  const refuses = (fn: () => unknown, re: RegExp) => {
+    try {
+      fn();
+    } catch (e) {
+      expect(e).toBeInstanceOf(ResultsError);
+      expect((e as Error).message).toMatch(re);
+      return;
+    }
+    throw new Error("expected a refusal");
+  };
+
+  it("S4 T cut right after the cladOuter block is refused (no footer, braces unbalanced)", () => {
+    const cut = T.slice(0, T.indexOf("}", T.indexOf("cladOuter")) + 1);
+    refuses(() => build(cut, C), /cut short|whole|unbalanced|footer/);
+  });
+
+  it("S4 C cut before its end is refused", () => {
+    refuses(() => build(T, C.slice(0, C.length - 60)), /cut short|whole|unbalanced|footer|not closed/);
+  });
+
+  it("S4 a wall list that declares two values but holds one is refused", () => {
+    refuses(() => build(T.replace(/value\s+uniform\s+595\.33756;/, "value nonuniform List<scalar> 2 (595.33756);"), C), /declares 2|cladOuter/);
+  });
+
+  it("S4 a field with a stray extra closing brace is refused", () => {
+    refuses(() => build(T.replace("// ****", "}\n// ****"), C), /unbalanced|whole/);
+  });
+
+  it("S4 the real golden files are accepted (whole, balanced, with footer)", () => {
+    expect(() => build()).not.toThrow();
+  });
+
+  it("S3 guard: the writer's wedge-corrected cell centres at the largest allowed meshes are still classified correctly", () => {
+    // cell centres exactly as the case writer's geometry puts them: nominal mid-radius times sqrt(sin(a)/a)
+    const a = ((0.25 / 180) * Math.PI) / 2;
+    const corr = Math.sqrt(Math.sin(a) / a);
+    for (const doc of [(d: any) => d, (d: any) => ((d.geometry.claddingInnerRadius = d.geometry.fuelRadius), d)]) {
+      const d = doc(JSON.parse(readFileSync(join(root, "examples/synthetic-pin.json"), "utf8")));
+      d.mesh = { fuelCells: 20000, claddingCells: 10000 };
+      const v = validateCase(d);
+      expect(v.errors).toEqual([]);
+      const n = v.normalized!;
+      const centres: number[] = [];
+      for (let i = 0; i < 20000; i++) centres.push(((i + 0.5) * n.fuelRadius) / 20000 * corr);
+      for (let i = 0; i < 10000; i++) centres.push((n.claddingInnerRadius + ((i + 0.5) * (n.claddingOuterRadius - n.claddingInnerRadius)) / 10000) * corr);
+      const Tt = scalarFieldText(centres.map((_, i) => 600 + i * 1e-3), 595);
+      const r = buildResults(n, { T: Tt, C: vectorFieldText(centres), time: 5e7 });
+      expect(r.radial.filter((p) => p.region === "fuel").length).toBe(20000);
+      expect(r.radial.filter((p) => p.region === "cladding").length).toBe(10000);
+    }
   });
 });

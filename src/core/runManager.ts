@@ -69,6 +69,8 @@ function isRunRecord(r: any): r is RunRecord {
   return !!r && typeof r === "object" && ["id", "caseId", "caseHash", "solver", "createdAt"].every((k) => typeof r[k] === "string") && RUN_STATES.includes(r.state) && Array.isArray(r.notes);
 }
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+/** A process exit status: 0 to 255, or -1 for "did not run" (written by run-feed.sh when a phase never started). */
+const isStatus = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && ((v >= 0 && v <= 255) || v === -1);
 
 function atomicWrite(path: string, text: string) {
   mkdirSync(dirname(path), { recursive: true });
@@ -283,10 +285,13 @@ export class RunManager {
     let infra: string | undefined;
     const timer = setTimeout(() => {
       this.timedOut.add(id);
-      this.opts.backend.cancel(id).catch((e) => {
-        const rec = this.records.get(id);
-        if (rec) rec.notes.push("The time-limit stop could not be confirmed: " + String((e as Error).message));
-      });
+      // Promise.resolve().then(...) also catches a backend whose cancel() throws before it returns a promise
+      Promise.resolve()
+        .then(() => this.opts.backend.cancel(id))
+        .catch((e) => {
+          const rec = this.records.get(id);
+          if (rec) rec.notes.push("The time-limit stop could not be confirmed: " + String((e as Error).message));
+        });
     }, this.timeoutMs);
     try {
       outcome = await this.opts.backend.run({ id, inputsDir: join(dir, "inputs"), nativeDir, timeoutMs: this.timeoutMs });
@@ -329,9 +334,10 @@ export class RunManager {
     } catch {
       exit = undefined;
     }
-    if (!exit || !isNum(exit.blockMeshExit) || !isNum(exit.offbeatExit) || !isNum(exit.finalTime)) return fail({ code: "E_APP_FAILED", message: "The solver run left an invalid exit record (exit.json): the exit codes and final time must be numbers.", native });
+    if (!exit || !isStatus(exit.blockMeshExit) || !isStatus(exit.offbeatExit) || !isNum(exit.finalTime)) return fail({ code: "E_APP_FAILED", message: "The solver run left an invalid exit record (exit.json): the exit statuses must be whole numbers from 0 to 255 (or -1 for a phase that did not run) and the final time a number.", native });
     r.exitCode = exit.offbeatExit;
     if (exit.blockMeshExit !== 0) return fail({ code: "E_APP_FAILED", message: `The mesh could not be built (blockMesh exit ${exit.blockMeshExit}).`, native });
+    if (exit.offbeatExit === -1) return fail({ code: "E_APP_FAILED", message: "The solver never ran: the exit record says OFFBEAT did not start although the mesh was built.", native });
 
     const expectedEnd = JSON.parse(readFileSync(join(dir, "feed-manifest.json"), "utf8")).choices?.endTime;
     if (!isNum(expectedEnd) || !(expectedEnd > 0)) return fail({ code: "E_APP_FAILED", message: "The run manifest has no valid intended end time, so the run cannot be judged complete.", native });

@@ -344,3 +344,60 @@ describe("run manager: Codex review findings", () => {
     expect(m.list()).toEqual([]); // neither copy was registered
   });
 });
+
+describe("run manager: re-review findings", () => {
+  for (const [script, label] of [["status--1", "-1 after a successful mesh"], ["status-0.5", "0.5"], ["status-256", "256"]] as const) {
+    it("S5 an impossible solver exit status (" + label + ") is not accepted as a completed run", async () => {
+      const { rec, mgr, id } = await runOne(script);
+      expect(rec.state).toBe("failed");
+      expect(rec.failure!.message).toMatch(/exit (record|status)|never ran/);
+      expect(mgr.results(id)).toBeUndefined();
+    });
+  }
+
+  it("S2 a backend whose cancel throws synchronously cannot crash the timeout handler or strand the run", async () => {
+    class ThrowingCancel extends FakeBackend {
+      constructor() {
+        super("hang");
+      }
+      override run(a: { id: string; inputsDir: string; nativeDir: string; timeoutMs: number }) {
+        // the solver ends on its own shortly after the time limit, as the shell timeout would end it
+        return new Promise<{ cancelled: boolean }>((resolve) => setTimeout(() => resolve({ cancelled: false }), 250));
+      }
+      override cancel(_id: string): Promise<void> {
+        throw new Error("EACCES: cannot write cancel.flag");
+      }
+    }
+    const runsRoot = mkdtempSync(join(tmpdir(), "feed-runs-"));
+    dirs.push(runsRoot);
+    const mgr = new RunManager({ runsRoot, backend: new ThrowingCancel(), timeoutMs: 80 });
+    const s = mgr.start(pin());
+    if (!s.ok) throw new Error();
+    const rec = await mgr.done(s.id);
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_TIMEOUT");
+    expect(rec.notes.join(" ")).toMatch(/could not be confirmed.*EACCES/);
+  });
+
+  it("S2 manager.cancel() with a throwing backend records the problem and does not throw", async () => {
+    class ThrowingCancel extends FakeBackend {
+      constructor() {
+        super("hang");
+      }
+      override cancel(_id: string): Promise<void> {
+        throw new Error("EACCES: cannot write cancel.flag");
+      }
+    }
+    const runsRoot = mkdtempSync(join(tmpdir(), "feed-runs-"));
+    dirs.push(runsRoot);
+    const backend = new ThrowingCancel();
+    const mgr = new RunManager({ runsRoot, backend, timeoutMs: 400 });
+    const s = mgr.start(pin());
+    if (!s.ok) throw new Error();
+    await new Promise((r) => setTimeout(r, 30));
+    const rec = await mgr.cancel(s.id);
+    expect(rec!.notes.join(" ")).toMatch(/Cancel could not confirm.*EACCES/);
+    // the run is still running: nothing claimed it stopped. The time limit then ends it.
+    expect(["running", "failed"]).toContain(mgr.get(s.id)!.state);
+  });
+});

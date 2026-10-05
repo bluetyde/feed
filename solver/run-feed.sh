@@ -7,6 +7,8 @@
 # The whole script is one process group (its own session) whose leader's pid is in <run dir>/run.pid, so cancel-feed.sh can stop
 # exactly this run in any phase. <nativeDir>/cancel.flag, written by the backend, is checked before every phase, so a cancel that
 # arrives before the pid file exists (or while a phase is starting) still stops the run before the next phase.
+# Phases run under `timeout --foreground` so they stay in this process group (plain `timeout` moves its child into a new group,
+# which group-cancel would miss).
 # The distro run directory is removed on exit (set FEED_KEEP_RUNDIR=1 to keep it for debugging).
 
 if [ -z "${FEED_SESSION:-}" ]; then
@@ -36,17 +38,18 @@ stop_cancelled() { printf '{"blockMeshExit": -1, "offbeatExit": -1, "finalTime":
 
 cancelled && stop_cancelled
 rm -rf "$RUN"; mkdir -p "$RUN" || exit 3
-echo "$$" > "$RUN/run.pid"
+# "pid starttime": cancel-feed.sh refuses the file if the live process has a different start time (pid reuse)
+echo "$$ $(sed 's/^.*) //' /proc/$$/stat | cut -d' ' -f20)" > "$RUN/run.pid"
 cp -r "$IN"/. "$RUN"/ || exit 3
 cd "$RUN" || exit 3
 
 cancelled && stop_cancelled
-timeout "$TMO" blockMesh > log.blockMesh 2>&1
+timeout --foreground "$TMO" blockMesh > log.blockMesh 2>&1
 bm=$?
 off=-1
 if [ "$bm" -eq 0 ]; then
   cancelled && stop_cancelled
-  timeout "$TMO" offbeat > log.offbeat 2>&1
+  timeout --foreground "$TMO" offbeat > log.offbeat 2>&1
   off=$?
 fi
 cancelled && stop_cancelled
@@ -54,7 +57,7 @@ cancelled && stop_cancelled
 final=$(ls -d [0-9]* 2>/dev/null | sort -g | tail -1)
 [ -z "$final" ] && final=0
 if [ "$final" != "0" ]; then
-  timeout "$TMO" postProcess -func writeCellCentres -latestTime > log.cellCentres 2>&1
+  timeout --foreground "$TMO" postProcess -func writeCellCentres -latestTime > log.cellCentres 2>&1
   cancelled && stop_cancelled
   cp "$final/T" "$final/C" "$OUT/final/" 2>/dev/null
 fi

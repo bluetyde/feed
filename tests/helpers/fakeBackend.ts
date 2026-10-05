@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { BackendOutcome, RunBackend } from "../../src/core/runManager";
 
-export type Script = "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
+export type Script = "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
 
 const golden = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-syn", f), "utf8");
 
@@ -66,6 +66,13 @@ export class FakeBackend implements RunBackend {
         exit(0, 0, 50000000);
         return { cancelled: false };
       }
+      case "status--1":
+      case "status-0.5":
+      case "status-256":
+        writeFileSync(join(nativeDir, "final", "T"), golden("T"));
+        writeFileSync(join(nativeDir, "final", "C"), golden("C"));
+        exit(0, script === "status--1" ? -1 : script === "status-0.5" ? 0.5 : 256, 50000000);
+        return { cancelled: false };
       case "exit-124":
       case "exit-137":
         writeFileSync(join(nativeDir, "final", "T"), golden("T"));

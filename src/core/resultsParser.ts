@@ -14,6 +14,16 @@ const bad = (message: string): never => {
   throw new ResultsError("E_OUTPUT_INCOMPLETE", message);
 };
 
+/**
+ * A written OpenFOAM field file ends with the "// ***** //" footer and has balanced braces and parentheses. A file killed mid-write
+ * does not, even when its cell list happens to be complete.
+ */
+export function assertWholeFoamFile(text: string, name: string): void {
+  if (!/\/\/ \*{20,} \/\/\s*$/.test(text)) bad(`field ${name} does not end with the OpenFOAM footer (the file is cut short)`);
+  const count = (ch: string) => text.split(ch).length - 1;
+  if (count("{") !== count("}") || count("(") !== count(")")) bad(`field ${name} has unbalanced braces or parentheses (the file is cut short or malformed)`);
+}
+
 /** Parse `internalField nonuniform List<scalar> N ( ... )`. A uniform field is refused: a radial profile needs per-cell values. */
 export function parseScalarField(text: string, name: string): number[] {
   const m = /internalField\s+(nonuniform|uniform)\s+(?:List<scalar>\s*(\d+)\s*\(|([^;\s]+)\s*;)/.exec(text);
@@ -52,10 +62,18 @@ export function parseVectorField(text: string, name: string): number[][] {
 export function parsePatchValue(text: string, patch: string): number | null {
   const block = new RegExp(`\\b${patch}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`).exec(text);
   if (!block) return null;
-  const v = /value\s+uniform\s+([-+.\deE]+)\s*;/.exec(block[1]!) ?? /value\s+nonuniform\s+List<scalar>\s*\d+\s*\(\s*([-+.\deE]+)/.exec(block[1]!);
-  if (!v) return null;
-  const x = Number(v[1]);
-  return Number.isFinite(x) ? x : null;
+  const uniform = /value\s+uniform\s+([-+.\deE]+)\s*;/.exec(block[1]!);
+  if (uniform) {
+    const x = Number(uniform[1]);
+    return Number.isFinite(x) ? x : null;
+  }
+  const list = /value\s+nonuniform\s+List<scalar>\s*(\d+)\s*\(([^)]*)\)/.exec(block[1]!);
+  if (!list) return null;
+  const vals = list[2]!.trim().split(/\s+/).filter(Boolean).map(Number);
+  if (vals.length !== Number(list[1])) bad(`patch ${patch}: the value list declares ${list[1]} values but holds ${vals.length}`);
+  if (!vals.every(Number.isFinite)) return null;
+  // one temperature for the patch is what a single-face wall holds; several equal values are the same wall
+  return vals[0]!;
 }
 
 export type CheckVerdict = "pass" | "fail" | "na";
@@ -154,6 +172,9 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   if (!/\bboundaryField\b/.test(input.T)) bad("field T has no boundaryField (the file is cut short)");
   const wall = parsePatchValue(input.T, "cladOuter");
   if (wall === null) bad("field T has no value for the cladOuter patch (the file is cut short or malformed)");
+  // last: the specific checks above give clearer messages; this one catches what they cannot (cut after the wall, in either file)
+  assertWholeFoamFile(input.T, "T");
+  assertWholeFoamFile(input.C, "C");
 
   // --- checks
   const lin = (k: Conductivity): LinearK => (k.kind === "constant" ? { a: k.k, b: 0 } : { a: k.a, b: k.b });

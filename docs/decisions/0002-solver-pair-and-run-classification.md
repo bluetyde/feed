@@ -29,3 +29,9 @@ A linear conductivity k = a + b T is written through OFFBEAT's `steel1515TiTobbe
 - A run is one process group: `run-feed.sh` becomes a session leader, writes `run.pid` first, and checks `native/cancel.flag` before every phase. Cancel writes the flag, then signals the group after checking the pid still is that run's script.
 - Classification also refuses: exit 124 (`E_TIMEOUT`), exit 137 and 143 (killed), an invalid `exit.json`, a manifest without a positive intended end time, a field file without its boundary block, and cell centres that are not strictly inside fuel or cladding.
 - The distro run directory is removed when the script ends; `solver/clean-stale-runs.sh` clears leftovers.
+
+## Update 2026-10-05: second review
+
+- Phases run under `timeout --foreground`; plain `timeout` puts its child in a new process group, which a group signal misses. `cancel-feed.sh` also kills anything left with the run directory as its working directory.
+- `run.pid` is `pid starttime`. Cancel signals only a process with that start time, the exact argv `bash <path>/run-feed.sh <in> <out> <runId> <timeout>` and its own process group.
+- Exit statuses must be whole numbers 0 to 255 or -1. Field files must end with the OpenFOAM footer with balanced braces.

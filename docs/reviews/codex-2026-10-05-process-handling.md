@@ -63,4 +63,23 @@ Every fix was written test-first: the new tests were run against the old code an
 
 Judgement calls: exit 137 and 143 are failures even with complete output, because the solver was killed from outside. A cancel that finds a pid file naming something else exits 1 and is not treated as a failure to cancel, since the flag still stops the run at the next phase. The mesh maximum (20000 and 10000) is a generous guard against abuse, not a physics limit.
 
-Still not covered: the real cancel was tested during mesh generation and during the OFFBEAT phase, not during post-processing (fast on these meshes). Codex did not re-review the fixes at the time of writing this section.
+Still not covered: the real cancel was tested during mesh generation and during the OFFBEAT phase, not during post-processing (fast on these meshes). The fixes were then re-reviewed; see below.
+
+## Second review: of the fixes (commit 4fc071f, same two auditors)
+
+Six distinct findings; five confirmed and fixed, one dropped.
+
+| # | Finding | Verdict | What was done |
+|---|---|---|---|
+| S1 | **High.** GNU `timeout` moves its child into a process group of its own, so signalling the run script's group missed `timeout` and the solver (both auditors). | **Confirmed, a regression I introduced.** Reproduced: after a group TERM, `timeout` and its child survived. My first cancel test cancelled before any solver phase existed, so it could not catch it. | Phases run as `timeout --foreground` (same group). The cancel script also sweeps and kills anything whose working directory is the run's before deleting it. New tests cancel while `blockMesh` and while `offbeat` are actually running (synchronised on the real process) and assert the phase process is in the script's group; with plain `timeout` restored that assertion fails (checked), so the test discriminates. |
+| S2 | **High.** `WslBackend.cancel()` wrote the flag synchronously before returning a promise; a write error threw inside the time-limit timer and escaped. | Confirmed (code reading, then a fault-injection test). | `cancel()` is async, a failed flag write is recorded and the cancel script still runs; the manager's timer uses `Promise.resolve().then(...).catch(...)` and notes the failure. Two tests with a backend whose `cancel` throws. |
+| S3 | Medium. The parser could reject supported fine meshes because the writer corrects vertex radii for the wedge. | **Dropped: does not reproduce.** At the largest allowed meshes the first corrected cladding centre stays above the inner radius (for example 0.0041800043 against 0.00418; 0.018161018 against 0.018161 in the zero-gap case). The cap on cell counts keeps it that way. | A regression test builds the writer's corrected centres at 20000 and 10000 cells, with and without a gap, and requires the parser to classify them correctly. |
+| S4 | Medium. A field cut after the wall value, a `C` file cut short, or a wall list that declares more values than it holds still passed. | Confirmed: all three reproduced. | Both fields must end with the OpenFOAM footer and have balanced braces and parentheses; the wall list length must match its declared count. Four new tests. |
+| S5 | Medium. Impossible exit statuses (-1, 0.5, 256) were accepted as a completed run. | Confirmed: reproduced. | Statuses must be whole numbers 0 to 255, or -1 for a phase that did not run; `offbeatExit` -1 after a successful mesh fails with "never ran". Three tests. |
+| Sec2 | Medium. Ownership by substring: any group leader whose command line contains `run-feed.sh` and the id passes; PID reuse not covered. | Confirmed by reading the pattern, then by a real test with a Python process carrying both strings. | `run.pid` holds `pid starttime`; the cancel script requires the same start time, an exact argv of six elements with `bash`, `run-feed.sh` and the id each a whole argument, and group leadership. Two real tests (lookalike process, wrong start time). |
+
+Neither auditor found a bypass of the Host, Origin and header guard in the visible diff. They could not see the files outside the diff (route coverage, fractional mesh counts, study levels); the guard is applied before routing and mesh counts are schema integers, both covered by tests.
+
+After these fixes: `npm test` 281 pass; `FEED_SOLVER=1 npm test` 304 pass; the lifecycle file passed three times in a row.
+
+One thing both reviews and my own testing have shown: real-process behaviour (process groups, `wsl.exe` quoting, event-loop blocking in the test harness) was wrong three times in ways unit tests could not see. Any further change to the run or cancel scripts needs the gated tests run before it is trusted.
