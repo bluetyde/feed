@@ -161,6 +161,44 @@ describe("the cross-check against the independent solution has teeth", () => {
   });
 });
 
+// ---- the TRIGA pulse built from UT-Austin SAR numbers (illustrative)
+describe("TRIGA $4.40 pulse (examples/ut-triga-pulse-4p40.json)", () => {
+  const doc = read("examples/ut-triga-pulse-4p40.json");
+  const n = normalized(doc);
+
+  it("is labelled illustrative: the pulse shape is an assumption, and the label says so", () => {
+    expect(doc.label).toBe("synthetic");
+    expect(doc.description).toMatch(/ILLUSTRATIVE/);
+    expect(doc.description).toMatch(/ASSUMED to be sech\^2/);
+    expect(doc.citation).toMatch(/READ FROM THE FIGURE/);
+  });
+
+  it("the heat capacity law is the SAR's, in kelvin: it doubles from 20 C to 824 C", () => {
+    const cp = n.fuelHeatCapacity!;
+    expect(cp.kind).toBe("linear");
+    const c = (tC: number) => (cp.kind === "linear" ? cp.a + cp.b * (tC + 273.15) : 0);
+    expect(c(20)).toBeCloseTo(2.04e6 + 4170 * 20, -2); // 2.04 + 0.00417 T[C] J/cm3/K
+    expect(c(824)).toBeCloseTo(2.04e6 + 4170 * 824, -2);
+    expect(c(824) / c(20)).toBeGreaterThan(1.9);
+  });
+
+  it("the energy takes the fuel from 20 C to 824 C if no heat leaves, and the implied pulse width is a plausible TRIGA width", async () => {
+    const { transientPreview } = await import("../src/core/transientPreview");
+    const p = transientPreview(n);
+    expect(p.adiabaticPeak - 273.15).toBeGreaterThan(823.5);
+    expect(p.adiabaticPeak - 273.15).toBeLessThan(825);
+    expect(Math.max(...p.preview!.peakT) - 273.15).toBeCloseTo(p.adiabaticPeak - 273.15, 1); // interior is adiabatic over 100 ms
+    // full width at half maximum of the tabulated power, from the table
+    const { times, linearHeatRate } = n.transient!;
+    const half = Math.max(...linearHeatRate) / 2;
+    const up = times.find((_, i) => linearHeatRate[i]! >= half)!;
+    const down = [...times].reverse().find((_, i) => linearHeatRate[times.length - 1 - i]! >= half)!;
+    expect((down - up) * 1e3).toBeGreaterThan(10);
+    expect((down - up) * 1e3).toBeLessThan(13);
+    expect(Math.max(...linearHeatRate) / 1e6).toBeCloseTo(237.6, 0); // 8.9e4 kW / 0.381 m x 1.017
+  });
+});
+
 // ---- real solver
 const solverOn = (() => {
   if (process.env.FEED_SOLVER !== "1" || process.platform !== "win32") return false;
@@ -242,6 +280,16 @@ describe.skipIf(!solverOn)("transients through the real solver (needs FEED_SOLVE
   it("a deliberate 2% error in the solver's power is caught by the cross-check", async () => {
     const { res } = await runCase(pulseDoc(), new FaultyBackend((d) => d.replace("lhgr        (0 10000000 0 0 0)", "lhgr        (0 10200000 0 0 0)")));
     expect(res!.checks.find((c) => c.id === "crossCheckFv")!.verdict).toBe("fail");
+  }, 300_000);
+
+  it("TRIGA $4.40 pulse: the interior reaches the adiabatic value within 1 K, every check passes (temperature-dependent heat capacity, annular fuel, 2000 steps)", async () => {
+    const { rec, res } = await runCase(read("examples/ut-triga-pulse-4p40.json"));
+    expect(rec.state).toBe("completed");
+    const { transientPreview } = await import("../src/core/transientPreview");
+    const adiabatic = transientPreview(normalized(read("examples/ut-triga-pulse-4p40.json"))).adiabaticPeak;
+    expect(Math.abs(res!.summary.maxT - adiabatic)).toBeLessThan(1);
+    expect(res!.checks.every((c) => c.verdict === "pass")).toBe(true);
+    expect(res!.domain.verdict).toBe("in-domain");
   }, 300_000);
 
   it("an annular transient pin runs and passes its checks", async () => {
