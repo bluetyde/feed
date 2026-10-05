@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, w
 import { dirname, join } from "path";
 import { writeOffbeatCase } from "./caseWriter";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
+import { buildTransientResults, TransientResultsRecord } from "./transientResults";
 import { Issue, validateCase } from "./validate";
 
 export type RunState = "queued" | "running" | "completed" | "failed" | "cancelled" | "interrupted";
@@ -26,7 +27,8 @@ export interface RunRecord {
   /** The case's display name when the run was started. */
   caseName?: string;
   /** Headline numbers of a completed run, for lists. */
-  headline?: { centreCellT: number; claddingOuterWallT: number | null };
+  /** Steady: the centre cell and the outer wall. Transient (transient: true): the hottest cell over the whole run and the final outer wall. */
+  headline?: { centreCellT: number; claddingOuterWallT: number | null; transient?: true };
   caseHash: string;
   state: RunState;
   createdAt: string;
@@ -204,7 +206,7 @@ export class RunManager {
     return [...this.records.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((r) => ({ ...r }));
   }
   /** The results record, present only when the run is `completed`. */
-  results(id: string): ResultsRecord | undefined {
+  results(id: string): ResultsRecord | TransientResultsRecord | undefined {
     const r = this.records.get(id);
     const f = join(this.dir(id), "results.json");
     if (!r || r.state !== "completed" || !existsSync(f)) return undefined;
@@ -350,10 +352,24 @@ export class RunManager {
       const sig = SIGNALS[exit.offbeatExit];
       return fail({ code: "E_APP_FAILED", message: `The solver stopped before writing any result (exit ${exit.offbeatExit}${sig ? ", " + sig : ""}).`, native });
     }
-    if (exit.finalTime < expectedEnd) return fail({ code: "E_OUTPUT_INCOMPLETE", message: `The solver stopped at ${exit.finalTime} s, before the intended ${expectedEnd} s (exit ${exit.offbeatExit}). The partial output is not a result.`, native });
+    // a transient's last write time is the sum of many steps, so it can sit a few ulps below the intended end
+    const isTransient = !!JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8")).transient;
+    if (exit.finalTime < (isTransient ? expectedEnd * (1 - 1e-6) : expectedEnd)) return fail({ code: "E_OUTPUT_INCOMPLETE", message: `The solver stopped at ${exit.finalTime} s, before the intended ${expectedEnd} s (exit ${exit.offbeatExit}). The partial output is not a result.`, native });
 
     try {
       const normalized = JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8"));
+      if (normalized.transient) {
+        // every write time after 0, in time order, from native/times/<time>/T
+        const tdir = join(nativeDir, "times");
+        const names = existsSync(tdir) ? readdirSync(tdir).filter((d) => /^[0-9.eE+-]+$/.test(d) && Number.isFinite(Number(d))).sort((a, b) => Number(a) - Number(b)) : [];
+        const fields = names.map((d) => ({ time: Number(d), T: read(join(tdir, d, "T")) ?? "" }));
+        const tr = buildTransientResults(normalized, { C, fields });
+        atomicWrite(join(dir, "results.json"), JSON.stringify(tr, null, 2) + "\n");
+        r.headline = { centreCellT: tr.summary.maxT, claddingOuterWallT: tr.series.claddingOuterWallT[tr.series.claddingOuterWallT.length - 1]!, transient: true };
+        r.state = "completed";
+        if (exit.offbeatExit !== 0) r.notes.push(`The solver exited with code ${exit.offbeatExit}${SIGNALS[exit.offbeatExit] ? " (" + SIGNALS[exit.offbeatExit] + ")" : ""} after writing a complete output. This is a known OFFBEAT shutdown crash; the result was accepted because the output is complete and finite.`);
+        return;
+      }
       const results = buildResults(normalized, { T, C, time: exit.finalTime });
       atomicWrite(join(dir, "results.json"), JSON.stringify(results, null, 2) + "\n");
       r.headline = { centreCellT: results.summary.centreCellT, claddingOuterWallT: results.summary.claddingOuterWallT };

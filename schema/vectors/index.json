@@ -35,6 +35,14 @@
     "valid": true
   },
   {
+    "file": "good/synthetic-pulse.json",
+    "valid": true
+  },
+  {
+    "file": "good/pulse-linear-heat-capacity.json",
+    "valid": true
+  },
+  {
     "file": "bad/schema-missing-section.json",
     "valid": false,
     "code": "E_SCHEMA_INVALID",
@@ -111,6 +119,114 @@
     "valid": false,
     "code": "E_UNITS",
     "field": "/geometry/fuelInnerRadius"
+  },
+  {
+    "file": "bad/transient-missing-section.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient"
+  },
+  {
+    "file": "bad/transient-section-on-steady.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient"
+  },
+  {
+    "file": "bad/transient-power-and-history.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/power/linearHeatRate"
+  },
+  {
+    "file": "bad/transient-no-end-time.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/endTime"
+  },
+  {
+    "file": "bad/transient-no-heat-capacity.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.volumetricHeatCapacity"
+  },
+  {
+    "file": "bad/transient-heat-capacity-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/cladding/sets/thermal.volumetricHeatCapacity/source"
+  },
+  {
+    "file": "bad/transient-heat-capacity-no-range.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.volumetricHeatCapacity/validRange"
+  },
+  {
+    "file": "bad/range-negative-heat-capacity.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.volumetricHeatCapacity/value"
+  },
+  {
+    "file": "bad/range-negative-pulse-power.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/powerHistory/1/linearHeatRate"
+  },
+  {
+    "file": "bad/time-step-not-dividing.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/timeStep"
+  },
+  {
+    "file": "bad/time-step-longer-than-run.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/timeStep"
+  },
+  {
+    "file": "bad/time-too-many-steps.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/timeStep"
+  },
+  {
+    "file": "bad/time-outputs-not-dividing.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/outputs"
+  },
+  {
+    "file": "bad/time-history-not-from-zero.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/powerHistory/0/time"
+  },
+  {
+    "file": "bad/time-history-not-increasing.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/powerHistory/2/time"
+  },
+  {
+    "file": "bad/time-history-ends-early.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/powerHistory"
+  },
+  {
+    "file": "bad/units-time-wrong.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/transient/timeStep"
+  },
+  {
+    "file": "bad/units-pulse-power-bare.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/transient/powerHistory/1/linearHeatRate"
   },
   {
     "file": "bad/boundary-bulk-only.json",
@@ -201,12 +317,6 @@
     "valid": false,
     "code": "E_UNSUPPORTED",
     "field": "/gap/model"
-  },
-  {
-    "file": "bad/unsupported-transient.json",
-    "valid": false,
-    "code": "E_UNSUPPORTED",
-    "field": "/assumptions/steadyState"
   },
   {
     "file": "bad/unsupported-mechanics.json",

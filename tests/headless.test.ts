@@ -51,7 +51,7 @@ describe("headless runner without a solver", () => {
     ["prop-missing-conductivity", "E_PROP_MISSING"],
     ["mesh-fuel-high", "E_MESH"],
     ["geometry-overlap", "E_GEOMETRY"],
-    ["unsupported-transient", "E_UNSUPPORTED"],
+    ["transient-missing-section", "E_TRANSIENT_INCOMPLETE"],
   ] as const) {
     it(`validate: ${file} is refused with ${code}, exit 2`, () => {
       const r = run("validate", join(root, "schema", "vectors", "bad", file + ".json"));

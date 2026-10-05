@@ -1,3 +1,4 @@
+import type { ResultsRecord } from "../src/core/resultsParser";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -31,7 +32,7 @@ describe("run manager: classification by output", () => {
     expect(rec.state).toBe("completed");
     expect(rec.exitCode).toBe(139);
     expect(rec.notes.join(" ")).toMatch(/SIGSEGV.*complete output/);
-    const res = mgr.results(id)!;
+    const res = mgr.results(id)! as ResultsRecord;
     expect(res.summary.centreCellT).toBeCloseTo(1307.2076, 3);
     expect(res.thermalOnly).toMatch(/Thermal-only/);
   });

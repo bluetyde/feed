@@ -3,7 +3,7 @@
 // listed in `placeholders` and in the mapping so nothing is a hidden default (see docs/spike/F0-note.md).
 // Pinned against OpenFOAM Foundation 9 + OFFBEAT 80e84450 (solver/PINS.md).
 
-import { Conductivity, NormalizedCase } from "./validate";
+import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
 export interface WrittenCase {
   /** Relative path (forward slashes) to file content, LF line endings. */
@@ -20,6 +20,8 @@ export interface WrittenCase {
 export const WEDGE_ANGLE_DEG = 0.25;
 /** Axial height of the one-cell slice in mm (power is per metre of rod; OFFBEAT scales by the reference height). */
 export const SLICE_HEIGHT_MM = 1000;
+/** Density written for every material. OFFBEAT wants rho and a mass-based Cp; a transient's volumetric heat capacity c is carried as Cp = c / rho. */
+export const WRITER_DENSITY = 10000;
 /** Steady runs use an end time far beyond any thermal time constant: a short one leaves a heat-storage term (F0 note). */
 export const STEADY_END_TIME = 5e7;
 
@@ -117,13 +119,21 @@ function conductivityLines(c: Conductivity): string {
   return `        conductivityModel steel1515TiTobbe;\n        conductivity { par1 ${num(c.a + 273.15 * c.b)}; par2 ${num(c.b)}; }\n`;
 }
 
-function constantMaterial(name: string, k: Conductivity): string {
+/** Heat capacity lines. Steady cases keep placeholders. A transient carries the volumetric c: constant as Cp = c / rho; linear c = a + b T
+ *  through OFFBEAT's steel1515TiBanerjee model (Cp = par1 + par2 T + par3 T^-2, T in K) with par3 = 0; the model's name is a misnomer. */
+function heatCapacityLines(cp: HeatCapacity | undefined): string {
+  const cpLine = (v: number) => `        Cp          Cp    [0 2 -2 -1 0]  ${num(v)};\n`;
+  if (cp === undefined) return cpLine(300);
+  if (cp.kind === "constant") return cpLine(cp.c / WRITER_DENSITY);
+  return cpLine(300) + `        heatCapacityModel steel1515TiBanerjee;\n        heatCapacity { par1 ${num(cp.a / WRITER_DENSITY)}; par2 ${num(cp.b / WRITER_DENSITY)}; par3 0; }\n`;
+}
+
+function constantMaterial(name: string, k: Conductivity, cp?: HeatCapacity): string {
   return `    ${name}
     {
         material constant;
-        rho         rho   [1 -3 0 0 0]   10000;
-        Cp          Cp    [0 2 -2 -1 0]  300;
-${conductivityLines(k)}        emissivity  emissivity [0 0 0 0 0] 0.8;
+        rho         rho   [1 -3 0 0 0]   ${WRITER_DENSITY};
+${heatCapacityLines(cp)}${conductivityLines(k)}        emissivity  emissivity [0 0 0 0 0] 0.8;
         E           E     [1 -1 -2 0 0]  2e11;
         nu          nu    [0 0 0 0 0]    0.3;
         G           G     [1 -1 -2 0 0]  7.69e10;
@@ -144,7 +154,7 @@ elementTransport        none;
 materialProperties      byZone;
 rheology                byMaterial;
 
-heatSource              constantLhgr;
+heatSource              ${c.transient ? "timeDependentLhgr" : "constantLhgr"};
 burnup                  none;
 fastFlux                none;
 corrosion               fromLatestTime;
@@ -165,16 +175,19 @@ thermalSolverOptions
 
 heatSourceOptions
 {
-    lhgr        ${num(c.qPrime)};
-    axialProfile { type flat; }
+${c.transient ? `    timePoints  (${[...c.transient.times, c.transient.times[c.transient.times.length - 1]! + c.transient.timeStep].map(num).join(" ")});
+    lhgr        (${[...c.transient.linearHeatRate, c.transient.linearHeatRate[c.transient.linearHeatRate.length - 1]!].map(num).join(" ")});
+    timeInterpolationMethod linear;
+` : `    lhgr        ${num(c.qPrime)};
+`}    axialProfile { type flat; }
     radialProfile { type flat; }
     materials ( fuel );
 }
 
 materials
 {
-${constantMaterial("fuel", kf)}
-${constantMaterial("cladding", kc)}}
+${constantMaterial("fuel", kf, c.fuelHeatCapacity)}
+${constantMaterial("cladding", kc, c.claddingHeatCapacity)}}
 `;
 }
 
@@ -255,15 +268,15 @@ ${c.fuelInnerRadius > 0 ? `    fuelInner
 }
 `;
 
-const controlDict = (endTime: number) => `${FOAM_HEADER("dictionary", "controlDict", "system")}
+const controlDict = (endTime: number, transient?: { timeStep: number; writeEvery: number }) => `${FOAM_HEADER("dictionary", "controlDict", "system")}
 application     offbeat;
 startFrom       latestTime;
 startTime       0;
 stopAt          endTime;
 endTime         ${num(endTime)};
-deltaT          1;
+deltaT          ${transient ? num(transient.timeStep) : 1};
 writeControl    timeStep;
-writeInterval   1000;
+writeInterval   ${transient ? transient.writeEvery : 1000};
 purgeWrite      0;
 writeFormat     ascii;
 writeCompression off;
@@ -271,7 +284,7 @@ timeFormat      general;
 timePrecision   20;
 writePrecision  8;
 
-adjustableTimeStep true;
+adjustableTimeStep ${transient ? "false" : "true"};
 maxDeltaT         6.048e5;
 minDeltaT         0.001;
 maxRelativeDeltaTIncrease 1e9;
@@ -335,15 +348,18 @@ relaxationFactors
 export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
   const kf = c.fuelConductivity;
   const kc = c.claddingConductivity;
-  const t0 = c.boundary.kind === "convective" ? c.boundary.bulkTemperature : c.boundary.surfaceTemperature;
+  const tr = c.transient;
+  const t0 = tr ? tr.initialTemperature : c.boundary.kind === "convective" ? c.boundary.bulkTemperature : c.boundary.surfaceTemperature;
   const files: Record<string, string> = {
     "system/blockMeshDict": blockMeshDict(c),
-    "system/controlDict": controlDict(STEADY_END_TIME),
+    "system/controlDict": tr ? controlDict(tr.endTime, { timeStep: tr.timeStep, writeEvery: tr.steps / tr.outputs }) : controlDict(STEADY_END_TIME),
     "system/fvSchemes": fvSchemes,
     "system/fvSolution": fvSolution,
     "constant/solverDict": solverDict(c, kf, kc),
     "0/T": temperatureField(c, t0),
     "0/D": displacementField(c),
+    // marks a transient for the run script (it then keeps the field at every write time); OpenFOAM ignores the file
+    ...(tr ? { "feed-transient.json": JSON.stringify({ outputs: tr.outputs, steps: tr.steps, timeStep: tr.timeStep, endTime: tr.endTime }) + "\n" } : {}),
   };
   const mapping: WrittenCase["mapping"] = [
     { field: "geometry.fuelRadius", file: "system/blockMeshDict", note: "block 'fuel' outer radius (mm), wedge " + WEDGE_ANGLE_DEG + " deg" },
@@ -352,17 +368,26 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     { field: "geometry.claddingOuterRadius", file: "system/blockMeshDict", note: "block 'cladding' outer radius" },
     { field: "mesh.fuelCells", file: "system/blockMeshDict" },
     { field: "mesh.claddingCells", file: "system/blockMeshDict" },
-    { field: "power.linearHeatRate", file: "constant/solverDict", note: "heatSourceOptions.lhgr, flat profiles" },
+    ...(tr
+      ? [
+          { field: "transient.powerHistory", file: "constant/solverDict", note: "timeDependentLhgr: timePoints and lhgr, linear interpolation, flat profiles. One flat point is appended one step after the last: the accumulated step time can land a few ulps past the last point, and OFFBEAT aborts on a time outside its table" },
+          { field: "transient.timeStep, endTime, outputs", file: "system/controlDict", note: "fixed deltaT (adjustableTimeStep false), endTime, writeInterval = steps / outputs" },
+          { field: "transient.initialTemperature", file: "0/T", note: "uniform internalField" },
+          { field: "materials.* thermal.volumetricHeatCapacity", file: "constant/solverDict", note: "rho " + WRITER_DENSITY + " kg/m3 and Cp = c / rho (constant), or steel1515TiBanerjee with par1 = a / rho, par2 = b / rho, par3 = 0 (linear c(T)); the model name is a misnomer" },
+        ]
+      : [{ field: "power.linearHeatRate", file: "constant/solverDict", note: "heatSourceOptions.lhgr, flat profiles" }]),
     { field: "materials.fuel thermal.conductivity", file: "constant/solverDict", note: kf.kind === "constant" ? "materials.fuel.k (constant)" : "materials.fuel: steel1515TiTobbe with par1 = a + 273.15 b, par2 = b (linear k(T))" },
     { field: "materials.cladding thermal.conductivity", file: "constant/solverDict", note: kc.kind === "constant" ? "materials.cladding.k (constant)" : "materials.cladding: steel1515TiTobbe with par1 = a + 273.15 b, par2 = b (linear k(T))" },
     { field: "gap.conductance", file: "0/T", note: "resistiveGap alpha on fuelOuter and cladInner" },
     { field: "boundary", file: "0/T", note: c.boundary.kind === "convective" ? "cladOuter convectiveHTC (T0, h)" : "cladOuter fixedValue" },
   ];
   const placeholders: WrittenCase["placeholders"] = [
-    { name: "rho", value: "10000 kg/m3", why: "required by the constant material model; storage only, no effect on the steady result" },
-    { name: "Cp", value: "300 J/kg/K", why: "same" },
+    tr
+      ? { name: "rho", value: WRITER_DENSITY + " kg/m3", why: "carrier for the volumetric heat capacity: the model wants rho and a mass-based Cp, and only their product rho Cp enters the heat equation" }
+      : { name: "rho", value: "10000 kg/m3", why: "required by the constant material model; storage only, no effect on the steady result" },
+    ...(tr ? [] : [{ name: "Cp", value: "300 J/kg/K", why: "same" }]),
     { name: "emissivity, E, nu, G, alpha, Tref", value: "0.8, 2e11, 0.3, 7.69e10, 1e-5, 300", why: "required by the constant material model; unused with mechanics off" },
-    { name: "initial temperature", value: String(t0) + " K", why: "starting field; the steady result does not depend on it" },
+    { name: "initial temperature", value: String(t0) + " K", why: tr ? "the transient's initial temperature, as given" : "starting field; the steady result does not depend on it" },
   ];
-  return { files, mapping, placeholders, choices: { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: STEADY_END_TIME } };
+  return { files, mapping, placeholders, choices: tr ? { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: tr.endTime, timeStep: tr.timeStep, steps: tr.steps, outputs: tr.outputs } : { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: STEADY_END_TIME } };
 }

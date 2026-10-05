@@ -60,6 +60,13 @@ if [ "$final" != "0" ]; then
   timeout --foreground "$TMO" postProcess -func writeCellCentres -latestTime > log.cellCentres 2>&1
   cancelled && stop_cancelled
   cp "$final/T" "$final/C" "$OUT/final/" 2>/dev/null
+  # a transient (marked by feed-transient.json) keeps the temperature field at every write time; the cell centres are the same throughout
+  if [ -e "$RUN/feed-transient.json" ]; then
+    for d in $(ls -d [0-9]* 2>/dev/null | sort -g); do
+      [ "$d" = "0" ] && continue
+      mkdir -p "$OUT/times/$d" && cp "$d/T" "$OUT/times/$d/" 2>/dev/null
+    done
+  fi
 fi
 cp log.blockMesh "$OUT/" 2>/dev/null
 cp log.offbeat "$OUT/" 2>/dev/null

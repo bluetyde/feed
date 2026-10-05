@@ -1,0 +1,164 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "units-pulse-power-bare",
+  "name": "Synthetic pulse: a 10 ms triangular power pulse on a cold pin (illustrative numbers, not a real fuel design)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": false,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.18,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 573,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the adiabatic-limit oracle"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 15,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 2.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the oracle"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 6
+  },
+  "description": "The synthetic pin heated by a triangular pulse of linear heat rate (peak 10 MW/m at 5 ms, back to zero at 10 ms) from a uniform 300 K start, then cooling for 90 ms more. The pulse deposits 50 kJ/m, about 316 K of adiabatic heating in the fuel. The coolant boundary is the case's convective boundary. Synthetic heat capacities. Thermal only; the power history is an input, not a result.",
+  "transient": {
+    "powerHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0,
+          "unit": "W/m"
+        }
+      },
+      {
+        "time": {
+          "value": 5,
+          "unit": "ms"
+        },
+        "linearHeatRate": 10000000
+      },
+      {
+        "time": {
+          "value": 10,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0,
+          "unit": "W/m"
+        }
+      },
+      {
+        "time": {
+          "value": 100,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0,
+          "unit": "W/m"
+        }
+      }
+    ],
+    "endTime": {
+      "value": 100,
+      "unit": "ms"
+    },
+    "timeStep": {
+      "value": 0.1,
+      "unit": "ms"
+    },
+    "outputs": 20,
+    "initialTemperature": {
+      "value": 300,
+      "unit": "K"
+    }
+  }
+}

@@ -21,8 +21,31 @@ export type Conductivity =
   | { kind: "constant"; k: number; referenceTemperature: number }
   | { kind: "linear"; a: number; b: number; range: [number, number] };
 
+export type HeatCapacity =
+  | { kind: "constant"; c: number; referenceTemperature: number }
+  | { kind: "linear"; a: number; b: number; range: [number, number] };
+
+/** A thermal transient: the power history is an input, the step is fixed. All values in SI. */
+export interface NormalizedTransient {
+  /** Power history points: time (s) and linear heat rate (W/m); linear interpolation between points. Starts at 0 and reaches the end time. */
+  times: number[];
+  linearHeatRate: number[];
+  endTime: number;
+  timeStep: number;
+  steps: number;
+  /** Number of equally spaced output times after t = 0 (the last is the end time). */
+  outputs: number;
+  initialTemperature: number;
+}
+
+/** Limits on the time grid; beyond them a case is refused, not truncated. */
+export const MAX_STEPS = 100000;
+export const MAX_OUTPUTS = 200;
+export const MAX_HISTORY_POINTS = 1000;
+
 export interface NormalizedCase {
   caseId: string;
+  /** Steady: the linear heat rate (W/m). Transient: the peak of the power history, as a reference value only. */
   qPrime: number;
   fuelRadius: number;
   /** Radius of a central hole whose surface is insulated (TRIGA's zirconium fill rod); 0 for solid fuel. */
@@ -34,6 +57,10 @@ export interface NormalizedCase {
   fuelConductivity: Conductivity;
   claddingConductivity: Conductivity;
   mesh: { fuelCells: number; claddingCells: number };
+  /** Present exactly when the case is a transient (assumptions.steadyState false). */
+  transient?: NormalizedTransient;
+  fuelHeatCapacity?: HeatCapacity;
+  claddingHeatCapacity?: HeatCapacity;
 }
 
 export interface ValidationResult {
@@ -98,9 +125,12 @@ export function validateCase(doc: unknown): ValidationResult {
 
   // Scope of V1
   if (c.assumptions.thermalOnly !== true) err("E_UNSUPPORTED", "/assumptions/thermalOnly", "V1 is thermal-only; mechanics and irradiation are later capabilities");
-  if (c.assumptions.steadyState !== true) err("E_UNSUPPORTED", "/assumptions/steadyState", "V1 is steady state; transients are a later capability");
+  // steadyState false means a thermal transient: it needs the transient section and heat capacities (checked below). Nothing is assumed.
+  const isTransient = c.assumptions.steadyState === false;
+  if (!isTransient && c.transient !== undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "the case has a transient section but assumptions.steadyState is true; set it to false to run the transient, or remove the section");
+  if (isTransient && c.transient === undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "assumptions.steadyState is false, so the case needs a transient section (power history, end time, time step, outputs, initial temperature)");
   if (c.assumptions.geometry !== "1D-radial") err("E_UNSUPPORTED", "/assumptions/geometry", "V1 supports geometry '1D-radial' only, got '" + String(c.assumptions.geometry) + "'");
-  if (c.power.radialShape !== undefined && c.power.radialShape !== "uniform") err("E_UNSUPPORTED", "/power/radialShape", "V1 supports a uniform radial power shape only");
+  if (c.power?.radialShape !== undefined && c.power.radialShape !== "uniform") err("E_UNSUPPORTED", "/power/radialShape", "V1 supports a uniform radial power shape only");
 
   // Geometry
   const radius = (value: unknown, field: string, what: string): number | undefined => {
@@ -133,9 +163,16 @@ export function validateCase(doc: unknown): ValidationResult {
   }
   if (Rci !== undefined && Rco !== undefined && Rco <= Rci) err("E_GEOMETRY", "/geometry/claddingOuterRadius", "cladding outer radius must exceed the inner radius");
 
-  // Power
-  const qPrime = positive(c.power.linearHeatRate, "linearPower", "/power/linearHeatRate", "linear heat rate", "W/m");
-  if (qPrime !== undefined && qPrime > POWER_SANITY_MAX) {
+  // Power: a steady case states one linear heat rate; a transient case states a history in the transient section instead.
+  let qPrime: number | undefined;
+  if (isTransient) {
+    if (c.power?.linearHeatRate !== undefined) err("E_TRANSIENT_INCOMPLETE", "/power/linearHeatRate", "a transient case takes its power from transient.powerHistory; remove power.linearHeatRate");
+  } else if (c.power?.linearHeatRate === undefined) {
+    err("E_SCHEMA_INVALID", "/power/linearHeatRate", "missing: a steady case needs the linear heat rate");
+  } else {
+    qPrime = positive(c.power.linearHeatRate, "linearPower", "/power/linearHeatRate", "linear heat rate", "W/m");
+  }
+  if (!isTransient && qPrime !== undefined && qPrime > POWER_SANITY_MAX) {
     issues.push({ code: "W_POWER_RANGE", severity: "warning", field: "/power/linearHeatRate", message: "linear heat rate is above the sanity range (" + POWER_SANITY_MAX + " W/m); kept as given", unit: "W/m", range: [0, POWER_SANITY_MAX] });
   }
 
@@ -181,6 +218,17 @@ export function validateCase(doc: unknown): ValidationResult {
   const fuelK = conductivity(c.materials.fuel, "fuel", err, qty);
   const claddingK = conductivity(c.materials.cladding, "cladding", err, qty);
 
+  // Transient: heat capacities of both solids and the time section.
+  let fuelCp: HeatCapacity | undefined;
+  let claddingCp: HeatCapacity | undefined;
+  let transient: NormalizedTransient | undefined;
+  if (isTransient) {
+    fuelCp = heatCapacity(c.materials.fuel, "fuel", err, qty);
+    claddingCp = heatCapacity(c.materials.cladding, "cladding", err, qty);
+    if (c.transient !== undefined) transient = parseTransient(c.transient, err, qty);
+    if (transient) qPrime = Math.max(...transient.linearHeatRate);
+  }
+
   // Mesh
   const mesh = c.mesh as { fuelCells: number; claddingCells: number };
   for (const key of ["fuelCells", "claddingCells"] as const) {
@@ -189,7 +237,7 @@ export function validateCase(doc: unknown): ValidationResult {
   }
 
   const result = finish(issues);
-  if (result.ok && Rf !== undefined && Rci !== undefined && Rco !== undefined && qPrime !== undefined && hGap !== undefined && boundary && fuelK && claddingK) {
+  if (result.ok && Rf !== undefined && Rci !== undefined && Rco !== undefined && qPrime !== undefined && hGap !== undefined && boundary && fuelK && claddingK && (!isTransient || (transient && fuelCp && claddingCp))) {
     result.normalized = {
       caseId: c.caseId,
       qPrime,
@@ -202,6 +250,7 @@ export function validateCase(doc: unknown): ValidationResult {
       fuelConductivity: fuelK,
       claddingConductivity: claddingK,
       mesh: { fuelCells: mesh.fuelCells, claddingCells: mesh.claddingCells },
+      ...(isTransient ? { transient, fuelHeatCapacity: fuelCp, claddingHeatCapacity: claddingCp } : {}),
     };
   }
   return result;
@@ -264,4 +313,129 @@ function conductivity(material: Record<string, any>, region: string, err: ErrFn,
   }
   err("E_UNSUPPORTED", base + "/model", "unknown conductivity model '" + String(set.model) + "'; V1 supports 'constant' and 'linear'");
   return undefined;
+}
+
+/** Volumetric heat capacity c (J/m3/K) of one solid: constant, or linear c = a + b T (T in K) over a stated range. Needed by transients only. */
+function heatCapacity(material: Record<string, any>, region: string, err: ErrFn, qty: QtyFn): HeatCapacity | undefined {
+  const base = "/materials/" + region + "/sets/thermal.volumetricHeatCapacity";
+  const set = isObject(material.sets) ? material.sets["thermal.volumetricHeatCapacity"] : undefined;
+  if (!isObject(set)) {
+    err("E_PROP_MISSING", base, region + " material '" + material.materialId + "' has no thermal.volumetricHeatCapacity set; a transient needs the heat capacity of both solids");
+    return undefined;
+  }
+  const sourceMissing = set.source === undefined || typeof set.source !== "string" || set.source === "";
+  if (sourceMissing) err("E_PROP_MISSING", base + "/source", "the " + region + " heat capacity needs a stated source");
+  if (set.model === "constant") {
+    if (set.value === undefined) {
+      err("E_PROP_MISSING", base + "/value", "the constant heat capacity model needs c (J/m3/K)");
+      return undefined;
+    }
+    if (set.referenceTemperature === undefined) err("E_PROP_MISSING", base + "/referenceTemperature", "the constant heat capacity model needs the reference temperature the value applies at");
+    const c = qty(set.value, "volumetricHeatCapacity", base + "/value");
+    const tref = set.referenceTemperature === undefined ? undefined : qty(set.referenceTemperature, "temperature", base + "/referenceTemperature");
+    if (c !== undefined && !(c > 0)) {
+      err("E_OUT_OF_RANGE", base + "/value", region + " heat capacity must be positive", { unit: "J/m3/K" });
+      return undefined;
+    }
+    if (c === undefined || tref === undefined || sourceMissing) return undefined;
+    return { kind: "constant", c, referenceTemperature: tref };
+  }
+  if (set.model === "linear") {
+    for (const key of ["a", "b"]) {
+      if (set[key] === undefined) err("E_PROP_MISSING", base + "/" + key, "the linear heat capacity model c = a + b T needs '" + key + "'");
+    }
+    const range = set.validRange;
+    if (!isObject(range) || range.min === undefined || range.max === undefined) {
+      err("E_PROP_MISSING", base + "/validRange", "a temperature-dependent heat capacity needs the temperature range it applies to (min and max)");
+    }
+    const a = set.a === undefined ? undefined : qty(set.a, "volumetricHeatCapacity", base + "/a");
+    const bb = set.b === undefined ? undefined : qty(set.b, "volumetricHeatCapacityPerK", base + "/b");
+    const lo = isObject(range) && range.min !== undefined ? qty(range.min, "temperature", base + "/validRange/min") : undefined;
+    const hi = isObject(range) && range.max !== undefined ? qty(range.max, "temperature", base + "/validRange/max") : undefined;
+    if (a === undefined || bb === undefined || lo === undefined || hi === undefined || sourceMissing) return undefined;
+    if (!(hi > lo)) {
+      err("E_OUT_OF_RANGE", base + "/validRange", "range maximum must exceed the minimum", { unit: "K" });
+      return undefined;
+    }
+    if (!(a + bb * lo > 0) || !(a + bb * hi > 0)) {
+      err("E_OUT_OF_RANGE", base, "heat capacity a + b T is not positive over its stated range", { unit: "J/m3/K", range: [lo, hi] });
+      return undefined;
+    }
+    return { kind: "linear", a, b: bb, range: [lo, hi] };
+  }
+  err("E_UNSUPPORTED", base + "/model", "unknown heat capacity model '" + String(set.model) + "'; supported: 'constant' and 'linear'");
+  return undefined;
+}
+
+/** The transient section: power history, time grid, outputs and initial temperature. Every problem is named; nothing is defaulted. */
+function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): NormalizedTransient | undefined {
+  let ok = true;
+  const bad = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+    ok = false;
+    err(code, field, message, extra);
+  };
+  for (const key of ["powerHistory", "endTime", "timeStep", "outputs", "initialTemperature"]) {
+    if (t[key] === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/" + key, "the transient section needs '" + key + "'");
+  }
+  const endTime = t.endTime === undefined ? undefined : qty(t.endTime, "time", "/transient/endTime");
+  const timeStep = t.timeStep === undefined ? undefined : qty(t.timeStep, "time", "/transient/timeStep");
+  const initialTemperature = t.initialTemperature === undefined ? undefined : qty(t.initialTemperature, "temperature", "/transient/initialTemperature");
+  if (endTime === undefined && t.endTime !== undefined) ok = false;
+  if (timeStep === undefined && t.timeStep !== undefined) ok = false;
+  if (initialTemperature === undefined && t.initialTemperature !== undefined) ok = false;
+  if (endTime !== undefined && !(endTime > 0)) bad("E_OUT_OF_RANGE", "/transient/endTime", "end time must be positive", { unit: "s" });
+  if (timeStep !== undefined && !(timeStep > 0)) bad("E_OUT_OF_RANGE", "/transient/timeStep", "time step must be positive", { unit: "s" });
+  if (initialTemperature !== undefined && !(initialTemperature > 0)) bad("E_OUT_OF_RANGE", "/transient/initialTemperature", "initial temperature must be above 0 K", { unit: "K" });
+
+  let steps = 0;
+  if (endTime !== undefined && timeStep !== undefined && endTime > 0 && timeStep > 0) {
+    const ratio = endTime / timeStep;
+    steps = Math.round(ratio);
+    if (Math.abs(ratio - steps) > 1e-6 * Math.max(1, ratio)) bad("E_TIME", "/transient/timeStep", "the end time is not a whole number of time steps (" + ratio + " steps); choose a step that divides it", { unit: "s" });
+    else if (steps < 1) bad("E_TIME", "/transient/timeStep", "the time step is longer than the end time", { unit: "s" });
+    else if (steps > MAX_STEPS) bad("E_TIME", "/transient/timeStep", "the run would take " + steps + " steps; the maximum is " + MAX_STEPS, { unit: "s" });
+  }
+  const outputs = t.outputs;
+  if (typeof outputs === "number" && Number.isInteger(outputs)) {
+    if (outputs < 1 || outputs > MAX_OUTPUTS) bad("E_TIME", "/transient/outputs", "outputs is " + outputs + "; it must be between 1 and " + MAX_OUTPUTS);
+    else if (steps >= 1 && steps % outputs !== 0) bad("E_TIME", "/transient/outputs", "outputs (" + outputs + ") must divide the number of steps (" + steps + ") so the outputs fall on step boundaries");
+  }
+
+  const times: number[] = [];
+  const lhgr: number[] = [];
+  const hist = t.powerHistory;
+  if (Array.isArray(hist)) {
+    if (hist.length < 2) bad("E_TIME", "/transient/powerHistory", "the power history needs at least two points");
+    else if (hist.length > MAX_HISTORY_POINTS) bad("E_TIME", "/transient/powerHistory", "the power history has " + hist.length + " points; the maximum is " + MAX_HISTORY_POINTS);
+    else {
+      hist.forEach((p: any, i: number) => {
+        const f = "/transient/powerHistory/" + i;
+        if (!isObject(p)) return bad("E_SCHEMA_INVALID", f, "each history point is {time, linearHeatRate}");
+        const tt = qty(p.time, "time", f + "/time");
+        const q = qty(p.linearHeatRate, "linearPower", f + "/linearHeatRate");
+        if (tt === undefined || q === undefined) {
+          ok = false;
+          return;
+        }
+        if (q < 0) return bad("E_OUT_OF_RANGE", f + "/linearHeatRate", "linear heat rate cannot be negative", { unit: "W/m" });
+        times.push(tt);
+        lhgr.push(q);
+      });
+      if (times.length === hist.length) {
+        if (times[0] !== 0) bad("E_TIME", "/transient/powerHistory/0/time", "the power history must start at time 0");
+        for (let i = 1; i < times.length; i++) {
+          if (!(times[i]! > times[i - 1]!)) {
+            bad("E_TIME", "/transient/powerHistory/" + i + "/time", "history times must increase strictly");
+            break;
+          }
+        }
+        if (endTime !== undefined && times[times.length - 1]! < endTime * (1 - 1e-12)) bad("E_TIME", "/transient/powerHistory", "the power history ends at " + times[times.length - 1] + " s, before the end time " + endTime + " s; give the power over the whole run");
+        if (!(Math.max(...lhgr) > 0)) bad("E_OUT_OF_RANGE", "/transient/powerHistory", "the power history is zero everywhere");
+      } else ok = false;
+    }
+  } else if (hist !== undefined) {
+    bad("E_SCHEMA_INVALID", "/transient/powerHistory", "the power history is a list of {time, linearHeatRate} points");
+  }
+  if (!ok || endTime === undefined || timeStep === undefined || initialTemperature === undefined || typeof outputs !== "number" || times.length < 2) return undefined;
+  return { times, linearHeatRate: lhgr, endTime, timeStep, steps, outputs, initialTemperature };
 }

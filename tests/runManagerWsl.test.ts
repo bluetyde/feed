@@ -1,6 +1,7 @@
 // The run manager driving the real solver in the feed-solver distro. Runs only with FEED_SOLVER=1 (see solverEndToEnd.test.ts).
 //   FEED_SOLVER=1 npm test
 
+import type { ResultsRecord } from "../src/core/resultsParser";
 import { execFileSync } from "child_process";
 import { mkdtempSync, readFileSync } from "fs";
 import { tmpdir } from "os";
@@ -37,7 +38,7 @@ describe.skipIf(!enabled)("run manager + real solver (needs FEED_SOLVER=1 and th
     const rec = await mgr.done(s.id);
     expect(rec.failure).toBeUndefined();
     expect(rec.state).toBe("completed");
-    const res = mgr.results(s.id)!;
+    const res = mgr.results(s.id)! as ResultsRecord;
     expect(res.checks.filter((c) => c.verdict === "fail")).toEqual([]);
     expect(res.checks.find((c) => c.id === "closedFormFuel")!.verdict).toBe("pass");
     expect(res.summary.centreCellT).toBeGreaterThan(1300);
@@ -52,7 +53,7 @@ describe.skipIf(!enabled)("run manager + real solver (needs FEED_SOLVER=1 and th
     const rec = await mgr.done(s.id);
     expect(rec.failure).toBeUndefined();
     expect(rec.state).toBe("completed");
-    const res = mgr.results(s.id)!;
+    const res = mgr.results(s.id)! as ResultsRecord;
     expect(res.checks.map((c) => c.id)).toContain("propertyRange");
     expect(res.checks.filter((c) => c.verdict !== "pass")).toEqual([]);
     expect(res.domain.verdict).toBe("in-domain");
@@ -67,7 +68,7 @@ describe.skipIf(!enabled)("run manager + real solver (needs FEED_SOLVER=1 and th
     const s = mgr.start(doc);
     if (!s.ok) throw new Error("start refused");
     expect((await mgr.done(s.id)).state).toBe("completed");
-    const res = mgr.results(s.id)!;
+    const res = mgr.results(s.id)! as ResultsRecord;
     expect(res.checks.filter((c) => c.verdict !== "pass")).toEqual([]);
     expect(Math.abs(res.checks.find((c) => c.id === "energyBalance")!.value!)).toBeLessThan(1e-3);
   }, 240_000);
@@ -79,7 +80,7 @@ describe.skipIf(!enabled)("run manager + real solver (needs FEED_SOLVER=1 and th
     const s = mgr.start(doc);
     if (!s.ok) throw new Error("start refused");
     expect((await mgr.done(s.id)).state).toBe("completed");
-    const res = mgr.results(s.id)!;
+    const res = mgr.results(s.id)! as ResultsRecord;
     expect(res.domain.verdict).toBe("out-of-domain");
     expect(res.checks.find((c) => c.id === "propertyRange")!.verdict).toBe("fail");
   }, 240_000);

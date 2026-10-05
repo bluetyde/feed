@@ -4,7 +4,7 @@
   "title": "FEED thermal case (V1, proposed)",
   "description": "Structure only. Units, ranges, boundary completeness and required properties are checked by the semantic validator (src/core/validate.ts). Unknown fields are allowed and preserved on save; unknown option values are refused by the validator.",
   "type": "object",
-  "required": ["schema", "caseId", "name", "assumptions", "geometry", "power", "boundary", "materials", "gap", "mesh"],
+  "required": ["schema", "caseId", "name", "assumptions", "geometry", "boundary", "materials", "gap", "mesh"],
   "properties": {
     "schema": { "const": "feed.case/0.1" },
     "caseId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
@@ -31,10 +31,19 @@
     },
     "power": {
       "type": "object",
-      "required": ["linearHeatRate"],
       "properties": {
         "linearHeatRate": { "$ref": "#/$defs/quantity" },
         "radialShape": { "type": "string" }
+      }
+    },
+    "transient": {
+      "type": "object",
+      "properties": {
+        "powerHistory": { "type": "array", "items": { "type": "object" } },
+        "endTime": { "$ref": "#/$defs/quantity" },
+        "timeStep": { "$ref": "#/$defs/quantity" },
+        "outputs": { "type": "integer" },
+        "initialTemperature": { "$ref": "#/$defs/quantity" }
       }
     },
     "boundary": {

@@ -5,7 +5,9 @@
   "E_OUT_OF_RANGE": { "severity": "error", "meaning": "a value is outside the range the model can accept (non-positive power, conductivity, temperature, coefficient; reference outside a property range)" },
   "E_PROP_MISSING": { "severity": "error", "meaning": "a property the chosen model needs is absent; names the property and the model" },
   "E_BOUNDARY_INCOMPLETE": { "severity": "error", "meaning": "coolant boundary missing a datum (bulk temperature without coefficient, or the reverse), absent, or specified in two forms" },
-  "E_UNSUPPORTED": { "severity": "error", "meaning": "option or situation outside V1: unknown model, transient, non-thermal-only, closed gap that needs contact mechanics" },
+  "E_UNSUPPORTED": { "severity": "error", "meaning": "option or situation outside the supported scope: unknown model, non-thermal-only, closed gap that needs contact mechanics" },
+  "E_TRANSIENT_INCOMPLETE": { "severity": "error", "meaning": "transient case without its transient section (or the reverse), a missing field in it, or a steady power given with a power history" },
+  "E_TIME": { "severity": "error", "meaning": "time grid or power history unusable: end time not a whole number of steps, too many steps or outputs, outputs not dividing the steps, history not starting at 0, not increasing, or ending before the end time" },
   "E_MESH": { "severity": "error", "meaning": "cell count below the minimum or above the maximum for its region" },
   "W_POWER_RANGE": { "severity": "warning", "meaning": "linear heat rate above the sanity range; not clamped, not an error" }
 }

@@ -1,6 +1,7 @@
 // Annular fuel: a central hole with an insulated surface (TRIGA's zirconium fill rod). Closed form, validation, case writer,
 // results parser on real OFFBEAT output, and (gated) a real solver run. The independent reference numbers come from
 // oracles/annulus-reference.py (numerical integration), not from src/core.
+import type { ResultsRecord } from "../src/core/resultsParser";
 import { execFileSync } from "child_process";
 import { mkdtempSync, readFileSync } from "fs";
 import { tmpdir } from "os";
@@ -183,7 +184,7 @@ describe.skipIf(!solverOn)("annular pin through the real solver (needs FEED_SOLV
     if (!s.ok) throw new Error("start refused");
     const rec = await mgr.done(s.id);
     expect(rec.state).toBe("completed");
-    const res = mgr.results(s.id)!;
+    const res = mgr.results(s.id)! as ResultsRecord;
     expect(res.checks.every((c) => c.verdict === "pass")).toBe(true);
     expect(Math.abs(res.summary.maxT - 1213.5607)).toBeLessThan(0.05);
     expect(res.summary.claddingOuterWallT).toBeCloseTo(595.3375, 2);
