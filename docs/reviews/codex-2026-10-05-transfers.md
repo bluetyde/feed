@@ -1,0 +1,21 @@
+# Codex F3 exit review: transfer intake
+
+2026-10-05. Code reviewed: `src/core/transfer.ts` and `tests/transfer.test.ts` as of commit `28cdcbc`, against plan 05. Two auditors: `specification-gap-auditor` and `silent-failure-hunter`. Eleven distinct findings; all confirmed by reading the code against the described inputs; all fixed in the next commit.
+
+| # | Finding | Fix | Test |
+|---|---|---|---|
+| 1 | **High.** Approval named only a person and a time: changing the tolerance after approval kept the approval valid, so a half-pin mapping that fails at 1e-9 passed at 0.6. | An approval carries `recipeDigest`, the SHA-256 of every other field of the recipe. Any later change to tolerance, slices, source or target is `E_RECIPE_INVALID`. `approveRecipe` builds one. This binds the approval to the content; it does not authenticate the approver. That belongs to SEED's approval record and is stated in decision 0003. | tolerance, slices, pin, target and recipe id edits each refused |
+| 2 | **High.** Overlapping slices could double count one half and omit the other with exact conservation. | Slices must not overlap (`E_RECIPE_INVALID`). | two overlap shapes; touching slices still fine |
+| 3 | **High.** Duplicate or overlapping source bins doubled power and lowered the reported uncertainty. | Bin ids are unique over the whole source; bins of the target pin may not overlap in z (`E_SCHEMA_INVALID`). | same pin, other pin, overlap |
+| 4 | **High.** A total power had no verifiable domain: a partial export gave all the power to the remaining pin. | A total power states `domain: {binCount, scoreTotal}`; both must match the bins supplied (`E_NORMALIZATION_DOMAIN`); no domain is `E_NORMALIZATION_MISSING`. | partial export, same count with a different total, no domain |
+| 5 | **High.** Applying results re-checked nothing: a case edited after approval, or heating from one height with coolant from another, was accepted. | Mappings carry the target revision and their slice. `applyToCase` returns `ok`/errors, refuses a base that is not the approved case (`E_STALE_REVISION`), a slice that is not part of the mapping, and heating and boundary slices that are not the same interval. | three refusals plus the matching good case |
+| 6 | **High.** The tally score was never read. | Recipe names the score; the source must carry the same one (`E_SCORE_MISMATCH`). | missing, different, unapproved |
+| 7 | **High.** Frame, mesh association and time semantics were ignored; a transient snapshot passed as steady. | Recipe and source name a coordinate frame (`E_FRAME_MISMATCH`, no transform); the source must say `temporal: "steady"` (`E_UNSUPPORTED`). The pin or region id is the mesh association. | heating and boundary |
+| 8 | Medium. Derived values could be Infinity or NaN and pass (`NaN` compared false). | Converted powers, totals, slice power, heat rate, uncertainty and the residual must be finite (`E_NUMERIC`). | overflow in a bin; overflow only at the slice (a second test, added after a mutation survived) |
+| 9 | Medium. Temperatures below absolute zero were accepted. | Kelvin value must be above 0 (`E_OUT_OF_RANGE`). | -300 degC, 0 K |
+| 10 | Medium. Applied cases shared mutable objects with the mapping and with each other. | Everything inserted is cloned. | two cases from one mapping |
+| 11 | Medium. A fixed 1e-12 m coverage tolerance could exceed the geometry. | Tolerance is 1e-9 of the interval concerned; a zero-length region is refused. | 1e-15 m bin against a 1e-12 m slice; zero-length region |
+
+Verification: 81 tests in `tests/transfer.test.ts`. Fourteen deliberate mutations of the fixed code (approval digest, slice overlap, bin overlap, duplicate id, both domain checks, score, frame and time, stale base, slice match, finite check, kelvin check, missing clone) were each caught; two survived the first pass (duplicate id, whose case the overlap check also caught; the slice-level finite check, which the bin-level check pre-empted) and got tests that reach them, after which both mutations fail a test.
+
+Not covered by this review or these tests: the OpenMC and NODAL readers that would produce the sources, SEED's approval authenticity, propagation of Monte Carlo error into temperature, and anything in plan 05's acceptance items 4 to 6.

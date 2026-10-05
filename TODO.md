@@ -90,7 +90,7 @@ Started 2026-10-05; see [docs/spike/F0-note.md](docs/spike/F0-note.md) and [solv
 - [~] NODAL boundary mapping: identified axial region; explicit choice of bulk-plus-h or surface temperature; bulk temperature alone refused. Done against fakes (`mapBoundary`); no NODAL reader yet.
 - [ ] Standalone vs workspace equivalence on the same immutable input.
 - [ ] Material round trip with real OpenMC and thermal sets (cross-app acceptance case).
-- [ ] **[codex]** F3 exit review (conservation and refusal logic).
+- [x] 2026-10-05: **[codex]** F3 exit review (conservation and refusal logic): 11 findings, all confirmed and fixed, 81 tests, 14 mutations caught. See [the review record](docs/reviews/codex-2026-10-05-transfers.md). F3 is closed for the fake-source scope; the real OpenMC and NODAL readers and plan 05 acceptance 4 to 6 stay open.
 
 ## F4: further physics ([plan 06](docs/plans/06-mechanics-and-irradiation.md))
 

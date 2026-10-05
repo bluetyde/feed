@@ -14,3 +14,7 @@ Choices that matter:
 - Pressure, if given, must state absolute or gauge.
 
 Not done: the OpenMC and NODAL adapters that would produce these sources, the editor view of a stale link, SEED recipe approval records, and the standalone-versus-workspace equivalence run (plan 05 acceptance 4 to 6).
+
+## Update 2026-10-05: after the Codex F3 review
+
+See [the review record](../reviews/codex-2026-10-05-transfers.md). Changes to the shapes: an approval is `{approver, time, recipeDigest}` and covers the recipe's content; the heating recipe and source name the tally `score` and a coordinate `frame`; sources state `temporal: "steady"`; a total-power normalization states its `domain {binCount, scoreTotal}`; mapped results carry their target revision and slice, and `applyToCase` returns `{ok, doc}` or errors. The digest gives integrity only: anyone who can edit a recipe can recompute it, so the real approval (identity, time, tamper evidence) must come from SEED's record when its format exists.
