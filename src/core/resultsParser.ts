@@ -1,0 +1,218 @@
+// Results parser: OFFBEAT final-time field text -> validated results record (docs/ARCHITECTURE.md, interface 2).
+// Incomplete, non-finite or inconsistent output is REFUSED with a typed error; it never becomes a partial result.
+// Pure functions on text: no solver, no files. Tested on real saved output (tests/golden/offbeat-syn/).
+
+import { closedForm, fuelTemperatureLinearK, LinearK, solveLinearK } from "./closedForm";
+import { Conductivity, NormalizedCase } from "./validate";
+
+export class ResultsError extends Error {
+  constructor(public code: "E_OUTPUT_INCOMPLETE", message: string) {
+    super(message);
+  }
+}
+const bad = (message: string): never => {
+  throw new ResultsError("E_OUTPUT_INCOMPLETE", message);
+};
+
+/** Parse `internalField nonuniform List<scalar> N ( ... )`. A uniform field is refused: a radial profile needs per-cell values. */
+export function parseScalarField(text: string, name: string): number[] {
+  const m = /internalField\s+(nonuniform|uniform)\s+(?:List<scalar>\s*(\d+)\s*\(|([^;\s]+)\s*;)/.exec(text);
+  if (!m) return bad(`field ${name}: no internalField found`);
+  if (m[1] === "uniform") return bad(`field ${name}: internalField is uniform; per-cell values are required`);
+  const n = Number(m[2]);
+  const body = text.slice(m.index + m[0].length);
+  const end = body.indexOf("\n)");
+  if (end < 0) return bad(`field ${name}: list is not closed (truncated file?)`);
+  const tokens = body.slice(0, end).trim().split(/\s+/).filter(Boolean);
+  if (tokens.length !== n) return bad(`field ${name}: header says ${n} values, found ${tokens.length}`);
+  const vals = tokens.map(Number);
+  vals.forEach((v, i) => {
+    if (!Number.isFinite(v)) bad(`field ${name}: value ${i} is not finite (${tokens[i]})`);
+  });
+  return vals;
+}
+
+/** Parse `internalField nonuniform List<vector> N ( (x y z) ... )`. */
+export function parseVectorField(text: string, name: string): number[][] {
+  const m = /internalField\s+nonuniform\s+List<vector>\s*(\d+)\s*\(/.exec(text);
+  if (!m) return bad(`field ${name}: no nonuniform vector internalField found`);
+  const n = Number(m[1]);
+  const body = text.slice(m.index + m[0].length);
+  const end = body.indexOf("\n)");
+  if (end < 0) return bad(`field ${name}: list is not closed (truncated file?)`);
+  const rows = [...body.slice(0, end).matchAll(/\(\s*([^()\s]+)\s+([^()\s]+)\s+([^()\s]+)\s*\)/g)].map((r) => [Number(r[1]), Number(r[2]), Number(r[3])]);
+  if (rows.length !== n) return bad(`field ${name}: header says ${n} vectors, found ${rows.length}`);
+  rows.forEach((r, i) => {
+    if (!r.every(Number.isFinite)) bad(`field ${name}: vector ${i} is not finite`);
+  });
+  return rows;
+}
+
+/** `value uniform X` inside a named boundary patch block (the patch temperature the solver converged to). */
+export function parsePatchValue(text: string, patch: string): number | null {
+  const block = new RegExp(`\\b${patch}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`).exec(text);
+  if (!block) return null;
+  const v = /value\s+uniform\s+([-+.\deE]+)\s*;/.exec(block[1]!) ?? /value\s+nonuniform\s+List<scalar>\s*\d+\s*\(\s*([-+.\deE]+)/.exec(block[1]!);
+  if (!v) return null;
+  const x = Number(v[1]);
+  return Number.isFinite(x) ? x : null;
+}
+
+export type CheckVerdict = "pass" | "fail" | "na";
+export interface Check {
+  id: string;
+  label: string;
+  value: number | null;
+  unit: string;
+  verdict: CheckVerdict;
+  note: string;
+}
+
+export interface RadialPoint {
+  /** metres */
+  r: number;
+  /** kelvin */
+  T: number;
+  region: "fuel" | "cladding";
+}
+
+export interface DomainFinding {
+  region: "fuel" | "cladding";
+  /** Temperature range the solver produced in that region (K). */
+  produced: [number, number];
+  /** The range the conductivity law is stated to hold over (K). */
+  validRange: [number, number];
+}
+
+export interface ResultsRecord {
+  schema: "feed.results/0.1";
+  caseId: string;
+  /** Final solver time in seconds. */
+  time: number;
+  radial: RadialPoint[];
+  summary: {
+    /** First fuel cell (nearest the axis); its centre is a cell-size away from r = 0. */
+    centreCellT: number;
+    fuelSurfaceCellT: number;
+    claddingInnerCellT: number;
+    claddingOuterWallT: number | null;
+    maxT: number;
+    minT: number;
+  };
+  checks: Check[];
+  /** 'out-of-domain' when a region's temperatures leave its conductivity law's stated range. Such a result is not valid. */
+  domain: { verdict: "in-domain" | "out-of-domain"; findings: DomainFinding[] };
+  /** Thermal-only banner text; every results view and export carries it. */
+  thermalOnly: string;
+}
+
+export const THERMAL_ONLY_TEXT = "Thermal-only result. It says nothing about stress, failure or fuel integrity.";
+
+/** Energy-balance diagnostic threshold (relative). A diagnostic from two cladding cell values, not a gate. */
+export const BALANCE_TOLERANCE = 0.01;
+
+export interface ParseInput {
+  /** Text of <finalTime>/T */
+  T: string;
+  /** Text of <finalTime>/C (cell centres) */
+  C: string;
+  time: number;
+}
+
+/**
+ * Build the results record for a validated case. Throws ResultsError for anything that is not a complete, finite,
+ * consistent field set: wrong cell count, non-finite values, cell centres outside the pin, temperatures not above 0 K.
+ */
+export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecord {
+  const T = parseScalarField(input.T, "T");
+  const C = parseVectorField(input.C, "C");
+  const expected = c.mesh.fuelCells + c.mesh.claddingCells;
+  if (T.length !== expected) bad(`expected ${expected} cells (${c.mesh.fuelCells} fuel + ${c.mesh.claddingCells} cladding), found ${T.length}`);
+  if (C.length !== T.length) bad(`T has ${T.length} cells but C has ${C.length}`);
+  if (!(input.time > 0) || !Number.isFinite(input.time)) bad("final time is not a positive finite number");
+  const r = C.map((p) => Math.hypot(p[0]!, p[1]!));
+  const eps = 1e-9;
+  r.forEach((x, i) => {
+    if (x > c.claddingOuterRadius + eps) bad(`cell ${i} is outside the pin (r = ${x} m)`);
+  });
+  T.forEach((t, i) => {
+    if (!(t > 0)) bad(`cell ${i}: temperature ${t} K is not above 0 K`);
+  });
+
+  const radial: RadialPoint[] = r.map((x, i) => ({ r: x, T: T[i]!, region: x <= c.fuelRadius + eps ? "fuel" : "cladding" }));
+  const fuel = radial.filter((p) => p.region === "fuel");
+  const clad = radial.filter((p) => p.region === "cladding");
+  if (fuel.length !== c.mesh.fuelCells || clad.length !== c.mesh.claddingCells) bad("cell centres do not split into the expected fuel and cladding counts");
+  fuel.sort((a, b) => a.r - b.r);
+  clad.sort((a, b) => a.r - b.r);
+  const wall = parsePatchValue(input.T, "cladOuter");
+
+  // --- checks
+  const lin = (k: Conductivity): LinearK => (k.kind === "constant" ? { a: k.k, b: 0 } : { a: k.a, b: k.b });
+  const kf = lin(c.fuelConductivity);
+  const kc = lin(c.claddingConductivity);
+  const checks: Check[] = [];
+  // Energy balance from the solver's own cladding temperatures: for k = a + b T the radial flux through the wall is
+  // 2 pi (a (T_i - T_j) + b/2 (T_i^2 - T_j^2)) / ln(r_j / r_i), independent of the boundary form. Compared with the input linear heat rate.
+  if (clad.length >= 2) {
+    const a = clad[0]!;
+    const b = clad[1]!;
+    const qWall = (2 * Math.PI * (kc.a * (a.T - b.T) + (kc.b / 2) * (a.T * a.T - b.T * b.T))) / Math.log(b.r / a.r);
+    const rel = (qWall - c.qPrime) / c.qPrime;
+    checks.push({ id: "energyBalance", label: "Energy balance (cladding wall flux vs input)", value: rel, unit: "relative", verdict: Math.abs(rel) <= BALANCE_TOLERANCE ? "pass" : "fail", note: `flux from the two innermost cladding cells = ${qWall.toFixed(1)} W/m against ${c.qPrime} W/m; threshold ${BALANCE_TOLERANCE * 100}%` });
+  }
+
+  // Closed-form agreement (constant or linear conductivity), same discretization-error bound used for the finite-volume cross-check.
+  const filmDrop = c.boundary.kind === "convective" ? closedForm.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.boundary.heatTransferCoefficient) : 0;
+  const tOuter = c.boundary.kind === "convective" ? c.boundary.bulkTemperature + filmDrop : c.boundary.surfaceTemperature;
+  const claddingAt = (r: number) => solveLinearK(kc.a, kc.b, tOuter, (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI));
+  const tCladInner = claddingAt(c.claddingInnerRadius);
+  const tFuelSurface = tCladInner + closedForm.gapDeltaT(c.qPrime, c.fuelRadius, c.gapConductance);
+  const fuelDeltaT = fuelTemperatureLinearK(kf, c.qPrime, c.fuelRadius, 0, tFuelSurface) - tFuelSurface;
+  const claddingDeltaT = tCladInner - tOuter;
+  const fuelErr = Math.max(...fuel.map((p) => Math.abs(p.T - fuelTemperatureLinearK(kf, c.qPrime, c.fuelRadius, p.r, tFuelSurface))));
+  const cladErr = Math.max(...clad.map((p) => Math.abs(p.T - claddingAt(p.r))));
+  const fuelBound = (5 * fuelDeltaT) / (c.mesh.fuelCells * c.mesh.fuelCells);
+  const cladBound = (5 * claddingDeltaT) / (c.mesh.claddingCells * c.mesh.claddingCells);
+  checks.push({ id: "closedFormFuel", label: "Fuel vs closed form (max deviation)", value: fuelErr, unit: "K", verdict: fuelErr < fuelBound ? "pass" : "fail", note: `bound 5 dT / N^2 = ${fuelBound.toFixed(3)} K for ${c.mesh.fuelCells} cells` });
+  checks.push({ id: "closedFormCladding", label: "Cladding vs closed form (max deviation)", value: cladErr, unit: "K", verdict: cladErr < cladBound ? "pass" : "fail", note: `bound 5 dT / N^2 = ${cladBound.toFixed(3)} K for ${c.mesh.claddingCells} cells` });
+  if (wall !== null) {
+    const d = Math.abs(wall - tOuter);
+    checks.push({ id: "wallTemperature", label: "Outer wall temperature vs closed form", value: d, unit: "K", verdict: d < 0.05 ? "pass" : "fail", note: `solver ${wall} K, closed form ${tOuter.toFixed(3)} K; threshold 0.05 K` });
+  }
+
+  // Property range: a conductivity law is used outside its stated range => the result is out-of-domain, never plain success.
+  const findings: DomainFinding[] = [];
+  const range = (region: "fuel" | "cladding", k: Conductivity, pts: RadialPoint[]) => {
+    if (k.kind !== "linear") return;
+    const t = pts.map((p) => p.T);
+    const lo = Math.min(...t);
+    const hi = Math.max(...t);
+    if (lo < k.range[0] || hi > k.range[1]) findings.push({ region, produced: [lo, hi], validRange: k.range });
+  };
+  range("fuel", c.fuelConductivity, fuel);
+  range("cladding", c.claddingConductivity, clad);
+  const domain = { verdict: (findings.length === 0 ? "in-domain" : "out-of-domain") as "in-domain" | "out-of-domain", findings };
+  if (c.fuelConductivity.kind === "linear" || c.claddingConductivity.kind === "linear") {
+    checks.push({ id: "propertyRange", label: "Conductivity law within its stated range", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated range" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". The law was extrapolated; this result is out-of-domain." });
+  }
+
+  const temps = radial.map((p) => p.T);
+  return {
+    schema: "feed.results/0.1",
+    caseId: c.caseId,
+    time: input.time,
+    radial: [...fuel, ...clad],
+    summary: {
+      centreCellT: fuel[0]!.T,
+      fuelSurfaceCellT: fuel[fuel.length - 1]!.T,
+      claddingInnerCellT: clad[0]!.T,
+      claddingOuterWallT: wall,
+      maxT: Math.max(...temps),
+      minT: Math.min(...temps),
+    },
+    checks,
+    domain,
+    thermalOnly: THERMAL_ONLY_TEXT,
+  };
+}

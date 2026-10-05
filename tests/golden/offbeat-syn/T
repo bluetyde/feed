@@ -1,0 +1,115 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "50000000";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+26
+(
+1307.2076
+1304.8498
+1299.6625
+1291.7805
+1281.2264
+1268.0081
+1252.1298
+1233.5935
+1212.4006
+1188.552
+1162.0484
+1132.8902
+1101.0777
+1066.6112
+1029.4909
+989.71699
+947.28956
+902.20875
+854.47463
+804.08729
+620.04723
+615.33173
+610.71873
+606.20387
+601.78307
+597.45248
+)
+;
+
+boundaryField
+{
+    fuelBottom
+    {
+        type            empty;
+    }
+    fuelTop
+    {
+        type            empty;
+    }
+    fuelOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 777.78822;
+        alpha           uniform 5000;
+    }
+    fuelFront
+    {
+        type            wedge;
+    }
+    fuelBack
+    {
+        type            wedge;
+    }
+    cladBottom
+    {
+        type            empty;
+    }
+    cladTop
+    {
+        type            empty;
+    }
+    cladInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 622.51492;
+        alpha           uniform 5000;
+    }
+    cladOuter
+    {
+        type            convectiveHTC;
+        h               uniform 30000;
+        T0              uniform 573;
+        value           uniform 595.33756;
+    }
+    cladFront
+    {
+        type            wedge;
+    }
+    cladBack
+    {
+        type            wedge;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

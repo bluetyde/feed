@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fuel Performance Studio</title>
+<style>
+/* Layout and palette follow OpenMC Studio: one dark IDE-style window, painted explicitly. */
+:root{
+  --ground:#0e1013; --frame:#15181b; --panel:#1b1e22; --panel2:#22262b; --raise:#2a2f35; --line:#31363d; --line2:#424951;
+  --text:#d8dde3; --muted:#8c949e; --faint:#838c97;
+  --accent:#52b8ff; --accent-ink:#04121d; --accent-soft:rgba(82,184,255,.14); --sel:#1c4a70;
+  --warn:#e6b455; --err:#f07575; --ok:#6fd49c;
+  --ui:"IBM Plex Sans",system-ui,"Segoe UI",sans-serif; --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--text);font:13px/1.45 var(--ui)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.app{height:100%;box-sizing:border-box;padding:12px 16px;display:flex}
+.win{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);background:var(--frame);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+
+.titlebar{display:flex;align-items:center;gap:12px;padding:6px 10px;border-bottom:1px solid var(--line);min-width:0}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;white-space:nowrap}
+.brand svg{color:var(--accent)}
+.proj{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.spacer{flex:1}
+.chip{font:500 11px/1 var(--mono);color:var(--muted);border:1px solid var(--line2);border-radius:99px;padding:4px 8px;white-space:nowrap}
+.runbtn{display:flex;align-items:center;gap:6px;background:var(--accent);color:var(--accent-ink);border:0;border-radius:5px;padding:5px 12px;font-weight:600;cursor:pointer}
+.runbtn:hover{filter:brightness(1.08)}
+
+.banner{background:rgba(230,180,85,.12);color:var(--warn);border-bottom:1px solid var(--line);padding:4px 12px;font-size:12px}
+
+.ribbon{border-bottom:1px solid var(--line);background:var(--panel)}
+.rtabs{display:flex;gap:2px;padding:0 8px;border-bottom:1px solid var(--line)}
+.rtab{background:none;border:0;border-bottom:2px solid transparent;padding:6px 12px;color:var(--muted);cursor:pointer}
+.rtab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+.rbody{display:flex;padding:6px 6px 2px;overflow-x:auto}
+.rgroup{display:flex;flex-direction:column;align-items:center;padding:0 8px;border-right:1px solid var(--line);flex:none}
+.rgroup:last-child{border-right:0}
+.rbtns{display:flex;gap:2px}
+.rbtn{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:54px;padding:5px 6px;background:none;border:1px solid transparent;border-radius:5px;cursor:pointer;font-size:11.5px}
+.rbtn svg{color:var(--accent)}
+.rbtn:hover{background:var(--raise);border-color:var(--line2)}
+.rbtn.on{background:var(--sel);border-color:rgba(82,184,255,.55)}
+.rlabel{font-size:10.5px;color:var(--faint);padding:2px 0 3px;letter-spacing:.04em;text-transform:uppercase}
+
+.main{display:grid;grid-template-columns:236px minmax(0,1fr) 308px;min-height:0}
+.panel{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--panel)}
+.phead{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);font-weight:500;min-height:20px}
+.phead .sub{color:var(--muted);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pscroll{overflow:auto;min-height:0;flex:1}
+.explorer{border-right:1px solid var(--line)}
+.propspanel{border-left:1px solid var(--line)}
+
+.tgroup{padding:2px 0}
+.tghead{display:flex;align-items:center;gap:6px;padding:4px 8px;font-weight:500}
+.tghead .caret{width:10px;color:var(--faint)}
+.count{color:var(--faint);font:11px var(--mono)}
+.titem{display:flex;align-items:center;gap:7px;width:100%;box-sizing:border-box;background:none;border:0;padding:3px 10px 3px 26px;cursor:pointer;text-align:left;min-width:0}
+.titem:hover{background:var(--panel2)}
+.titem.is-sel{background:var(--sel)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.dot.ok{background:var(--ok)}.dot.err{background:var(--err)}.dot.warn{background:var(--warn)}
+.tname{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmeta{margin-left:auto;padding-left:8px;color:var(--faint);font:11px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.titem.is-sel .tmeta{color:#a9c6de}
+
+.center{display:grid;grid-template-rows:auto minmax(0,1fr) 188px;min-width:0;min-height:0;background:var(--panel)}
+.dtabs{display:flex;border-bottom:1px solid var(--line);background:var(--frame)}
+.dtab{display:flex;align-items:center;gap:6px;background:none;border:0;border-right:1px solid var(--line);padding:7px 14px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.dtab[aria-selected="true"]{background:var(--panel);color:var(--text);box-shadow:inset 0 2px 0 var(--accent)}
+.dtab:disabled{opacity:.4;cursor:not-allowed}
+.doc{display:flex;flex-direction:column;min-height:0;min-width:0}
+.toolbar{display:flex;align-items:center;gap:12px;padding:5px 10px;border-bottom:1px solid var(--line);background:var(--frame);font-size:12px;color:var(--muted)}
+.seg{display:flex;border:1px solid var(--line2);border-radius:5px;overflow:hidden}
+.seg button{background:var(--panel2);border:0;border-right:1px solid var(--line2);padding:3px 9px;cursor:pointer;font-size:12px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--sel)}
+.readout{font:11.5px var(--mono);margin-left:auto}
+.vpwrap{flex:1;min-height:0;display:grid;grid-template-rows:minmax(110px,34%) minmax(0,1fr);background:var(--ground)}
+.vpwrap canvas{width:100%;height:100%;display:block}
+.vpwrap .cell{position:relative;min-height:0;border-bottom:1px solid var(--line)}
+.vpwrap .cell:last-child{border-bottom:0}
+.vpwrap .nodata{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);pointer-events:none}
+pre.json{margin:0;padding:10px 12px;overflow:auto;flex:1;font:12px/1.5 var(--mono);color:#cfd6dd;background:var(--ground)}
+
+.output{border-top:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.otabs{display:flex;border-bottom:1px solid var(--line)}
+.otab{background:none;border:0;border-bottom:2px solid transparent;padding:5px 12px;color:var(--muted);cursor:pointer}
+.otab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+.obody{overflow:auto;flex:1;padding:6px 10px;font-size:12.5px}
+.prob{display:flex;gap:8px;align-items:baseline;padding:2px 0;cursor:pointer}
+.prob:hover{background:var(--panel2)}
+.prob code,.crow code{font:11.5px var(--mono);color:#e3b378}
+.prob .msg{color:var(--text)}
+.prob .where{color:var(--faint);font:11px var(--mono)}
+.crow{display:grid;grid-template-columns:200px 120px minmax(0,1fr);gap:8px;padding:2px 0;align-items:baseline}
+.crow .k{color:var(--muted)}.crow .v{font-family:var(--mono)}
+.pass{color:var(--ok)}.fail{color:var(--err)}.na{color:var(--faint)}
+.log{font:11.5px var(--mono);color:var(--muted);white-space:pre-wrap}
+
+input[type=text],input[type=number],select{box-sizing:border-box;width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:3px 6px;min-width:0}
+input[type=number]{font-family:var(--mono);font-size:12px}
+input:hover,select:hover{border-color:var(--faint)}
+input.bad,select.bad{border-color:var(--err)}
+.prow{display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 8px;align-items:center;padding:4px 10px}
+.prow>label{color:var(--muted);font-size:12px}
+.qin{display:grid;grid-template-columns:minmax(0,1fr) 74px;gap:4px}
+.prow.note{grid-template-columns:1fr}
+.prow.note p{margin:0;color:var(--muted);font-size:12px}
+.prow.note code{font:11.5px var(--mono);color:#e3b378}
+.psec{padding:8px 10px 2px;color:var(--faint);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
+.ferr{grid-column:1/-1;color:var(--err);font-size:11.5px;padding-left:104px;margin-top:-2px}
+.tbtn{display:flex;align-items:center;gap:5px;background:var(--panel2);border:1px solid var(--line2);border-radius:5px;padding:3px 9px;cursor:pointer;font-size:12px}
+.menu{position:fixed;z-index:20;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;padding:4px;width:380px;max-width:calc(100vw - 16px);max-height:60vh;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.menu h4{margin:6px 8px 4px;font:500 10.5px var(--ui);color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+.menu button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:4px;padding:5px 8px;cursor:pointer}
+.menu button:hover,.menu button:focus-visible{background:var(--sel)}
+.menu .mn{display:flex;gap:8px;align-items:baseline}
+.menu .badge{font:10px var(--mono);color:var(--warn);border:1px solid var(--line2);border-radius:99px;padding:1px 6px;margin-left:auto;flex:none}
+.menu .md{display:block;color:var(--muted);font-size:11.5px;margin-top:1px}
+.center.nooutput{grid-template-rows:auto minmax(0,1fr)}
+.center.nooutput .output{display:none}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.mcard{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+.mcard.wide{grid-column:1/-1}
+.ml{color:var(--muted);font-size:11px}.mv{font:500 15px var(--mono)}.ms{color:var(--faint);font-size:11px;margin-top:2px}
+.vpwrap1{flex:1;min-height:120px;background:var(--ground)}
+.vpwrap1 canvas,.ccell canvas{width:100%;height:100%;display:block}
+.cgrid{flex:1;min-height:0;display:grid;grid-template-rows:minmax(120px,32%) minmax(54px,13%) minmax(0,1fr)}
+.ccell{min-height:0;background:var(--ground);border-bottom:1px solid var(--line)}
+.ctables{overflow:auto;padding:6px 10px}
+.ctables h4{margin:10px 0 4px;font:500 11px var(--ui);color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;color:var(--faint);font-weight:500;padding:3px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:3px 8px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.chg{color:var(--warn)}.diff-note{color:var(--warn)}.ok-note{color:var(--ok)}
+.toolbar select{width:auto;max-width:230px}
+.toolbar #rTitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg button{white-space:nowrap}
+@media (max-width:1000px){
+  html,body{height:auto}
+  .app{height:auto;min-height:100%}
+  .win{display:block}
+  .main{grid-template-columns:minmax(150px,200px) minmax(0,1fr);grid-template-rows:600px auto}
+  .propspanel{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}
+  .toolbar{flex-wrap:wrap}
+  .readout{margin-left:0;white-space:normal}
+}
+</style>
+</head>
+<body>
+<div class="app"><div class="win">
+  <header class="titlebar">
+    <div class="brand"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="9" r="3.2" fill="currentColor"/><circle cx="9" cy="9" r="5.2"/><circle cx="9" cy="9" r="7.5"/></svg>Fuel Performance Studio</div>
+    <span class="proj" id="projName"></span>
+    <span class="spacer"></span>
+    <span class="chip" id="runChip" role="status" aria-live="polite">no solver installed · closed-form quick look</span>
+    <button class="runbtn" id="runBtn" type="button"><svg width="12" height="12" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 3l10 6-10 6z" fill="currentColor"/></svg>Run</button>
+  </header>
+  <div class="banner">Thermal-only result. It says nothing about stress, failure or fuel integrity.</div>
+
+  <nav class="ribbon" aria-label="Commands">
+    <div class="rtabs" role="tablist"><button class="rtab" role="tab" data-mode="case" aria-selected="true" type="button">Case</button><button class="rtab" role="tab" data-mode="results" aria-selected="false" type="button">Results</button><button class="rtab" role="tab" data-mode="compare" aria-selected="false" type="button">Compare</button></div>
+    <div class="rbody" id="rbCase">
+      <div class="rgroup"><div class="rbtns">
+        <button class="rbtn" id="bExample" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3"/></svg>Example</button>
+        <button class="rbtn" id="bOpen" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5h5l1.5 1.5H16V14H2z"/></svg>Open…</button>
+        <button class="rbtn" id="bSave" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>Save</button>
+      </div><div class="rlabel">File</div></div>
+      <div class="rgroup"><div class="rbtns">
+        <button class="rbtn" id="bPins" type="button" aria-haspopup="menu"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="9" cy="9" r="6.5"/><circle cx="9" cy="9" r="4"/><circle cx="9" cy="9" r="1.5"/></svg>Pins</button>
+        <button class="rbtn" id="bMats" type="button" aria-haspopup="menu"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="12" height="12" rx="1.5"/><path d="M3 7.5h12M7.5 7.5V15"/></svg>Materials</button>
+      </div><div class="rlabel">Library</div></div>
+      <div class="rgroup"><div class="rbtns">
+        <button class="rbtn" id="bCheck" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 9.5l4 4 8-9"/></svg>Validate</button>
+        <button class="rbtn" id="bStudy" type="button" title="Run this case on three meshes and measure the order of convergence"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 3h14M2 8h14M2 13h14M6 1v16M12 1v16"/></svg>Refinement</button>
+        <button class="rbtn" id="bQuick" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 2L4 10h4l-1 6 7-9H10z"/></svg>Quick look</button>
+      </div><div class="rlabel">Check</div></div>
+      <div class="rgroup"><div class="rbtns">
+        <button class="rbtn" id="bTemp" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span id="bTempLbl">Kelvin</span></button>
+      </div><div class="rlabel">Units</div></div>
+    </div>
+    <div class="rbody" id="rbResults" hidden><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bRefresh" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M15 9a6 6 0 11-2-4.5M15 2.5V5h-2.5"/></svg>Refresh</button><button class="rbtn" id="bOpenRunCase" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5h5l1.5 1.5H16V14H2z"/></svg>Open case</button></div><div class="rlabel">Runs</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bCsv" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>CSV</button><button class="rbtn" id="bJson" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>JSON</button></div><div class="rlabel">Export</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bTempR" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span>Kelvin</span></button></div><div class="rlabel">Units</div></div></div>
+    <div class="rbody" id="rbCompare" hidden><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bRefresh2" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M15 9a6 6 0 11-2-4.5M15 2.5V5h-2.5"/></svg>Refresh</button><button class="rbtn" id="bSwap" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6h11M11 3l3 3-3 3M15 12H4M7 9l-3 3 3 3"/></svg>Swap A/B</button></div><div class="rlabel">Runs</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bCmpJson" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>JSON</button></div><div class="rlabel">Export</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bTempC" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span>Kelvin</span></button></div><div class="rlabel">Units</div></div></div>
+  </nav>
+  <input type="file" id="fileIn" accept=".json,application/json" hidden>
+
+  <div class="main">
+    <aside class="panel explorer" aria-label="Explorer"><div class="phead" id="exHead">Case</div><div class="pscroll" id="tree"></div><div class="pscroll" id="runs" hidden></div></aside>
+
+    <section class="center" id="center" aria-label="Editor">
+      <div class="dtabs" role="tablist">
+        <button class="dtab" role="tab" id="tabView" aria-selected="true" type="button">Pin and profile</button>
+        <button class="dtab" role="tab" id="tabJson" aria-selected="false" type="button">case.json</button>
+        <button class="dtab" role="tab" id="tabResults" aria-selected="true" type="button" hidden>Run result</button><button class="dtab" role="tab" id="tabCompare" aria-selected="true" type="button" hidden>Compare runs</button>
+      </div>
+      <div class="doc" id="docView">
+        <div class="toolbar">
+          <div class="seg" role="group" aria-label="Plot"><button type="button" id="pCol" aria-pressed="true">Colour fuel by T</button><button type="button" id="pCf" aria-pressed="true">Closed-form line</button></div>
+          <span class="readout" id="readout">Hover the profile for r and T</span>
+        </div>
+        <div class="vpwrap">
+          <div class="cell"><canvas id="pin" aria-label="Pin cross-section, to scale"></canvas></div>
+          <div class="cell"><canvas id="prof" aria-label="Radial temperature profile"></canvas><div class="nodata" id="noData" hidden>Fix the problems to see the profile</div></div>
+        </div>
+      </div>
+      <div class="doc" id="docJson" hidden><pre class="json" id="jsonView"></pre></div>
+      <div class="doc" id="docResults" hidden>
+        <div class="banner" id="rBanner"></div>
+        <div class="toolbar"><span id="rTitle" style="color:var(--text)">No run selected</span><div class="seg" role="group" aria-label="Plot"><button type="button" id="rCf" aria-pressed="true">Closed-form line</button></div><span class="readout" id="rReadout">Hover the profile</span></div>
+        <div class="metrics" id="metrics"></div>
+        <div class="vpwrap1"><canvas id="rprof" aria-label="Radial temperature profile of the selected run"></canvas></div>
+      </div>
+      <div class="doc" id="docCompare" hidden>
+        <div class="banner" id="cBanner" hidden></div>
+        <div class="toolbar"><label style="color:#52b8ff">A <select id="cmpA" aria-label="Run A"></select></label><label style="color:#f0a35e">B <select id="cmpB" aria-label="Run B"></select></label><span class="readout" id="cReadout">Hover the profile</span></div>
+        <div class="cgrid"><div class="ccell"><canvas id="cprof" aria-label="Radial temperature profiles of runs A and B"></canvas></div><div class="ccell"><canvas id="cdiff" aria-label="Temperature difference B minus A"></canvas></div><div class="ctables" id="cmpTables"></div></div>
+      </div>
+
+      <div class="output">
+        <div class="otabs" role="tablist">
+          <button class="otab" role="tab" data-o="problems" aria-selected="true" type="button">Problems <span class="count" id="nProb">0</span></button>
+          <button class="otab" role="tab" data-o="checks" aria-selected="false" type="button">Checks</button>
+          <button class="otab" role="tab" data-o="log" aria-selected="false" type="button">Log</button>
+        </div>
+        <div class="obody" id="obody"></div>
+      </div>
+    </section>
+
+    <aside class="panel propspanel" aria-label="Properties"><div class="phead">Properties <span class="sub" id="propSub"></span></div><div class="pscroll" id="props"></div></aside>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], htc: ["W/m2/K", "kW/m2/K"] };
+let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
+let doc = null, result = null, selected = "power", outTab = "problems", logText = "", showDegC = false, seq = 0, timer = null;
+
+/* Explorer items: id, label, group, JSON pointer prefixes that belong to it. */
+const ITEMS = [
+  ["power", "Power", "Operating conditions", ["/power", "/assumptions"]],
+  ["boundary", "Coolant boundary", "Operating conditions", ["/boundary"]],
+  ["geometry", "Pin dimensions", "Pin", ["/geometry"]],
+  ["gap", "Gap", "Pin", ["/gap"]],
+  ["mesh", "Mesh", "Pin", ["/mesh"]],
+  ["fuel", "Fuel", "Materials", ["/materials/fuel"]],
+  ["cladding", "Cladding", "Materials", ["/materials/cladding"]],
+];
+const itemOf = (field) => { const f = (ITEMS.find((i) => i[3].some((p) => field === p || field.startsWith(p + "/"))) || [])[0]; return f || null; };
+
+/* ---- value helpers: read and write {value, unit} at a path of keys */
+const getp = (o, p) => p.reduce((a, k) => (a == null ? undefined : a[k]), o);
+function setp(o, p, v) { let a = o; for (let i = 0; i < p.length - 1; i++) { if (a[p[i]] == null || typeof a[p[i]] !== "object") a[p[i]] = {}; a = a[p[i]]; } if (v === undefined) delete a[p[p.length - 1]]; else a[p[p.length - 1]] = v; }
+const ptr = (p) => "/" + p.join("/");
+
+function qField(label, path, dim) {
+  const q = getp(doc, path); const units = UNITS[dim];
+  const row = el("div", "prow"); const id = "f" + path.join("_");
+  row.append(elt("label", label, { for: id }));
+  const box = el("div", "qin");
+  const num = elt("input", "", { type: "number", step: "any", id, value: q && typeof q === "object" && q.value !== undefined ? q.value : "" });
+  const sel = elt("select", "", { "aria-label": label + " unit" });
+  for (const u of units) sel.append(elt("option", u, { value: u }));
+  sel.value = q && typeof q === "object" && units.includes(q.unit) ? q.unit : units[0];
+  const commit = () => { if (num.value === "") setp(doc, path, undefined); else setp(doc, path, { value: Number(num.value), unit: sel.value }); changed(); };
+  num.addEventListener("input", commit); sel.addEventListener("change", commit);
+  box.append(num, sel); row.append(box);
+  attachErr(row, ptr(path), [num, sel]);
+  return row;
+}
+function tField(label, path) {
+  const row = el("div", "prow"); const id = "f" + path.join("_");
+  row.append(elt("label", label, { for: id }));
+  const inp = elt("input", "", { type: "text", id, value: getp(doc, path) ?? "" });
+  inp.addEventListener("input", () => { setp(doc, path, inp.value === "" ? undefined : inp.value); changed(); });
+  row.append(inp); attachErr(row, ptr(path), [inp]); return row;
+}
+function iField(label, path) {
+  const row = el("div", "prow"); const id = "f" + path.join("_");
+  row.append(elt("label", label, { for: id }));
+  const inp = elt("input", "", { type: "number", step: "1", id, value: getp(doc, path) ?? "" });
+  inp.addEventListener("input", () => { setp(doc, path, inp.value === "" ? undefined : Math.round(Number(inp.value))); changed(); });
+  row.append(inp); attachErr(row, ptr(path), [inp]); return row;
+}
+function sField(label, path, options, onChange) {
+  const row = el("div", "prow"); const id = "f" + path.join("_");
+  row.append(elt("label", label, { for: id }));
+  const sel = elt("select", "", { id });
+  for (const [v, t] of options) sel.append(elt("option", t, { value: v }));
+  sel.value = getp(doc, path) ?? options[0][0];
+  sel.addEventListener("change", () => { setp(doc, path, sel.value); if (onChange) onChange(sel.value); changed(true); });
+  row.append(sel); attachErr(row, ptr(path), [sel]); return row;
+}
+function attachErr(row, field, inputs) {
+  const e = (result && result.errors || []).filter((i) => i.field === field);
+  if (!e.length) return;
+  inputs.forEach((i) => i.classList.add("bad"));
+  row.append(elt("div", e.map((x) => x.message).join(" "), { class: "ferr" }));
+}
+function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+function elt(tag, text, attrs) { const e = document.createElement(tag); if (text) e.textContent = text; for (const k in attrs || {}) { if (k === "class") e.className = attrs[k]; else e.setAttribute(k, attrs[k]); } return e; }
+const sec = (t) => elt("div", t, { class: "psec" });
+const note = (html) => { const r = el("div", "prow note"); const p = document.createElement("p"); p.innerHTML = html; r.append(p); return r; };
+
+/* ---- property panels */
+function renderProps() {
+  const p = $("props"); p.replaceChildren();
+  const it = ITEMS.find((i) => i[0] === selected); $("propSub").textContent = it ? it[1] : "";
+  if (!doc) return;
+  if (selected === "power") {
+    p.append(sec("Linear heat rate"), qField("q′", ["power", "linearHeatRate"], "linearPower"));
+    const d = result && result.derived;
+    p.append(note(d ? "Volumetric <code>q‴ = " + (d.volumetricPower / 1e6).toFixed(1) + " MW/m³</code> (derived: q′ / π R²). Heat flux at the outer surface <code>" + (d.outerSurfaceHeatFlux / 1e3).toFixed(0) + " kW/m²</code>." : "Volumetric power is derived once the case is valid."));
+    p.append(sec("Scope (V1)"), note("Steady state, thermal only, uniform radial power. Per-source-particle scores are never accepted as power."));
+  } else if (selected === "boundary") {
+    const b = doc.boundary || {}; const form = b.surfaceTemperature !== undefined && b.bulkTemperature === undefined && b.heatTransferCoefficient === undefined ? "surface" : "convective";
+    p.append(sec("Form"));
+    const row = el("div", "prow"); row.append(elt("label", "Boundary", { for: "bform" }));
+    const sel = elt("select", "", { id: "bform" }); sel.append(elt("option", "Bulk temperature and h", { value: "convective" }), elt("option", "Prescribed surface temperature", { value: "surface" })); sel.value = form;
+    sel.addEventListener("change", () => { if (sel.value === "surface") { delete doc.boundary.bulkTemperature; delete doc.boundary.heatTransferCoefficient; doc.boundary.surfaceTemperature = { value: 600, unit: "K" }; } else { delete doc.boundary.surfaceTemperature; doc.boundary.bulkTemperature = { value: 573, unit: "K" }; doc.boundary.heatTransferCoefficient = { value: 30000, unit: "W/m2/K" }; } changed(true); });
+    row.append(sel); p.append(row);
+    if (form === "surface") p.append(qField("T surface", ["boundary", "surfaceTemperature"], "temperature"));
+    else p.append(qField("T bulk", ["boundary", "bulkTemperature"], "temperature"), qField("h", ["boundary", "heatTransferCoefficient"], "htc"));
+    p.append(note("Bulk temperature alone is not a boundary condition: the coolant film needs a heat-transfer coefficient."));
+    const gen = (result && result.errors || []).filter((i) => i.field === "/boundary"); if (gen.length) p.append(elt("div", gen.map((x) => x.message).join(" "), { class: "ferr" }));
+  } else if (selected === "geometry") {
+    p.append(sec("Radii"), qField("Fuel radius", ["geometry", "fuelRadius"], "length"), qField("Clad inner", ["geometry", "claddingInnerRadius"], "length"), qField("Clad outer", ["geometry", "claddingOuterRadius"], "length"));
+    if (doc.description) p.append(note("<code>" + (doc.label || "") + "</code> " + String(doc.description).replace(/</g, "&lt;")));
+    if (doc.citation) p.append(note("Source: " + String(doc.citation).replace(/</g, "&lt;")));
+    const d = result && result.derived; p.append(note(d ? "Gap thickness <code>" + (d.gapThickness * 1e3).toFixed(3) + " mm</code>. Equal radii are allowed only with an explicit effective gap conductance (zero cold gap); contact is not modelled." : "Radii must satisfy fuel &lt; cladding inner &lt; cladding outer."));
+  } else if (selected === "gap") {
+    p.append(sec("Gap model"), sField("Model", ["gap", "model"], [["constant-conductance", "Constant conductance"], ["gas-gap", "Gas gap (planned)"], ["contact", "Contact (needs mechanics)"]], () => {}));
+    if (doc.gap.model === "constant-conductance") p.append(qField("h gap", ["gap", "conductance"], "htc"), tField("Source", ["gap", "source"]));
+    p.append(note("V1 supports a constant gap conductance only. The solver's gas-gap model comes later."));
+  } else if (selected === "mesh") {
+    p.append(sec("Cells per region"), iField("Fuel", ["mesh", "fuelCells"]), iField("Cladding", ["mesh", "claddingCells"]), note("Minimum: fuel 4, cladding 2. The solver run uses these counts; refinement studies come with F2."));
+  } else {
+    const m = doc.materials[selected]; const base = ["materials", selected];
+    p.append(sec("Material"));
+    const pick = el("div", "prow"); pick.append(elt("label", "Library", { for: "libpick" }));
+    const ps = elt("select", "", { id: "libpick" }); ps.append(elt("option", "Custom (as edited)", { value: "" }));
+    const mine = lib.materials.filter((x) => x.region === selected); mine.forEach((x, i) => ps.append(elt("option", x.name, { value: String(i) })));
+    ps.value = String(mine.findIndex((x) => x.material.materialId === m.materialId)).replace("-1", "");
+    ps.addEventListener("change", () => { if (ps.value !== "") applyMaterial(selected, mine[Number(ps.value)]); });
+    pick.append(ps); p.append(pick);
+    const cur = mine.find((x) => x.material.materialId === m.materialId);
+    if (cur) p.append(note("<code>" + cur.label + "</code> " + cur.description.replace(/</g, "&lt;")));
+    if (cur && cur.citation) p.append(note("Source: " + cur.citation.replace(/</g, "&lt;")));
+    p.append(tField("ID", base.concat("materialId")), iField("Revision", base.concat("revision")));
+    const kp = base.concat("sets", "thermal.conductivity"); const k = getp(doc, kp);
+    p.append(sec("Thermal conductivity"));
+    if (!k) { const r = el("div", "prow note"); const p2 = document.createElement("p"); p2.textContent = "This material has no thermal.conductivity set. Composition and density alone do not satisfy a thermal model."; r.append(p2); const b = elt("button", "Add constant conductivity", { class: "tbtn", type: "button" }); b.addEventListener("click", () => { setp(doc, kp, { model: "constant", value: { value: 3, unit: "W/m/K" }, referenceTemperature: { value: 1000, unit: "K" }, source: "" }); changed(true); }); r.append(b); p.append(r); const g = (result && result.errors || []).filter((i) => i.field === ptr(kp)); if (g.length) p.append(elt("div", g[0].message, { class: "ferr" })); }
+    else {
+      p.append(sField("Model", kp.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"]], () => {}));
+      if (k.model === "linear") p.append(qField("a", kp.concat("a"), "conductivity"), qField("b", kp.concat("b"), "conductivityPerK"), qField("T min", kp.concat("validRange", "min"), "temperature"), qField("T max", kp.concat("validRange", "max"), "temperature"));
+      else p.append(qField("k", kp.concat("value"), "conductivity"), qField("at T", kp.concat("referenceTemperature"), "temperature"));
+      p.append(tField("Source", kp.concat("source")));
+    }
+    const others = Object.keys(m.sets || {}).filter((s) => s !== "thermal.conductivity");
+    if (others.length) p.append(sec("Kept unchanged"), note(others.map((s) => "<code>" + s.replace(/</g, "&lt;") + "</code>").join(", ") + " belong to other apps and are saved as they are."));
+  }
+}
+
+/* ---- explorer */
+function meta(id) {
+  const fmt = (q) => (q && typeof q === "object" && q.value !== undefined ? q.value + " " + (q.unit || "?") : "—");
+  if (!doc) return "";
+  switch (id) {
+    case "power": return fmt(doc.power.linearHeatRate);
+    case "boundary": return doc.boundary.surfaceTemperature !== undefined ? "T surface " + fmt(doc.boundary.surfaceTemperature) : (doc.boundary.bulkTemperature !== undefined ? fmt(doc.boundary.bulkTemperature) : "—");
+    case "geometry": return fmt(doc.geometry.fuelRadius) + " fuel R";
+    case "gap": return doc.gap.model === "constant-conductance" ? fmt(doc.gap.conductance) : doc.gap.model;
+    case "mesh": return doc.mesh.fuelCells + " / " + doc.mesh.claddingCells;
+    default: { const k = getp(doc, ["materials", id, "sets", "thermal.conductivity"]); return k ? (k.model === "linear" ? "k(T)" : "k " + fmt(k.value)) : "no k"; }
+  }
+}
+function renderTree() {
+  const t = $("tree"); t.replaceChildren(); if (!doc) return;
+  const issues = (result && result.errors || []).concat(result && result.warnings || []);
+  let last = null, g = null;
+  for (const [id, label, group] of ITEMS) {
+    if (group !== last) { g = el("div", "tgroup"); const h = el("div", "tghead"); h.append(elt("span", group)); g.append(h); t.append(g); last = group; }
+    const mine = issues.filter((i) => itemOf(i.field) === id);
+    const st = mine.some((i) => i.severity === "error") ? "err" : mine.length ? "warn" : result ? "ok" : "";
+    const b = el("button", "titem" + (id === selected ? " is-sel" : "")); b.type = "button";
+    b.append(elt("span", "", { class: "dot " + st }), elt("span", label, { class: "tname" }), elt("span", meta(id), { class: "tmeta" }));
+    b.addEventListener("click", () => { selected = id; renderTree(); renderProps(); });
+    g.append(b);
+  }
+}
+
+/* ---- output panel */
+const K = (T) => (showDegC ? (T - 273.15).toFixed(1) + " °C" : T.toFixed(1) + " K");
+function renderOutput() {
+  const o = $("obody"); o.replaceChildren();
+  const issues = result ? result.errors.concat(result.warnings) : [];
+  $("nProb").textContent = String(issues.length);
+  document.querySelectorAll(".otab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.o === outTab)));
+  if (outTab === "problems") {
+    if (!result) o.textContent = "Checking…";
+    else if (!issues.length) { const d = el("div", "pass"); d.textContent = "No problems. The case is valid."; o.append(d); }
+    for (const i of issues) {
+      const r = el("div", "prob"); r.tabIndex = 0; r.setAttribute("role", "button"); r.append(elt("code", i.code), elt("span", i.message, { class: "msg" }), elt("span", i.field, { class: "where" }));
+      const go = () => { const id = itemOf(i.field); if (id) { selected = id; renderTree(); renderProps(); } };
+      r.addEventListener("click", go); r.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } }); o.append(r);
+    }
+  } else if (outTab === "checks") {
+    const row = (k, v, cls, why) => { const r = el("div", "crow"); r.append(elt("span", k, { class: "k" }), elt("span", v, { class: "v " + (cls || "") }), elt("span", why || "", { class: "k" })); o.append(r); };
+    if (!result || !result.ok) { o.textContent = "Fix the problems first."; return; }
+    const q = result.quick, t = q.temperatures;
+    row("Centre temperature", K(t.centreT), "", "closed form: bulk + film + cladding + gap + fuel");
+    row("Fuel centre-to-surface", t.fuelDeltaT.toFixed(1) + " K", "", "q′ / (4π k) for constant k");
+    row("Gap drop", t.gapDeltaT.toFixed(1) + " K"); row("Cladding drop", t.claddingDeltaT.toFixed(1) + " K"); row("Film drop", t.filmDeltaT.toFixed(1) + " K");
+    row("Property range", q.verdict === "in-domain" ? "in range" : "OUT OF RANGE", q.verdict === "in-domain" ? "pass" : "fail", q.findings.map((f) => f.region + " " + f.temperatureRange.map((x) => x.toFixed(0)).join("–") + " K vs valid " + f.validRange.join("–") + " K").join("; "));
+    const head = (t) => { const h = el("div", "psec"); h.style.padding = "8px 0 2px"; h.textContent = t; o.append(h); };
+    if (solverRes) {
+      head("Solver result (OFFBEAT, thermal only)");
+      const s = solverRes.summary;
+      row("Centre cell temperature", K(s.centreCellT), "", "first cell centre; the axis itself is half a cell closer");
+      row("Fuel surface cell", K(s.fuelSurfaceCellT)); row("Cladding inner cell", K(s.claddingInnerCellT));
+      if (s.claddingOuterWallT !== null) row("Outer wall", K(s.claddingOuterWallT));
+      for (const c of solverRes.checks) row(c.label, c.value === null ? "n/a" : (c.unit === "relative" ? (c.value * 100).toFixed(2) + " %" : c.value.toFixed(3) + " " + c.unit), c.verdict === "na" ? "na" : c.verdict, c.verdict.toUpperCase() + ": " + c.note);
+      row("Mesh refinement", "not run", "na", "needs three meshes; see solver/results for the saved study");
+      const b = el("div", "log"); b.style.paddingTop = "6px"; b.textContent = solverRes.thermalOnly; o.append(b);
+    } else if (runRec && (runRec.state === "failed" || runRec.state === "cancelled" || runRec.state === "interrupted")) {
+      head("Last solver run: " + runRec.state);
+      const f = runRec.failure;
+      if (f) { row(f.code, "", "fail", f.message); if (f.native) { const pre = el("pre", "log"); pre.textContent = f.native; o.append(pre); } }
+      else row("State", runRec.state, "fail", (runRec.notes || []).join(" "));
+    } else {
+      row("Energy balance", solverName ? "run the solver" : "needs solver", "na", "heat out of the outer surface = q′");
+    }
+    head("Mesh refinement");
+    if (study && study.status === "done") {
+      const s = study.study;
+      row("Verdict", s.verdict === "pass" ? "close to 2nd order" : s.verdict === "fail" ? "NOT 2nd order" : "n/a", s.verdict === "pass" ? "pass" : s.verdict === "fail" ? "fail" : "na", s.note);
+      const t = el("table", "tbl"); const hr = el("tr"); ["Fuel cells", "Clad cells", "Fuel error (K)", "Order", "Clad error (K)", "Order"].forEach((x) => hr.append(elt("th", x))); t.append(hr);
+      s.levels.forEach((l) => { const tr = el("tr"); [l.fuelCells, l.claddingCells, l.fuelError.toPrecision(3), l.fuelOrder === null ? "–" : l.fuelOrder.toFixed(2), l.claddingError.toPrecision(3), l.claddingOrder === null ? "–" : l.claddingOrder.toFixed(2)].forEach((x) => { const td = el("td"); td.textContent = String(x); td.style.fontFamily = "var(--mono)"; tr.append(td); }); t.append(tr); });
+      o.append(t);
+    } else if (study && study.status === "running") row("Running", study.states.join(" · "), "", "three runs on meshes x1, x2, x4");
+    else if (study) row(study.status === "failed" ? "Study failed" : "Study problem", "", "fail", study.error || (study.failures || []).filter(Boolean).join("; ") || study.states.join(" · "));
+    else row("Not run", solverName ? "press Refinement" : "needs solver", "na", "runs the case on three meshes (x1, x2, x4) and measures the order of convergence");
+  } else o.append(elt("div", logText || "Nothing yet.", { class: "log" }));
+}
+
+/* ---- drawing */
+function sizeCanvas(c) { const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; c.width = Math.max(1, Math.round(r.width * d)); c.height = Math.max(1, Math.round(r.height * d)); const x = c.getContext("2d"); x.setTransform(d, 0, 0, d, 0, 0); return [x, r.width, r.height]; }
+function heat(f) { f = Math.min(1, Math.max(0, f)); const s = [[0, [40, 70, 160]], [0.35, [60, 160, 180]], [0.6, [230, 190, 80]], [1, [235, 80, 60]]]; for (let i = 1; i < s.length; i++) if (f <= s[i][0]) { const a = s[i - 1], b = s[i], u = (f - a[0]) / (b[0] - a[0]); return "rgb(" + a[1].map((v, j) => Math.round(v + (b[1][j] - v) * u)).join(",") + ")"; } return "rgb(235,80,60)"; }
+const showT = (T) => (showDegC ? T - 273.15 : T);
+
+function drawPin() {
+  const [x, w, h] = sizeCanvas($("pin")); x.clearRect(0, 0, w, h);
+  const n = result && result.ok ? result.normalized : null;
+  if (!n) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Pin cross-section appears when the radii are valid", 14, h / 2); return; }
+  const cx = Math.min(w * 0.22, h * 0.55) + 14, cy = h / 2, R = Math.min(h * 0.46, w * 0.2), s = R / n.claddingOuterRadius;
+  const prof = result.profile.filter((p) => p.region === "fuel"); const Tc = prof[0].T, Ts = prof[prof.length - 1].T;
+  const colour = $("pCol").getAttribute("aria-pressed") === "true";
+  x.fillStyle = "#2a3a45"; x.beginPath(); x.arc(cx, cy, R * 1.14, 0, 7); x.fill();
+  x.fillStyle = "#6b7480"; x.beginPath(); x.arc(cx, cy, R, 0, 7); x.fill();
+  x.fillStyle = "#0e1013"; x.beginPath(); x.arc(cx, cy, n.claddingInnerRadius * s, 0, 7); x.fill();
+  const N = 24;
+  for (let i = N; i >= 1; i--) { const f = i / N, r = n.fuelRadius * s * f, T = prof[Math.round((1 - f) * (prof.length - 1))].T; x.fillStyle = colour ? heat((T - Ts) / Math.max(1e-9, Tc - Ts)) : "#c9a45c"; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); }
+  x.strokeStyle = "#0e1013"; x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, n.fuelRadius * s, 0, 7); x.stroke();
+  const lab = (t, y) => { x.fillStyle = "#8c949e"; x.font = "11.5px ui-monospace,Consolas,monospace"; x.fillText(t, cx + R * 1.14 + 22, y); };
+  lab("fuel radius " + (n.fuelRadius * 1e3).toFixed(2) + " mm", cy - 14); lab("gap " + ((n.claddingInnerRadius - n.fuelRadius) * 1e3).toFixed(3) + " mm", cy + 2); lab("cladding outer " + (n.claddingOuterRadius * 1e3).toFixed(2) + " mm", cy + 18);
+  x.fillStyle = "#5e6670"; x.fillText("to scale · coolant outside", cx + R * 1.14 + 22, cy + 36);
+}
+
+let plot = null;
+function drawProfile() {
+  const c = $("prof"), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); plot = null;
+  const ok = result && result.ok; $("noData").hidden = !!ok; if (!ok) return;
+  const n = result.normalized, pts = result.profile, L = 62, Rr = 16, Tp = 14, Bt = 30;
+  const ts = pts.map((p) => showT(p.T)).concat([showT(result.quick.temperatures.claddingOuterT)]);
+  const bulk = n.boundary.kind === "convective" ? showT(n.boundary.bulkTemperature) : null; if (bulk !== null) ts.push(bulk);
+  let lo = Math.min(...ts), hi = Math.max(...ts); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+  const rmax = n.claddingOuterRadius * 1e3, X = (r) => L + (r / rmax) * (w - L - Rr), Y = (T) => h - Bt - ((T - lo) / (hi - lo)) * (h - Bt - Tp);
+  plot = { X, Y, L, Rr, rmax, w, lo, hi };
+  x.font = "11px ui-monospace,Consolas,monospace"; x.strokeStyle = "#31363d"; x.fillStyle = "#8c949e"; x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const T = lo + ((hi - lo) * i) / 4, y = Y(T); x.beginPath(); x.moveTo(L, y); x.lineTo(w - Rr, y); x.stroke(); x.fillText(T.toFixed(0), 8, y + 4); }
+  for (let i = 0; i <= 5; i++) { const r = (rmax * i) / 5; x.fillText(r.toFixed(1), X(r) - 8, h - Bt + 15); }
+  x.fillText("r (mm)", w - 56, h - 6); x.fillText(showDegC ? "°C" : "K", 8, Tp - 2);
+  const band = (a, b, col) => { x.fillStyle = col; x.fillRect(X(a * 1e3), Tp, X(b * 1e3) - X(a * 1e3), h - Bt - Tp); };
+  band(0, n.fuelRadius, "rgba(201,164,92,.07)"); band(n.fuelRadius, n.claddingInnerRadius, "rgba(240,117,117,.18)"); band(n.claddingInnerRadius, n.claddingOuterRadius, "rgba(140,148,158,.12)");
+  const line = (arr, col, dash) => { x.strokeStyle = col; x.lineWidth = 2; x.setLineDash(dash || []); x.beginPath(); arr.forEach((p, i) => { const px = X(p.r * 1e3), py = Y(showT(p.T)); if (i) x.lineTo(px, py); else x.moveTo(px, py); }); x.stroke(); x.setLineDash([]); };
+  const f = pts.filter((p) => p.region === "fuel"), cl = pts.filter((p) => p.region === "cladding");
+  line(f, "#52b8ff"); line(cl, "#52b8ff");
+  if (solverRes) {
+    x.fillStyle = "#c89df2";
+    solverRes.radial.forEach((p) => { x.beginPath(); x.arc(X(p.r * 1e3), Y(showT(p.T)), 2.6, 0, 7); x.fill(); });
+    x.fillStyle = "#c89df2"; x.fillText("● OFFBEAT cell values", w - 170, Tp + 12);
+  }
+  x.strokeStyle = "#52b8ff"; x.setLineDash([3, 3]); x.lineWidth = 1.5; x.beginPath(); x.moveTo(X(f[f.length - 1].r * 1e3), Y(showT(f[f.length - 1].T))); x.lineTo(X(cl[0].r * 1e3), Y(showT(cl[0].T))); x.stroke(); x.setLineDash([]);
+  if ($("pCf").getAttribute("aria-pressed") === "true") { const t = result.quick.temperatures; x.fillStyle = "#e6b455"; [[0, t.centreT, "centre"], [n.fuelRadius * 1e3, t.fuelSurfaceT, "fuel surface"], [n.claddingInnerRadius * 1e3, t.claddingInnerT, "clad inner"], [rmax, t.claddingOuterT, "clad outer"]].forEach((q) => { x.beginPath(); x.arc(X(q[0]), Y(showT(q[1])), 3.5, 0, 7); x.fill(); }); }
+  if (bulk !== null) { x.strokeStyle = "#6fd49c"; x.setLineDash([6, 4]); x.lineWidth = 1; x.beginPath(); x.moveTo(L, Y(bulk)); x.lineTo(w - Rr, Y(bulk)); x.stroke(); x.setLineDash([]); x.fillStyle = "#6fd49c"; x.fillText("coolant bulk", L + 6, Y(bulk) - 5); }
+  x.fillStyle = "#8c949e"; x.fillText("fuel", X(n.fuelRadius * 500) - 8, Tp + 12); x.fillText("gap", X((n.fuelRadius + n.claddingInnerRadius) * 500) - 10, Tp + 24); x.fillText("clad", X((n.claddingInnerRadius + n.claddingOuterRadius) * 500) - 10, Tp + 12);
+}
+$("prof").addEventListener("mousemove", (e) => {
+  if (!plot || !result || !result.ok) return; const b = $("prof").getBoundingClientRect(), r = ((e.clientX - b.left - plot.L) / (plot.w - plot.L - plot.Rr)) * plot.rmax; if (r < 0 || r > plot.rmax) return;
+  const pts = result.profile; let best = pts[0]; for (const p of pts) if (Math.abs(p.r * 1e3 - r) < Math.abs(best.r * 1e3 - r)) best = p;
+  $("readout").textContent = "r = " + (best.r * 1e3).toFixed(3) + " mm   T = " + K(best.T) + "  (" + best.region + ")";
+});
+$("prof").addEventListener("mouseleave", () => ($("readout").textContent = "Hover the profile for r and T"));
+
+/* ---- flow */
+function draw() { drawPin(); drawProfile(); }
+function renderAll() { $("projName").textContent = doc ? doc.name + (doc.label ? " · " + doc.label : "") : ""; $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderProps(); renderOutput(); draw(); }
+async function runCheck(rebuildProps) {
+  const my = ++seq;
+  try {
+    const r = await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
+    const j = await r.json(); if (my !== seq) return; result = j;
+  } catch (e) { result = { ok: false, errors: [{ code: "E_SERVER", severity: "error", field: "/", message: "Couldn't reach the server. Restart the app." }], warnings: [] }; }
+  const active = document.activeElement; const keep = active && $("props").contains(active) && !rebuildProps ? active.id : null;
+  $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderOutput(); draw();
+  if (rebuildProps || !keep) renderProps(); else refreshErrors();
+}
+function refreshErrors() {  /* update inline error text without rebuilding fields (keeps the caret) */
+  document.querySelectorAll("#props .ferr").forEach((e) => e.remove());
+  document.querySelectorAll("#props .bad").forEach((e) => e.classList.remove("bad"));
+  const errs = (result && result.errors) || [];
+  document.querySelectorAll("#props .prow").forEach((row) => { const inp = row.querySelector("input,select"); if (!inp || !inp.id) return; });
+  if (errs.length) { const mine = errs.filter((i) => itemOf(i.field) === selected); if (mine.length) renderPropsKeepFocus(); }
+}
+function renderPropsKeepFocus() { const id = document.activeElement && document.activeElement.id; const pos = document.activeElement && document.activeElement.selectionStart; renderProps(); if (id) { const e = $(id); if (e) { e.focus(); try { if (pos != null) e.setSelectionRange(pos, pos); } catch (_) {} } } }
+function changed(rebuild) { if (study) { study = null; clearTimeout(studyTimer); } if (solverRes) { solverRes = null; runRec = null; logText += "Solver result cleared: the case changed.\n"; setChip(); } clearTimeout(timer); timer = setTimeout(() => runCheck(!!rebuild), rebuild ? 0 : 150); renderTreeMetaOnly(); }
+function renderTreeMetaOnly() { document.querySelectorAll("#tree .titem").forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(ITEMS[i][0]); }); }
+let lib = { pins: [], materials: [] }, menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+function openMenu(btn, heading, groups) {
+  const was = menuEl && menuEl.dataset.for === btn.id; closeMenu(); if (was) return;
+  const m = el("div", "menu"); m.setAttribute("role", "menu"); m.dataset.for = btn.id;
+  for (const [title, items] of groups) {
+    if (title) m.append(elt("h4", title));
+    for (const it of items) { const b = el("button"); b.type = "button"; b.setAttribute("role", "menuitem"); const n = el("span", "mn"); n.append(elt("span", it.name), elt("span", it.label || "", { class: "badge" })); b.append(n, elt("span", it.description || "", { class: "md" })); b.addEventListener("click", () => { closeMenu(); it.pick(); }); m.append(b); }
+  }
+  const r = btn.getBoundingClientRect(); m.style.top = r.bottom + 4 + "px"; m.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 390)) + "px";
+  document.body.append(m); menuEl = m; (m.querySelector("button") || m).focus();
+}
+document.addEventListener("click", (e) => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest(".rbtn")) closeMenu(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+async function loadLibrary() { try { lib = await (await fetch("/api/library")).json(); } catch (_) { logText += "Couldn't load the library.\n"; } }
+async function loadPin(id, name) { doc = await (await fetch("/api/pin/" + encodeURIComponent(id))).json(); selected = "power"; logText += "Loaded pin: " + name + ".\n"; await runCheck(true); renderAll(); }
+function applyMaterial(region, entry) { doc.materials[region] = JSON.parse(JSON.stringify(entry.material)); logText += "Set " + region + " to " + entry.name + " (" + entry.label + ").\n"; changed(true); }
+$("bPins").onclick = (e) => openMenu(e.currentTarget, "Pins", [["Pin presets", lib.pins.map((p) => ({ name: p.name, label: p.label, description: p.description, pick: () => loadPin(p.id, p.name) }))]]);
+$("bMats").onclick = (e) => openMenu(e.currentTarget, "Materials", [["Fuel", lib.materials.filter((x) => x.region === "fuel").map((x) => ({ ...x, pick: () => applyMaterial("fuel", x) }))], ["Cladding", lib.materials.filter((x) => x.region === "cladding").map((x) => ({ ...x, pick: () => applyMaterial("cladding", x) }))]]);
+async function loadExample() { doc = await (await fetch("/api/example")).json(); logText += "Loaded the synthetic example pin.\n"; await runCheck(true); renderAll(); }
+
+$("bExample").onclick = loadExample;
+$("bOpen").onclick = () => $("fileIn").click();
+$("fileIn").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { doc = JSON.parse(await f.text()); logText += "Opened " + f.name + ".\n"; } catch (_) { logText += "Couldn't read " + f.name + ": not valid JSON.\n"; renderOutput(); return; } await runCheck(true); renderAll(); e.target.value = ""; };
+$("bSave").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2) + "\n"], { type: "application/json" })); a.download = (doc.caseId || "case") + ".json"; a.click(); URL.revokeObjectURL(a.href); logText += "Saved " + a.download + " (to your downloads).\n"; renderOutput(); };
+$("bStudy").onclick = async () => {
+  await runCheck(false); outTab = "checks";
+  if (!solverName) { logText += "A refinement study needs the solver, which is not installed.\n"; renderOutput(); return; }
+  if (!result.ok) { outTab = "problems"; logText += "Study not started: fix the problems first.\n"; renderOutput(); return; }
+  const r = await fetch("/api/study", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
+  const j = await r.json();
+  if (!r.ok) { logText += "Study refused: " + (j.error || j.message || (j.errors || []).map((e) => e.message).join("; ")) + "\n"; renderOutput(); return; }
+  logText += "Refinement study started: runs " + j.ids.join(", ") + ".\n";
+  study = { status: "running", states: ["queued", "queued", "queued"] }; renderOutput();
+  const poll = async () => { const s = await (await fetch("/api/study?ids=" + j.ids.join(","))).json(); study = s; renderOutput(); if (s.status === "running") studyTimer = setTimeout(poll, 700); else logText += "Refinement study " + s.status + ".\n"; };
+  poll();
+};
+$("bCheck").onclick = async () => { outTab = "problems"; await runCheck(false); renderOutput(); };
+$("bQuick").onclick = async () => { outTab = "checks"; await runCheck(false); renderOutput(); };
+function setChip() {
+  const c = $("runChip"), b = $("runBtn");
+  const running = runRec && (runRec.state === "queued" || runRec.state === "running");
+  if (running) c.textContent = "OFFBEAT · " + runRec.state + "…";
+  else if (runRec && solverRes) c.textContent = "OFFBEAT · completed" + (runRec.exitCode ? " (solver exit " + runRec.exitCode + ")" : "");
+  else if (runRec) c.textContent = "OFFBEAT · " + runRec.state;
+  else c.textContent = solverName ? "solver ready · OpenFOAM 9 + OFFBEAT" : "no solver installed · closed-form quick look";
+  b.lastChild.textContent = running ? "Cancel" : "Run";
+  b.title = solverName ? "Run the case in OFFBEAT" : "No solver found: shows the closed-form quick look";
+}
+async function poll() {
+  clearTimeout(pollTimer);
+  try {
+    runRec = await (await fetch("/api/run/" + runId)).json();
+  } catch (_) { logText += "Lost contact with the server.\n"; setChip(); renderOutput(); return; }
+  if (runRec.state === "queued" || runRec.state === "running") { pollTimer = setTimeout(poll, 500); setChip(); return; }
+  if (runRec.state === "completed") {
+    solverRes = await (await fetch("/api/run/" + runId + "/results")).json();
+    logText += "Run " + runId + " completed. " + (runRec.notes || []).join(" ") + "\n";
+  } else logText += "Run " + runId + " " + runRec.state + (runRec.failure ? ": " + runRec.failure.message : "") + "\n";
+  outTab = "checks"; setChip(); renderOutput(); draw();
+}
+$("runBtn").onclick = async () => {
+  if (runRec && (runRec.state === "queued" || runRec.state === "running")) { await fetch("/api/run/" + runId + "/cancel", { method: "POST" }); logText += "Cancel requested.\n"; return; }
+  await runCheck(false); outTab = "checks";
+  if (!solverName) { logText += (result.ok ? "Case valid. " : "Case has problems. ") + "No solver is installed, so this is the closed-form quick look, not a solver run.\n"; renderOutput(); return; }
+  if (!result.ok) { outTab = "problems"; logText += "Run not started: fix the problems first.\n"; renderOutput(); return; }
+  solverRes = null; runRec = null;
+  const r = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
+  const j = await r.json();
+  if (!r.ok) { logText += "Run refused: " + (j.message || j.error || (j.errors || []).map((e) => e.message).join("; ")) + "\n"; renderOutput(); return; }
+  runId = j.id; runRec = { state: "queued" }; logText += "Run " + runId + " queued.\n"; setChip(); renderOutput(); poll();
+};
+$("bTemp").onclick = () => { showDegC = !showDegC; $("bTempLbl").textContent = showDegC ? "Celsius" : "Kelvin"; renderOutput(); draw(); };
+$("pCol").onclick = $("pCf").onclick = (e) => { e.currentTarget.setAttribute("aria-pressed", String(e.currentTarget.getAttribute("aria-pressed") !== "true")); draw(); };
+document.querySelectorAll(".otab").forEach((b) => (b.onclick = () => { outTab = b.dataset.o; renderOutput(); }));
+$("tabView").onclick = $("tabJson").onclick = (e) => { const v = e.currentTarget.id === "tabView"; $("tabView").setAttribute("aria-selected", String(v)); $("tabJson").setAttribute("aria-selected", String(!v)); $("docView").hidden = !v; $("docJson").hidden = v; if (v) draw(); };
+$("bRefresh2").onclick = () => $("bRefresh").click();
+new ResizeObserver(() => draw()).observe(document.querySelector(".vpwrap"));
+/* ---- keyboard: arrow keys move between tabs in a tab list and between items in a menu */
+document.addEventListener("keydown", (e) => {
+  if (!["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+  const tab = e.target.closest && e.target.closest('[role="tab"]');
+  if (tab && (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Home" || e.key === "End")) {
+    const tabs = [...tab.parentElement.querySelectorAll('[role="tab"]')].filter((t) => !t.hidden && !t.disabled);
+    let i = tabs.indexOf(tab);
+    i = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    e.preventDefault(); tabs[i].focus(); tabs[i].click(); return;
+  }
+  const menu = e.target.closest && e.target.closest('[role="menu"]');
+  if (menu && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End")) {
+    const items = [...menu.querySelectorAll("button")];
+    let i = items.indexOf(document.activeElement);
+    i = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : (i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+    e.preventDefault(); items[i].focus();
+  }
+});
+
+/* ================= Results and Compare views ================= */
+const COL = { solver: "#c89df2", closed: "#52b8ff", a: "#52b8ff", b: "#f0a35e" };
+let mode = "case", runs = [], selRun = null, selDetail = null, cmp = { a: null, b: null, data: null };
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll(".rtab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
+  $("rbCase").hidden = m !== "case"; $("rbResults").hidden = m !== "results"; $("rbCompare").hidden = m !== "compare";
+  $("tree").hidden = m !== "case"; $("runs").hidden = m === "case";
+  $("exHead").textContent = m === "case" ? "Case" : "Runs";
+  $("tabView").hidden = $("tabJson").hidden = m !== "case";
+  $("tabResults").hidden = m !== "results"; $("tabCompare").hidden = m !== "compare";
+  $("center").classList.toggle("nooutput", m !== "case");
+  const caseView = m === "case" && $("tabView").getAttribute("aria-selected") === "true";
+  $("docView").hidden = !caseView; $("docJson").hidden = m !== "case" || caseView;
+  $("docResults").hidden = m !== "results"; $("docCompare").hidden = m !== "compare";
+  if (m === "case") { renderProps(); renderOutput(); draw(); return; }
+  loadRuns().then(() => {
+    if (m === "results" && !selRun) { const last = [...runs].reverse().find((r) => r.state === "completed") || runs[runs.length - 1]; if (last) return selectRun(last.id); }
+    if (m === "compare" && !cmp.data) { const done = runs.filter((r) => r.state === "completed"); if (done.length >= 2) { cmp.a = done[done.length - 2].id; cmp.b = done[done.length - 1].id; } else if (done.length === 1) { cmp.a = cmp.b = done[0].id; } return loadCompare(); }
+    renderRuns(); m === "results" ? renderResults() : renderCompare();
+  });
+}
+document.querySelectorAll(".rtab").forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
+
+async function loadRuns() { try { runs = await (await fetch("/api/runs")).json(); } catch (_) { runs = []; } }
+const short = (t, n) => (t.length > n ? t.slice(0, n - 1) + "…" : t);
+const stateDot = (s) => (s === "completed" ? "ok" : s === "failed" || s === "interrupted" ? "err" : s === "cancelled" ? "warn" : "");
+function renderRuns() {
+  const t = $("runs"); t.replaceChildren();
+  if (!runs.length) { const d = el("div", "tempty"); d.textContent = solverName ? "No runs yet. Press Run on the Case tab." : "No solver is installed, so there are no runs."; d.style.padding = "10px"; t.append(d); return; }
+  for (const r of [...runs].reverse()) {
+    const b = el("div", "titem" + (mode === "results" && r.id === selRun ? " is-sel" : "")); b.setAttribute("role", "button"); b.tabIndex = 0;
+    b.append(elt("span", "", { class: "dot " + stateDot(r.state) }), elt("span", r.caseName || r.caseId, { class: "tname" }));
+    b.append(elt("span", r.headline ? K(r.headline.centreCellT) : r.state, { class: "tmeta" }));
+    if (mode === "results") { const go = () => selectRun(r.id); b.onclick = go; b.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } }; }
+    else if (r.state === "completed") {
+      const mk = (which) => { const bt = elt("button", which.toUpperCase(), { class: "tbtn", type: "button", "aria-label": "Use this run as " + which.toUpperCase() }); bt.style.cssText = "padding:0 6px;margin-left:4px"; if (cmp[which] === r.id) bt.style.borderColor = which === "a" ? COL.a : COL.b; bt.onclick = (e) => { e.stopPropagation(); cmp[which] = r.id; loadCompare(); }; return bt; };
+      b.append(mk("a"), mk("b"));
+    }
+    const sub = el("div", "tmeta"); sub.style.cssText = "display:block;padding:0 10px 4px 26px;margin:0"; sub.textContent = r.id + " · " + (r.startedAt || r.createdAt).replace("T", " ").slice(0, 19);
+    const wrap = el("div"); wrap.append(b, sub); t.append(wrap);
+  }
+}
+
+/* ---- generic profile plot ---- */
+function drawGeneric(canvas, spec) {
+  const [x, w, h] = sizeCanvas(canvas); x.clearRect(0, 0, w, h); canvas._plot = null;
+  if (!spec) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show", 14, h / 2); return; }
+  const g = spec.geom, L = 62, Rr = 16, Tp = 14, Bt = 26;
+  const vals = []; spec.series.forEach((s) => s.pts.forEach((p) => vals.push(showT(p[1])))); if (spec.bulk != null) vals.push(showT(spec.bulk));
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+  const rmax = Math.max(g.cladOut, ...(spec.extraRmax || [])) * 1e3, X = (r) => L + (r / rmax) * (w - L - Rr), Y = (T) => h - Bt - ((T - lo) / (hi - lo)) * (h - Bt - Tp);
+  canvas._plot = { spec, X, Y, L, Rr, rmax, w, lo, hi };
+  x.font = "11px ui-monospace,Consolas,monospace"; x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const T = lo + ((hi - lo) * i) / 4, y = Y(T); x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, y); x.lineTo(w - Rr, y); x.stroke(); x.fillStyle = "#8c949e"; x.fillText(T.toFixed(0), 8, y + 4); }
+  for (let i = 0; i <= 5; i++) { const r = (rmax * i) / 5; x.fillStyle = "#8c949e"; x.fillText(r.toFixed(1), X(r) - 8, h - Bt + 14); }
+  x.fillStyle = "#8c949e"; x.fillText("r (mm)", w - 54, h - 5); x.fillText(showDegC ? "°C" : "K", 8, Tp - 2);
+  const band = (a, b, col) => { x.fillStyle = col; x.fillRect(X(a * 1e3), Tp, X(b * 1e3) - X(a * 1e3), h - Bt - Tp); };
+  band(0, g.fuelR, "rgba(201,164,92,.07)"); band(g.fuelR, g.cladIn, "rgba(240,117,117,.18)"); band(g.cladIn, g.cladOut, "rgba(140,148,158,.12)");
+  if (spec.bulk != null) { x.strokeStyle = "#6fd49c"; x.setLineDash([6, 4]); x.beginPath(); x.moveTo(L, Y(showT(spec.bulk))); x.lineTo(w - Rr, Y(showT(spec.bulk))); x.stroke(); x.setLineDash([]); x.fillStyle = "#6fd49c"; x.fillText("coolant bulk", L + 6, Y(showT(spec.bulk)) - 5); }
+  for (const s of spec.series) {
+    for (const region of ["fuel", "cladding"]) {
+      const pts = s.pts.filter((p) => (region === "fuel" ? p[0] <= g.fuelR + 1e-9 : p[0] > g.fuelR + 1e-9));
+      if (s.line && pts.length > 1) { x.strokeStyle = s.color; x.lineWidth = s.width || 1.6; x.setLineDash(s.dash ? [5, 3] : []); x.beginPath(); pts.forEach((p, i) => { const px = X(p[0] * 1e3), py = Y(showT(p[1])); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); x.setLineDash([]); }
+      if (s.dots) { x.fillStyle = s.color; pts.forEach((p) => { x.beginPath(); x.arc(X(p[0] * 1e3), Y(showT(p[1])), 2.6, 0, 7); x.fill(); }); }
+    }
+  }
+  x.textAlign = "right";
+  spec.series.forEach((s, i) => { x.fillStyle = s.color; x.fillText("● " + s.label, w - Rr - 8, Tp + 12 + i * 14); });
+  x.textAlign = "left";
+}
+function hoverFor(canvas, readoutId) {
+  canvas.addEventListener("mousemove", (e) => {
+    const p = canvas._plot; if (!p) return; const b = canvas.getBoundingClientRect(), r = ((e.clientX - b.left - p.L) / (p.w - p.L - p.Rr)) * p.rmax; if (r < 0 || r > p.rmax) return;
+    const parts = p.spec.series.map((s) => { let best = s.pts[0]; for (const q of s.pts) if (Math.abs(q[0] * 1e3 - r) < Math.abs(best[0] * 1e3 - r)) best = q; return s.label + " " + K(best[1]) + " @ " + (best[0] * 1e3).toFixed(2) + " mm"; });
+    $(readoutId).textContent = parts.join("   ");
+  });
+  canvas.addEventListener("mouseleave", () => ($(readoutId).textContent = "Hover the profile"));
+}
+hoverFor($("rprof"), "rReadout"); hoverFor($("cprof"), "cReadout");
+
+const geomOf = (n) => ({ fuelR: n.fuelRadius, cladIn: n.claddingInnerRadius, cladOut: n.claddingOuterRadius });
+const radialPts = (res) => res.radial.map((p) => [p.r, p.T]);
+
+/* ---- Results view ---- */
+async function selectRun(id) {
+  selRun = id; renderRuns();
+  try { selDetail = await (await fetch("/api/run/" + id + "/detail")).json(); } catch (_) { selDetail = null; }
+  selDetail.closed = null;
+  if (selDetail && selDetail.results && selDetail.case) {
+    try { const c = await (await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(selDetail.case) })).json(); if (c.ok) selDetail.closed = c; } catch (_) {}
+  }
+  renderResults();
+}
+const card = (label, value, sub) => { const d = el("div", "mcard"); d.append(elt("div", label, { class: "ml" }), elt("div", value, { class: "mv" })); if (sub) d.append(elt("div", sub, { class: "ms" })); return d; };
+function renderResults() {
+  const d = selDetail, m = $("metrics"); m.replaceChildren();
+  $("rTitle").textContent = d ? (d.record.caseName || d.record.caseId) + " · " + d.record.id : "No run selected";
+  const pr = $("props"); pr.replaceChildren(); $("propSub").textContent = d ? "Run " + d.record.id : "";
+  if (!d) { drawGeneric($("rprof"), null); $("rBanner").hidden = true; return; }
+  const rec = d.record;
+  $("rBanner").hidden = false;
+  const ood = d.results && d.results.domain && d.results.domain.verdict === "out-of-domain";
+  $("rBanner").textContent = d.results ? (ood ? "OUT OF PROPERTY RANGE: a conductivity law was used outside the range it is stated for, so this is not a valid result. " : "") + d.results.thermalOnly : "No result: this run is " + rec.state + ".";
+  const warns = (d.manifest && d.manifest.warnings) || [];
+  if (d.results && warns.length) $("rBanner").textContent += "  WARNING at run time: " + warns.map((w) => w.code + " (" + w.message + ")").join("; ");
+  $("rBanner").style.color = ood ? "var(--err)" : ""; $("rBanner").style.background = ood ? "rgba(240,117,117,.12)" : "";
+  if (d.results) {
+    const s = d.results.summary;
+    m.append(card("Centre cell", K(s.centreCellT), "first cell, near the axis"), card("Fuel surface cell", K(s.fuelSurfaceCellT)), card("Cladding inner cell", K(s.claddingInnerCellT)), card("Outer wall", s.claddingOuterWallT === null ? "n/a" : K(s.claddingOuterWallT)));
+    const bad = d.results.checks.filter((c) => c.verdict === "fail").length, ok = d.results.checks.filter((c) => c.verdict === "pass").length;
+    m.append(card("Checks", ok + " pass" + (bad ? ", " + bad + " fail" : ""), d.results.checks.map((c) => c.label.split(" (")[0] + ": " + c.verdict).join(" · ")));
+    const series = [{ label: "OFFBEAT cells", pts: radialPts(d.results), color: COL.solver, dots: true, line: true, width: 1 }];
+    if ($("rCf").getAttribute("aria-pressed") === "true" && d.closed) series.unshift({ label: "closed form", pts: d.closed.profile.map((p) => [p.r, p.T]), color: COL.closed, line: true, dash: true, width: 1.4 });
+    drawGeneric($("rprof"), { geom: geomOf(d.normalized), series, bulk: d.normalized.boundary.kind === "convective" ? d.normalized.boundary.bulkTemperature : null });
+  } else {
+    const f = rec.failure; const box = el("div", "mcard wide"); box.append(elt("div", "This run has no result", { class: "ml" }), elt("div", rec.state, { class: "mv" }), elt("div", f ? f.code + ": " + f.message : (rec.notes || []).join(" "), { class: "ms" }));
+    if (f && f.native) { const pre = el("pre", "log"); pre.textContent = f.native; box.append(pre); }
+    m.append(box); drawGeneric($("rprof"), null);
+  }
+  // run details in the right panel
+  const row = (k, v) => { const r = el("div", "prow"); r.append(elt("label", k), elt("div", String(v))); r.lastChild.style.cssText = "font:12px var(--mono);overflow-wrap:anywhere"; pr.append(r); };
+  pr.append(elt("div", "Provenance", { class: "psec" }));
+  row("State", rec.state); row("Run id", rec.id); row("Started", (rec.startedAt || "—").replace("T", " ").slice(0, 19)); row("Ended", (rec.endedAt || "—").replace("T", " ").slice(0, 19));
+  row("Solver", rec.solver); if (rec.exitCode !== undefined && rec.exitCode !== null) row("Solver exit", rec.exitCode);
+  row("Case hash", rec.caseHash.slice(0, 16) + "…");
+  if (d.manifest) { row("End time", d.manifest.choices.endTime + " s"); row("Mesh", d.normalized.mesh.fuelCells + " fuel / " + d.normalized.mesh.claddingCells + " cladding cells"); }
+  if ((rec.notes || []).length) pr.append(note(rec.notes.join(" ").replace(/</g, "&lt;")));
+  if (d.manifest && d.manifest.placeholders) { pr.append(elt("div", "Solver placeholders", { class: "psec" })); pr.append(note(d.manifest.placeholders.map((p) => "<code>" + p.name + "</code> " + p.value).join("<br>"))); }
+  pr.append(elt("div", "Warnings at the time", { class: "psec" })); pr.append(note(d.manifest && d.manifest.warnings && d.manifest.warnings.length ? d.manifest.warnings.map((w) => "<code>" + w.code + "</code> " + w.message.replace(/</g, "&lt;")).join("<br>") : "None."));
+}
+$("rCf").onclick = (e) => { e.currentTarget.setAttribute("aria-pressed", String(e.currentTarget.getAttribute("aria-pressed") !== "true")); renderResults(); };
+$("bRefresh").onclick = async () => { await loadRuns(); renderRuns(); if (mode === "compare") loadCompare(); };
+$("bOpenRunCase").onclick = () => { if (!selDetail || !selDetail.case) return; doc = selDetail.case; solverRes = null; runRec = null; selected = "power"; logText += "Opened the case of run " + selDetail.record.id + ".\n"; setMode("case"); runCheck(true).then(renderAll); };
+const download = (name, type, text) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); URL.revokeObjectURL(a.href); };
+$("bCsv").onclick = () => { if (selDetail && selDetail.results) { const a = document.createElement("a"); a.href = "/api/run/" + selRun + "/results.csv"; a.click(); } };
+$("bJson").onclick = () => { if (selDetail && selDetail.results) download("results-" + selRun + ".json", "application/json", JSON.stringify(selDetail.results, null, 2) + "\n"); };
+$("bTempR").onclick = $("bTempC").onclick = () => { showDegC = !showDegC; $("bTempR").lastChild.textContent = $("bTempC").lastChild.textContent = showDegC ? "Celsius" : "Kelvin"; $("bTempLbl").textContent = showDegC ? "Celsius" : "Kelvin"; mode === "results" ? renderResults() : mode === "compare" ? renderCompare() : (renderOutput(), draw()); renderRuns(); };
+
+/* ---- Compare view ---- */
+async function loadCompare() {
+  renderRuns();
+  const sel = (id, which) => { const s = $(id); s.replaceChildren(); runs.filter((r) => r.state === "completed").forEach((r) => s.append(elt("option", short(r.caseName || r.caseId, 30) + " · " + r.id, { value: r.id }))); if (cmp[which]) s.value = cmp[which]; };
+  sel("cmpA", "a"); sel("cmpB", "b");
+  if (!cmp.a || !cmp.b) { cmp.data = null; return renderCompare(); }
+  try { cmp.data = await (await fetch("/api/compare?a=" + cmp.a + "&b=" + cmp.b)).json(); } catch (_) { cmp.data = { error: "Couldn't reach the server." }; }
+  cmp.da = await (await fetch("/api/run/" + cmp.a + "/detail")).json(); cmp.db = cmp.a === cmp.b ? cmp.da : await (await fetch("/api/run/" + cmp.b + "/detail")).json();
+  renderCompare();
+}
+$("cmpA").onchange = (e) => { cmp.a = e.target.value; loadCompare(); };
+$("cmpB").onchange = (e) => { cmp.b = e.target.value; loadCompare(); };
+$("bSwap").onclick = () => { [cmp.a, cmp.b] = [cmp.b, cmp.a]; loadCompare(); };
+$("bCmpJson").onclick = () => { if (cmp.data && !cmp.data.error) download("compare-" + cmp.a + "-" + cmp.b + ".json", "application/json", JSON.stringify(cmp.data, null, 2) + "\n"); };
+function table(head, rows, widths) {
+  const t = el("table", "tbl"); const th = el("tr"); head.forEach((h) => th.append(elt("th", h))); t.append(th);
+  rows.forEach((r) => { const tr = el("tr"); r.forEach((c) => { const td = el("td"); if (c && typeof c === "object") { td.textContent = c.text; if (c.cls) td.className = c.cls; if (c.mono) td.style.fontFamily = "var(--mono)"; } else td.textContent = c; tr.append(td); }); t.append(tr); });
+  return t;
+}
+function renderCompare() {
+  const d = cmp.data, box = $("cmpTables"); box.replaceChildren();
+  const pr = $("props"); pr.replaceChildren(); $("propSub").textContent = "Compare";
+  if (!d || d.error) { box.textContent = d && d.error ? d.error : (runs.filter((r) => r.state === "completed").length ? "Choose two runs." : "Compare needs completed runs. Press Run on the Case tab first."); drawGeneric($("cprof"), null); drawDelta(null); $("cBanner").hidden = true; return; }
+  $("cBanner").hidden = false; $("cBanner").textContent = d.thermalOnly;
+  const da = cmp.da, db = cmp.db;
+  const series = [
+    { label: "A  " + d.a.id, pts: radialPts(da.results), color: COL.a, dots: true, line: true, width: 1.2 },
+    { label: "B  " + d.b.id, pts: radialPts(db.results), color: COL.b, dots: true, line: true, width: 1.2 },
+  ];
+  const ga = geomOf(da.normalized), gb = geomOf(db.normalized);
+  drawGeneric($("cprof"), { geom: ga, extraRmax: [gb.cladOut], series, bulk: null });
+  drawDelta(d.profile);
+  const f = (v, dp) => (v === null ? "n/a" : v.toFixed(dp));
+  const note1 = el("div", d.identicalInputs ? "ok-note" : "diff-note"); note1.textContent = d.identicalInputs ? "The inputs are identical (same case hash). Any difference below is numerical." : d.inputDiff.length + " input " + (d.inputDiff.length === 1 ? "difference" : "differences") + " between A and B.";
+  box.append(note1);
+  box.append(elt("h4", "Input differences"));
+  box.append(d.inputDiff.length ? table(["Field", "A", "B"], d.inputDiff.map((r) => [{ text: r.path, mono: true }, { text: r.a, mono: true }, { text: r.b, mono: true }])) : elt("div", "None.", { class: "tmeta" }));
+  box.append(elt("h4", "Results (B − A)"));
+  box.append(table(["Quantity", "A", "B", "B − A"], d.summary.map((r) => [r.label, { text: r.a === null ? "n/a" : K(r.a), mono: true }, { text: r.b === null ? "n/a" : K(r.b), mono: true }, { text: r.delta === null ? "n/a" : (r.delta >= 0 ? "+" : "") + r.delta.toFixed(3) + " K", mono: true, cls: r.delta !== null && Math.abs(r.delta) > 0.0005 ? "chg" : "" }])));
+  box.append(elt("h4", "Checks"));
+  box.append(table(["Check", "A", "B"], d.checks.map((r) => [r.label, { text: r.a, cls: r.a === "fail" ? "fail" : r.a === "pass" ? "pass" : "na" }, { text: r.b, cls: r.b === "fail" ? "fail" : r.b === "pass" ? "pass" : "na" }])));
+  const swatch = (c) => "<span style='color:" + c + "'>●</span> ";
+  pr.append(elt("div", "Runs", { class: "psec" }));
+  pr.append(note(swatch(COL.a) + "A: <code>" + d.a.id + "</code> " + (d.a.caseName || "").replace(/</g, "&lt;") + "<br>" + swatch(COL.b) + "B: <code>" + d.b.id + "</code> " + (d.b.caseName || "").replace(/</g, "&lt;")));
+  pr.append(note(d.identicalInputs ? "Same case hash: a repeat run. It should agree to the solver's tolerance." : "Different case hashes: the input differences are listed in the centre."));
+  if (d.profile && d.profile.reason) pr.append(note(d.profile.reason.replace(/</g, "&lt;")));
+}
+function drawDelta(profile) {
+  const c = $("cdiff"), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h);
+  x.font = "11px ui-monospace,Consolas,monospace"; x.fillStyle = "#8c949e";
+  if (!profile || profile.reason) { x.fillText(profile ? "No point-by-point difference: the runs' cells do not line up." : "", 14, h / 2); return; }
+  if (Math.max(...profile.dT.map(Math.abs)) === 0) { x.fillText("B − A is exactly 0 K at every cell", 14, h / 2); return; }
+  const L = 62, Rr = 16, Tp = 8, Bt = 18, m = Math.max(...profile.dT.map(Math.abs), 1e-9), rmax = Math.max(...profile.r) * 1.0;
+  const X = (r) => L + (r / rmax) * (w - L - Rr), Y = (v) => Tp + (h - Tp - Bt) / 2 - (v / m) * ((h - Tp - Bt) / 2);
+  x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, Y(0)); x.lineTo(w - Rr, Y(0)); x.stroke();
+  x.fillText("+" + m.toPrecision(2), 8, Tp + 8); x.fillText("−" + m.toPrecision(2), 8, h - Bt); x.fillText("B − A (K) at each cell", L + 6, Tp + 10);
+  x.strokeStyle = COL.b; x.lineWidth = 1.4; x.beginPath(); profile.r.forEach((r, i) => { const px = X(r), py = Y(profile.dT[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke();
+}
+
+const _draw = draw;
+draw = function () { if (mode === "results") renderResults(); else if (mode === "compare") renderCompare(); else _draw(); };
+
+fetch("/api/ping").then((r) => r.json()).then((j) => { solverName = j.solver || null; setChip(); }).catch(() => setChip());
+loadLibrary().then(loadExample);
+</script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+{
+  "schema": "feed.oracle-table/0.1",
+  "note": "Synthetic oracle entries for the thermal pin (docs/plans/04-verification.md). Expected values were computed by an independent Python script (not by src/core), rounded to 4 decimals, and the k(T) entries also by bisection on the conductivity integral. Tolerances are fixed here, before any solver run, and are never loosened after seeing a result. These tolerances apply to the closed-form implementation only; the solver tolerances and refinement design are still to be fixed (TODO F1). Entries convert to SEED's seed.oracle/0.1 format once the adapter exists.",
+  "entries": [
+    {
+      "id": "fuel-solid-const",
+      "tag": "good",
+      "quantity": "fuel.deltaT",
+      "inputs": {
+        "qPrime": 20000,
+        "k": 3
+      },
+      "expected": {
+        "value": 530.5165,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "q' / (4 pi k)",
+      "source": "closed form; recomputed by Python"
+    },
+    {
+      "id": "fuel-radius-independence",
+      "tag": "good",
+      "quantity": "fuel.centreMinusSurface",
+      "inputs": {
+        "qPrime": 20000,
+        "k": 3,
+        "surfaceTemperature": 700,
+        "fuelRadii": [
+          0.003,
+          0.0041,
+          0.005
+        ]
+      },
+      "expected": {
+        "value": 530.5165,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "profile T(0) - T(R); the closed form has no R dependence",
+      "source": "closed form; recomputed by Python"
+    },
+    {
+      "id": "pin-composite-gap",
+      "tag": "good",
+      "quantity": "gap.deltaT",
+      "inputs": {
+        "qPrime": 20000,
+        "fuelK": 3,
+        "fuelRadius": 0.0041,
+        "hGap": 5000,
+        "claddingInnerRadius": 0.00418,
+        "claddingOuterRadius": 0.00475,
+        "claddingK": 15,
+        "hFilm": 30000,
+        "bulkTemperature": 573
+      },
+      "expected": {
+        "value": 155.2731,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "q' / (2 pi R_f h_gap)",
+      "source": "closed form; recomputed by Python"
+    },
+    {
+      "id": "pin-composite-cladding",
+      "tag": "good",
+      "quantity": "cladding.deltaT",
+      "inputs": {
+        "qPrime": 20000,
+        "fuelK": 3,
+        "fuelRadius": 0.0041,
+        "hGap": 5000,
+        "claddingInnerRadius": 0.00418,
+        "claddingOuterRadius": 0.00475,
+        "claddingK": 15,
+        "hFilm": 30000,
+        "bulkTemperature": 573
+      },
+      "expected": {
+        "value": 27.1271,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "q' ln(R_co/R_ci) / (2 pi k_c)",
+      "source": "closed form; recomputed by Python"
+    },
+    {
+      "id": "pin-composite-film",
+      "tag": "good",
+      "quantity": "film.deltaT",
+      "inputs": {
+        "qPrime": 20000,
+        "fuelK": 3,
+        "fuelRadius": 0.0041,
+        "hGap": 5000,
+        "claddingInnerRadius": 0.00418,
+        "claddingOuterRadius": 0.00475,
+        "claddingK": 15,
+        "hFilm": 30000,
+        "bulkTemperature": 573
+      },
+      "expected": {
+        "value": 22.3375,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "q' / (2 pi R_co h_c)",
+      "source": "closed form; recomputed by Python"
+    },
+    {
+      "id": "pin-composite-fuel",
+      "tag": "good",
+      "quantity": "pin.fuelDeltaT",
+      "inputs": {
+        "qPrime": 20000,
+        "fuelK": 3,
+        "fuelRadius": 0.0041,
+        "hGap": 5000,
+        "claddingInnerRadius": 0.00418,
+        "claddingOuterRadius": 0.00475,
+        "claddingK": 15,
+        "hFilm": 30000,
+        "bulkTemperature": 573
+      },
+      "expected": {
+        "value": 530.5165,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "q' / (4 pi k)",
+      "source": "closed form; recomputed by Python"
+    },
+    {
+      "id": "pin-composite-centre",
+      "tag": "good",
+      "quantity": "pin.centreTemperature",
+      "inputs": {
+        "qPrime": 20000,
+        "fuelK": 3,
+        "fuelRadius": 0.0041,
+        "hGap": 5000,
+        "claddingInnerRadius": 0.00418,
+        "claddingOuterRadius": 0.00475,
+        "claddingK": 15,
+        "hFilm": 30000,
+        "bulkTemperature": 573
+      },
+      "expected": {
+        "value": 1308.2542,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "T_bulk + film + cladding + gap + fuel (series)",
+      "source": "closed form; recomputed by Python"
+    },
+    {
+      "id": "fuel-k-of-T-surface-fixed",
+      "tag": "good",
+      "quantity": "fuel.centreTemperature.surfaceFixed.linearK",
+      "inputs": {
+        "qPrime": 20000,
+        "a": 4.0,
+        "b": -0.0006,
+        "surfaceTemperature": 900
+      },
+      "expected": {
+        "value": 1379.9588,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "a (T0 - Ts) + b/2 (T0^2 - Ts^2) = q' / (4 pi), k = a + b T",
+      "source": "conductivity integral; checked by bisection in Python and by finite volumes in the test suite"
+    },
+    {
+      "id": "pin-composite-k-of-T-centre",
+      "tag": "good",
+      "quantity": "pin.centreTemperature.linearFuelK",
+      "inputs": {
+        "qPrime": 20000,
+        "fuelA": 4.0,
+        "fuelB": -0.0006,
+        "fuelRadius": 0.0041,
+        "hGap": 5000,
+        "claddingInnerRadius": 0.00418,
+        "claddingOuterRadius": 0.00475,
+        "claddingK": 15,
+        "hFilm": 30000,
+        "bulkTemperature": 573
+      },
+      "expected": {
+        "value": 1246.8586,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.001,
+        "rel": 0
+      },
+      "method": "series with the conductivity integral in the fuel (fuel surface 777.7377 K)",
+      "source": "closed form; recomputed by Python with bisection"
+    },
+    {
+      "id": "ksu-sar-table-4.8-centreline",
+      "tag": "good",
+      "quantity": "pin.centreTemperature.surfaceFixed",
+      "inputs": {
+        "qPrime": 62021,
+        "fuelK": 18,
+        "fuelRadius": 0.018161,
+        "hGap": 2840,
+        "claddingInnerRadius": 0.018161,
+        "claddingOuterRadius": 0.018669,
+        "claddingK": 16.6,
+        "surfaceTemperature": 294.35
+      },
+      "expected": {
+        "value": 776.35,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.5,
+        "rel": 0
+      },
+      "method": "series: cladding wall + effective gap + fuel, outer surface fixed at 21.2 C",
+      "source": "PUBLISHED: Kansas State University TRIGA SAR (Dec 2004) Table 4.8 centreline 503.2 C = 776.35 K. Tolerance 0.5 K fixed before comparing: the SAR rounds its heat-flux constant 0.423 to three digits (0.1% of the 482 K rise is 0.5 K). Our own recomputation from the SAR inputs gives 503.19 C."
+    },
+    {
+      "id": "bad-units",
+      "tag": "bad-input",
+      "fixture": "schema/vectors/bad/units-missing.json",
+      "refusalCode": "E_UNITS",
+      "method": "power given without a unit",
+      "source": "validator contract (plan 02)"
+    },
+    {
+      "id": "bad-boundary",
+      "tag": "bad-input",
+      "fixture": "schema/vectors/bad/boundary-bulk-only.json",
+      "refusalCode": "E_BOUNDARY_INCOMPLETE",
+      "method": "bulk temperature without a heat-transfer coefficient",
+      "source": "validator contract (plan 02)"
+    },
+    {
+      "id": "missing-k",
+      "tag": "bad-input",
+      "fixture": "schema/vectors/bad/prop-missing-conductivity.json",
+      "refusalCode": "E_PROP_MISSING",
+      "method": "fuel material has composition and density only",
+      "source": "validator contract (plan 02)"
+    },
+    {
+      "id": "contact-needed",
+      "tag": "known-limit",
+      "fixture": "schema/vectors/bad/unsupported-closed-gap.json",
+      "refusalCode": "E_UNSUPPORTED",
+      "method": "closed gap with no contact model; contact needs mechanics",
+      "source": "validator contract (plan 02)"
+    },
+    {
+      "id": "out-of-range",
+      "tag": "known-limit",
+      "fixture": "schema/vectors/good/linear-conductivity.json",
+      "verdict": "out-of-domain",
+      "method": "the solution leaves the conductivity correlation's stated range (the fixture is altered in the test to narrow the range)",
+      "source": "quickLook domain check (plan 02, plan 04)"
+    }
+  ]
+}

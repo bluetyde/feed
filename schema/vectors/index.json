@@ -1,0 +1,209 @@
+[
+  {
+    "file": "good/synthetic-pin.json",
+    "valid": true
+  },
+  {
+    "file": "good/surface-temperature.json",
+    "valid": true
+  },
+  {
+    "file": "good/linear-conductivity.json",
+    "valid": true
+  },
+  {
+    "file": "good/power-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_POWER_RANGE"
+    ]
+  },
+  {
+    "file": "good/unknown-fields-kept.json",
+    "valid": true
+  },
+  {
+    "file": "good/closed-gap-effective-conductance.json",
+    "valid": true
+  },
+  {
+    "file": "bad/schema-missing-section.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/"
+  },
+  {
+    "file": "bad/schema-wrong-version.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/schema"
+  },
+  {
+    "file": "bad/units-missing.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/power/linearHeatRate"
+  },
+  {
+    "file": "bad/units-bare-number.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/power/linearHeatRate"
+  },
+  {
+    "file": "bad/units-wrong-dimension.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/power/linearHeatRate"
+  },
+  {
+    "file": "bad/units-unknown.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/geometry/fuelRadius"
+  },
+  {
+    "file": "bad/geometry-negative.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/fuelRadius"
+  },
+  {
+    "file": "bad/geometry-overlap.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/claddingInnerRadius"
+  },
+  {
+    "file": "bad/geometry-wall-inverted.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/claddingOuterRadius"
+  },
+  {
+    "file": "bad/boundary-bulk-only.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/boundary/heatTransferCoefficient"
+  },
+  {
+    "file": "bad/boundary-h-only.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/boundary/bulkTemperature"
+  },
+  {
+    "file": "bad/boundary-two-forms.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/boundary"
+  },
+  {
+    "file": "bad/boundary-none.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/boundary"
+  },
+  {
+    "file": "bad/prop-missing-conductivity.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity"
+  },
+  {
+    "file": "bad/prop-missing-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/cladding/sets/thermal.conductivity/source"
+  },
+  {
+    "file": "bad/prop-missing-reference-temperature.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity/referenceTemperature"
+  },
+  {
+    "file": "bad/prop-missing-range.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity/validRange"
+  },
+  {
+    "file": "bad/prop-missing-gap-conductance.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/gap/conductance"
+  },
+  {
+    "file": "bad/range-negative-power.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/power/linearHeatRate"
+  },
+  {
+    "file": "bad/range-conductivity-negative.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity"
+  },
+  {
+    "file": "bad/range-zero-conductivity.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity/value"
+  },
+  {
+    "file": "bad/unsupported-closed-gap.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/gap/model"
+  },
+  {
+    "file": "bad/unsupported-contact-model.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/gap/model"
+  },
+  {
+    "file": "bad/unsupported-gas-gap.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/gap/model"
+  },
+  {
+    "file": "bad/unsupported-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/assumptions/steadyState"
+  },
+  {
+    "file": "bad/unsupported-mechanics.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/assumptions/thermalOnly"
+  },
+  {
+    "file": "bad/unsupported-power-shape.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/power/radialShape"
+  },
+  {
+    "file": "bad/unsupported-conductivity-model.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/materials/fuel/sets/thermal.conductivity/model"
+  },
+  {
+    "file": "bad/mesh-fuel-low.json",
+    "valid": false,
+    "code": "E_MESH",
+    "field": "/mesh/fuelCells"
+  },
+  {
+    "file": "bad/mesh-cladding-low.json",
+    "valid": false,
+    "code": "E_MESH",
+    "field": "/mesh/claddingCells"
+  }
+]

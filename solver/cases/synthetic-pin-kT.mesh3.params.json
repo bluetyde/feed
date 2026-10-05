@@ -1,0 +1,23 @@
+{
+  "qPrime": 20000,
+  "fuelRadius": 0.0041,
+  "claddingInnerRadius": 0.00418,
+  "claddingOuterRadius": 0.00475,
+  "fuelK": {
+    "linear": {
+      "a": 4.0,
+      "b": -0.0006
+    }
+  },
+  "claddingK": 15,
+  "gapConductance": 5000,
+  "boundary": {
+    "kind": "convective",
+    "bulkTemperature": 573,
+    "h": 30000
+  },
+  "fuelCells": 40,
+  "claddingCells": 12,
+  "endTime": 50000000.0,
+  "initialTemperature": 900
+}

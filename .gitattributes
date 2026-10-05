@@ -1,0 +1,4 @@
+* text=auto eol=lf
+# Windows batch files must stay CRLF (cmd.exe); everything else is LF.
+*.cmd text eol=crlf
+*.bat text eol=crlf

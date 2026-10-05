@@ -1,0 +1,14 @@
+{
+  "qPrime": 62021,
+  "fuelRadius": 0.018161,
+  "claddingInnerRadius": 0.018161,
+  "claddingOuterRadius": 0.018669,
+  "fuelK": 18,
+  "claddingK": 16.6,
+  "gapConductance": 2840,
+  "boundary": { "kind": "surface-temperature", "temperature": 294.35 },
+  "fuelCells": 40,
+  "claddingCells": 8,
+  "endTime": 5e7,
+  "initialTemperature": 600
+}

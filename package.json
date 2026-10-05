@@ -1,0 +1,21 @@
+{
+  "name": "fuel-performance-studio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "FEED, Fuel Engineering and Experimental Design: guided thermal fuel-pin cases on top of an existing fuel-performance solver",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "npm run build && node dist/server/server.js"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0"
+  }
+}

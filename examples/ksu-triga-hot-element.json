@@ -1,0 +1,90 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "ksu-triga-hot-element",
+  "name": "K-State TRIGA Mark III hot element, 1.25 MW, 20 C pool (SAR Table 4.8)",
+  "label": "sourced",
+  "citation": "Every input is from the Kansas State University TRIGA Mark II SAR (Dec 2004), chapter 4 section 4.5.3: radii Table 4.6 (0.018161 m fuel outer, 0.018669 m cladding outer; UT-Austin SAR Table 4.1 gives the same 3.6322 and 3.7338 cm diameters); fuel k 18 W/m/K and cladding k 16.6 W/m/K, Tables 13.3 and 4.6; effective gap conductance 2840 W/m2/K (500 Btu/h/ft2/F), Appendix A; maximum heat flux 0.423 m^-2 x P (eq. 9) with P = 1.25 MW, so q' = 528.75 kW/m2 x 2 pi x 0.018669 m = 62.02 kW/m; outer-surface temperature 21.2 C and pool 20 C from Table 4.8. Table 4.8 lists 503.2 C centreline, 229.0 C fuel surface, 37.7 C cladding inner, 21.2 C cladding outer.",
+  "description": "A hot-element check from the K-State safety analysis. It is a conservative analysis point (1.25 MW, maximum heat flux), not normal operation. The SAR puts zero cold gap between fuel and cladding and uses one effective gap conductance for the interface. Solid-cylinder model: the 6.35 mm central hole holding a 5.7 mm zirconium rod is ignored, and the axial layout is one slice at the maximum heat flux. Thermal only.",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 18.669,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 62.021,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "surfaceTemperature": {
+      "value": 21.2,
+      "unit": "degC"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "triga-uzrh-h16",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 18,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "K-State SAR 2004 Table 13.3 (18 W/m/K, all temperatures); UT-Austin SAR 2023 Table 4.1 (0.18 W/cm/K)"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "ss304-k166",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 16.6,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 400,
+            "unit": "K"
+          },
+          "source": "K-State SAR 2004 Table 13.3 and Table 4.6 (16.6 W/m/K at 400 K)"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 2840,
+      "unit": "W/m2/K"
+    },
+    "source": "K-State SAR 2004 section 4.5.3 and Appendix A: effective gap resistance 500 Btu/h/ft2/F = 2840 W/m2/K"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 6
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "$id": "https://feed.invalid/schema/case.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FEED thermal case (V1, proposed)",
+  "description": "Structure only. Units, ranges, boundary completeness and required properties are checked by the semantic validator (src/core/validate.ts). Unknown fields are allowed and preserved on save; unknown option values are refused by the validator.",
+  "type": "object",
+  "required": ["schema", "caseId", "name", "assumptions", "geometry", "power", "boundary", "materials", "gap", "mesh"],
+  "properties": {
+    "schema": { "const": "feed.case/0.1" },
+    "caseId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "label": { "enum": ["synthetic", "sourced"] },
+    "assumptions": {
+      "type": "object",
+      "required": ["thermalOnly", "steadyState", "geometry"],
+      "properties": {
+        "thermalOnly": { "type": "boolean" },
+        "steadyState": { "type": "boolean" },
+        "geometry": { "type": "string" }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "required": ["fuelRadius", "claddingInnerRadius", "claddingOuterRadius"],
+      "properties": {
+        "fuelRadius": { "$ref": "#/$defs/quantity" },
+        "claddingInnerRadius": { "$ref": "#/$defs/quantity" },
+        "claddingOuterRadius": { "$ref": "#/$defs/quantity" }
+      }
+    },
+    "power": {
+      "type": "object",
+      "required": ["linearHeatRate"],
+      "properties": {
+        "linearHeatRate": { "$ref": "#/$defs/quantity" },
+        "radialShape": { "type": "string" }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "properties": {
+        "bulkTemperature": { "$ref": "#/$defs/quantity" },
+        "heatTransferCoefficient": { "$ref": "#/$defs/quantity" },
+        "surfaceTemperature": { "$ref": "#/$defs/quantity" }
+      }
+    },
+    "materials": {
+      "type": "object",
+      "required": ["fuel", "cladding"],
+      "properties": {
+        "fuel": { "$ref": "#/$defs/materialRef" },
+        "cladding": { "$ref": "#/$defs/materialRef" }
+      }
+    },
+    "gap": {
+      "type": "object",
+      "required": ["model"],
+      "properties": {
+        "model": { "type": "string" },
+        "conductance": { "$ref": "#/$defs/quantity" },
+        "source": { "type": "string" }
+      }
+    },
+    "mesh": {
+      "type": "object",
+      "required": ["fuelCells", "claddingCells"],
+      "properties": {
+        "fuelCells": { "type": "integer" },
+        "claddingCells": { "type": "integer" }
+      }
+    }
+  },
+  "$defs": {
+    "quantity": {
+      "description": "{value, unit}. Typed loosely here so that a bare number or a missing unit is reported as E_UNITS by the validator, not as a schema error.",
+      "anyOf": [{ "type": "object" }, { "type": "number" }]
+    },
+    "materialRef": {
+      "type": "object",
+      "required": ["materialId", "revision", "sets"],
+      "properties": {
+        "materialId": { "type": "string", "minLength": 1 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "sets": { "type": "object" }
+      }
+    }
+  }
+}
