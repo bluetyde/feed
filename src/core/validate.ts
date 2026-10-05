@@ -45,6 +45,8 @@ export interface ValidationResult {
 /** Heat rate above which a warning is raised (W/m). Sanity range, not a limit. */
 export const POWER_SANITY_MAX = 60_000;
 export const MESH_MINIMUM = { fuelCells: 4, claddingCells: 2 } as const;
+/** A 1D pin needs nowhere near this many cells; the cap stops a small request asking for gigabytes of mesh. */
+export const MESH_MAXIMUM = { fuelCells: 20000, claddingCells: 10000 } as const;
 export const SCHEMA_ID = "feed.case/0.1";
 
 const ajv = new Ajv2020({ strict: true, allErrors: true });
@@ -170,6 +172,7 @@ export function validateCase(doc: unknown): ValidationResult {
   const mesh = c.mesh as { fuelCells: number; claddingCells: number };
   for (const key of ["fuelCells", "claddingCells"] as const) {
     if (mesh[key] < MESH_MINIMUM[key]) err("E_MESH", "/mesh/" + key, key + " is " + mesh[key] + "; the minimum is " + MESH_MINIMUM[key]);
+    else if (mesh[key] > MESH_MAXIMUM[key]) err("E_MESH", "/mesh/" + key, key + " is " + mesh[key] + "; the maximum is " + MESH_MAXIMUM[key]);
   }
 
   const result = finish(issues);

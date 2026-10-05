@@ -103,7 +103,7 @@ describe.skipIf(!enabled)("run manager + real solver (needs FEED_SOLVER=1 and th
   it("cancels a long run and leaves no solver process of that run behind", async () => {
     const mgr = new RunManager({ runsRoot: mkdtempSync(join(tmpdir(), "feed-wsl-")), backend: new WslBackend(), timeoutMs: 240_000 });
     // a mesh large enough that blockMesh + the solve take several seconds
-    const s = mgr.start(pin((d) => ((d.mesh.fuelCells = 30000), (d.mesh.claddingCells = 9000))));
+    const s = mgr.start(pin((d) => ((d.mesh.fuelCells = 20000), (d.mesh.claddingCells = 9000))));
     if (!s.ok) throw new Error("start refused");
     await new Promise((r) => setTimeout(r, 4000));
     await mgr.cancel(s.id);

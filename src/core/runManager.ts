@@ -64,6 +64,12 @@ export interface ManagerOptions {
 const SOLVER_TEXT = "OpenFOAM Foundation 9 + OFFBEAT 80e84450";
 const SIGNALS: Record<number, string> = { 134: "SIGABRT (aborted)", 136: "SIGFPE (floating-point exception)", 137: "SIGKILL (killed)", 139: "SIGSEGV (segmentation fault)", 143: "SIGTERM (terminated)" };
 
+const RUN_STATES: RunState[] = ["queued", "running", "completed", "failed", "cancelled", "interrupted"];
+function isRunRecord(r: any): r is RunRecord {
+  return !!r && typeof r === "object" && ["id", "caseId", "caseHash", "solver", "createdAt"].every((k) => typeof r[k] === "string") && RUN_STATES.includes(r.state) && Array.isArray(r.notes);
+}
+const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
 function atomicWrite(path: string, text: string) {
   mkdirSync(dirname(path), { recursive: true });
   const tmp = path + ".tmp";
@@ -99,10 +105,12 @@ export class RunManager {
   /** Runs left `queued` or `running` by a previous process are `interrupted`: their solver is not owned by this process. */
   private recover() {
     for (const name of readdirSync(this.opts.runsRoot)) {
+      if (!/^[0-9a-f]{12}$/.test(name)) continue; // only directories named as run ids are ours
       const f = join(this.opts.runsRoot, name, "run.json");
       if (!existsSync(f)) continue;
       try {
         const r = JSON.parse(readFileSync(f, "utf8")) as RunRecord;
+        if (!isRunRecord(r) || r.id !== name) continue; // a record copied from elsewhere is not registered, so prune cannot touch another directory
         if (r.state === "queued" || r.state === "running") {
           const was = r.state === "running" ? "in progress" : "waiting";
           r.state = "interrupted";
@@ -146,10 +154,15 @@ export class RunManager {
   }
   private finish(r: RunRecord) {
     r.endedAt = this.now().toISOString();
-    this.save(r);
-    this.prune();
-    for (const w of this.waiters.get(r.id) ?? []) w({ ...r });
-    this.waiters.delete(r.id);
+    try {
+      this.save(r);
+      this.prune();
+    } catch (e) {
+      r.notes.push("The final record could not be written to disk: " + String((e as Error).message));
+    } finally {
+      for (const w of this.waiters.get(r.id) ?? []) w({ ...r });
+      this.waiters.delete(r.id);
+    }
   }
 
   /** Validate the case, snapshot it with hashes, queue the run. Invalid cases are not queued. */
@@ -177,7 +190,7 @@ export class RunManager {
     const rec: RunRecord = { id, caseId: v.normalized.caseId, caseName, caseHash, state: "queued", createdAt: this.now().toISOString(), solver: SOLVER_TEXT, notes: [] };
     this.save(rec);
     this.queue.push(id);
-    queueMicrotask(() => void this.pump());
+    queueMicrotask(() => void this.pump().catch(() => undefined)); // pump settles every run itself; this guards the rest
     return { ok: true, id };
   }
 
@@ -228,7 +241,12 @@ export class RunManager {
       this.finish(r);
     } else if (r.state === "running") {
       this.cancelRequested.add(id);
-      await this.opts.backend.cancel(id);
+      try {
+        await this.opts.backend.cancel(id);
+      } catch (e) {
+        r.notes.push("Cancel could not confirm that the solver stopped: " + String((e as Error).message));
+        this.save(r);
+      }
     }
     return this.get(id);
   }
@@ -239,9 +257,17 @@ export class RunManager {
     this.active = id;
     try {
       await this.execute(id);
+    } catch (e) {
+      // execute() settles its own run; reaching here means something unexpected threw, so settle it here
+      const r = this.records.get(id);
+      if (r && (r.state === "queued" || r.state === "running")) {
+        r.state = "failed";
+        r.failure = { code: "E_APP_FAILED", message: "The run could not be completed: " + String((e as Error).message) };
+        this.finish(r);
+      }
     } finally {
       this.active = null;
-      void this.pump();
+      void this.pump().catch(() => undefined);
     }
   }
 
@@ -257,7 +283,10 @@ export class RunManager {
     let infra: string | undefined;
     const timer = setTimeout(() => {
       this.timedOut.add(id);
-      void this.opts.backend.cancel(id).catch(() => undefined);
+      this.opts.backend.cancel(id).catch((e) => {
+        const rec = this.records.get(id);
+        if (rec) rec.notes.push("The time-limit stop could not be confirmed: " + String((e as Error).message));
+      });
     }, this.timeoutMs);
     try {
       outcome = await this.opts.backend.run({ id, inputsDir: join(dir, "inputs"), nativeDir, timeoutMs: this.timeoutMs });
@@ -266,7 +295,12 @@ export class RunManager {
     } finally {
       clearTimeout(timer);
     }
-    this.classify(r, dir, nativeDir, outcome, infra);
+    try {
+      this.classify(r, dir, nativeDir, outcome, infra);
+    } catch (e) {
+      r.state = "failed";
+      r.failure = { code: "E_APP_FAILED", message: "The run could not be classified: " + String((e as Error).message) };
+    }
     this.finish(r);
   }
 
@@ -288,18 +322,24 @@ export class RunManager {
     if (infra) return fail({ code: "E_APP_FAILED", message: "The solver environment could not run the case: " + infra });
 
     let exit: { blockMeshExit: number; offbeatExit: number; finalTime: number } | undefined;
+    const rawExit = read(join(nativeDir, "exit.json"));
+    if (rawExit === undefined) return fail({ code: "E_APP_FAILED", message: "The solver run left no exit record (exit.json).", native });
     try {
-      exit = JSON.parse(read(join(nativeDir, "exit.json")) ?? "null") ?? undefined;
+      exit = JSON.parse(rawExit);
     } catch {
       exit = undefined;
     }
-    if (!exit) return fail({ code: "E_APP_FAILED", message: "The solver run left no exit record (exit.json).", native });
+    if (!exit || !isNum(exit.blockMeshExit) || !isNum(exit.offbeatExit) || !isNum(exit.finalTime)) return fail({ code: "E_APP_FAILED", message: "The solver run left an invalid exit record (exit.json): the exit codes and final time must be numbers.", native });
     r.exitCode = exit.offbeatExit;
     if (exit.blockMeshExit !== 0) return fail({ code: "E_APP_FAILED", message: `The mesh could not be built (blockMesh exit ${exit.blockMeshExit}).`, native });
 
-    const expectedEnd = (JSON.parse(readFileSync(join(dir, "feed-manifest.json"), "utf8")).choices?.endTime as number) ?? 0;
+    const expectedEnd = JSON.parse(readFileSync(join(dir, "feed-manifest.json"), "utf8")).choices?.endTime;
+    if (!isNum(expectedEnd) || !(expectedEnd > 0)) return fail({ code: "E_APP_FAILED", message: "The run manifest has no valid intended end time, so the run cannot be judged complete.", native });
     const T = read(join(nativeDir, "final", "T"));
     const C = read(join(nativeDir, "final", "C"));
+    // Exit codes that mean the run did not finish on its own terms, whatever was left on disk.
+    if (exit.offbeatExit === 124) return fail({ code: "E_TIMEOUT", message: `The solver hit its time limit (exit 124, the shell timeout). Output written before that is not accepted as a result.`, native });
+    if (exit.offbeatExit === 137 || exit.offbeatExit === 143) return fail({ code: "E_APP_FAILED", message: `The solver was killed from outside (exit ${exit.offbeatExit}, ${SIGNALS[exit.offbeatExit]}). Output written before that is not accepted as a result.`, native });
     if (!(exit.finalTime > 0) || T === undefined || C === undefined) {
       const sig = SIGNALS[exit.offbeatExit];
       return fail({ code: "E_APP_FAILED", message: `The solver stopped before writing any result (exit ${exit.offbeatExit}${sig ? ", " + sig : ""}).`, native });

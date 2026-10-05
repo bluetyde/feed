@@ -279,3 +279,68 @@ describe("run manager: cleanup policy", () => {
     expect(second.list().length).toBe(1);
   });
 });
+
+describe("run manager: Codex review findings", () => {
+  it("#1 an error while reading native output fails the run instead of leaving it running", async () => {
+    const t = make("log-is-dir");
+    const s = t.mgr.start(pin());
+    if (!s.ok) throw new Error();
+    const rec = await Promise.race([t.mgr.done(s.id), new Promise<never>((_, rej) => setTimeout(() => rej(new Error("run never settled; state " + t.mgr.get(s.id)?.state)), 2000))]);
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_APP_FAILED");
+    expect(rec.failure!.message).toMatch(/EISDIR|illegal operation|Reading the solver output failed|could not be classified/i);
+    expect(t.mgr.results(s.id)).toBeUndefined();
+  });
+
+  it("#1 the manager keeps working after such a failure", async () => {
+    const t = make((n) => (n === 0 ? "log-is-dir" : "good"));
+    const a = t.mgr.start(pin());
+    const b = t.mgr.start(pin());
+    if (!a.ok || !b.ok) throw new Error();
+    expect((await t.mgr.done(a.id)).state).toBe("failed");
+    expect((await t.mgr.done(b.id)).state).toBe("completed");
+  });
+
+  it("#4 the shell's own timeout (exit 124) is a timeout failure even when fields were written", async () => {
+    const { rec, mgr, id } = await runOne("exit-124");
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_TIMEOUT");
+    expect(rec.failure!.message).toMatch(/time limit/);
+    expect(mgr.results(id)).toBeUndefined();
+  });
+
+  it("#4 a solver killed from outside (exit 137) is a failure even when fields were written", async () => {
+    const { rec, mgr, id } = await runOne("exit-137");
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_APP_FAILED");
+    expect(rec.failure!.message).toMatch(/killed/i);
+    expect(mgr.results(id)).toBeUndefined();
+  });
+
+  it("#7 an exit record without the solver exit code is not accepted", async () => {
+    const { rec } = await runOne("bad-exit-record");
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.message).toMatch(/exit record/);
+  });
+
+  it("#7 a manifest without the intended end time is not accepted (a short final time must not pass)", async () => {
+    const { rec } = await runOne("no-endtime");
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.message).toMatch(/intended end time/);
+  });
+
+  it("#9 recovery only trusts a directory whose run.json id matches its name, and prune never deletes another directory", async () => {
+    const runsRoot = mkdtempSync(join(tmpdir(), "feed-runs-"));
+    dirs.push(runsRoot);
+    const { mkdirSync } = await import("fs");
+    mkdirSync(join(runsRoot, "bbbbbbbbbbbb"));
+    writeFileSync(join(runsRoot, "bbbbbbbbbbbb", "run.json"), "not json");
+    mkdirSync(join(runsRoot, "zz-backup"));
+    writeFileSync(join(runsRoot, "zz-backup", "run.json"), JSON.stringify({ id: "bbbbbbbbbbbb", caseId: "x", caseHash: "h", state: "completed", createdAt: "2026-01-01T00:00:00Z", solver: "s", notes: [] }));
+    mkdirSync(join(runsRoot, "cccccccccccc"));
+    writeFileSync(join(runsRoot, "cccccccccccc", "run.json"), JSON.stringify({ id: "dddddddddddd", caseId: "x", caseHash: "h", state: "completed", createdAt: "2026-01-01T00:00:00Z", solver: "s", notes: [] }));
+    const m = new RunManager({ runsRoot, backend: new FakeBackend("good"), maxRuns: 0 });
+    expect(readdirSync(runsRoot).sort()).toEqual(["bbbbbbbbbbbb", "cccccccccccc", "zz-backup"]); // nothing deleted
+    expect(m.list()).toEqual([]); // neither copy was registered
+  });
+});

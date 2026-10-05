@@ -134,18 +134,26 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   const eps = 1e-9;
   r.forEach((x, i) => {
     if (x > c.claddingOuterRadius + eps) bad(`cell ${i} is outside the pin (r = ${x} m)`);
+    // a centre must lie strictly inside the fuel or strictly inside the cladding wall, never in the gap or on an interface
+    if (!(x < c.fuelRadius || x > c.claddingInnerRadius)) bad(`cell ${i} has its centre in the gap or on an interface (r = ${x} m)`);
   });
   T.forEach((t, i) => {
     if (!(t > 0)) bad(`cell ${i}: temperature ${t} K is not above 0 K`);
   });
 
-  const radial: RadialPoint[] = r.map((x, i) => ({ r: x, T: T[i]!, region: x <= c.fuelRadius + eps ? "fuel" : "cladding" }));
+  const radial: RadialPoint[] = r.map((x, i) => ({ r: x, T: T[i]!, region: x < c.fuelRadius ? "fuel" : "cladding" }));
   const fuel = radial.filter((p) => p.region === "fuel");
   const clad = radial.filter((p) => p.region === "cladding");
   if (fuel.length !== c.mesh.fuelCells || clad.length !== c.mesh.claddingCells) bad("cell centres do not split into the expected fuel and cladding counts");
   fuel.sort((a, b) => a.r - b.r);
   clad.sort((a, b) => a.r - b.r);
+  for (const [name, pts] of [["fuel", fuel], ["cladding", clad]] as const) {
+    for (let i = 1; i < pts.length; i++) if (!(pts[i]!.r - pts[i - 1]!.r > 1e-12)) bad(`two ${name} cells share a centre (r = ${pts[i]!.r} m): the cell centres are not distinct`);
+  }
+  // The final-time file must be whole: the boundary block follows the cell list, so a file cut short there is not accepted.
+  if (!/\bboundaryField\b/.test(input.T)) bad("field T has no boundaryField (the file is cut short)");
   const wall = parsePatchValue(input.T, "cladOuter");
+  if (wall === null) bad("field T has no value for the cladOuter patch (the file is cut short or malformed)");
 
   // --- checks
   const lin = (k: Conductivity): LinearK => (k.kind === "constant" ? { a: k.k, b: 0 } : { a: k.a, b: k.b });
@@ -197,6 +205,7 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
     checks.push({ id: "propertyRange", label: "Conductivity law within its stated range", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated range" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". The law was extrapolated; this result is out-of-domain." });
   }
 
+  for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value}); the cell geometry is inconsistent`);
   const temps = radial.map((p) => p.T);
   return {
     schema: "feed.results/0.1",

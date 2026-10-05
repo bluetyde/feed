@@ -3,6 +3,7 @@
 // No solver yet: /api/check returns the validation and the closed-form quick look only.
 
 import { createServer, IncomingMessage, ServerResponse } from "http";
+import { AddressInfo } from "net";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { quickLook, radialProfile } from "../core/quickLook";
@@ -15,6 +16,26 @@ import { solverAvailable, WslBackend } from "../core/wslBackend";
 
 const PORT = Number(process.env.FEED_PORT ?? 8771);
 const MAX_BODY = 1_000_000;
+
+/**
+ * The server can start processes and serve case data, so it only answers requests that came from its own page:
+ * - Host must be 127.0.0.1, localhost or [::1] at the port this server listens on (stops DNS rebinding, where a hostile site's
+ *   name resolves to 127.0.0.1 and the browser sends that name as Host);
+ * - any request that changes state (not GET/HEAD) must carry the custom header x-feed-client: 1, which a cross-site page cannot
+ *   add without a CORS preflight this server never grants, and an Origin, if present, must be this server's own origin.
+ */
+export const CLIENT_HEADER = "x-feed-client";
+function allowedRequest(req: IncomingMessage): string | null {
+  const port = (server.address() as AddressInfo | null)?.port ?? PORT;
+  const host = String(req.headers.host ?? "").toLowerCase();
+  if (![`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`].includes(host)) return "Host not allowed: this server answers only on 127.0.0.1, localhost and [::1] at its own port.";
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    if (req.headers[CLIENT_HEADER] !== "1") return "Missing " + CLIENT_HEADER + " header: state-changing requests must come from this server's own page.";
+    const origin = req.headers.origin;
+    if (origin !== undefined && String(origin).toLowerCase() !== `http://${host}`) return "Origin not allowed: " + String(origin);
+  }
+  return null;
+}
 const root = projectRoot();
 
 /** The run manager exists only when the feed-solver distro does; runs live under runs/ (git-ignored). */
@@ -64,8 +85,9 @@ export function library() {
   return { pins, materials };
 }
 
-/** Largest finest-level fuel cell count a study may request (the finest level is 4x the case's mesh). */
+/** Largest finest-level cell counts a study may request (the finest level is 4x the case's mesh). */
 export const STUDY_MAX_FUEL_CELLS = 4000;
+export const STUDY_MAX_CLADDING_CELLS = 2000;
 
 /** Start the three runs of a refinement study. The case must be valid and its finest mesh within the cap. */
 export function startStudy(doc: any) {
@@ -73,6 +95,7 @@ export function startStudy(doc: any) {
   const v = validateCase(doc);
   if (!v.normalized) return { status: 400, body: { errors: v.errors } };
   if (v.normalized.mesh.fuelCells * 4 > STUDY_MAX_FUEL_CELLS) return { status: 400, body: { error: `The finest mesh would have ${v.normalized.mesh.fuelCells * 4} fuel cells; a study is limited to ${STUDY_MAX_FUEL_CELLS}. Reduce the case's mesh first.` } };
+  if (v.normalized.mesh.claddingCells * 4 > STUDY_MAX_CLADDING_CELLS) return { status: 400, body: { error: `The finest mesh would have ${v.normalized.mesh.claddingCells * 4} cladding cells; a study is limited to ${STUDY_MAX_CLADDING_CELLS}. Reduce the case's mesh first.` } };
   const ids: string[] = [];
   for (const d of studyCases(doc)) {
     const s = manager.start(d);
@@ -133,6 +156,8 @@ export function check(doc: unknown) {
 
 export const server = createServer(async (req, res) => {
   try {
+    const refusal = allowedRequest(req);
+    if (refusal) return json(res, 403, { error: refusal });
     const url = (req.url ?? "/").split("?")[0] ?? "/";
     if (req.method === "GET" && url === "/") return send(res, 200, "text/html; charset=utf-8", readFileSync(join(root, "src", "web", "index.html"), "utf8"));
     if (req.method === "GET" && url === "/api/ping") return json(res, 200, { ok: true, app: "fuel-performance-studio", solver: solverUp ? "OpenFOAM Foundation 9 + OFFBEAT (feed-solver)" : null });

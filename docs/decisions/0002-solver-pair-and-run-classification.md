@@ -22,3 +22,10 @@ Constant conductivity (`constantMaterial`), a constant gap conductance (`resisti
 ## Update 2026-10-05: temperature-dependent conductivity
 
 A linear conductivity k = a + b T is written through OFFBEAT's `steel1515TiTobbe` model with overridden coefficients (par2 = b, par1 = a + 273.15 b), checked against the conductivity-integral oracle in the solver. This is a use of the model beyond its name and relies on the override block in this OFFBEAT commit; a version bump re-runs the k(T) tests. The alternative, a small compiled OFFBEAT conductivity library loaded from the case, was not needed. A result whose cell temperatures leave a law's stated range is `out-of-domain` (check `propertyRange` fails) and the Results view says so.
+
+## Update 2026-10-05: after the Codex review
+
+- Reaching the distro: `wsl.exe -d feed-solver -u feed --exec bash <script> <args>` (decision 2 above said `-- ...`; `--` runs the command line through the default shell and breaks on paths with quotes or dollar signs).
+- A run is one process group: `run-feed.sh` becomes a session leader, writes `run.pid` first, and checks `native/cancel.flag` before every phase. Cancel writes the flag, then signals the group after checking the pid still is that run's script.
+- Classification also refuses: exit 124 (`E_TIMEOUT`), exit 137 and 143 (killed), an invalid `exit.json`, a manifest without a positive intended end time, a field file without its boundary block, and cell centres that are not strictly inside fuel or cladding.
+- The distro run directory is removed when the script ends; `solver/clean-stale-runs.sh` clears leftovers.

@@ -107,6 +107,8 @@ bad("unsupported-power-shape", "E_UNSUPPORTED", "/power/radialShape", (c) => (c.
 bad("unsupported-conductivity-model", "E_UNSUPPORTED", "/materials/fuel/sets/thermal.conductivity/model", (c) => (c.materials.fuel.sets["thermal.conductivity"].model = "expression"));
 bad("mesh-fuel-low", "E_MESH", "/mesh/fuelCells", (c) => (c.mesh.fuelCells = 2));
 bad("mesh-cladding-low", "E_MESH", "/mesh/claddingCells", (c) => (c.mesh.claddingCells = 1));
+bad("mesh-fuel-high", "E_MESH", "/mesh/fuelCells", (c) => (c.mesh.fuelCells = 1000000000));
+bad("mesh-cladding-high", "E_MESH", "/mesh/claddingCells", (c) => (c.mesh.claddingCells = 20001));
 
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 console.log(index.length + " vectors written");

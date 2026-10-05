@@ -1,11 +1,11 @@
 // A scripted backend: writes the same native files solver/run-feed.sh writes, from saved real OFFBEAT output, with
 // chosen faults. Lets the run manager be tested without the solver.
 
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { BackendOutcome, RunBackend } from "../../src/core/runManager";
 
-export type Script = "good" | "good-exit-0" | "fatal" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
+export type Script = "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
 
 const golden = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-syn", f), "utf8");
 
@@ -64,6 +64,34 @@ export class FakeBackend implements RunBackend {
         writeFileSync(join(nativeDir, "final", "T"), golden("T").replace("1299.6625", "nan"));
         writeFileSync(join(nativeDir, "final", "C"), golden("C"));
         exit(0, 0, 50000000);
+        return { cancelled: false };
+      }
+      case "exit-124":
+      case "exit-137":
+        writeFileSync(join(nativeDir, "final", "T"), golden("T"));
+        writeFileSync(join(nativeDir, "final", "C"), golden("C"));
+        exit(0, script === "exit-124" ? 124 : 137, 50000000);
+        return { cancelled: false };
+      case "bad-exit-record":
+        writeFileSync(join(nativeDir, "final", "T"), golden("T"));
+        writeFileSync(join(nativeDir, "final", "C"), golden("C"));
+        writeFileSync(join(nativeDir, "exit.json"), JSON.stringify({ blockMeshExit: 0, finalTime: 50000000 }));
+        return { cancelled: false };
+      case "log-is-dir":
+        writeFileSync(join(nativeDir, "final", "T"), golden("T"));
+        writeFileSync(join(nativeDir, "final", "C"), golden("C"));
+        exit(0, 139, 50000000);
+        rmSync(join(nativeDir, "log.offbeat"), { force: true });
+        mkdirSync(join(nativeDir, "log.offbeat")); // reading it throws EISDIR
+        return { cancelled: false };
+      case "no-endtime": {
+        writeFileSync(join(nativeDir, "final", "T"), golden("T"));
+        writeFileSync(join(nativeDir, "final", "C"), golden("C"));
+        exit(0, 139, 1000); // would pass a gate whose intended end time defaulted to 0
+        const mf = join(nativeDir, "..", "feed-manifest.json");
+        const m = JSON.parse(readFileSync(mf, "utf8"));
+        m.choices = {};
+        writeFileSync(mf, JSON.stringify(m));
         return { cancelled: false };
       }
       case "good":

@@ -205,5 +205,17 @@
     "valid": false,
     "code": "E_MESH",
     "field": "/mesh/claddingCells"
+  },
+  {
+    "file": "bad/mesh-fuel-high.json",
+    "valid": false,
+    "code": "E_MESH",
+    "field": "/mesh/fuelCells"
+  },
+  {
+    "file": "bad/mesh-cladding-high.json",
+    "valid": false,
+    "code": "E_MESH",
+    "field": "/mesh/claddingCells"
   }
 ]

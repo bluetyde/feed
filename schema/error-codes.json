@@ -6,6 +6,6 @@
   "E_PROP_MISSING": { "severity": "error", "meaning": "a property the chosen model needs is absent; names the property and the model" },
   "E_BOUNDARY_INCOMPLETE": { "severity": "error", "meaning": "coolant boundary missing a datum (bulk temperature without coefficient, or the reverse), absent, or specified in two forms" },
   "E_UNSUPPORTED": { "severity": "error", "meaning": "option or situation outside V1: unknown model, transient, non-thermal-only, closed gap that needs contact mechanics" },
-  "E_MESH": { "severity": "error", "meaning": "cell count below the minimum for its region" },
+  "E_MESH": { "severity": "error", "meaning": "cell count below the minimum or above the maximum for its region" },
   "W_POWER_RANGE": { "severity": "warning", "meaning": "linear heat rate above the sanity range; not clamped, not an error" }
 }

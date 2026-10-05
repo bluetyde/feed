@@ -144,3 +144,51 @@ describe("results parser on real OFFBEAT output with k(T) in the fuel", () => {
     expect(r.domain.verdict).toBe("in-domain");
   });
 });
+
+describe("results parser: Codex review findings", () => {
+  const refuses = (fn: () => unknown, re: RegExp) => {
+    try {
+      fn();
+    } catch (e) {
+      expect(e).toBeInstanceOf(ResultsError);
+      expect((e as Error).message).toMatch(re);
+      return;
+    }
+    throw new Error("expected a refusal");
+  };
+
+  it("#5 a field file cut after the cell list but before boundaryField is refused (no silently dropped wall check)", () => {
+    const cut = T.slice(0, T.indexOf("boundaryField"));
+    refuses(() => build(cut, C), /boundaryField|outer wall|cladOuter/);
+  });
+
+  it("#5 a boundaryField without the cladOuter value is refused", () => {
+    refuses(() => build(T.replace(/value\s+uniform\s+595\.33756;/, ""), C), /cladOuter/);
+  });
+
+  const centreLines = (text: string) => text.split("\n").map((l, i) => [l, i] as const).filter(([l]) => /^\([^()]+\)$/.test(l));
+  const swapCentre = (i: number, replacement: string) => {
+    const lines = C.split("\n");
+    lines[centreLines(C)[i]![1]] = replacement;
+    return lines.join("\n");
+  };
+
+  it("#8 two cells with the same centre are refused", () => {
+    const dup = centreLines(C)[20]![0];
+    refuses(() => build(T, swapCentre(21, dup)), /distinct|increasing|same/);
+  });
+
+  it("#8 a cladding cell centre inside the gap is refused", () => {
+    refuses(() => build(T, swapCentre(20, "(0.004100005 0 0.5)")), /gap|inside/);
+  });
+
+  it("#8 a fuel cell centre beyond the fuel radius is refused", () => {
+    refuses(() => build(T, swapCentre(19, "(0.0042 0 0.5)")), /fuel|gap|outside/);
+  });
+
+  it("#8 results never contain a non-finite number", () => {
+    const r = build();
+    expect(JSON.stringify(r)).not.toMatch(/null.*energyBalance/);
+    for (const c of r.checks) if (c.value !== null) expect(Number.isFinite(c.value), c.id).toBe(true);
+  });
+});

@@ -19,7 +19,7 @@ let runsRoot = "";
 let mgr: RunManager;
 const ids: Record<string, string> = {};
 const get = async (path: string) => fetch(base + path);
-const post = (path: string, body: unknown) => fetch(base + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+const post = (path: string, body: unknown) => fetch(base + path, { method: "POST", headers: { "content-type": "application/json", "x-feed-client": "1" }, body: JSON.stringify(body) });
 
 beforeAll(async () => {
   runsRoot = mkdtempSync(join(tmpdir(), "feed-srv-"));

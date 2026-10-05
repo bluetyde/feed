@@ -12,7 +12,7 @@ beforeAll(async () => {
 afterAll(() => new Promise<void>((r) => server.close(() => r())));
 
 const pin = readFileSync(join(__dirname, "..", "examples", "synthetic-pin.json"), "utf8");
-const post = (path: string, body: string, type = "application/json") => fetch(base + path, { method: "POST", headers: { "content-type": type }, body });
+const post = (path: string, body: string, type = "application/json") => fetch(base + path, { method: "POST", headers: { "content-type": type, "x-feed-client": "1" }, body });
 
 describe("server API (no solver started in tests)", () => {
   it("ping reports no solver when the distro was not initialised", async () => {

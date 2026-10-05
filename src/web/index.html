@@ -237,6 +237,9 @@ input.bad,select.bad{border-color:var(--err)}
 
 <script>
 "use strict";
+/* every state-changing request carries the header the server requires (it refuses requests that did not come from this page) */
+const _fetch = window.fetch.bind(window);
+window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
 const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], htc: ["W/m2/K", "kW/m2/K"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;

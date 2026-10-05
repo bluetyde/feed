@@ -17,7 +17,7 @@ const pin = (mutate?: (d: any) => void) => {
   mutate?.(d);
   return d;
 };
-const post = (path: string, body: unknown, type = "application/json") => fetch(base + path, { method: "POST", headers: { "content-type": type }, body: typeof body === "string" ? body : JSON.stringify(body) });
+const post = (path: string, body: unknown, type = "application/json") => fetch(base + path, { method: "POST", headers: { "content-type": type, "x-feed-client": "1" }, body: typeof body === "string" ? body : JSON.stringify(body) });
 
 beforeAll(async () => {
   runsRoot = mkdtempSync(join(tmpdir(), "feed-study-"));
@@ -57,6 +57,14 @@ describe("POST /api/study", () => {
     const r = await post("/api/study", pin((d) => (d.mesh.fuelCells = 1500)));
     expect(r.status).toBe(400);
     expect(((await r.json()) as any).error).toMatch(/limited to 4000/);
+    expect(mgr.list().length).toBe(before);
+  });
+
+  it("refuses a mesh whose finest cladding level would exceed its cap", async () => {
+    const before = mgr.list().length;
+    const r = await post("/api/study", pin((d) => (d.mesh.claddingCells = 600)));
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as any).error).toMatch(/cladding cells.*limited to 2000/);
     expect(mgr.list().length).toBe(before);
   });
 
