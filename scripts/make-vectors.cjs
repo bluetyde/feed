@@ -125,6 +125,15 @@ badT("time-step-not-dividing", "E_TIME", "/transient/timeStep", (c) => (c.transi
 badT("time-step-longer-than-run", "E_TIME", "/transient/timeStep", (c) => (c.transient.timeStep = { value: 200, unit: "ms" }));
 badT("time-too-many-steps", "E_TIME", "/transient/timeStep", (c) => (c.transient.timeStep = { value: 0.0005, unit: "ms" }));
 badT("time-outputs-not-dividing", "E_TIME", "/transient/outputs", (c) => (c.transient.outputs = 7));
+badT("units-heat-capacity-overflow", "E_UNITS", "/materials/fuel/sets/thermal.volumetricHeatCapacity/value", (c) => (c.materials.fuel.sets["thermal.volumetricHeatCapacity"].value = { value: 1e308, unit: "MJ/m3/K" }));
+badT("range-heat-capacity-implausible", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.volumetricHeatCapacity/value", (c) => (c.materials.fuel.sets["thermal.volumetricHeatCapacity"].value = { value: 0.001, unit: "J/m3/K" }));
+badT("range-initial-temperature-outside-heat-capacity-range", "E_OUT_OF_RANGE", "/transient/initialTemperature", (c) => {
+  c.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: { value: 0.9, unit: "MJ/m3/K" }, b: { value: 0.00417, unit: "MJ/m3/K2" }, validRange: { min: { value: 400, unit: "K" }, max: { value: 1500, unit: "K" } }, source: "synthetic" };
+});
+badT("time-too-much-work", "E_TIME", "/transient/timeStep", (c) => {
+  c.mesh = { fuelCells: 2000, claddingCells: 100 };
+  c.transient.timeStep = { value: 0.05, unit: "ms" };
+});
 badT("time-history-not-from-zero", "E_TIME", "/transient/powerHistory/0/time", (c) => (c.transient.powerHistory[0].time = { value: 1, unit: "ms" }));
 badT("time-history-not-increasing", "E_TIME", "/transient/powerHistory/2/time", (c) => (c.transient.powerHistory[2].time = { value: 4, unit: "ms" }));
 badT("time-history-ends-early", "E_TIME", "/transient/powerHistory", (c) => c.transient.powerHistory.pop());

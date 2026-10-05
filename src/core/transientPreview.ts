@@ -2,6 +2,7 @@
 // (transientFv.ts) stands in. It is a preview, labelled as such; the solver result is what the run produces.
 
 import { adiabaticTemperature } from "./transientExact";
+import { maxOf } from "./transientFv";
 import { depositedEnergy, independentSolution, pinOf } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
@@ -41,7 +42,7 @@ export function transientPreview(c: NormalizedCase): TransientPreview {
     preview = {
       time: fv.states.map((s) => s.time),
       power: fv.states.map((s) => pin.power(s.time)),
-      peakT: fv.states.map((s) => Math.max(...s.T)),
+      peakT: fv.states.map((s) => maxOf(s.T)),
       fuelSurfaceCellT: fv.states.map((s) => s.T[nf - 1]!),
       claddingInnerCellT: fv.states.map((s) => s.T[nf]!),
       claddingOuterT: fv.states.map((s) => s.T[s.T.length - 1]!),

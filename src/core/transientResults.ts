@@ -3,7 +3,7 @@
 // feed.results/0.2; the steady record (feed.results/0.1) is unchanged.
 
 import { Check, DomainFinding, ResultsError, THERMAL_ONLY_TEXT, assertWholeFoamFile, parsePatchValue, parseScalarField, parseVectorField } from "./resultsParser";
-import { FvTransient, Linear, TransientPin, enthalpy, solveTransientFv, storedEnergy } from "./transientFv";
+import { FvTransient, Linear, TransientPin, enthalpy, maxOf, minOf, solveTransientFv, storedEnergy } from "./transientFv";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
 const bad = (message: string): never => {
@@ -111,9 +111,9 @@ export function depositedEnergy(times: number[], q: number[], t: number): number
 }
 
 /** Run the independent solution for the case: the result at the output times, with the given step divisor and cell factor. */
-export function independentSolution(c: NormalizedCase, stepFactor = 1, cellFactor = 1): FvTransient {
+export function independentSolution(c: NormalizedCase, stepFactor = 1, cellFactor = 1, trace = false): FvTransient {
   const tr = c.transient!;
-  return solveTransientFv(pinOf(c, cellFactor), { dt: tr.timeStep / stepFactor, steps: tr.steps * stepFactor, initialTemperature: tr.initialTemperature, outputEvery: (tr.steps / tr.outputs) * stepFactor });
+  return solveTransientFv(pinOf(c, cellFactor), { dt: tr.timeStep / stepFactor, steps: tr.steps * stepFactor, initialTemperature: tr.initialTemperature, outputEvery: (tr.steps / tr.outputs) * stepFactor, trace });
 }
 
 /**
@@ -131,7 +131,7 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   const dtOut = (t.steps / t.outputs) * t.timeStep;
   input.fields.forEach((f, k) => {
     const want = (k + 1) * dtOut;
-    if (!(Math.abs(f.time - want) <= 1e-6 * t.endTime)) bad(`write time ${k + 1} is ${f.time} s, expected ${want} s`);
+    if (!(Math.abs(f.time - want) <= 1e-9 * t.endTime)) bad(`write time ${k + 1} is ${f.time} s, expected ${want} s`);
   });
 
   const Craw = parseVectorField(input.C, "C");
@@ -150,6 +150,18 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   if (fuelIdx.length !== nf || cladIdx.length !== nc) bad("cell centres do not split into the expected fuel and cladding counts");
   const idx = [...fuelIdx, ...cladIdx];
   const cells: TransientRadialCell[] = idx.map((i, j) => ({ r: r[i]!, region: j < nf ? "fuel" : "cladding" }));
+  // The cell centres OFFBEAT writes are the volume centroids of the wedge cells; they must be where THIS case's mesh puts them, or the
+  // profile, the stored energy and the independent comparison would all be about a different pin.
+  const centroid = (a: number, b: number) => ((2 / 3) * (b ** 3 - a ** 3)) / (b ** 2 - a ** 2);
+  const dFuel = (c.fuelRadius - c.fuelInnerRadius) / nf;
+  const dClad = (c.claddingOuterRadius - c.claddingInnerRadius) / nc;
+  cells.forEach((cell, j) => {
+    const k0 = j < nf ? j : j - nf;
+    const a = j < nf ? c.fuelInnerRadius + k0 * dFuel : c.claddingInnerRadius + k0 * dClad;
+    const d = j < nf ? dFuel : dClad;
+    const want = centroid(a, a + d);
+    if (!(Math.abs(cell.r - want) <= 1e-3 * d + 1e-9)) bad(`cell ${j}: the centre is at r = ${cell.r} m but this case's mesh puts it at ${want} m`);
+  });
   for (let j = 1; j < nf; j++) if (!(cells[j]!.r - cells[j - 1]!.r > 1e-12)) bad("two fuel cells share a centre");
   for (let j = nf + 1; j < n; j++) if (!(cells[j]!.r - cells[j - 1]!.r > 1e-12)) bad("two cladding cells share a centre");
 
@@ -162,6 +174,7 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
     if (!/\bboundaryField\b/.test(f.T)) bad(`time ${f.time}: field T has no boundaryField (the file is cut short)`);
     const wall = parsePatchValue(f.T, "cladOuter");
     if (wall === null) bad(`time ${f.time}: field T has no value for the cladOuter patch`);
+    if (!(wall! > 0)) bad(`time ${f.time}: the outer wall temperature ${wall} K is not above 0 K`);
     assertWholeFoamFile(f.T, "T");
     T.forEach((x, i) => {
       if (!(x > 0)) bad(`time ${f.time}, cell ${i}: temperature ${x} K is not above 0 K`);
@@ -182,7 +195,7 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   };
   let rej = 0;
   profiles.forEach((p, k) => {
-    series.peakT.push(Math.max(...p));
+    series.peakT.push(maxOf(p));
     series.fuelSurfaceCellT.push(p[nf - 1]!);
     series.claddingInnerCellT.push(p[nf]!);
     series.stored.push(storedEnergy(pin, p, t.initialTemperature));
@@ -191,7 +204,9 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   });
 
   const checks: Check[] = [];
-  const peakRise = Math.max(...series.peakT) - t.initialTemperature;
+  /** Rise of the hottest cell over the outputs. The check thresholds use the larger rise over every step of the independent solution. */
+  const outputRise = maxOf(series.peakT) - t.initialTemperature;
+  let peakRise = outputRise;
 
   // energy balance from the output fields
   const k = times.length - 1;
@@ -202,10 +217,11 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   }
 
   // independent solution: same mesh and step (cross-check), double mesh (spatial error of the independent solution), half step (time error)
-  const fv = independentSolution(c);
+  const fv = independentSolution(c, 1, 1, true);
   const fv2 = independentSolution(c, 1, 2);
-  const fvh = independentSolution(c, 2, 1);
+  const fvh = independentSolution(c, 2, 1, true);
   if (fv.states.length !== times.length) bad("the independent solution has a different number of outputs");
+  peakRise = Math.max(outputRise, maxOf(fv.trace!.peakByStep) - t.initialTemperature);
   const volumeWeights = (cellsPerRegion: number, rIn: number, rOut: number) => {
     const faces = Array.from({ length: cellsPerRegion + 1 }, (_, i) => rIn + ((rOut - rIn) * i) / cellsPerRegion);
     return faces;
@@ -238,44 +254,61 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
         crossAt = times[j]!;
       }
     }
-    timeErr = Math.max(timeErr, Math.abs(Math.max(...s.T) - Math.max(...fvh.states[j]!.T)));
+    // the outer wall as well: it is a patch value that no cell check would catch
+    if (j > 0) {
+      const dw = Math.abs(walls[j]! - s.wall);
+      if (dw > cross) {
+        cross = dw;
+        crossAt = times[j]!;
+      }
+    }
   });
+  // the time-step error over EVERY step of the run, not only at the saved outputs (a sparse output would hide a pulse that is not resolved)
+  const coarse = fv.trace!.peakByStep;
+  const fine = fvh.trace!.peakByStep;
+  for (let j = 0; j < coarse.length; j++) timeErr = Math.max(timeErr, Math.abs(coarse[j]! - fine[2 * j]!));
   const crossBound = Math.min(CROSS_CHECK_SPATIAL_FACTOR * spatial, CROSS_CHECK_RISE_FRACTION * Math.max(peakRise, 1)) + CROSS_CHECK_FLOOR;
   checks.push({ id: "crossCheckFv", label: "OFFBEAT vs the independent finite-volume solution (max cell deviation)", value: cross, unit: "K", verdict: cross <= crossBound ? "pass" : "fail", note: `largest at t = ${crossAt} s; bound ${crossBound.toFixed(3)} K = min(${CROSS_CHECK_SPATIAL_FACTOR} x ${spatial.toFixed(3)} K [the independent solution's own change when its cells are halved], ${CROSS_CHECK_RISE_FRACTION * 100}% of the peak rise) + ${CROSS_CHECK_FLOOR} K` });
   // the independent run with half the step shows how much the time stepping (first order, as OFFBEAT's) is worth
   const timeBound = TIME_STEP_TOLERANCE * Math.max(peakRise, 1);
-  checks.push({ id: "timeStep", label: "Time-stepping error of the peak temperature (step vs half step)", value: timeErr, unit: "K", verdict: timeErr <= timeBound ? "pass" : "fail", note: `the peak changes by at most ${timeErr.toFixed(3)} K when the step is halved; threshold ${TIME_STEP_TOLERANCE * 100}% of the peak rise (${timeBound.toFixed(2)} K). If it fails, shorten the time step` });
+  checks.push({ id: "timeStep", label: "Time-stepping error of the peak temperature (step vs half step)", value: timeErr, unit: "K", verdict: timeErr <= timeBound ? "pass" : "fail", note: `the peak changes by at most ${timeErr.toFixed(3)} K, at any step of the run, when the step is halved; threshold ${TIME_STEP_TOLERANCE * 100}% of the peak rise (${timeBound.toFixed(2)} K). If it fails, shorten the time step` });
 
   if (c.boundary.kind === "surface-temperature") {
-    const d = Math.max(...walls.map((w) => Math.abs(w - (c.boundary as { surfaceTemperature: number }).surfaceTemperature)));
+    const d = maxOf(walls.map((w) => Math.abs(w - (c.boundary as { surfaceTemperature: number }).surfaceTemperature)));
     checks.push({ id: "wallTemperature", label: "Outer wall temperature vs the prescribed value", value: d, unit: "K", verdict: d < 0.05 ? "pass" : "fail", note: "threshold 0.05 K at every output" });
   }
 
   // property ranges
   const findings: DomainFinding[] = [];
-  const allIn = (idxs: number[]) => profiles.flatMap((p) => idxs.map((i) => p[i]!));
-  const range = (region: "fuel" | "cladding", lo: number, hi: number, what: string, stated: [number, number], list: DomainFinding[]) => {
-    void what;
-    if (lo < stated[0] || hi > stated[1]) list.push({ region, produced: [lo, hi], validRange: stated });
+  const range = (region: "fuel" | "cladding", lo: number, hi: number, stated: [number, number]) => {
+    if (lo < stated[0] || hi > stated[1]) findings.push({ region, produced: [lo, hi], validRange: stated });
   };
-  const fuelT = allIn(Array.from({ length: nf }, (_, i) => i));
-  const cladT = allIn(Array.from({ length: nc }, (_, i) => nf + i));
-  const rangesOf = (kk: Conductivity, cc: HeatCapacity | undefined, region: "fuel" | "cladding", temps: number[]) => {
-    const lo = Math.min(...temps);
-    const hi = Math.max(...temps);
-    if (kk.kind === "linear") range(region, lo, hi, "conductivity", kk.range, findings);
-    if (cc && cc.kind === "linear") range(region, lo, hi, "heat capacity", cc.range, findings);
+  /** Extremes of a region over every saved output AND over every step of the independent solution (an excursion between outputs counts). */
+  const extremes = (from: number, to: number, traceMin: number, traceMax: number) => {
+    let lo = traceMin;
+    let hi = traceMax;
+    for (const p of profiles) {
+      for (let i = from; i < to; i++) {
+        if (p[i]! < lo) lo = p[i]!;
+        if (p[i]! > hi) hi = p[i]!;
+      }
+    }
+    return { lo, hi };
   };
-  rangesOf(c.fuelConductivity, c.fuelHeatCapacity, "fuel", fuelT);
-  rangesOf(c.claddingConductivity, c.claddingHeatCapacity, "cladding", cladT);
+  const rangesOf = (kk: Conductivity, cc: HeatCapacity | undefined, region: "fuel" | "cladding", e: { lo: number; hi: number }) => {
+    if (kk.kind === "linear") range(region, e.lo, e.hi, kk.range);
+    if (cc && cc.kind === "linear") range(region, e.lo, e.hi, cc.range);
+  };
+  rangesOf(c.fuelConductivity, c.fuelHeatCapacity, "fuel", extremes(0, nf, fv.trace!.fuelMin, fv.trace!.fuelMax));
+  rangesOf(c.claddingConductivity, c.claddingHeatCapacity, "cladding", extremes(nf, n, fv.trace!.claddingMin, fv.trace!.claddingMax));
   const anyLinear = c.fuelConductivity.kind === "linear" || c.claddingConductivity.kind === "linear" || c.fuelHeatCapacity!.kind === "linear" || c.claddingHeatCapacity!.kind === "linear";
   const domain = { verdict: (findings.length === 0 ? "in-domain" : "out-of-domain") as "in-domain" | "out-of-domain", findings };
   if (anyLinear) {
-    checks.push({ id: "propertyRange", label: "Property laws within their stated ranges", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures at all outputs inside the stated ranges" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". A law was extrapolated; this result is out-of-domain." });
+    checks.push({ id: "propertyRange", label: "Property laws within their stated ranges", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated ranges at every output and at every step of the independent solution" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". A law was extrapolated; this result is out-of-domain." });
   }
 
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value})`);
-  const jMax = series.peakT.indexOf(Math.max(...series.peakT));
+  const jMax = series.peakT.indexOf(maxOf(series.peakT));
   return {
     schema: "feed.results/0.2",
     kind: "transient",
@@ -285,10 +318,11 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
     cells,
     profiles,
     series,
-    summary: { maxT: series.peakT[jMax]!, timeOfMaxT: times[jMax]!, maxRise: peakRise, finalPeakT: series.peakT[times.length - 1]!, finalTime: times[times.length - 1]! },
+    summary: { maxT: series.peakT[jMax]!, timeOfMaxT: times[jMax]!, maxRise: outputRise, finalPeakT: series.peakT[times.length - 1]!, finalTime: times[times.length - 1]! },
     checks,
     domain,
     thermalOnly: THERMAL_ONLY_TEXT,
   };
 }
 void enthalpy;
+void minOf;

@@ -58,5 +58,7 @@ export function toSI(q: unknown, dim: Dimension): QuantityResult {
   const def = Object.prototype.hasOwnProperty.call(UNITS, unit) ? UNITS[unit] : undefined;
   if (!def) return { ok: false, reason: "unknown unit '" + unit + "'" };
   if (def.dim !== dim) return { ok: false, reason: "unit '" + unit + "' is a " + def.dim + " unit, expected " + dim + " (" + SI_UNIT[dim] + ")" };
-  return { ok: true, si: value * def.scale + (def.offset ?? 0) };
+  const si = value * def.scale + (def.offset ?? 0);
+  if (!Number.isFinite(si)) return { ok: false, reason: "the value is too large: it overflows when converted to " + SI_UNIT[dim] };
+  return { ok: true, si };
 }

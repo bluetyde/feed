@@ -40,6 +40,8 @@ export interface FvOptions {
   initialTemperature: number;
   /** Record the state after every `outputEvery` steps (and at step 0). */
   outputEvery: number;
+  /** Also record, at every step, the hottest cell and the temperature extrema of each solid (cheap; independent of the outputs). */
+  trace?: boolean;
   scheme?: "implicit-euler" | "crank-nicolson";
   /** How the source of a step is taken: the new time (as OFFBEAT does) or the average of old and new (trapezoid). */
   source?: "new" | "average";
@@ -52,9 +54,21 @@ export interface FvState {
   /** Energy deposited by the source so far, J/m, and heat that left through the outer boundary so far, J/m. */
   deposited: number;
   rejected: number;
+  /** Outer cladding wall temperature (the boundary value, between the last cell and the coolant). */
+  wall: number;
+}
+
+export interface FvTrace {
+  /** Hottest cell at step 0, 1, ..., steps. */
+  peakByStep: number[];
+  fuelMin: number;
+  fuelMax: number;
+  claddingMin: number;
+  claddingMax: number;
 }
 
 export interface FvTransient {
+  trace?: FvTrace;
   /** Cell-centre radii (m): fuel then cladding. */
   r: number[];
   states: FvState[];
@@ -75,6 +89,18 @@ function thomas(lower: number[], diag: number[], upper: number[], rhs: number[])
   x[n - 1] = d[n - 1]!;
   for (let i = n - 2; i >= 0; i--) x[i] = d[i]! - c[i]! * x[i + 1]!;
   return x;
+}
+
+/** Extremes without argument spreading: a list of a few hundred thousand values would overflow the call stack. */
+export function maxOf(a: ArrayLike<number>): number {
+  let m = -Infinity;
+  for (let i = 0; i < a.length; i++) if (a[i]! > m) m = a[i]!;
+  return m;
+}
+export function minOf(a: ArrayLike<number>): number {
+  let m = Infinity;
+  for (let i = 0; i < a.length; i++) if (a[i]! < m) m = a[i]!;
+  return m;
 }
 
 export const enthalpy = (c: Linear, T: number) => c.a * T + 0.5 * c.b * T * T;
@@ -134,8 +160,16 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
     return { f, gOut };
   };
 
+  /** Temperature of the outer boundary of the cladding, between the last cell and the coolant. */
+  const wallOf = (Tc: number[]) => {
+    if (p.boundary.kind !== "convective") return outerT;
+    const gHalf = (TWO_PI * kOf(n - 1, Tc[n - 1]!)) / Math.log(p.claddingOuterRadius / r[n - 1]!);
+    const gFilm = TWO_PI * p.claddingOuterRadius * p.boundary.heatTransferCoefficient;
+    return (gHalf * Tc[n - 1]! + gFilm * p.boundary.bulkTemperature) / (gHalf + gFilm);
+  };
   let T = new Array<number>(n).fill(o.initialTemperature);
-  const states: FvState[] = [{ time: 0, T: T.slice(), deposited: 0, rejected: 0 }];
+  const states: FvState[] = [{ time: 0, T: T.slice(), deposited: 0, rejected: 0, wall: wallOf(T) }];
+  const trace: FvTrace | undefined = o.trace ? { peakByStep: [o.initialTemperature], fuelMin: o.initialTemperature, fuelMax: o.initialTemperature, claddingMin: o.initialTemperature, claddingMax: o.initialTemperature } : undefined;
   let deposited = 0;
   let rejected = 0;
   for (let step = 1; step <= o.steps; step++) {
@@ -187,9 +221,24 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
     rejected += o.dt * (scheme === "crank-nicolson" ? 0.5 * (outNew + outOld) : outNew);
     deposited += o.dt * (scheme === "crank-nicolson" ? 0.5 * (q0 + q1) : qs);
     T = Tn;
-    if (step % o.outputEvery === 0) states.push({ time: t1, T: T.slice(), deposited, rejected });
+    if (trace) {
+      let peak = -Infinity;
+      for (let i = 0; i < n; i++) {
+        const x = T[i]!;
+        if (x > peak) peak = x;
+        if (i < nf) {
+          if (x < trace.fuelMin) trace.fuelMin = x;
+          if (x > trace.fuelMax) trace.fuelMax = x;
+        } else {
+          if (x < trace.claddingMin) trace.claddingMin = x;
+          if (x > trace.claddingMax) trace.claddingMax = x;
+        }
+      }
+      trace.peakByStep.push(peak);
+    }
+    if (step % o.outputEvery === 0) states.push({ time: t1, T: T.slice(), deposited, rejected, wall: wallOf(T) });
   }
-  return { r, states };
+  return { r, states, ...(trace ? { trace } : {}) };
 }
 
 /** Energy stored in the solids relative to the initial uniform temperature, J per unit length. */

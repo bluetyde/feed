@@ -199,6 +199,30 @@
     "field": "/transient/outputs"
   },
   {
+    "file": "bad/units-heat-capacity-overflow.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/materials/fuel/sets/thermal.volumetricHeatCapacity/value"
+  },
+  {
+    "file": "bad/range-heat-capacity-implausible.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.volumetricHeatCapacity/value"
+  },
+  {
+    "file": "bad/range-initial-temperature-outside-heat-capacity-range.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/initialTemperature"
+  },
+  {
+    "file": "bad/time-too-much-work.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/timeStep"
+  },
+  {
     "file": "bad/time-history-not-from-zero.json",
     "valid": false,
     "code": "E_TIME",

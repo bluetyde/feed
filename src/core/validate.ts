@@ -42,6 +42,14 @@ export interface NormalizedTransient {
 export const MAX_STEPS = 100000;
 export const MAX_OUTPUTS = 200;
 export const MAX_HISTORY_POINTS = 1000;
+/**
+ * Budget for cells x steps. After the solver, FEED runs its independent solution three times (same mesh and step, doubled mesh,
+ * halved step, so about five times this work, with nonlinear iterations) inside the server; this keeps that to seconds.
+ */
+export const MAX_TRANSIENT_WORK = 3e6;
+/** Sanity bounds on a volumetric heat capacity (J/m3/K): below air at room temperature, above anything solid. */
+export const HEAT_CAPACITY_MIN = 1e3;
+export const HEAT_CAPACITY_MAX = 1e8;
 
 export interface NormalizedCase {
   caseId: string;
@@ -226,7 +234,17 @@ export function validateCase(doc: unknown): ValidationResult {
     fuelCp = heatCapacity(c.materials.fuel, "fuel", err, qty);
     claddingCp = heatCapacity(c.materials.cladding, "cladding", err, qty);
     if (c.transient !== undefined) transient = parseTransient(c.transient, err, qty);
-    if (transient) qPrime = Math.max(...transient.linearHeatRate);
+    if (transient) {
+      qPrime = Math.max(...transient.linearHeatRate);
+      // the heat capacity laws must hold at the starting temperature, and the work must fit the budget
+      for (const [region, cp] of [["fuel", fuelCp], ["cladding", claddingCp]] as const) {
+        if (cp && cp.kind === "linear" && (transient.initialTemperature < cp.range[0] || transient.initialTemperature > cp.range[1])) {
+          err("E_OUT_OF_RANGE", "/transient/initialTemperature", "the initial temperature " + transient.initialTemperature + " K is outside the stated range of the " + region + " heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", { unit: "K", range: cp.range });
+          transient = undefined;
+          break;
+        }
+      }
+    }
   }
 
   // Mesh
@@ -236,6 +254,14 @@ export function validateCase(doc: unknown): ValidationResult {
     else if (mesh[key] > MESH_MAXIMUM[key]) err("E_MESH", "/mesh/" + key, key + " is " + mesh[key] + "; the maximum is " + MESH_MAXIMUM[key]);
   }
 
+  if (transient) {
+    const m = c.mesh as { fuelCells?: number; claddingCells?: number };
+    const work = ((m.fuelCells ?? 0) + (m.claddingCells ?? 0)) * transient.steps;
+    if (work > MAX_TRANSIENT_WORK) {
+      err("E_TIME", "/transient/timeStep", "cells x steps = " + work + " exceeds the budget of " + MAX_TRANSIENT_WORK + " (" + transient.steps + " steps on " + ((m.fuelCells ?? 0) + (m.claddingCells ?? 0)) + " cells); use a coarser mesh or a longer step", { unit: "s" });
+      transient = undefined;
+    }
+  }
   const result = finish(issues);
   if (result.ok && Rf !== undefined && Rci !== undefined && Rco !== undefined && qPrime !== undefined && hGap !== undefined && boundary && fuelK && claddingK && (!isTransient || (transient && fuelCp && claddingCp))) {
     result.normalized = {
@@ -337,6 +363,10 @@ function heatCapacity(material: Record<string, any>, region: string, err: ErrFn,
       err("E_OUT_OF_RANGE", base + "/value", region + " heat capacity must be positive", { unit: "J/m3/K" });
       return undefined;
     }
+    if (c !== undefined && (c < HEAT_CAPACITY_MIN || c > HEAT_CAPACITY_MAX)) {
+      err("E_OUT_OF_RANGE", base + "/value", region + " heat capacity " + c + " J/m3/K is outside " + HEAT_CAPACITY_MIN + " to " + HEAT_CAPACITY_MAX + "; check the units", { unit: "J/m3/K" });
+      return undefined;
+    }
     if (c === undefined || tref === undefined || sourceMissing) return undefined;
     return { kind: "constant", c, referenceTemperature: tref };
   }
@@ -357,8 +387,14 @@ function heatCapacity(material: Record<string, any>, region: string, err: ErrFn,
       err("E_OUT_OF_RANGE", base + "/validRange", "range maximum must exceed the minimum", { unit: "K" });
       return undefined;
     }
-    if (!(a + bb * lo > 0) || !(a + bb * hi > 0)) {
+    const cLo = a + bb * lo;
+    const cHi = a + bb * hi;
+    if (!(cLo > 0) || !(cHi > 0)) {
       err("E_OUT_OF_RANGE", base, "heat capacity a + b T is not positive over its stated range", { unit: "J/m3/K", range: [lo, hi] });
+      return undefined;
+    }
+    if (Math.min(cLo, cHi) < HEAT_CAPACITY_MIN || Math.max(cLo, cHi) > HEAT_CAPACITY_MAX) {
+      err("E_OUT_OF_RANGE", base, "heat capacity is outside " + HEAT_CAPACITY_MIN + " to " + HEAT_CAPACITY_MAX + " J/m3/K somewhere in its stated range; check the units", { unit: "J/m3/K", range: [lo, hi] });
       return undefined;
     }
     return { kind: "linear", a, b: bb, range: [lo, hi] };
@@ -391,7 +427,7 @@ function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): Normali
   if (endTime !== undefined && timeStep !== undefined && endTime > 0 && timeStep > 0) {
     const ratio = endTime / timeStep;
     steps = Math.round(ratio);
-    if (Math.abs(ratio - steps) > 1e-6 * Math.max(1, ratio)) bad("E_TIME", "/transient/timeStep", "the end time is not a whole number of time steps (" + ratio + " steps); choose a step that divides it", { unit: "s" });
+    if (Math.abs(ratio - steps) > 1e-9 * Math.max(1, ratio)) bad("E_TIME", "/transient/timeStep", "the end time is not a whole number of time steps (" + ratio + " steps); choose a step that divides it", { unit: "s" });
     else if (steps < 1) bad("E_TIME", "/transient/timeStep", "the time step is longer than the end time", { unit: "s" });
     else if (steps > MAX_STEPS) bad("E_TIME", "/transient/timeStep", "the run would take " + steps + " steps; the maximum is " + MAX_STEPS, { unit: "s" });
   }

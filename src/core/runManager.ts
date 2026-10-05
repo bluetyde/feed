@@ -352,9 +352,9 @@ export class RunManager {
       const sig = SIGNALS[exit.offbeatExit];
       return fail({ code: "E_APP_FAILED", message: `The solver stopped before writing any result (exit ${exit.offbeatExit}${sig ? ", " + sig : ""}).`, native });
     }
-    // a transient's last write time is the sum of many steps, so it can sit a few ulps below the intended end
+    // a transient's last write time is the sum of many steps, so it can sit a few ulps below the intended end (1e-9 relative)
     const isTransient = !!JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8")).transient;
-    if (exit.finalTime < (isTransient ? expectedEnd * (1 - 1e-6) : expectedEnd)) return fail({ code: "E_OUTPUT_INCOMPLETE", message: `The solver stopped at ${exit.finalTime} s, before the intended ${expectedEnd} s (exit ${exit.offbeatExit}). The partial output is not a result.`, native });
+    if (exit.finalTime < (isTransient ? expectedEnd * (1 - 1e-9) : expectedEnd)) return fail({ code: "E_OUTPUT_INCOMPLETE", message: `The solver stopped at ${exit.finalTime} s, before the intended ${expectedEnd} s (exit ${exit.offbeatExit}). The partial output is not a result.`, native });
 
     try {
       const normalized = JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8"));

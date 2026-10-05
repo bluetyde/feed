@@ -9,7 +9,10 @@ import { writeOffbeatCase } from "../src/core/caseWriter";
 import { ResultsError } from "../src/core/resultsParser";
 import { RunBackend, RunManager } from "../src/core/runManager";
 import { adiabaticTemperature } from "../src/core/transientExact";
-import { buildTransientResults, depositedEnergy, TransientResultsRecord } from "../src/core/transientResults";
+import { maxOf, minOf } from "../src/core/transientFv";
+import { buildTransientResults, depositedEnergy, independentSolution, TransientResultsRecord } from "../src/core/transientResults";
+import { scalarFieldText, vectorFieldText } from "./helpers/foamText";
+import { transientPreview } from "../src/core/transientPreview";
 import { validateCase } from "../src/core/validate";
 import { WslBackend } from "../src/core/wslBackend";
 
@@ -161,6 +164,114 @@ describe("the cross-check against the independent solution has teeth", () => {
   });
 });
 
+// ---- Codex review of the transient work: each finding as a test
+function setWall(text: string, v: number): string {
+  return text.replace(/(cladOuter\s*\{[^}]*value\s+uniform\s+)([0-9.eE+-]+)/, (_m, a: string) => a + String(v));
+}
+
+describe("review findings: wall, time step over every step, cell positions, extremes, cost", () => {
+  const n = normalized();
+
+  it("a wall temperature that is not above 0 K is refused", () => {
+    const fields = goldenFields().map((f, i) => (i === 0 ? { ...f, T: setWall(f.T, -1) } : f));
+    expect(() => buildTransientResults(n, { C: goldenC(), fields })).toThrow(/outer wall temperature/);
+  });
+
+  it("a wall temperature that disagrees with the boundary relation fails the cross-check", () => {
+    const wrong = (dT: number) => buildTransientResults(n, { C: goldenC(), fields: goldenFields().map((f) => ({ ...f, T: setWall(f.T, Number(/cladOuter\s*\{[^}]*value\s+uniform\s+([0-9.eE+-]+)/.exec(f.T)![1]) + dT) })) }).checks.find((c) => c.id === "crossCheckFv")!;
+    expect(wrong(0).verdict).toBe("pass");
+    expect(wrong(5).verdict).toBe("fail");
+  });
+
+  it("the time-step check looks at every step, so changing only the number of outputs cannot change its verdict", async () => {
+    // a 5 ms step on a 10 ms pulse is not resolved. Fake "solver" fields are the independent solution itself, so every other
+    // check passes; only the step-versus-half-step difference can fail, with 1 output or 20.
+    const verdict = (outputs: number) => {
+      const d = pulseDoc();
+      d.transient.timeStep = { value: 5, unit: "ms" };
+      d.transient.outputs = outputs;
+      const c = normalized(d);
+      const fv = independentSolution(c);
+      const centroid = (a: number, b: number) => ((2 / 3) * (b ** 3 - a ** 3)) / (b ** 2 - a ** 2);
+      const nf = c.mesh.fuelCells;
+      const nc = c.mesh.claddingCells;
+      const dF = (c.fuelRadius - c.fuelInnerRadius) / nf;
+      const dC = (c.claddingOuterRadius - c.claddingInnerRadius) / nc;
+      const radii = [...Array.from({ length: nf }, (_, j) => centroid(c.fuelInnerRadius + j * dF, c.fuelInnerRadius + (j + 1) * dF)), ...Array.from({ length: nc }, (_, j) => centroid(c.claddingInnerRadius + j * dC, c.claddingInnerRadius + (j + 1) * dC))];
+      const fields = fv.states.slice(1).map((s: { time: number; T: number[]; wall: number }) => ({ time: s.time, T: scalarFieldText(s.T, s.wall) }));
+      const r = buildTransientResults(c, { C: vectorFieldText(radii), fields });
+      return { time: r.checks.find((x) => x.id === "timeStep")!, cross: r.checks.find((x) => x.id === "crossCheckFv")! };
+    };
+    const one = verdict(1);
+    const twenty = verdict(20);
+    expect(one.cross.verdict).toBe("pass");
+    expect(one.time.verdict).toBe("fail");
+    expect(twenty.time.verdict).toBe("fail");
+    expect(one.time.value).toBeCloseTo(twenty.time.value!, 9);
+  });
+
+  it("cell centres that are not where this case's mesh puts them are refused (not just distinct)", () => {
+    const halved = goldenC().replace(/\(([0-9.eE+-]+) ([0-9.eE+-]+) ([0-9.eE+-]+)\)/g, (m, x, y, z) => (Number(x) < 0.0041 ? "(" + Number(x) / 2 + " " + y + " " + z + ")" : m));
+    expect(() => buildTransientResults(n, { C: halved, fields: goldenFields() })).toThrow(/this case's mesh puts it/);
+  });
+
+  it("extremes use loops: a list too long for argument spreading is fine", async () => {
+    const big: number[] = Array.from({ length: 600_000 }, (_, i) => (i === 123456 ? 7 : 1));
+    big[500_000] = -3;
+    expect(maxOf(big)).toBe(7);
+    expect(minOf(big)).toBe(-3);
+    expect(() => Math.max(...big)).toThrow(RangeError);
+  });
+
+  it("the property-range check sees an excursion between outputs (every step of the independent solution)", () => {
+    const d = pulseDoc();
+    // a heat capacity law valid only up to 600 K: the pulse peaks at 615.6 K and then holds, so the saved outputs also exceed it;
+    // the point of the test is the final verdict and that the all-step extremes are used
+    d.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: { value: 2.99, unit: "MJ/m3/K" }, b: { value: 0.00001, unit: "MJ/m3/K2" }, validRange: { min: { value: 250, unit: "K" }, max: { value: 600, unit: "K" } }, source: "synthetic" };
+    const r = buildTransientResults(normalized(d), { C: goldenC(), fields: goldenFields() });
+    expect(r.domain.verdict).toBe("out-of-domain");
+  });
+});
+
+describe("review findings: validation of the transient section", () => {
+  const codes = (mutate: (d: any) => void) => {
+    const d = pulseDoc();
+    mutate(d);
+    return validateCase(d).errors.map((e) => e.code + " " + e.field);
+  };
+  it("a value that overflows when converted is refused, not carried on as Infinity", () => {
+    expect(codes((d) => (d.materials.fuel.sets["thermal.volumetricHeatCapacity"].value = { value: 1e308, unit: "MJ/m3/K" }))).toEqual(["E_UNITS /materials/fuel/sets/thermal.volumetricHeatCapacity/value"]);
+    expect(codes((d) => (d.transient.powerHistory[1].linearHeatRate = { value: 1e308, unit: "MW/m" }))).toEqual(["E_UNITS /transient/powerHistory/1/linearHeatRate"]);
+  });
+  it("a heat capacity that is implausibly small or large is refused (underflow to Cp 0 in the writer, wrong units)", () => {
+    expect(codes((d) => (d.materials.fuel.sets["thermal.volumetricHeatCapacity"].value = { value: 5e-324, unit: "J/m3/K" }))[0]).toMatch(/^E_OUT_OF_RANGE/);
+    expect(codes((d) => (d.materials.fuel.sets["thermal.volumetricHeatCapacity"].value = { value: 3, unit: "J/m3/K" }))[0]).toMatch(/^E_OUT_OF_RANGE/); // 3 meant MJ
+    expect(codes((d) => (d.materials.fuel.sets["thermal.volumetricHeatCapacity"].value = { value: 3e4, unit: "MJ/m3/K" }))[0]).toMatch(/^E_OUT_OF_RANGE/);
+  });
+  it("a linear heat capacity that is negative at the starting temperature is refused", () => {
+    const e = codes((d) => (d.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: { value: -1, unit: "MJ/m3/K" }, b: { value: 0.002, unit: "MJ/m3/K2" }, validRange: { min: { value: 600, unit: "K" }, max: { value: 1000, unit: "K" } }, source: "synthetic" }));
+    expect(e).toEqual(["E_OUT_OF_RANGE /transient/initialTemperature"]);
+  });
+  it("the end time must be a whole number of steps to rounding error, not to one part in a million", () => {
+    const e = codes((d) => {
+      d.transient.endTime = { value: 100000.05, unit: "s" };
+      d.transient.timeStep = { value: 1, unit: "s" };
+      d.transient.powerHistory[3].time = { value: 200000, unit: "s" };
+      d.transient.outputs = 1;
+      d.mesh = { fuelCells: 4, claddingCells: 2 };
+    });
+    expect(e).toContain("E_TIME /transient/timeStep");
+  });
+  it("cells x steps above the budget is refused with the numbers", () => {
+    const d = pulseDoc();
+    d.mesh = { fuelCells: 2000, claddingCells: 100 };
+    d.transient.timeStep = { value: 0.05, unit: "ms" };
+    const v = validateCase(d);
+    expect(v.errors.map((x) => x.code)).toEqual(["E_TIME"]);
+    expect(v.errors[0]!.message).toMatch(/4200000/);
+  });
+});
+
 // ---- the TRIGA pulse built from UT-Austin SAR numbers (illustrative)
 describe("TRIGA $4.40 pulse (examples/ut-triga-pulse-4p40.json)", () => {
   const doc = read("examples/ut-triga-pulse-4p40.json");
@@ -183,7 +294,7 @@ describe("TRIGA $4.40 pulse (examples/ut-triga-pulse-4p40.json)", () => {
   });
 
   it("the energy takes the fuel from 20 C to 824 C if no heat leaves, and the implied pulse width is a plausible TRIGA width", async () => {
-    const { transientPreview } = await import("../src/core/transientPreview");
+    
     const p = transientPreview(n);
     expect(p.adiabaticPeak - 273.15).toBeGreaterThan(823.5);
     expect(p.adiabaticPeak - 273.15).toBeLessThan(825);
@@ -285,7 +396,7 @@ describe.skipIf(!solverOn)("transients through the real solver (needs FEED_SOLVE
   it("TRIGA $4.40 pulse: the interior reaches the adiabatic value within 1 K, every check passes (temperature-dependent heat capacity, annular fuel, 2000 steps)", async () => {
     const { rec, res } = await runCase(read("examples/ut-triga-pulse-4p40.json"));
     expect(rec.state).toBe("completed");
-    const { transientPreview } = await import("../src/core/transientPreview");
+    
     const adiabatic = transientPreview(normalized(read("examples/ut-triga-pulse-4p40.json"))).adiabaticPeak;
     expect(Math.abs(res!.summary.maxT - adiabatic)).toBeLessThan(1);
     expect(res!.checks.every((c) => c.verdict === "pass")).toBe(true);
