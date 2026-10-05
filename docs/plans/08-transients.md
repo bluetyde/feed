@@ -21,6 +21,15 @@ Same geometry (solid or annular fuel, gap as one conductance, cladding, convecti
    - energy conservation: energy deposited = energy stored + energy out, from the output fields.
 6. **Results**: a time series (peak, fuel surface, cladding inner and outer temperatures, deposited energy) and radial profiles at the output times. The record schema moves to `feed.results/0.2` for transients; the steady record is unchanged.
 
+## Status (2026-10-05)
+
+Steps 1 to 7 and 8 are built and tested; step 9 (Codex review) follows this section's record. Differences from the plan as written:
+- Heat capacity enters OFFBEAT through `steel1515TiBanerjee` (the runtime name; the C++ class is `heatCapacityBanerjee1515Ti`, which OFFBEAT rejects as a type name).
+- OFFBEAT aborts when asked for the power at a time past the last table point; the writer appends one flat point a step past the end.
+- The cross-check bound is the smaller of 3 x the independent solution's own spatial change and 0.5% of the peak rise (plus 0.02 K), and the tests show it fails for a 2% error in the solver's heat capacity or power and for a 1% error in the temperature rise.
+- The pulse for the TRIGA case is assumed (sech^2): the UT SAR gives the peak power and the peak temperature of a $4.40 pulse but not the power curve, so that case is illustrative, and is labelled so.
+- Mesh cost: the independent solution is run three times (same mesh, doubled mesh, halved step); a case whose cells x steps would take noticeably long skips only the editor's preview, not the run's checks. A hard cap on transient mesh size is still to do (see TODO).
+
 ## Order of work
 
 1. Spike: OFFBEAT runs the pulse (done 2026-10-05: power table and fixed step work; adiabatic limit reproduced to the digit at the end of the pulse).

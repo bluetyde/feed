@@ -16,6 +16,8 @@ cd fuel-performance-studio && npm install && npm test
 
 Regenerate the bad vectors after changing the example pin: `node scripts/make-vectors.cjs`.
 
+What it solves: steady-state radial heat conduction through one fuel pin (fuel, optionally with a central hole, gap, cladding, coolant), or a thermal transient (a pulse) from a power history you give it, with a heat capacity for each solid. See [plan 08](docs/plans/08-transients.md) for the transient. In the editor, Power > Analysis switches between the two.
+
 A thermal-only result never implies stress, failure or fuel integrity.
 
 Development coordination: [project log](../messages/fuel-performance-studio.md) and [workspace rules](../messages/INSTRUCTIONS.md). Do not interpret an unchecked task or proposed contract as implemented support.
