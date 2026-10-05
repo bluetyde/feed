@@ -102,7 +102,7 @@ Started 2026-10-05; see [docs/spike/F0-note.md](docs/spike/F0-note.md) and [solv
 
 - [ ] Distribution model and license, after the solver stack's terms are known.
 - [ ] Pre-release checklist; make the repo public only when the user says so.
-- [x] 2026-10-05: repo created, private: https://github.com/bluetyde/feed (local folder `fuel-performance-studio`, branch `main`, commits as bluetyde with the noreply email). Still to do: add a SEED catalog entry; choose a licence before it goes public (none chosen; the repo is all rights reserved until then).
+- [x] 2026-10-05: repo created, private: https://github.com/bluetyde/feed (local folder `fuel-performance-studio`, branch `main`, commits as bluetyde with the noreply email). Still to do: add a SEED catalog entry; choose a licence before it goes public (none chosen; the repo is all rights reserved until then). 2026-10-05 decided with the user: the solver is never bundled (SEED's installer pulls OpenFOAM and OFFBEAT from their own sources and FEED runs them as separate programs), so FEED's licence is free to choose and not tied to their GPL terms. One check before going public: the case writer re-implements the wedge vertex correction of OFFBEAT's `rodMaker.py` (GPL-3.0) in `src/core/caseWriter.ts`; confirm that is an independent derivation of the geometry (it is checked against rodMaker's output by golden files) and not copied code. No per-launch server token: no other SEED app has one, so FEED stays consistent with them (it keeps its Host, Origin and header guards).
 
 ## Fuel library and design ([plan 02](docs/plans/02-case-and-materials.md))
 
