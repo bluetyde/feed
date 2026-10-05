@@ -154,6 +154,7 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
     if (x > c.claddingOuterRadius + eps) bad(`cell ${i} is outside the pin (r = ${x} m)`);
     // a centre must lie strictly inside the fuel or strictly inside the cladding wall, never in the gap or on an interface
     if (!(x < c.fuelRadius || x > c.claddingInnerRadius)) bad(`cell ${i} has its centre in the gap or on an interface (r = ${x} m)`);
+    if (x < c.fuelInnerRadius + eps) bad(`cell ${i} has its centre inside the central hole (r = ${x} m, hole radius ${c.fuelInnerRadius} m)`);
   });
   T.forEach((t, i) => {
     if (!(t > 0)) bad(`cell ${i}: temperature ${t} K is not above 0 K`);
@@ -197,9 +198,10 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   const claddingAt = (r: number) => solveLinearK(kc.a, kc.b, tOuter, (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI));
   const tCladInner = claddingAt(c.claddingInnerRadius);
   const tFuelSurface = tCladInner + closedForm.gapDeltaT(c.qPrime, c.fuelRadius, c.gapConductance);
-  const fuelDeltaT = fuelTemperatureLinearK(kf, c.qPrime, c.fuelRadius, 0, tFuelSurface) - tFuelSurface;
+  // the hottest fuel point: the axis of solid fuel, or the surface of the central hole
+  const fuelDeltaT = fuelTemperatureLinearK(kf, c.qPrime, c.fuelRadius, c.fuelInnerRadius === 0 ? 0 : c.fuelInnerRadius, tFuelSurface, c.fuelInnerRadius) - tFuelSurface;
   const claddingDeltaT = tCladInner - tOuter;
-  const fuelErr = Math.max(...fuel.map((p) => Math.abs(p.T - fuelTemperatureLinearK(kf, c.qPrime, c.fuelRadius, p.r, tFuelSurface))));
+  const fuelErr = Math.max(...fuel.map((p) => Math.abs(p.T - fuelTemperatureLinearK(kf, c.qPrime, c.fuelRadius, p.r, tFuelSurface, c.fuelInnerRadius))));
   const cladErr = Math.max(...clad.map((p) => Math.abs(p.T - claddingAt(p.r))));
   const fuelBound = (5 * fuelDeltaT) / (c.mesh.fuelCells * c.mesh.fuelCells);
   const cladBound = (5 * claddingDeltaT) / (c.mesh.claddingCells * c.mesh.claddingCells);

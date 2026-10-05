@@ -333,7 +333,7 @@ function renderProps() {
     p.append(note("Bulk temperature alone is not a boundary condition: the coolant film needs a heat-transfer coefficient."));
     const gen = (result && result.errors || []).filter((i) => i.field === "/boundary"); if (gen.length) p.append(elt("div", gen.map((x) => x.message).join(" "), { class: "ferr" }));
   } else if (selected === "geometry") {
-    p.append(sec("Radii"), qField("Fuel radius", ["geometry", "fuelRadius"], "length"), qField("Clad inner", ["geometry", "claddingInnerRadius"], "length"), qField("Clad outer", ["geometry", "claddingOuterRadius"], "length"));
+    p.append(sec("Radii"), qField("Fuel radius", ["geometry", "fuelRadius"], "length"), qField("Central hole (optional, insulated)", ["geometry", "fuelInnerRadius"], "length"), qField("Clad inner", ["geometry", "claddingInnerRadius"], "length"), qField("Clad outer", ["geometry", "claddingOuterRadius"], "length"));
     if (doc.description) p.append(note("<code>" + (doc.label || "") + "</code> " + String(doc.description).replace(/</g, "&lt;")));
     if (doc.citation) p.append(note("Source: " + String(doc.citation).replace(/</g, "&lt;")));
     const d = result && result.derived; p.append(note(d ? "Gap thickness <code>" + (d.gapThickness * 1e3).toFixed(3) + " mm</code>. Equal radii are allowed only with an explicit effective gap conductance (zero cold gap); contact is not modelled." : "Radii must satisfy fuel &lt; cladding inner &lt; cladding outer."));
@@ -468,10 +468,12 @@ function drawPin() {
   x.fillStyle = "#6b7480"; x.beginPath(); x.arc(cx, cy, R, 0, 7); x.fill();
   x.fillStyle = "#0e1013"; x.beginPath(); x.arc(cx, cy, n.claddingInnerRadius * s, 0, 7); x.fill();
   const N = 24;
-  for (let i = N; i >= 1; i--) { const f = i / N, r = n.fuelRadius * s * f, T = prof[Math.round((1 - f) * (prof.length - 1))].T; x.fillStyle = colour ? heat((T - Ts) / Math.max(1e-9, Tc - Ts)) : "#c9a45c"; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); }
+  const ri = n.fuelInnerRadius || 0;
+  for (let i = N; i >= 1; i--) { const f = i / N, r = (ri + (n.fuelRadius - ri) * f) * s, T = prof[Math.round(f * (prof.length - 1))].T; /* profile: index 0 is the hole surface or axis, the last is the fuel surface */ x.fillStyle = colour ? heat((T - Ts) / Math.max(1e-9, Tc - Ts)) : "#c9a45c"; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); }
+  if (ri > 0) { x.fillStyle = "#0e1013"; x.beginPath(); x.arc(cx, cy, ri * s, 0, 7); x.fill(); x.strokeStyle = "#8c949e"; x.setLineDash([3, 2]); x.beginPath(); x.arc(cx, cy, ri * s, 0, 7); x.stroke(); x.setLineDash([]); }
   x.strokeStyle = "#0e1013"; x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, n.fuelRadius * s, 0, 7); x.stroke();
   const lab = (t, y) => { x.fillStyle = "#8c949e"; x.font = "11.5px ui-monospace,Consolas,monospace"; x.fillText(t, cx + R * 1.14 + 22, y); };
-  lab("fuel radius " + (n.fuelRadius * 1e3).toFixed(2) + " mm", cy - 14); lab("gap " + ((n.claddingInnerRadius - n.fuelRadius) * 1e3).toFixed(3) + " mm", cy + 2); lab("cladding outer " + (n.claddingOuterRadius * 1e3).toFixed(2) + " mm", cy + 18);
+  lab("fuel radius " + (n.fuelRadius * 1e3).toFixed(2) + " mm" + (ri > 0 ? ", hole " + (ri * 1e3).toFixed(2) + " mm (insulated)" : ""), cy - 14); lab("gap " + ((n.claddingInnerRadius - n.fuelRadius) * 1e3).toFixed(3) + " mm", cy + 2); lab("cladding outer " + (n.claddingOuterRadius * 1e3).toFixed(2) + " mm", cy + 18);
   x.fillStyle = "#5e6670"; x.fillText("to scale · coolant outside", cx + R * 1.14 + 22, cy + 36);
 }
 
@@ -490,7 +492,7 @@ function drawProfile() {
   for (let i = 0; i <= 5; i++) { const r = (rmax * i) / 5; x.fillText(r.toFixed(1), X(r) - 8, h - Bt + 15); }
   x.fillText("r (mm)", w - 56, h - 6); x.fillText(showDegC ? "°C" : "K", 8, Tp - 2);
   const band = (a, b, col) => { x.fillStyle = col; x.fillRect(X(a * 1e3), Tp, X(b * 1e3) - X(a * 1e3), h - Bt - Tp); };
-  band(0, n.fuelRadius, "rgba(201,164,92,.07)"); band(n.fuelRadius, n.claddingInnerRadius, "rgba(240,117,117,.18)"); band(n.claddingInnerRadius, n.claddingOuterRadius, "rgba(140,148,158,.12)");
+  band(n.fuelInnerRadius || 0, n.fuelRadius, "rgba(201,164,92,.07)"); if (n.fuelInnerRadius > 0) band(0, n.fuelInnerRadius, "rgba(14,16,19,.55)"); band(n.fuelRadius, n.claddingInnerRadius, "rgba(240,117,117,.18)"); band(n.claddingInnerRadius, n.claddingOuterRadius, "rgba(140,148,158,.12)");
   const line = (arr, col, dash) => { x.strokeStyle = col; x.lineWidth = 2; x.setLineDash(dash || []); x.beginPath(); arr.forEach((p, i) => { const px = X(p.r * 1e3), py = Y(showT(p.T)); if (i) x.lineTo(px, py); else x.moveTo(px, py); }); x.stroke(); x.setLineDash([]); };
   const f = pts.filter((p) => p.region === "fuel"), cl = pts.filter((p) => p.region === "cladding");
   line(f, "#52b8ff"); line(cl, "#52b8ff");
@@ -500,7 +502,7 @@ function drawProfile() {
     x.fillStyle = "#c89df2"; x.fillText("● OFFBEAT cell values", w - 170, Tp + 12);
   }
   x.strokeStyle = "#52b8ff"; x.setLineDash([3, 3]); x.lineWidth = 1.5; x.beginPath(); x.moveTo(X(f[f.length - 1].r * 1e3), Y(showT(f[f.length - 1].T))); x.lineTo(X(cl[0].r * 1e3), Y(showT(cl[0].T))); x.stroke(); x.setLineDash([]);
-  if ($("pCf").getAttribute("aria-pressed") === "true") { const t = result.quick.temperatures; x.fillStyle = "#e6b455"; [[0, t.centreT, "centre"], [n.fuelRadius * 1e3, t.fuelSurfaceT, "fuel surface"], [n.claddingInnerRadius * 1e3, t.claddingInnerT, "clad inner"], [rmax, t.claddingOuterT, "clad outer"]].forEach((q) => { x.beginPath(); x.arc(X(q[0]), Y(showT(q[1])), 3.5, 0, 7); x.fill(); }); }
+  if ($("pCf").getAttribute("aria-pressed") === "true") { const t = result.quick.temperatures; x.fillStyle = "#e6b455"; [[(n.fuelInnerRadius || 0) * 1e3, t.centreT, n.fuelInnerRadius > 0 ? "hole surface" : "centre"], [n.fuelRadius * 1e3, t.fuelSurfaceT, "fuel surface"], [n.claddingInnerRadius * 1e3, t.claddingInnerT, "clad inner"], [rmax, t.claddingOuterT, "clad outer"]].forEach((q) => { x.beginPath(); x.arc(X(q[0]), Y(showT(q[1])), 3.5, 0, 7); x.fill(); }); }
   if (bulk !== null) { x.strokeStyle = "#6fd49c"; x.setLineDash([6, 4]); x.lineWidth = 1; x.beginPath(); x.moveTo(L, Y(bulk)); x.lineTo(w - Rr, Y(bulk)); x.stroke(); x.setLineDash([]); x.fillStyle = "#6fd49c"; x.fillText("coolant bulk", L + 6, Y(bulk) - 5); }
   x.fillStyle = "#8c949e"; x.fillText("fuel", X(n.fuelRadius * 500) - 8, Tp + 12); x.fillText("gap", X((n.fuelRadius + n.claddingInnerRadius) * 500) - 10, Tp + 24); x.fillText("clad", X((n.claddingInnerRadius + n.claddingOuterRadius) * 500) - 10, Tp + 12);
 }

@@ -69,7 +69,11 @@ function analytic(doc) {
   else wall = si(doc.boundary.bulkTemperature) + q / (2 * Math.PI * Rco * si(doc.boundary.heatTransferCoefficient));
   const cladInner = hotSide(ck.a, ck.b, wall, (q * Math.log(Rco / Rci)) / (2 * Math.PI));
   const fuelSurface = cladInner + q / (2 * Math.PI * Rf * hGap);
-  const centre = hotSide(fk.a, fk.b, fuelSurface, q / (4 * Math.PI));
+  // Central hole with an insulated surface: the rise to the hole surface is the solid rise times 1 - 2 a^2 ln(1/a) / (1 - a^2).
+  const ri = doc.geometry.fuelInnerRadius ? si(doc.geometry.fuelInnerRadius) : 0;
+  const a2 = (ri / Rf) ** 2;
+  const holeFactor = ri === 0 ? 1 : 1 - (2 * a2 * Math.log(Rf / ri)) / (1 - a2);
+  const centre = hotSide(fk.a, fk.b, fuelSurface, (q / (4 * Math.PI)) * holeFactor);
   return { q, Rco, wall, cladInner, fuelSurface, centre, fuelRise: centre - fuelSurface };
 }
 
@@ -105,6 +109,7 @@ function writeCase(name, doc) {
 }
 
 const GOOD = [
+  { name: "annular-synthetic-pin", from: "examples/annular-synthetic-pin.json", domain: "synthetic pin with a 1 mm central hole whose surface is insulated, constant conductivities, convective boundary", refCentre: 1213.5607 },
   { name: "synthetic-const", from: "examples/synthetic-pin.json", domain: "synthetic pin, constant conductivities, convective boundary", flux: true, balance: true },
   { name: "synthetic-linear-k", from: "schema/vectors/good/linear-conductivity.json", domain: "synthetic pin, fuel k = 4 - 0.0006 T on 500-2500 K, convective boundary" },
   { name: "synthetic-prescribed-wall", from: "schema/vectors/good/surface-temperature.json", domain: "synthetic pin, constant conductivities, prescribed outer-surface temperature" },
@@ -118,6 +123,10 @@ for (const g of GOOD) {
   const doc = withMesh(load(g.from));
   const rel = writeCase(g.name, doc);
   const a = analytic(doc);
+  if (g.refCentre !== undefined) {
+    // Independent second method: numerical integration in oracles/annulus-reference.py (not the closed form used here).
+    if (Math.abs(a.centre - g.refCentre) > 0.001) throw new Error("closed form and numerical reference disagree: " + a.centre + " vs " + g.refCentre);
+  }
   if (g.sarEq9) {
     // Independent second method: the SAR's own eq. 9 (P = 1.25 MW; h from eq. 7 with P in watts), not our series code.
     const P = 1.25e6;
@@ -150,6 +159,7 @@ const BAD = [
   { id: "feed-bad-conductivity-missing", file: "prop-missing-conductivity", code: "E_PROP_MISSING", what: "no fuel conductivity" },
   { id: "feed-bad-mesh-too-fine", file: "mesh-fuel-high", code: "E_MESH", what: "more fuel cells than the supported maximum" },
   { id: "feed-bad-geometry-overlap", file: "geometry-overlap", code: "E_GEOMETRY", what: "a fuel radius larger than the cladding inner radius" },
+  { id: "feed-bad-hole-too-large", file: "geometry-hole-too-large", code: "E_GEOMETRY", what: "a central hole as large as the fuel radius" },
   { id: "feed-bad-transient", file: "unsupported-transient", code: "E_UNSUPPORTED", what: "a transient analysis (FEED is steady state only)" },
 ];
 for (const b of BAD) {
@@ -193,7 +203,7 @@ write(
     "",
     good + " good entries (peak, outer-wall temperature, flux and energy balance, over five pins), " + BAD.length + " bad-input entries, 1 known-limit entry.",
     "All cases use the mesh " + MESH.fuelCells + "/" + MESH.claddingCells + " (fuel/cladding cells). The peak is the first fuel cell centre of that mesh.",
-    "Not covered: transients, mechanics, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
+    "Not covered: transients, mechanics, a central hole whose surface is not insulated, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
     "",
   ].join(NL)
 );

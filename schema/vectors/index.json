@@ -27,6 +27,14 @@
     "valid": true
   },
   {
+    "file": "good/annular-fuel.json",
+    "valid": true
+  },
+  {
+    "file": "good/hole-zero-is-solid.json",
+    "valid": true
+  },
+  {
     "file": "bad/schema-missing-section.json",
     "valid": false,
     "code": "E_SCHEMA_INVALID",
@@ -79,6 +87,30 @@
     "valid": false,
     "code": "E_GEOMETRY",
     "field": "/geometry/claddingOuterRadius"
+  },
+  {
+    "file": "bad/geometry-hole-too-large.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/fuelInnerRadius"
+  },
+  {
+    "file": "bad/geometry-hole-thin-wall.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/fuelInnerRadius"
+  },
+  {
+    "file": "bad/geometry-hole-negative.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/fuelInnerRadius"
+  },
+  {
+    "file": "bad/units-hole-unknown.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/geometry/fuelInnerRadius"
   },
   {
     "file": "bad/boundary-bulk-only.json",

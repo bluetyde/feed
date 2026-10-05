@@ -58,11 +58,13 @@ function blockMeshDict(c: NormalizedCase): string {
       [xi, -yi, z1], [xo, -yo, z1], [xo, yo, z1], [xi, yi, z1],
     ];
   };
-  const v = [...block(0, c.fuelRadius, 0, SLICE_HEIGHT_MM), ...block(c.claddingInnerRadius, c.claddingOuterRadius, 0, SLICE_HEIGHT_MM)];
+  const v = [...block(c.fuelInnerRadius, c.fuelRadius, 0, SLICE_HEIGHT_MM), ...block(c.claddingInnerRadius, c.claddingOuterRadius, 0, SLICE_HEIGHT_MM)];
   const verts = v.map((p) => `    (${p.map(num).join(" ")})`).join("\n");
   const face = (...i: number[]) => `            (${i.join(" ")})`;
   const patch = (name: string, type: string, faces: string, extra = "") =>
     `    ${name}\n    {\n        type ${type};\n${extra}        faces\n        (\n${faces}\n        );\n    }\n`;
+  // Annular fuel: the surface of the central hole is a plain patch; its temperature condition is zeroGradient (insulated), set in 0/T.
+  const fuelInnerPatch = c.fuelInnerRadius > 0 ? patch("fuelInner", "patch", face(0, 4, 7, 3)) + String.fromCharCode(10) : "";
   const coupled = (name: string, other: string, owner: boolean) =>
     `        neighbourPatch ${other};\n        neighbourRegion region0;\n        owner ${owner};\n        updateAMI true;\n`;
   return `${FOAM_HEADER("dictionary", "blockMeshDict")}
@@ -87,7 +89,7 @@ boundary
 (
 ${patch("fuelBottom", "empty", face(0, 3, 2, 1))}
 ${patch("fuelTop", "empty", face(4, 5, 6, 7))}
-${patch("fuelOuter", "regionCoupledOFFBEAT", face(1, 2, 6, 5), coupled("fuelOuter", "cladInner", true))}
+${fuelInnerPatch}${patch("fuelOuter", "regionCoupledOFFBEAT", face(1, 2, 6, 5), coupled("fuelOuter", "cladInner", true))}
 ${patch("fuelFront", "wedge", face(0, 1, 5, 4))}
 ${patch("fuelBack", "wedge", face(3, 7, 6, 2))}
 ${patch("cladBottom", "empty", face(8, 11, 10, 9))}
@@ -177,6 +179,11 @@ ${constantMaterial("cladding", kc)}}
 }
 
 function temperatureField(c: NormalizedCase, t0: number): string {
+  const inner = c.fuelInnerRadius > 0 ? `    fuelInner
+    {
+        type            zeroGradient;
+    }
+` : "";
   const gap = (n: string) => `    ${n}
     {
         type            resistiveGap;
@@ -207,7 +214,7 @@ boundaryField
         type            wedge;
         value           $internalField;
     }
-${gap("fuelOuter")}${gap("cladInner")}    cladOuter
+${inner}${gap("fuelOuter")}${gap("cladInner")}    cladOuter
     {
         ${outer}
     }
@@ -215,7 +222,7 @@ ${gap("fuelOuter")}${gap("cladInner")}    cladOuter
 `;
 }
 
-const displacementField = `${FOAM_HEADER("volVectorField", "D")}
+const displacementField = (c: NormalizedCase) => `${FOAM_HEADER("volVectorField", "D")}
 dimensions          [0 1 0 0 0 0 0];
 
 internalField       uniform (0 0 0);
@@ -231,7 +238,11 @@ boundaryField
         type            fixedValue;
         value           uniform (0 0 0);
     }
-    "fuelOuter|cladInner"
+${c.fuelInnerRadius > 0 ? `    fuelInner
+    {
+        type            zeroGradient;
+    }
+` : ""}    "fuelOuter|cladInner"
     {
         type            gapContact;
         patchType       regionCoupledOFFBEAT;
@@ -332,10 +343,11 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     "system/fvSolution": fvSolution,
     "constant/solverDict": solverDict(c, kf, kc),
     "0/T": temperatureField(c, t0),
-    "0/D": displacementField,
+    "0/D": displacementField(c),
   };
   const mapping: WrittenCase["mapping"] = [
     { field: "geometry.fuelRadius", file: "system/blockMeshDict", note: "block 'fuel' outer radius (mm), wedge " + WEDGE_ANGLE_DEG + " deg" },
+    ...(c.fuelInnerRadius > 0 ? [{ field: "geometry.fuelInnerRadius", file: "system/blockMeshDict", note: "block 'fuel' inner radius (central hole); patch fuelInner, zeroGradient in 0/T (insulated) and 0/D" }] : []),
     { field: "geometry.claddingInnerRadius", file: "system/blockMeshDict", note: "block 'cladding' inner radius" },
     { field: "geometry.claddingOuterRadius", file: "system/blockMeshDict", note: "block 'cladding' outer radius" },
     { field: "mesh.fuelCells", file: "system/blockMeshDict" },

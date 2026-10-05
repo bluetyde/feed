@@ -24,6 +24,7 @@
       "required": ["fuelRadius", "claddingInnerRadius", "claddingOuterRadius"],
       "properties": {
         "fuelRadius": { "$ref": "#/$defs/quantity" },
+        "fuelInnerRadius": { "$ref": "#/$defs/quantity" },
         "claddingInnerRadius": { "$ref": "#/$defs/quantity" },
         "claddingOuterRadius": { "$ref": "#/$defs/quantity" }
       }

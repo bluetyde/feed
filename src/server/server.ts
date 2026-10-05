@@ -147,7 +147,7 @@ export function check(doc: unknown) {
     quick: look,
     profile: radialProfile(n, look),
     derived: {
-      volumetricPower: n.qPrime / (Math.PI * n.fuelRadius ** 2),
+      volumetricPower: n.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
       gapThickness: n.claddingInnerRadius - n.fuelRadius,
       outerSurfaceHeatFlux: n.qPrime / (2 * Math.PI * n.claddingOuterRadius),
     },

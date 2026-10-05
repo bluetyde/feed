@@ -56,6 +56,17 @@ add("good", "synthetic-pin", clone(), {});
   add("good", "closed-gap-effective-conductance", c, {});
 }
 
+{
+  const c = clone();
+  c.geometry.fuelInnerRadius = { value: 1.0, unit: "mm" };
+  add("good", "annular-fuel", c, {});
+}
+{
+  const c = clone();
+  c.geometry.fuelInnerRadius = { value: 0, unit: "mm" };
+  add("good", "hole-zero-is-solid", c, {});
+}
+
 // ---- bad: one break each
 const bad = (name, code, field, mutate) => {
   const c = clone();
@@ -71,6 +82,10 @@ bad("units-unknown", "E_UNITS", "/geometry/fuelRadius", (c) => (c.geometry.fuelR
 bad("geometry-negative", "E_GEOMETRY", "/geometry/fuelRadius", (c) => (c.geometry.fuelRadius = { value: -4.1, unit: "mm" }));
 bad("geometry-overlap", "E_GEOMETRY", "/geometry/claddingInnerRadius", (c) => (c.geometry.claddingInnerRadius = { value: 4.0, unit: "mm" }));
 bad("geometry-wall-inverted", "E_GEOMETRY", "/geometry/claddingOuterRadius", (c) => (c.geometry.claddingOuterRadius = { value: 4.1, unit: "mm" }));
+bad("geometry-hole-too-large", "E_GEOMETRY", "/geometry/fuelInnerRadius", (c) => (c.geometry.fuelInnerRadius = { value: 4.1, unit: "mm" }));
+bad("geometry-hole-thin-wall", "E_GEOMETRY", "/geometry/fuelInnerRadius", (c) => (c.geometry.fuelInnerRadius = { value: 4.0, unit: "mm" }));
+bad("geometry-hole-negative", "E_GEOMETRY", "/geometry/fuelInnerRadius", (c) => (c.geometry.fuelInnerRadius = { value: -1, unit: "mm" }));
+bad("units-hole-unknown", "E_UNITS", "/geometry/fuelInnerRadius", (c) => (c.geometry.fuelInnerRadius = { value: 1, unit: "inch" }));
 bad("boundary-bulk-only", "E_BOUNDARY_INCOMPLETE", "/boundary/heatTransferCoefficient", (c) => delete c.boundary.heatTransferCoefficient);
 bad("boundary-h-only", "E_BOUNDARY_INCOMPLETE", "/boundary/bulkTemperature", (c) => delete c.boundary.bulkTemperature);
 bad("boundary-two-forms", "E_BOUNDARY_INCOMPLETE", "/boundary", (c) => (c.boundary.surfaceTemperature = { value: 600, unit: "K" }));

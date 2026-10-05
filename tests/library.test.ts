@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { check, library } from "../src/server/server";
+import { annulusShape } from "../src/core/closedForm";
 import { quickLook } from "../src/core/quickLook";
 import { validateCase } from "../src/core/validate";
 
@@ -97,6 +98,42 @@ describe("library", () => {
     const qFit = c * 4 * Math.PI * 18;
     expect(Math.abs(qFit / n.qPrime - 1)).toBeLessThan(0.01);
     expect(Math.abs(n.qPrime / ((24340 / 0.381) * 1.017) - 1)).toBeLessThan(1e-4);
+  });
+
+  it("UT hot channel with the zirconium rod: the figure lies between the solid and annular models, and its shape favours the annulus", () => {
+    const fig = read("docs/sources/ut-triga-fig-4.30.json") as { points: { x: number; T_C: number; where?: string }[] };
+    const solidT = quickLook(validateCase(read("examples/ut-triga-hot-channel-trace.json")).normalized!).temperatures.centreT - 273.15;
+    const doc = read("examples/ut-triga-hot-channel-annular.json");
+    const n = validateCase(doc).normalized!;
+    const annT = quickLook(n).temperatures.centreT - 273.15;
+    expect(doc.geometry.fuelInnerRadius.value).toBe(3.175); // the 6.35 mm zirconium fill rod
+    expect(solidT).toBeGreaterThan(562.5);
+    expect(annT).toBeLessThan(562.5);
+    expect(annT).toBeGreaterThan(540);
+    // least-squares fit of the digitized fuel profile (inches, though the SAR labels cm) to each shape, k = 18 W/m/K:
+    // T = Ts + c shape(r); c = q'/(4 pi k)
+    const R = 0.018161;
+    const ri = 0.003175;
+    const pts = fig.points.filter((p) => !p.where || p.where === "Zr rod / fuel boundary" || p.where === "fuel surface");
+    const fit = (shape: (r: number) => number) => {
+      const m = pts.length;
+      const s = pts.map((p) => shape(p.x * 0.0254));
+      const sx = s.reduce((a, b) => a + b, 0);
+      const sy = pts.reduce((a, p) => a + p.T_C, 0);
+      const sxx = s.reduce((a, b) => a + b * b, 0);
+      const sxy = pts.reduce((a, p, i) => a + s[i]! * p.T_C, 0);
+      const c = (m * sxy - sx * sy) / (m * sxx - sx * sx);
+      const ts = (sy - c * sx) / m;
+      const rms = Math.sqrt(pts.reduce((a, p, i) => a + (ts + c * s[i]! - p.T_C) ** 2, 0) / m);
+      return { c, rms };
+    };
+    const solidFit = fit((r) => annulusShape(r, R, 0));
+    const annFit = fit((r) => annulusShape(r, R, ri));
+    expect(annFit.rms).toBeLessThan(solidFit.rms); // the figure's curvature near the rod is the annulus's
+    // with the SAR's power, the annular fit asks for an effective conductivity of about 17 W/m/K instead of 18
+    const kEff = n.qPrime / (4 * Math.PI * annFit.c);
+    expect(kEff).toBeGreaterThan(16.5);
+    expect(kEff).toBeLessThan(17.5);
   });
 
   it("check() returns the profile and derived values for a valid case", () => {

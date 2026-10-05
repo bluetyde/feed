@@ -41,6 +41,10 @@ describe("closed-form oracle table", () => {
         return tCold + (2 * integral) / (kCold - Math.sqrt(kCold * kCold + 2 * b * integral));
       },
     },
+    "hole ignored (factor 1)": { ...closedForm, fuelCentreFactor: () => 1 },
+    "annulus without the 1 - a^2 denominator": { ...closedForm, fuelCentreFactor: (ri, R) => 1 - 2 * (ri / R) ** 2 * Math.log(R / ri) },
+    "annulus with a instead of a^2": { ...closedForm, fuelCentreFactor: (ri, R) => { const a = ri / R; return ri === 0 ? 1 : 1 - (2 * a * Math.log(1 / a)) / (1 - a * a); } },
+    "annulus log10": { ...closedForm, fuelCentreFactor: (ri, R) => { const a2 = (ri / R) ** 2; return ri === 0 ? 1 : 1 - (2 * a2 * Math.log10(R / ri)) / (1 - a2); } },
     "linear-k ignores b": { ...closedForm, solveLinearK: (a, _b, tCold, integral) => tCold + integral / a },
   };
   for (const [name, impl] of Object.entries(mutants)) {

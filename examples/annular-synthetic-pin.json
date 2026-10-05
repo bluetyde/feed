@@ -1,0 +1,97 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "annular-synthetic-pin",
+  "name": "Synthetic annular pin: central hole 1 mm, insulated (illustrative numbers, not a real fuel design)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "fuelInnerRadius": {
+      "value": 1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.18,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 20,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 573,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 15,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 100,
+    "claddingCells": 20
+  },
+  "description": "The synthetic pin with a 1 mm radius central hole whose surface is insulated, like the zirconium fill rod of TRIGA fuel. The hottest point is the surface of the hole, 95 K cooler than the solid pin's axis. Checked against an independent numerical integration (oracles/annulus-reference.py) and against OFFBEAT."
+}

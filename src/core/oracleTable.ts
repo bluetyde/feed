@@ -42,6 +42,7 @@ const pin = (i: Record<string, number>) => ({
   claddingK: i.claddingK!,
   hFilm: i.hFilm!,
   bulkTemperature: i.bulkTemperature!,
+  fuelInnerRadius: i.fuelInnerRadius ?? 0,
 });
 
 /** Values the implementation produces for a computed entry (several when the entry sweeps a parameter). */
@@ -52,6 +53,10 @@ export function evaluate(impl: ClosedFormImpl, e: OracleEntry): number[] {
       return [impl.fuelDeltaT(i.qPrime, i.k)];
     case "fuel.centreMinusSurface":
       return (i.fuelRadii as number[]).map((R) => impl.fuelProfile(i.qPrime, i.k, R, 0, i.surfaceTemperature) - impl.fuelProfile(i.qPrime, i.k, R, R, i.surfaceTemperature));
+    case "fuel.annulus.deltaT":
+      return [impl.fuelDeltaT(i.qPrime, i.k) * impl.fuelCentreFactor(i.fuelInnerRadius, i.fuelRadius)];
+    case "pin.centreTemperature.annular":
+      return [compositeConstantK(pin(i), impl).centreT];
     case "gap.deltaT":
       return [compositeConstantK(pin(i), impl).gapDeltaT];
     case "cladding.deltaT":

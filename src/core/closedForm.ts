@@ -19,6 +19,8 @@ export interface ClosedFormImpl {
   filmDeltaT(qPrime: number, rOuter: number, hFilm: number): number;
   /** Right-hand side of the conductivity integral in the fuel: q′ / (4 pi). */
   fuelConductivityIntegral(qPrime: number): number;
+  /** Multiplier on the fuel's centre-to-surface rise for a central hole of radius ri with an insulated surface (1 for solid fuel). */
+  fuelCentreFactor(fuelInnerRadius: number, fuelRadius: number): number;
   /** Right-hand side of the conductivity integral across the cladding wall: q′ ln(Ro/Ri) / (2 pi). */
   claddingConductivityIntegral(qPrime: number, rInner: number, rOuter: number): number;
   /** Hot-side temperature for k = a + b T given the integral and the cold-side temperature. */
@@ -32,6 +34,7 @@ export const closedForm: ClosedFormImpl = {
   claddingDeltaT: (q, Ri, Ro, kc) => (q * Math.log(Ro / Ri)) / (TWO_PI * kc),
   filmDeltaT: (q, Ro, h) => q / (TWO_PI * Ro * h),
   fuelConductivityIntegral: (q) => q / FOUR_PI,
+  fuelCentreFactor: (ri, R) => annulusCentreFactor(ri, R),
   claddingConductivityIntegral: (q, Ri, Ro) => (q * Math.log(Ro / Ri)) / TWO_PI,
   solveLinearK,
 };
@@ -40,6 +43,8 @@ export interface CompositeInput {
   qPrime: number;
   fuelK: number;
   fuelRadius: number;
+  /** Central hole radius with an insulated surface; 0 or absent for solid fuel. */
+  fuelInnerRadius?: number;
   hGap: number;
   claddingInnerRadius: number;
   claddingOuterRadius: number;
@@ -64,7 +69,7 @@ export function compositeConstantK(c: CompositeInput, impl: ClosedFormImpl = clo
   const filmDeltaT = impl.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.hFilm);
   const claddingDeltaT = impl.claddingDeltaT(c.qPrime, c.claddingInnerRadius, c.claddingOuterRadius, c.claddingK);
   const gapDeltaT = impl.gapDeltaT(c.qPrime, c.fuelRadius, c.hGap);
-  const fuelDeltaT = impl.fuelDeltaT(c.qPrime, c.fuelK);
+  const fuelDeltaT = impl.fuelDeltaT(c.qPrime, c.fuelK) * impl.fuelCentreFactor(c.fuelInnerRadius ?? 0, c.fuelRadius);
   const claddingOuterT = c.bulkTemperature + filmDeltaT;
   const claddingInnerT = claddingOuterT + claddingDeltaT;
   const fuelSurfaceT = claddingInnerT + gapDeltaT;
@@ -98,6 +103,8 @@ export interface CompositeLinearInput {
   qPrime: number;
   fuelK: LinearK;
   fuelRadius: number;
+  /** Central hole radius with an insulated surface; 0 or absent for solid fuel. */
+  fuelInnerRadius?: number;
   hGap: number;
   claddingInnerRadius: number;
   claddingOuterRadius: number;
@@ -113,11 +120,30 @@ export function compositeLinearK(c: CompositeLinearInput, impl: ClosedFormImpl =
   const claddingInnerT = impl.solveLinearK(c.claddingK.a, c.claddingK.b, claddingOuterT, impl.claddingConductivityIntegral(c.qPrime, c.claddingInnerRadius, c.claddingOuterRadius));
   const gapDeltaT = impl.gapDeltaT(c.qPrime, c.fuelRadius, c.hGap);
   const fuelSurfaceT = claddingInnerT + gapDeltaT;
-  const centreT = impl.solveLinearK(c.fuelK.a, c.fuelK.b, fuelSurfaceT, impl.fuelConductivityIntegral(c.qPrime));
+  const centreT = impl.solveLinearK(c.fuelK.a, c.fuelK.b, fuelSurfaceT, impl.fuelConductivityIntegral(c.qPrime) * impl.fuelCentreFactor(c.fuelInnerRadius ?? 0, c.fuelRadius));
   return { filmDeltaT, claddingDeltaT: claddingInnerT - claddingOuterT, gapDeltaT, fuelDeltaT: centreT - fuelSurfaceT, claddingOuterT, claddingInnerT, fuelSurfaceT, centreT };
 }
 
-/** Fuel temperature at radius r for k = a + b T, given the fuel surface temperature. */
-export function fuelTemperatureLinearK(k: LinearK, qPrime: number, fuelRadius: number, r: number, surfaceT: number): number {
-  return solveLinearK(k.a, k.b, surfaceT, (qPrime * (1 - (r * r) / (fuelRadius * fuelRadius))) / FOUR_PI);
+/**
+ * Radial shape of the temperature rise in uniformly heated fuel, from the radius r out to the surface R, when the fuel has a
+ * central hole of radius ri whose surface is insulated. With a = ri/R,
+ *   shape(r) = [ (1 - r^2/R^2) - 2 a^2 ln(R/r) ] / (1 - a^2),   ri <= r <= R,
+ * so the conductivity integral from r to the surface is shape(r) q' / (4 pi). For ri = 0 it is 1 - r^2/R^2 (solid fuel).
+ * Derivation: the heat that crosses radius r is all the heat made between ri and r, q' (r^2 - ri^2) / (R^2 - ri^2), so
+ * k dT/dr = -q' (r^2 - ri^2) / (2 pi r (R^2 - ri^2)); integrate from r to R.
+ */
+export function annulusShape(r: number, fuelRadius: number, fuelInnerRadius = 0): number {
+  const a2 = (fuelInnerRadius / fuelRadius) ** 2;
+  if (fuelInnerRadius === 0) return 1 - (r * r) / (fuelRadius * fuelRadius);
+  return (1 - (r * r) / (fuelRadius * fuelRadius) - 2 * a2 * Math.log(fuelRadius / r)) / (1 - a2);
+}
+
+/** The hottest point of the fuel is its centre (solid) or the surface of the hole: shape(ri), which is 1 for solid fuel. */
+export function annulusCentreFactor(fuelInnerRadius: number, fuelRadius: number): number {
+  return fuelInnerRadius === 0 ? 1 : annulusShape(fuelInnerRadius, fuelRadius, fuelInnerRadius);
+}
+
+/** Fuel temperature at radius r for k = a + b T, given the fuel surface temperature (and the hole radius, if any). */
+export function fuelTemperatureLinearK(k: LinearK, qPrime: number, fuelRadius: number, r: number, surfaceT: number, fuelInnerRadius = 0): number {
+  return solveLinearK(k.a, k.b, surfaceT, (qPrime * annulusShape(r, fuelRadius, fuelInnerRadius)) / FOUR_PI);
 }

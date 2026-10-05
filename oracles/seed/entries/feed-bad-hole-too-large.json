@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-hole-too-large",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-hole-too-large.case.json",
+      "sha256": "16128f6fb53af71105a3a4d2eb61fcffa14cc8bf4103ec345d2988c795e4d8b1"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_GEOMETRY"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a central hole as large as the fuel radius. FEED must refuse it before any run; SEED reports E_GEOMETRY.",
+    "check": "FEED's schema vectors (schema/vectors/bad/geometry-hole-too-large.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "2ac4c8ee578adcb9c21465b31553721c112a1715886b44f70d6e577d12363c83"
+}

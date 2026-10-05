@@ -26,6 +26,7 @@ export function quickLook(c: NormalizedCase): QuickLook {
     qPrime: c.qPrime,
     fuelK: asLinear(c.fuelConductivity),
     fuelRadius: c.fuelRadius,
+    fuelInnerRadius: c.fuelInnerRadius,
     hGap: c.gapConductance,
     claddingInnerRadius: c.claddingInnerRadius,
     claddingOuterRadius: c.claddingOuterRadius,
@@ -58,8 +59,8 @@ export function radialProfile(c: NormalizedCase, look: QuickLook, n = 40): Profi
   const fk = asLinear(c.fuelConductivity);
   const ck = asLinear(c.claddingConductivity);
   for (let i = 0; i <= n; i++) {
-    const r = (c.fuelRadius * i) / n;
-    out.push({ r, T: fuelTemperatureLinearK(fk, c.qPrime, c.fuelRadius, r, look.temperatures.fuelSurfaceT), region: "fuel" });
+    const r = c.fuelInnerRadius + ((c.fuelRadius - c.fuelInnerRadius) * i) / n;
+    out.push({ r, T: fuelTemperatureLinearK(fk, c.qPrime, c.fuelRadius, r, look.temperatures.fuelSurfaceT, c.fuelInnerRadius), region: "fuel" });
   }
   for (let i = 0; i <= n; i++) {
     const r = c.claddingInnerRadius + ((c.claddingOuterRadius - c.claddingInnerRadius) * i) / n;

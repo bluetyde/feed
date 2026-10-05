@@ -84,6 +84,7 @@ export function compareResults(ra: ResultsRecord, rb: ResultsRecord): { summary:
 export function profileDifference(na: NormalizedCase, nb: NormalizedCase, ra: ResultsRecord, rb: ResultsRecord): { r: number[]; dT: number[] } | { reason: string } {
   const same =
     na.fuelRadius === nb.fuelRadius &&
+    na.fuelInnerRadius === nb.fuelInnerRadius &&
     na.claddingInnerRadius === nb.claddingInnerRadius &&
     na.claddingOuterRadius === nb.claddingOuterRadius &&
     na.mesh.fuelCells === nb.mesh.fuelCells &&

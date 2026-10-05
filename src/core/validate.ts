@@ -25,6 +25,8 @@ export interface NormalizedCase {
   caseId: string;
   qPrime: number;
   fuelRadius: number;
+  /** Radius of a central hole whose surface is insulated (TRIGA's zirconium fill rod); 0 for solid fuel. */
+  fuelInnerRadius: number;
   claddingInnerRadius: number;
   claddingOuterRadius: number;
   gapConductance: number;
@@ -113,6 +115,17 @@ export function validateCase(doc: unknown): ValidationResult {
   const Rf = radius(c.geometry.fuelRadius, "/geometry/fuelRadius", "fuel radius");
   const Rci = radius(c.geometry.claddingInnerRadius, "/geometry/claddingInnerRadius", "cladding inner radius");
   const Rco = radius(c.geometry.claddingOuterRadius, "/geometry/claddingOuterRadius", "cladding outer radius");
+  // Optional central hole in the fuel. Its surface is treated as insulated (nothing is conducted into whatever fills it).
+  let Rfi = 0;
+  if ((c.geometry as Record<string, unknown>).fuelInnerRadius !== undefined) {
+    const r = qty((c.geometry as Record<string, unknown>).fuelInnerRadius, "length", "/geometry/fuelInnerRadius");
+    if (r !== undefined) {
+      if (r < 0) err("E_GEOMETRY", "/geometry/fuelInnerRadius", "the central hole radius cannot be negative (use 0 for solid fuel)", { unit: "m" });
+      else if (Rf !== undefined && r > 0 && !(r < Rf)) err("E_GEOMETRY", "/geometry/fuelInnerRadius", "the central hole radius must be smaller than the fuel radius", { unit: "m" });
+      else if (Rf !== undefined && r > 0.95 * Rf) err("E_GEOMETRY", "/geometry/fuelInnerRadius", "the central hole radius leaves less than 5% of the fuel radius as wall; refused (the cell widths would be unreliable)", { unit: "m" });
+      else Rfi = r; // 0 is solid fuel
+    }
+  }
   if (Rf !== undefined && Rci !== undefined) {
     if (Rci < Rf) err("E_GEOMETRY", "/geometry/claddingInnerRadius", "cladding inner radius is smaller than the fuel radius (fuel overlaps cladding)");
     // Rci === Rf (zero cold gap) is allowed: the explicit gap conductance below is then an effective interface conductance.
@@ -181,6 +194,7 @@ export function validateCase(doc: unknown): ValidationResult {
       caseId: c.caseId,
       qPrime,
       fuelRadius: Rf,
+      fuelInnerRadius: Rfi,
       claddingInnerRadius: Rci,
       claddingOuterRadius: Rco,
       gapConductance: hGap,
