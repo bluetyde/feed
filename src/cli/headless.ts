@@ -92,7 +92,8 @@ async function run(args: string[]) {
   const mgr = new RunManager({ runsRoot: join(outDir, "work"), backend: new WslBackend(), timeoutMs: timeoutSeconds * 1000, maxRuns: 1000 });
   const started = mgr.start(doc);
   if (!started.ok) return out({ ok: false, errors: started.errors.map(typed).concat(started.message ? [{ code: "E_UNSUPPORTED", field: "", message: started.message }] : []) }, 2);
-  // a separate process (cancel) finds the solver run through this file
+  // a separate process (cancel) finds the solver run through this file. Keep this write synchronous and directly after start():
+  // the manager launches the run in a deferred step, so no solver can exist without this record (SEED adapter relies on it).
   writeFileSync(join(outDir, "active-run.json"), JSON.stringify({ feedRunId: started.id, nativeDir: join(outDir, "work", started.id, "native") }, null, 2) + "\n");
   const rec = await mgr.done(started.id);
   if (rec.state !== "completed") {
