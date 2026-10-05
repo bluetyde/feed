@@ -10,7 +10,8 @@ import { quickLook, radialProfile } from "../core/quickLook";
 import { projectRoot, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
-import { resultsToCsv } from "../core/exportResults";
+import { resultsToCsv, transientResultsToCsv } from "../core/exportResults";
+import { transientPreview } from "../core/transientPreview";
 import { refinementStudy, studyCases } from "../core/refinement";
 import { solverAvailable, WslBackend } from "../core/wslBackend";
 
@@ -94,6 +95,7 @@ export function startStudy(doc: any) {
   if (!manager) return { status: 503, body: { error: "No solver is installed (the feed-solver distro was not found)." } };
   const v = validateCase(doc);
   if (!v.normalized) return { status: 400, body: { errors: v.errors } };
+  if (v.normalized.transient) return { status: 400, body: { error: "A mesh refinement study is for steady cases. A transient reports its time-step and cross-check errors in its own checks." } };
   if (v.normalized.mesh.fuelCells * 4 > STUDY_MAX_FUEL_CELLS) return { status: 400, body: { error: `The finest mesh would have ${v.normalized.mesh.fuelCells * 4} fuel cells; a study is limited to ${STUDY_MAX_FUEL_CELLS}. Reduce the case's mesh first.` } };
   if (v.normalized.mesh.claddingCells * 4 > STUDY_MAX_CLADDING_CELLS) return { status: 400, body: { error: `The finest mesh would have ${v.normalized.mesh.claddingCells * 4} cladding cells; a study is limited to ${STUDY_MAX_CLADDING_CELLS}. Reduce the case's mesh first.` } };
   const ids: string[] = [];
@@ -122,6 +124,7 @@ export function compareRuns(ida: string, idb: string) {
   const b = manager?.detail(idb);
   if (!a || !b) return { error: "unknown run" };
   if (!a.results || !b.results || !a.normalized || !b.normalized) return { error: "both runs must be completed to be compared (A is " + a.record.state + ", B is " + b.record.state + ")" };
+  if (a.normalized.transient || b.normalized.transient) return { error: "Compare supports steady runs only; a transient run has a time series, not one profile. Use the Results tab." };
   const inputDiff = diffCases(a.case, b.case);
   return {
     a: { id: ida, caseName: a.record.caseName, caseHash: a.record.caseHash },
@@ -138,6 +141,21 @@ export function check(doc: unknown) {
   const v = validateCase(doc);
   if (!v.normalized) return { ok: false, errors: v.errors, warnings: v.warnings };
   const n = v.normalized;
+  if (n.transient) {
+    // A transient has no closed-form profile: the quick look is the independent finite-volume preview (not the solver).
+    return {
+      ok: true,
+      errors: v.errors,
+      warnings: v.warnings,
+      normalized: n,
+      transient: transientPreview(n),
+      derived: {
+        volumetricPower: n.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
+        gapThickness: n.claddingInnerRadius - n.fuelRadius,
+        outerSurfaceHeatFlux: n.qPrime / (2 * Math.PI * n.claddingOuterRadius),
+      },
+    };
+  }
   const look = quickLook(n);
   return {
     ok: true,
@@ -202,7 +220,8 @@ export const server = createServer(async (req, res) => {
         const d = manager.detail(id);
         if (!d?.results) return json(res, 404, { error: "no result for this run (state: " + rec.state + ")" });
         res.writeHead(200, { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${rec.caseId}-${id}.csv"`, "cache-control": "no-store", "x-content-type-options": "nosniff" });
-        return void res.end(resultsToCsv(d.results, { runId: id, caseName: rec.caseName ?? rec.caseId, solver: rec.solver, caseHash: rec.caseHash }));
+        const meta = { runId: id, caseName: rec.caseName ?? rec.caseId, solver: rec.solver, caseHash: rec.caseHash };
+        return void res.end("kind" in d.results && d.results.kind === "transient" ? transientResultsToCsv(d.results, meta) : resultsToCsv(d.results as Parameters<typeof resultsToCsv>[0], meta));
       }
       if (req.method === "POST" && runMatch[2] === "/cancel") return json(res, 200, await manager.cancel(id));
     }

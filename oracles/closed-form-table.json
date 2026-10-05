@@ -340,6 +340,117 @@
       "source": "numerical integration (Simpson, 20000 intervals) in an independent Python script, oracles/annulus-reference.py; not the closed form in src/core"
     },
     {
+      "id": "transient-cooling-centre",
+      "tag": "good",
+      "quantity": "cylinder.cooling",
+      "inputs": {
+        "r": 0,
+        "t": 8,
+        "R": 0.004,
+        "alpha": 0.000001,
+        "dT0": 300
+      },
+      "expected": {
+        "value": 26.666915,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.0001,
+        "rel": 0
+      },
+      "method": "excess temperature over the fixed surface value at the centre of a solid cylinder cooling from a uniform excess of 300 K, half a diffusion time (R^2/alpha = 16 s) in: sum 2 dT0 J0(l r/R) exp(-l^2 alpha t/R^2) / (l J1(l))",
+      "source": "independent Python (ascending-series Bessel functions in 150-digit arithmetic), oracles/transient-reference.py; not the integral-representation code in src/core"
+    },
+    {
+      "id": "transient-cooling-mid",
+      "tag": "good",
+      "quantity": "cylinder.cooling",
+      "inputs": {
+        "r": 0.002,
+        "t": 4,
+        "R": 0.004,
+        "alpha": 0.000001,
+        "dT0": 300
+      },
+      "expected": {
+        "value": 75.867563,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.0001,
+        "rel": 0
+      },
+      "method": "same series at half the radius, a quarter of a diffusion time",
+      "source": "independent Python (ascending-series Bessel functions in 150-digit arithmetic), oracles/transient-reference.py; not the integral-representation code in src/core"
+    },
+    {
+      "id": "transient-heating-centre",
+      "tag": "good",
+      "quantity": "cylinder.heating",
+      "inputs": {
+        "r": 0,
+        "t": 8,
+        "R": 0.004,
+        "k": 3,
+        "alpha": 0.000001,
+        "q3": 500000000
+      },
+      "expected": {
+        "value": 625.678913,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.0001,
+        "rel": 0
+      },
+      "method": "rise at the centre of a solid cylinder with a fixed surface temperature after a step in a uniform source: q3 R^2/(4k) (1 - r^2/R^2) - 2 q3 R^2/k sum J0(l r/R) exp(-l^2 alpha t/R^2) / (l^3 J1(l))",
+      "source": "independent Python (ascending-series Bessel functions in 150-digit arithmetic), oracles/transient-reference.py; not the integral-representation code in src/core"
+    },
+    {
+      "id": "transient-heating-near-surface",
+      "tag": "good",
+      "quantity": "cylinder.heating",
+      "inputs": {
+        "r": 0.003,
+        "t": 2,
+        "R": 0.004,
+        "k": 3,
+        "alpha": 0.000001,
+        "q3": 500000000
+      },
+      "expected": {
+        "value": 169.736668,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.0001,
+        "rel": 0
+      },
+      "method": "same series at three quarters of the radius, an eighth of a diffusion time",
+      "source": "independent Python (ascending-series Bessel functions in 150-digit arithmetic), oracles/transient-reference.py; not the integral-representation code in src/core"
+    },
+    {
+      "id": "transient-adiabatic-linear-c",
+      "tag": "good",
+      "quantity": "adiabatic.linearC.temperature",
+      "inputs": {
+        "a": 900000,
+        "b": 4170,
+        "T0": 300,
+        "e3": 946787287.8756413
+      },
+      "expected": {
+        "value": 632.802419,
+        "unit": "K"
+      },
+      "tolerance": {
+        "abs": 0.0001,
+        "rel": 0
+      },
+      "method": "adiabatic uniform heating with c = a + b T: a (T - T0) + b/2 (T^2 - T0^2) = E''' (the 50 kJ/m triangular pulse on the 4.1 mm fuel radius); a constant c at T0 would give 300 + E'''/c(T0) = 740 K",
+      "source": "independent Python (ascending-series Bessel functions in 150-digit arithmetic), oracles/transient-reference.py; not the integral-representation code in src/core"
+    },
+    {
       "id": "bad-units",
       "tag": "bad-input",
       "fixture": "schema/vectors/bad/units-missing.json",

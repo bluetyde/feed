@@ -27,24 +27,24 @@ internalField   nonuniform List<scalar>
 615.59576
 615.59576
 615.59574
-615.59564
-615.59512
-615.59261
-615.58157
-615.53706
-615.37486
-614.84702
-613.33586
-609.60384
-601.86382
-588.9197
-572.70277
-529.29475
-529.44208
-530.84011
-533.42125
-537.08683
-541.71024
+615.59563
+615.59504
+615.5922
+615.57944
+615.52694
+615.33037
+614.66738
+612.67512
+607.4073
+595.32019
+571.60492
+532.3585
+343.8445
+339.09526
+334.5424
+330.18565
+326.0191
+322.0317
 )
 ;
 
@@ -63,7 +63,7 @@ boundaryField
         type            resistiveGap;
         patchType       regionCoupledOFFBEAT;
         coupled         1;
-        value           uniform 566.49982;
+        value           uniform 505.42007;
         alpha           uniform 5000;
     }
     fuelFront
@@ -87,15 +87,15 @@ boundaryField
         type            resistiveGap;
         patchType       regionCoupledOFFBEAT;
         coupled         1;
-        value           uniform 529.87678;
+        value           uniform 346.37219;
         alpha           uniform 5000;
     }
     cladOuter
     {
         type            convectiveHTC;
         h               uniform 30000;
-        T0              uniform 573;
-        value           uniform 544.41652;
+        T0              uniform 300;
+        value           uniform 320.12615;
     }
     cladFront
     {

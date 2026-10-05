@@ -198,7 +198,7 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   const dep = series.deposited[k]!;
   if (dep > 0) {
     const worst = Math.max(...times.map((_, j) => (series.deposited[j]! > 0 ? Math.abs(series.deposited[j]! - series.stored[j]! - series.rejected[j]!) / series.deposited[j]! : 0)));
-    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the energy deposited so far; rejected heat is a trapezoid over the output times` });
+    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the energy deposited so far. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
   }
 
   // independent solution: same mesh and step (cross-check), double mesh (spatial error of the independent solution), half step (time error)

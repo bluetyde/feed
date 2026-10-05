@@ -241,13 +241,13 @@ input.bad,select.bad{border-color:var(--err)}
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
-const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], htc: ["W/m2/K", "kW/m2/K"] };
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
 let doc = null, result = null, selected = "power", outTab = "problems", logText = "", showDegC = false, seq = 0, timer = null;
 
 /* Explorer items: id, label, group, JSON pointer prefixes that belong to it. */
 const ITEMS = [
-  ["power", "Power", "Operating conditions", ["/power", "/assumptions"]],
+  ["power", "Power", "Operating conditions", ["/power", "/assumptions", "/transient"]],
   ["boundary", "Coolant boundary", "Operating conditions", ["/boundary"]],
   ["geometry", "Pin dimensions", "Pin", ["/geometry"]],
   ["gap", "Gap", "Pin", ["/gap"]],
@@ -317,6 +317,8 @@ function renderProps() {
   const it = ITEMS.find((i) => i[0] === selected); $("propSub").textContent = it ? it[1] : "";
   if (!doc) return;
   if (selected === "power") {
+    p.append(sec("Analysis"), analysisField());
+    if (isTransient()) { renderTransientProps(p); return; }
     p.append(sec("Linear heat rate"), qField("q′", ["power", "linearHeatRate"], "linearPower"));
     const d = result && result.derived;
     p.append(note(d ? "Volumetric <code>q‴ = " + (d.volumetricPower / 1e6).toFixed(1) + " MW/m³</code> (derived: q′ / π R²). Heat flux at the outer surface <code>" + (d.outerSurfaceHeatFlux / 1e3).toFixed(0) + " kW/m²</code>." : "Volumetric power is derived once the case is valid."));
@@ -365,7 +367,8 @@ function renderProps() {
       else p.append(qField("k", kp.concat("value"), "conductivity"), qField("at T", kp.concat("referenceTemperature"), "temperature"));
       p.append(tField("Source", kp.concat("source")));
     }
-    const others = Object.keys(m.sets || {}).filter((s) => s !== "thermal.conductivity");
+    if (isTransient()) heatCapacityPanel(p, base.concat("sets", "thermal.volumetricHeatCapacity"), getp(doc, base.concat("sets", "thermal.volumetricHeatCapacity")));
+    const others = Object.keys(m.sets || {}).filter((s) => s !== "thermal.conductivity" && !(isTransient() && s === "thermal.volumetricHeatCapacity"));
     if (others.length) p.append(sec("Kept unchanged"), note(others.map((s) => "<code>" + s.replace(/</g, "&lt;") + "</code>").join(", ") + " belong to other apps and are saved as they are."));
   }
 }
@@ -375,7 +378,7 @@ function meta(id) {
   const fmt = (q) => (q && typeof q === "object" && q.value !== undefined ? q.value + " " + (q.unit || "?") : "—");
   if (!doc) return "";
   switch (id) {
-    case "power": return fmt(doc.power.linearHeatRate);
+    case "power": return isTransient() ? "pulse · " + ((doc.transient && doc.transient.powerHistory) || []).length + " pts" : fmt(doc.power && doc.power.linearHeatRate);
     case "boundary": return doc.boundary.surfaceTemperature !== undefined ? "T surface " + fmt(doc.boundary.surfaceTemperature) : (doc.boundary.bulkTemperature !== undefined ? fmt(doc.boundary.bulkTemperature) : "—");
     case "geometry": return fmt(doc.geometry.fuelRadius) + " fuel R";
     case "gap": return doc.gap.model === "constant-conductance" ? fmt(doc.gap.conductance) : doc.gap.model;
@@ -416,6 +419,7 @@ function renderOutput() {
   } else if (outTab === "checks") {
     const row = (k, v, cls, why) => { const r = el("div", "crow"); r.append(elt("span", k, { class: "k" }), elt("span", v, { class: "v " + (cls || "") }), elt("span", why || "", { class: "k" })); o.append(r); };
     if (!result || !result.ok) { o.textContent = "Fix the problems first."; return; }
+    if (result.transient) { transientChecks(o, row); return; }
     const q = result.quick, t = q.temperatures;
     row("Centre temperature", K(t.centreT), "", "closed form: bulk + film + cladding + gap + fuel");
     row("Fuel centre-to-surface", t.fuelDeltaT.toFixed(1) + " K", "", "q′ / (4π k) for constant k");
@@ -462,8 +466,11 @@ function drawPin() {
   const n = result && result.ok ? result.normalized : null;
   if (!n) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Pin cross-section appears when the radii are valid", 14, h / 2); return; }
   const cx = Math.min(w * 0.22, h * 0.55) + 14, cy = h / 2, R = Math.min(h * 0.46, w * 0.2), s = R / n.claddingOuterRadius;
-  const prof = result.profile.filter((p) => p.region === "fuel"); const Tc = prof[0].T, Ts = prof[prof.length - 1].T;
-  const colour = $("pCol").getAttribute("aria-pressed") === "true";
+  let prof, Tc, Ts, colour = $("pCol").getAttribute("aria-pressed") === "true";
+  if (result.transient) {
+    if (isTransientResult(solverRes)) { const k = tIdx < 0 ? solverRes.times.length - 1 : tIdx, pr = solverRes.profiles[k]; prof = solverRes.cells.map((c2, i) => ({ region: c2.region, T: pr[i] })).filter((p) => p.region === "fuel"); Tc = Math.max(...prof.map((p) => p.T)); Ts = Math.min(...prof.map((p) => p.T)); }
+    else { prof = [{ T: 1 }, { T: 1 }]; Tc = 1; Ts = 1; colour = false; }
+  } else { prof = result.profile.filter((p) => p.region === "fuel"); Tc = prof[0].T; Ts = prof[prof.length - 1].T; }
   x.fillStyle = "#2a3a45"; x.beginPath(); x.arc(cx, cy, R * 1.14, 0, 7); x.fill();
   x.fillStyle = "#6b7480"; x.beginPath(); x.arc(cx, cy, R, 0, 7); x.fill();
   x.fillStyle = "#0e1013"; x.beginPath(); x.arc(cx, cy, n.claddingInnerRadius * s, 0, 7); x.fill();
@@ -475,12 +482,14 @@ function drawPin() {
   const lab = (t, y) => { x.fillStyle = "#8c949e"; x.font = "11.5px ui-monospace,Consolas,monospace"; x.fillText(t, cx + R * 1.14 + 22, y); };
   lab("fuel radius " + (n.fuelRadius * 1e3).toFixed(2) + " mm" + (ri > 0 ? ", hole " + (ri * 1e3).toFixed(2) + " mm (insulated)" : ""), cy - 14); lab("gap " + ((n.claddingInnerRadius - n.fuelRadius) * 1e3).toFixed(3) + " mm", cy + 2); lab("cladding outer " + (n.claddingOuterRadius * 1e3).toFixed(2) + " mm", cy + 18);
   x.fillStyle = "#5e6670"; x.fillText("to scale · coolant outside", cx + R * 1.14 + 22, cy + 36);
+  if (result.transient && isTransientResult(solverRes)) x.fillText("colour: OFFBEAT at t = " + fmtT(solverRes.times[tIdx < 0 ? solverRes.times.length - 1 : tIdx]) + " (click the time plot)", cx + R * 1.14 + 22, cy + 52);
 }
 
 let plot = null;
 function drawProfile() {
-  const c = $("prof"), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); plot = null;
+  const c = $("prof"), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); plot = null; c._plot = null;
   const ok = result && result.ok; $("noData").hidden = !!ok; if (!ok) return;
+  if (result.transient) { drawTimeSeries(c, transientSpecCase()); return; }
   const n = result.normalized, pts = result.profile, L = 62, Rr = 16, Tp = 14, Bt = 30;
   const ts = pts.map((p) => showT(p.T)).concat([showT(result.quick.temperatures.claddingOuterT)]);
   const bulk = n.boundary.kind === "convective" ? showT(n.boundary.bulkTemperature) : null; if (bulk !== null) ts.push(bulk);
@@ -507,6 +516,7 @@ function drawProfile() {
   x.fillStyle = "#8c949e"; x.fillText("fuel", X(n.fuelRadius * 500) - 8, Tp + 12); x.fillText("gap", X((n.fuelRadius + n.claddingInnerRadius) * 500) - 10, Tp + 24); x.fillText("clad", X((n.claddingInnerRadius + n.claddingOuterRadius) * 500) - 10, Tp + 12);
 }
 $("prof").addEventListener("mousemove", (e) => {
+  if (timeHover($("prof"), $("readout"), e)) return;
   if (!plot || !result || !result.ok) return; const b = $("prof").getBoundingClientRect(), r = ((e.clientX - b.left - plot.L) / (plot.w - plot.L - plot.Rr)) * plot.rmax; if (r < 0 || r > plot.rmax) return;
   const pts = result.profile; let best = pts[0]; for (const p of pts) if (Math.abs(p.r * 1e3 - r) < Math.abs(best.r * 1e3 - r)) best = p;
   $("readout").textContent = "r = " + (best.r * 1e3).toFixed(3) + " mm   T = " + K(best.T) + "  (" + best.region + ")";
@@ -633,6 +643,185 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+/* ================= Transient (pulse) mode ================= */
+let tIdx = -1; /* output index shown on the pin diagram; -1 means the last one */
+const isTransient = () => !!(doc && doc.assumptions && doc.assumptions.steadyState === false);
+const isTransientResult = (r) => !!r && r.kind === "transient";
+const fmtT = (s) => (Math.abs(s) >= 1 ? s.toPrecision(4) + " s" : (s * 1e3).toPrecision(4) + " ms");
+
+function defaultTransient() {
+  return {
+    powerHistory: [
+      { time: { value: 0, unit: "ms" }, linearHeatRate: { value: 0, unit: "W/m" } },
+      { time: { value: 5, unit: "ms" }, linearHeatRate: { value: 10, unit: "MW/m" } },
+      { time: { value: 10, unit: "ms" }, linearHeatRate: { value: 0, unit: "W/m" } },
+      { time: { value: 100, unit: "ms" }, linearHeatRate: { value: 0, unit: "W/m" } },
+    ],
+    endTime: { value: 100, unit: "ms" },
+    timeStep: { value: 0.1, unit: "ms" },
+    outputs: 20,
+    initialTemperature: { value: 300, unit: "K" },
+  };
+}
+function setAnalysis(kind) {
+  if (kind === "transient" && !isTransient()) {
+    doc.assumptions.steadyState = false;
+    doc.power = { radialShape: "uniform" };
+    doc.transient = defaultTransient();
+    logText += "Switched to a pulse (transient) analysis: edit the power history; both materials need a heat capacity.\n";
+  } else if (kind === "steady" && isTransient()) {
+    doc.assumptions.steadyState = true;
+    delete doc.transient;
+    doc.power = { linearHeatRate: { value: 20, unit: "kW/m" }, radialShape: "uniform" };
+    logText += "Switched to a steady-state analysis.\n";
+  }
+  solverRes = null; runRec = null; tIdx = -1; setChip();
+  changed(true);
+}
+function analysisField() {
+  const row = el("div", "prow"); row.append(elt("label", "Analysis", { for: "analysis" }));
+  const sel = elt("select", "", { id: "analysis" });
+  sel.append(elt("option", "Steady state", { value: "steady" }), elt("option", "Pulse (transient)", { value: "transient" }));
+  sel.value = isTransient() ? "transient" : "steady";
+  sel.addEventListener("change", () => setAnalysis(sel.value));
+  row.append(sel); return row;
+}
+function renderTransientProps(p) {
+  const t = doc.transient || {};
+  p.append(sec("Timing"), qField("Initial temperature", ["transient", "initialTemperature"], "temperature"), qField("End time", ["transient", "endTime"], "time"), qField("Time step", ["transient", "timeStep"], "time"), iField("Outputs", ["transient", "outputs"]));
+  const info = result && result.transient;
+  p.append(note(info ? "<code>" + info.steps + "</code> steps of a fixed size, <code>" + info.outputs + "</code> outputs (the temperature field is kept at each). The step is first order: the Checks tab reports how much halving it would change the peak." : "The end time must be a whole number of steps and the outputs must divide the steps."));
+  const gen = (result && result.errors || []).filter((i) => i.field === "/transient" || i.field === "/transient/powerHistory" || i.field === "/power/linearHeatRate");
+  for (const g of gen) p.append(elt("div", g.message, { class: "ferr" }));
+  p.append(sec("Power history"));
+  const pts = Array.isArray(t.powerHistory) ? t.powerHistory : [];
+  pts.forEach((_, i) => {
+    p.append(qField("t" + (i + 1), ["transient", "powerHistory", i, "time"], "time"), qField("q′" + (i + 1), ["transient", "powerHistory", i, "linearHeatRate"], "linearPower"));
+  });
+  const bar = el("div", "prow note");
+  const add = elt("button", "Add point", { class: "tbtn", type: "button" });
+  add.addEventListener("click", () => { if (!Array.isArray(doc.transient.powerHistory)) doc.transient.powerHistory = []; const last = doc.transient.powerHistory[doc.transient.powerHistory.length - 1]; const tt = last && last.time ? { value: last.time.value * 2 || 1, unit: last.time.unit } : { value: 0, unit: "ms" }; doc.transient.powerHistory.push({ time: tt, linearHeatRate: { value: 0, unit: "W/m" } }); changed(true); });
+  const rem = elt("button", "Remove last", { class: "tbtn", type: "button" });
+  rem.addEventListener("click", () => { if (doc.transient.powerHistory && doc.transient.powerHistory.length) { doc.transient.powerHistory.pop(); changed(true); } });
+  bar.append(add, rem); p.append(bar);
+  p.append(note(info ? "Energy deposited over the run <code>" + (info.depositedEnergy / 1e3).toFixed(2) + " kJ/m</code>, <code>" + (info.depositedPerVolume / 1e6).toFixed(1) + " MJ/m³</code> of fuel. If no heat left the fuel it would reach <code>" + K(info.adiabaticPeak) + "</code> (the adiabatic limit; the real peak is lower for a long pulse)." : "Power is linear between the points. The first point is at time 0 and the last at or after the end time."));
+  p.append(sec("Scope"), note("Thermal only. The power history is an <b>input</b>: FEED does not compute the pulse, so it says nothing about reactivity, stress or fuel integrity. The start is a uniform temperature."));
+}
+function heatCapacityPanel(p, base, k) {
+  p.append(sec("Heat capacity (volumetric, for the pulse)"));
+  if (!k) {
+    const r = el("div", "prow note"); const p2 = document.createElement("p"); p2.textContent = "This material has no thermal.volumetricHeatCapacity set. A transient needs the heat capacity of both solids."; r.append(p2);
+    const b = elt("button", "Add constant heat capacity", { class: "tbtn", type: "button" });
+    b.addEventListener("click", () => { setp(doc, base, { model: "constant", value: { value: 3, unit: "MJ/m3/K" }, referenceTemperature: { value: 300, unit: "K" }, source: "" }); changed(true); });
+    r.append(b); p.append(r);
+    const g = (result && result.errors || []).filter((i) => i.field === ptr(base)); if (g.length) p.append(elt("div", g[0].message, { class: "ferr" }));
+    return;
+  }
+  p.append(sField("Model", base.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"]], () => {}));
+  if (k.model === "linear") p.append(qField("a", base.concat("a"), "volumetricHeatCapacity"), qField("b", base.concat("b"), "volumetricHeatCapacityPerK"), qField("T min", base.concat("validRange", "min"), "temperature"), qField("T max", base.concat("validRange", "max"), "temperature"));
+  else p.append(qField("c", base.concat("value"), "volumetricHeatCapacity"), qField("at T", base.concat("referenceTemperature"), "temperature"));
+  p.append(tField("Source", base.concat("source")));
+  p.append(note("c is per volume. A material quoted per mass needs its density to convert; T is in kelvin for a linear law."));
+}
+
+/* time plot: used on the Case tab (independent preview, then the solver) and on the Results tab */
+function drawTimeSeries(canvas, spec) {
+  const [x, w, h] = sizeCanvas(canvas); x.clearRect(0, 0, w, h); canvas._plot = null;
+  if (!spec || !spec.series.length) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show", 14, h / 2); return; }
+  const L = 62, Rr = 16, Tp = 14, Bt = 26, pw = Math.round((h - Tp - Bt) * 0.22);
+  const tmax = Math.max(...spec.series.map((s) => s.t[s.t.length - 1]));
+  const vals = []; spec.series.forEach((s) => s.v.forEach((v) => vals.push(showT(v))));
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+  const X = (t) => L + (t / tmax) * (w - L - Rr), Y = (T) => h - Bt - pw - 4 - ((T - lo) / (hi - lo)) * (h - Bt - Tp - pw - 4);
+  canvas._plot = { spec: { time: true, series: spec.series, power: spec.power }, X, Y, L, Rr, tmax, w };
+  x.font = "11px ui-monospace,Consolas,monospace"; x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const T = lo + ((hi - lo) * i) / 4, y = Y(T); x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, y); x.lineTo(w - Rr, y); x.stroke(); x.fillStyle = "#8c949e"; x.fillText(T.toFixed(0), 8, y + 4); }
+  const unitMs = tmax < 1;
+  for (let i = 0; i <= 5; i++) { const t = (tmax * i) / 5; x.fillStyle = "#8c949e"; x.fillText((unitMs ? t * 1e3 : t).toPrecision(3), X(t) - 10, h - Bt + 14); }
+  x.fillStyle = "#8c949e"; x.fillText(unitMs ? "t (ms)" : "t (s)", w - 50, h - 5); x.fillText(showDegC ? "°C" : "K", 8, Tp - 2);
+  if (spec.power) { /* power as a scaled area along the bottom */
+    const pm = Math.max(...spec.power.v) || 1; x.fillStyle = "rgba(140,148,158,.22)"; x.beginPath(); x.moveTo(X(spec.power.t[0]), h - Bt);
+    spec.power.t.forEach((t, i) => x.lineTo(X(t), h - Bt - (spec.power.v[i] / pm) * pw)); x.lineTo(X(spec.power.t[spec.power.t.length - 1]), h - Bt); x.closePath(); x.fill();
+    x.fillStyle = "#8c949e"; x.fillText("power (input), peak " + (pm / 1e6).toPrecision(3) + " MW/m", L + 6, h - Bt - pw + 12);
+  }
+  for (const s of spec.series) {
+    if (s.line && s.t.length > 1) { x.strokeStyle = s.color; x.lineWidth = s.width || 1.6; x.setLineDash(s.dash ? [5, 3] : []); x.beginPath(); s.t.forEach((t, i) => { const px = X(t), py = Y(showT(s.v[i])); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); x.setLineDash([]); }
+    if (s.dots) { x.fillStyle = s.color; s.t.forEach((t, i) => { x.beginPath(); x.arc(X(t), Y(showT(s.v[i])), 2.6, 0, 7); x.fill(); }); }
+  }
+  if (spec.cursor !== undefined && spec.cursor >= 0) { x.strokeStyle = "#e6b455"; x.setLineDash([2, 3]); x.beginPath(); x.moveTo(X(spec.cursor), Tp); x.lineTo(X(spec.cursor), h - Bt); x.stroke(); x.setLineDash([]); }
+  spec.series.forEach((s, i) => { x.fillStyle = s.color; x.fillText("● " + s.label, L + 10, Tp + 12 + i * 14); });
+}
+function timeHover(canvas, readout, e) {
+  const p = canvas._plot; if (!p || !p.spec.time) return false;
+  const b = canvas.getBoundingClientRect(), t = ((e.clientX - b.left - p.L) / (p.w - p.L - p.Rr)) * p.tmax; if (t < 0 || t > p.tmax) return true;
+  const near = (s) => { let bi = 0; s.t.forEach((tt, i) => { if (Math.abs(tt - t) < Math.abs(s.t[bi] - t)) bi = i; }); return bi; };
+  const parts = ["t = " + fmtT(t)].concat(p.spec.series.map((s) => { const i = near(s); return s.label + " " + K(s.v[i]) + " @ " + fmtT(s.t[i]); }));
+  readout.textContent = parts.join("   "); return true;
+}
+function transientSpecCase() {
+  /* independent preview (always, when the case is valid) and the solver result (when there is one) */
+  const info = result && result.transient; if (!info) return null;
+  const series = [];
+  if (info.preview) {
+    series.push({ label: "peak (independent preview)", t: info.preview.time, v: info.preview.peakT, color: COL.closed, line: true, width: 1.8 });
+    series.push({ label: "fuel surface cell", t: info.preview.time, v: info.preview.fuelSurfaceCellT, color: COL.closed, line: true, dash: true, width: 1.2 });
+    series.push({ label: "outer cladding cell", t: info.preview.time, v: info.preview.claddingOuterT, color: "#8fb7c9", line: true, dash: true, width: 1.2 });
+  }
+  const power = info.preview ? { t: info.preview.time, v: info.preview.power } : null;
+  if (isTransientResult(solverRes)) {
+    const s = solverRes.series;
+    series.push({ label: "peak (OFFBEAT)", t: s.time, v: s.peakT, color: COL.solver, dots: true, line: true, width: 1 });
+    series.push({ label: "outer wall (OFFBEAT)", t: s.time, v: s.claddingOuterWallT, color: "#c9b6e8", dots: true, line: false });
+  }
+  const cursor = isTransientResult(solverRes) ? solverRes.times[tIdx < 0 ? solverRes.times.length - 1 : tIdx] : undefined;
+  return { series, power, cursor };
+}
+$("prof").addEventListener("click", (e) => {
+  const c = $("prof"), p = c._plot; if (!p || !p.spec.time || !isTransientResult(solverRes)) return;
+  const b = c.getBoundingClientRect(), t = ((e.clientX - b.left - p.L) / (p.w - p.L - p.Rr)) * p.tmax;
+  let bi = 0; solverRes.times.forEach((tt, i) => { if (Math.abs(tt - t) < Math.abs(solverRes.times[bi] - t)) bi = i; });
+  tIdx = bi; draw();
+});
+
+
+function transientChecks(o, row) {
+  const info = result.transient;
+  const head = (t) => { const h2 = el("div", "psec"); h2.style.padding = "8px 0 2px"; h2.textContent = t; o.append(h2); };
+  head("Before the run (no solver)");
+  row("Steps", String(info.steps), "", info.outputs + " outputs");
+  row("Energy deposited", (info.depositedEnergy / 1e3).toFixed(2) + " kJ/m", "", "exact integral of the power history");
+  row("Adiabatic peak", K(info.adiabaticPeak), "", "if no heat left the fuel: an upper bound on the fuel temperature");
+  if (info.preview) { const i = info.preview.peakT.indexOf(Math.max(...info.preview.peakT)); row("Independent preview peak", K(info.preview.peakT[i]), "", "at t = " + fmtT(info.preview.time[i]) + " (finite-volume, not the solver)"); }
+  else row("Independent preview", "skipped", "na", info.previewSkipped || "");
+  if (isTransientResult(solverRes)) {
+    head("Solver result (OFFBEAT, thermal only)");
+    const s = solverRes.summary;
+    row("Peak temperature", K(s.maxT), "", "hottest cell centre, at t = " + fmtT(s.timeOfMaxT));
+    row("Peak at the end", K(s.finalPeakT), "", "t = " + fmtT(s.finalTime)); row("Largest rise", s.maxRise.toFixed(1) + " K", "", "above the initial " + K(solverRes.initialTemperature));
+    for (const c of solverRes.checks) row(c.label, c.value === null ? "n/a" : (c.unit === "relative" ? (c.value * 100).toFixed(2) + " %" : c.value.toFixed(3) + " " + c.unit), c.verdict === "na" ? "na" : c.verdict, c.verdict.toUpperCase() + ": " + c.note);
+    const b = el("div", "log"); b.style.paddingTop = "6px"; b.textContent = solverRes.thermalOnly; o.append(b);
+  } else if (runRec && (runRec.state === "failed" || runRec.state === "cancelled" || runRec.state === "interrupted")) {
+    head("Last solver run: " + runRec.state);
+    const f = runRec.failure;
+    if (f) { row(f.code, "", "fail", f.message); if (f.native) { const pre = el("pre", "log"); pre.textContent = f.native; o.append(pre); } }
+    else row("State", runRec.state, "fail", (runRec.notes || []).join(" "));
+  } else row("Solver run", solverName ? "press Run" : "needs solver", "na", "the result is checked against the independent finite-volume solution, energy conservation and the time step");
+}
+function renderTransientResults(d, m) {
+  const r = d.results, s = r.summary, ser = r.series, last = ser.time.length - 1;
+  m.append(card("Peak temperature", K(s.maxT), "at t = " + fmtT(s.timeOfMaxT)), card("Peak at the end", K(s.finalPeakT), "t = " + fmtT(s.finalTime)), card("Largest rise", s.maxRise.toFixed(1) + " K", "above the initial " + K(r.initialTemperature)), card("Energy deposited", (ser.deposited[last] / 1e3).toFixed(2) + " kJ/m", "stored " + (ser.stored[last] / 1e3).toFixed(2) + " kJ/m, net heat out " + (ser.rejected[last] / 1e3).toFixed(2) + " kJ/m"));
+  const bad = r.checks.filter((c) => c.verdict === "fail").length, ok = r.checks.filter((c) => c.verdict === "pass").length;
+  m.append(card("Checks", ok + " pass" + (bad ? ", " + bad + " fail" : ""), r.checks.map((c) => c.id + ": " + c.verdict).join(" · ")));
+  const series = [
+    { label: "peak (OFFBEAT)", t: ser.time, v: ser.peakT, color: COL.solver, dots: true, line: true, width: 1.2 },
+    { label: "fuel surface cell", t: ser.time, v: ser.fuelSurfaceCellT, color: "#9ad0a8", line: true, width: 1.2 },
+    { label: "cladding inner cell", t: ser.time, v: ser.claddingInnerCellT, color: "#e6b455", line: true, width: 1.2 },
+    { label: "outer wall", t: ser.time, v: ser.claddingOuterWallT, color: "#8fb7c9", line: true, width: 1.2 },
+  ];
+  if ($("rCf").getAttribute("aria-pressed") === "true" && d.closed && d.closed.transient && d.closed.transient.preview) series.unshift({ label: "independent solution", t: d.closed.transient.preview.time, v: d.closed.transient.preview.peakT, color: COL.closed, line: true, dash: true, width: 1.4 });
+  drawTimeSeries($("rprof"), { series, power: { t: ser.time, v: ser.power } });
+}
+
 /* ================= Results and Compare views ================= */
 const COL = { solver: "#c89df2", closed: "#52b8ff", a: "#52b8ff", b: "#f0a35e" };
 let mode = "case", runs = [], selRun = null, selDetail = null, cmp = { a: null, b: null, data: null };
@@ -707,7 +896,7 @@ function drawGeneric(canvas, spec) {
 }
 function hoverFor(canvas, readoutId) {
   canvas.addEventListener("mousemove", (e) => {
-    const p = canvas._plot; if (!p) return; const b = canvas.getBoundingClientRect(), r = ((e.clientX - b.left - p.L) / (p.w - p.L - p.Rr)) * p.rmax; if (r < 0 || r > p.rmax) return;
+    const p = canvas._plot; if (!p) return; if (p.spec.time) { timeHover(canvas, $(readoutId), e); return; } const b = canvas.getBoundingClientRect(), r = ((e.clientX - b.left - p.L) / (p.w - p.L - p.Rr)) * p.rmax; if (r < 0 || r > p.rmax) return;
     const parts = p.spec.series.map((s) => { let best = s.pts[0]; for (const q of s.pts) if (Math.abs(q[0] * 1e3 - r) < Math.abs(best[0] * 1e3 - r)) best = q; return s.label + " " + K(best[1]) + " @ " + (best[0] * 1e3).toFixed(2) + " mm"; });
     $(readoutId).textContent = parts.join("   ");
   });
@@ -741,7 +930,8 @@ function renderResults() {
   const warns = (d.manifest && d.manifest.warnings) || [];
   if (d.results && warns.length) $("rBanner").textContent += "  WARNING at run time: " + warns.map((w) => w.code + " (" + w.message + ")").join("; ");
   $("rBanner").style.color = ood ? "var(--err)" : ""; $("rBanner").style.background = ood ? "rgba(240,117,117,.12)" : "";
-  if (d.results) {
+  if (d.results && d.results.kind === "transient") { renderTransientResults(d, m); }
+  else if (d.results) {
     const s = d.results.summary;
     m.append(card("Centre cell", K(s.centreCellT), "first cell, near the axis"), card("Fuel surface cell", K(s.fuelSurfaceCellT)), card("Cladding inner cell", K(s.claddingInnerCellT)), card("Outer wall", s.claddingOuterWallT === null ? "n/a" : K(s.claddingOuterWallT)));
     const bad = d.results.checks.filter((c) => c.verdict === "fail").length, ok = d.results.checks.filter((c) => c.verdict === "pass").length;

@@ -24,7 +24,7 @@
   },
   "boundary": {
     "bulkTemperature": {
-      "value": 573,
+      "value": 300,
       "unit": "K"
     },
     "heatTransferCoefficient": {
@@ -106,5 +106,5 @@
     "fuelCells": 20,
     "claddingCells": 6
   },
-  "description": "The synthetic pin heated by a triangular pulse of linear heat rate (peak 10 MW/m at 5 ms, back to zero at 10 ms) from a uniform 300 K start, then cooling for 90 ms more. The pulse deposits 50 kJ/m, about 316 K of adiabatic heating in the fuel. The coolant boundary is the case's convective boundary. Synthetic heat capacities. Thermal only; the power history is an input, not a result."
+  "description": "The synthetic pin heated by a triangular pulse of linear heat rate (peak 10 MW/m at 5 ms, back to zero at 10 ms) from a uniform 300 K start, then cooling for 90 ms more. The pulse deposits 50 kJ/m, about 316 K of adiabatic heating in the fuel. The pin starts at the coolant temperature, 300 K, with a convective boundary of 30 kW/m2/K. Synthetic heat capacities. Thermal only; the power history is an input, not a result."
 }

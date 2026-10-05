@@ -1,6 +1,7 @@
 // Evaluates the closed-form entries of oracles/closed-form-table.json against an implementation.
 // The implementation is injected so tests can pass deliberately wrong ones: a gate that cannot fail is useless.
 
+import { adiabaticTemperature, cylinderCooling, cylinderHeating } from "./transientExact";
 import { ClosedFormImpl, compositeConstantK, compositeLinearK } from "./closedForm";
 
 export interface OracleEntry {
@@ -57,6 +58,12 @@ export function evaluate(impl: ClosedFormImpl, e: OracleEntry): number[] {
       return [impl.fuelDeltaT(i.qPrime, i.k) * impl.fuelCentreFactor(i.fuelInnerRadius, i.fuelRadius)];
     case "pin.centreTemperature.annular":
       return [compositeConstantK(pin(i), impl).centreT];
+    case "cylinder.cooling":
+      return [cylinderCooling(i.r, i.t, i.R, i.alpha, i.dT0)];
+    case "cylinder.heating":
+      return [cylinderHeating(i.r, i.t, i.R, i.k, i.alpha, i.q3)];
+    case "adiabatic.linearC.temperature":
+      return [adiabaticTemperature(i.a, i.b, i.T0, i.e3)];
     case "gap.deltaT":
       return [compositeConstantK(pin(i), impl).gapDeltaT];
     case "cladding.deltaT":
