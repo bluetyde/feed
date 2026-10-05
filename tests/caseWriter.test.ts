@@ -34,14 +34,29 @@ describe("OFFBEAT case writer", () => {
     expect(written().files).toEqual(written().files);
   });
 
-  it("matches the vertices OFFBEAT's own rodMaker.py writes for the same pin", () => {
-    // golden: 16 vertices (mm) from rodMaker.py at OFFBEAT 80e84450 for the synthetic pin
+  it("writes vertices within 2e-5 of the ones OFFBEAT's own rodMaker.py writes for the same pin (an independent cross-check)", () => {
+    // golden: 16 vertices (mm) from rodMaker.py at OFFBEAT 80e84450 for the synthetic pin. The two tools use slightly
+    // different wedge corrections (both are 1 + O(angle^2) with a 0.25 degree wedge), so exact equality is not expected.
     const golden: number[][] = read("tests/golden/rodmaker-vertices-synthetic-pin.json").vertices;
     const text = written().files["system/blockMeshDict"]!;
     const block = /vertices\s*\(([\s\S]*?)\)\s*;\s*blocks/.exec(text)![1]!;
     const ours = [...block.matchAll(/\(([^()]+)\)/g)].map((m) => m[1]!.trim().split(/\s+/).map(Number));
     expect(ours.length).toBe(16);
-    ours.forEach((p, i) => p.forEach((x, j) => expect(Math.abs(x - golden[i]![j]!), `vertex ${i}.${j}`).toBeLessThan(1e-12 * Math.max(1, Math.abs(golden[i]![j]!)))));
+    ours.forEach((p, i) => p.forEach((x, j) => expect(Math.abs(x - golden[i]![j]!), `vertex ${i}.${j}`).toBeLessThan(2e-5 * Math.max(1, Math.abs(golden[i]![j]!)))));
+  });
+
+  it("each hex has exactly the volume of the cylindrical sector it stands for", () => {
+    const text = written().files["system/blockMeshDict"]!;
+    const block = /vertices\s*\(([\s\S]*?)\)\s*;\s*blocks/.exec(text)![1]!;
+    const v = [...block.matchAll(/\(([^()]+)\)/g)].map((m) => m[1]!.trim().split(/\s+/).map(Number));
+    const half = (0.25 / 2) * (Math.PI / 180); // half of the wedge angle
+    // The planar hex is a trapezoid in x-y (parallel sides at xi and xo, half-widths yi and yo), per unit height.
+    // Vertices 0,3 are its inner edge and 1,2 its outer edge; the fuel hex is vertices 0-7, the cladding hex 8-15.
+    const area = (i0: number, o0: number) => (Math.abs(v[i0]![1]!) + Math.abs(v[o0]![1]!)) * (v[o0]![0]! - v[i0]![0]!);
+    const sector = (ri: number, ro: number) => half * (ro * ro - ri * ri); // area of the sector of full angle 2 half: half (ro^2 - ri^2)
+    const rf = 4.1, rci = 4.18, rco = 4.75; // synthetic pin, mm
+    expect(Math.abs(area(0, 1) / sector(0, rf) - 1)).toBeLessThan(1e-12);
+    expect(Math.abs(area(8, 9) / sector(rci, rco) - 1)).toBeLessThan(1e-12);
   });
 
   it("writes the case values where the mapping says", () => {

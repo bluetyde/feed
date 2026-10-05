@@ -19,3 +19,7 @@ Regenerate the bad vectors after changing the example pin: `node scripts/make-ve
 A thermal-only result never implies stress, failure or fuel integrity.
 
 Development coordination: [project log](../messages/fuel-performance-studio.md) and [workspace rules](../messages/INSTRUCTIONS.md). Do not interpret an unchecked task or proposed contract as implemented support.
+
+## Licence and third-party software
+
+FEED's own code is MIT licensed (see [LICENSE](LICENSE)). It does not contain, bundle or redistribute OpenFOAM or OFFBEAT (both GPL): the solver is installed separately (SEED's installer, or the scripts in `solver/`) and FEED runs it as a separate program. FEED writes input files in OFFBEAT's format, using OFFBEAT's keyword names, and its tests compare against output files the solver produced. The mesh vertex correction in `src/core/caseWriter.ts` is derived in that file's comment and checked against OFFBEAT's `rodMaker.py` output; no OFFBEAT source is copied. The sourced property values cite the reactor safety analysis reports they come from (see `library/` and `examples/`).

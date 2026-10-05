@@ -41,8 +41,13 @@ const num = (v: number) => {
 function blockMeshDict(c: NormalizedCase): string {
   const a = (WEDGE_ANGLE_DEG / 180) * Math.PI;
   const half = a / 2;
-  // Same wedge-volume correction as OFFBEAT's rodMaker.py, so the planar wedge keeps the sector's volume.
-  const corr = Math.sqrt(Math.sin(half) / half);
+  // Wedge-volume correction, derived here (not taken from any other tool). The vertices lie on the two wedge planes, at
+  // (x, +-x tan(half)) with x = r c cos(half). The planar hex between radii ri and ro then has volume per unit height
+  // tan(half) (xo^2 - xi^2) = c^2 sin(half) cos(half) (ro^2 - ri^2), while the sector it stands for has half (ro^2 - ri^2) (the
+  // full wedge angle is 2 half). Setting them equal gives c^2 = half / (sin(half) cos(half)). At the 0.25 degree wedge used
+  // here c differs from 1 by about 1e-6, so this is a refinement, checked against the exact volume in tests/caseWriter.test.ts
+  // and against OFFBEAT's own rodMaker.py output (which uses a slightly different factor) to 2e-5.
+  const corr = Math.sqrt(half / (Math.sin(half) * Math.cos(half)));
   const cx = Math.cos(half) * corr;
   const sy = Math.sin(half) * corr;
   const mm = (r: number) => r * 1000;

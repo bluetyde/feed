@@ -1,6 +1,7 @@
 {
   "name": "fuel-performance-studio",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "description": "FEED, Fuel Engineering and Experimental Design: guided thermal fuel-pin cases on top of an existing fuel-performance solver",
   "type": "commonjs",
