@@ -109,6 +109,7 @@ const GOOD = [
   { name: "synthetic-linear-k", from: "schema/vectors/good/linear-conductivity.json", domain: "synthetic pin, fuel k = 4 - 0.0006 T on 500-2500 K, convective boundary" },
   { name: "synthetic-prescribed-wall", from: "schema/vectors/good/surface-temperature.json", domain: "synthetic pin, constant conductivities, prescribed outer-surface temperature" },
   { name: "synthetic-closed-gap", from: "schema/vectors/good/closed-gap-effective-conductance.json", domain: "synthetic pin, no physical gap (equal radii), effective gap conductance" },
+  { name: "ksu-triga-1p25mw-film", from: "examples/ksu-triga-1p25mw-film.json", domain: "K-State TRIGA hottest element at 1.25 MW with the SAR film coefficient (eq. 7), pool 20 C (illustrative, not a safety case)", sarEq9: true },
   { name: "ksu-triga-hot-element", from: "examples/ksu-triga-hot-element.json", domain: "K-State TRIGA hot element, sourced properties, prescribed surface temperature (illustrative, not a safety case)" },
 ];
 
@@ -117,6 +118,13 @@ for (const g of GOOD) {
   const doc = withMesh(load(g.from));
   const rel = writeCase(g.name, doc);
   const a = analytic(doc);
+  if (g.sarEq9) {
+    // Independent second method: the SAR's own eq. 9 (P = 1.25 MW; h from eq. 7 with P in watts), not our series code.
+    const P = 1.25e6;
+    const h = 0.0326 * P + 16985;
+    const eq9 = 293.15 + 0.423 * P * (1 / h + 3.103e-5 + 3.6196e-4 + 5.1858e-4);
+    if (Math.abs(a.centre - eq9) > 0.1) throw new Error("series solution and SAR eq. 9 disagree: " + a.centre + " vs " + eq9);
+  }
   const check = "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound.";
   const base = (quantity, value, unit, tolerance, text) => {
     entry({

@@ -52,6 +52,22 @@ describe("library", () => {
     expect(Math.abs(C(t.centreT) - 503.2)).toBeLessThan(0.5);
   });
 
+  it("the K-State film-coefficient pin follows the SAR's own equations 7 and 9 (and is not Table 4.8)", () => {
+    const doc = read("examples/ksu-triga-1p25mw-film.json");
+    const n = validateCase(doc).normalized!;
+    const t = quickLook(n).temperatures;
+    const P = 1.25e6; // W
+    const h = 0.0326 * P + 16985; // eq. 7, P in watts
+    expect(doc.boundary.heatTransferCoefficient.value).toBeCloseTo(h, 6);
+    // eq. 9: T = T_pool + 0.423 P [1/h + 3.103e-5 + 3.6196e-4 + 5.1858e-4]
+    const eq9 = 293.15 + 0.423 * P * (1 / h + 3.103e-5 + 3.6196e-4 + 5.1858e-4);
+    expect(Math.abs(t.centreT - eq9)).toBeLessThan(0.1);
+    // Table 4.8 gives 503.2 C; eq. 7 gives about 511 C. The SAR does not reconcile them; this pin must not pretend to.
+    expect(t.centreT - 273.15).toBeGreaterThan(509);
+    expect(t.centreT - 273.15).toBeLessThan(513);
+    expect(doc.description).toMatch(/Source inconsistency/);
+  });
+
   it("check() returns the profile and derived values for a valid case", () => {
     const r = check(pin) as any;
     expect(r.ok).toBe(true);

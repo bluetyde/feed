@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ksu-triga-1p25mw-film-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ksu-triga-1p25mw-film.case.json",
+      "sha256": "47d0ff37357cc26757d006390f0022d0ef87557ce979d2c72dfe1bdb4e2b8fdd"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 302.308,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form outer cladding wall temperature: bulk temperature plus the film drop q'/(2 pi Rco h), or the prescribed surface temperature.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "K-State TRIGA hottest element at 1.25 MW with the SAR film coefficient (eq. 7), pool 20 C (illustrative, not a safety case)"
+  },
+  "toleranceHash": "c79b94d76af23eeba1a794cb5fe814332d1d53aa2eda639cdc3e70a687f94776"
+}
