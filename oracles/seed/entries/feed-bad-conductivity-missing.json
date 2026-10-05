@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-conductivity-missing",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-conductivity-missing.case.json",
+      "sha256": "4eb1bddf24b9d2b362254e14eb0ee62fa58e9758c7bfc50a89a1ee4c92c37a71"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_PROP_MISSING"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: no fuel conductivity. FEED must refuse it before any run; SEED reports E_PROP_MISSING.",
+    "check": "FEED's schema vectors (schema/vectors/bad/prop-missing-conductivity.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "127d1e0fe66ba8635a27c05df81c4883cc47920ccbb50ef00cf04a1919ee2d6f"
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ksu-triga-hot-element-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ksu-triga-hot-element.case.json",
+      "sha256": "d1606b31ce3a81ad8879b77736af57ca1980900b60a2591da2e2b89b9bf99c8f"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 294.35,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form outer cladding wall temperature: bulk temperature plus the film drop q'/(2 pi Rco h), or the prescribed surface temperature.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "K-State TRIGA hot element, sourced properties, prescribed surface temperature (illustrative, not a safety case)"
+  },
+  "toleranceHash": "db6760f00febfb37283d052a34f5e997ce4d0f28e4cf20322fe55f1687ab609a"
+}

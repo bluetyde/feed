@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-prescribed-wall-temperature-peak",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-prescribed-wall.case.json",
+      "sha256": "b29860416e005c6317ee44a1c52054114ca4890ee38868887962433326e69463"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak",
+    "value": 1586.0667,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.3,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form centre temperature of the series solution (film, cladding wall, gap, fuel), mesh 100/20. The observed value is the first fuel cell centre; the tolerance is 5 * rise / N^2 rounded up.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak"
+    ],
+    "domain": "synthetic pin, constant conductivities, prescribed outer-surface temperature"
+  },
+  "toleranceHash": "a0f9e1b00e3b15e049bded1314fb9dcb51db251c91b1047ca4fd07a7d87e3022"
+}

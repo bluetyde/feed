@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-prescribed-wall-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-prescribed-wall.case.json",
+      "sha256": "b29860416e005c6317ee44a1c52054114ca4890ee38868887962433326e69463"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 873.15,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form outer cladding wall temperature: bulk temperature plus the film drop q'/(2 pi Rco h), or the prescribed surface temperature.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "synthetic pin, constant conductivities, prescribed outer-surface temperature"
+  },
+  "toleranceHash": "90d6816285c2f716fb59b7a816c01c9cd41445225d57c1dceae9ba412b703c4a"
+}

@@ -3,7 +3,7 @@
 // paths containing quotes, dollar signs or backticks). Run ids are generated hex; directories come from the manager.
 
 import { execFile, spawn, ChildProcess } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { BackendOutcome, RunBackend } from "./runManager";
 import { projectRoot } from "./validate";
@@ -58,11 +58,23 @@ export class WslBackend implements RunBackend {
       child.on("close", (code) => {
         this.children.delete(id);
         this.nativeDirs.delete(id);
-        const wasCancelled = this.cancelled.delete(id);
+        // a cancel can come from another process (the headless runner's cancel verb): it leaves the flag file behind
+        const wasCancelled = this.cancelled.delete(id) || existsSync(join(nativeDir, "cancel.flag"));
         if (code !== 0 && !wasCancelled) reject(new Error(`run script exited ${code}: ${stderr.trim().slice(0, 300)}`));
         else resolve({ cancelled: wasCancelled });
       });
     });
+  }
+
+  /** Cancel a run started by another process: the headless runner's `cancel` verb knows the run's native folder from disk. */
+  async cancelAt(id: string, nativeDir: string): Promise<void> {
+    this.nativeDirs.set(id, nativeDir);
+    try {
+      await this.cancel(id);
+    } finally {
+      this.nativeDirs.delete(id);
+      this.cancelled.delete(id);
+    }
   }
 
   /**

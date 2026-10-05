@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-const-energy-balance-residual",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-const.case.json",
+      "sha256": "ca9024e76e90dab0e08b46e443a00e166093c8eb570f85877c33a86387799473"
+    }
+  ],
+  "expected": {
+    "quantity": "energy_balance_residual",
+    "value": 0,
+    "unit": "1"
+  },
+  "tolerance": {
+    "abs": 0.001,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Steady state without other sources: the heat leaving through the cladding wall equals the input, so the relative residual is zero.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "energy_balance_residual"
+    ],
+    "domain": "synthetic pin, constant conductivities, convective boundary"
+  },
+  "toleranceHash": "9fbf8d4b48082d18d525272e8c8c98810b1698ddc0bce1db9103cbbd76a98fdf"
+}

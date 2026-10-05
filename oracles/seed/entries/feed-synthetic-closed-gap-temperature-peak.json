@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-closed-gap-temperature-peak",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-closed-gap.case.json",
+      "sha256": "cce10aee7a907e732cda8efd5ba8edf84a5a033c8b2699480b053d4a73abd1b9"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak",
+    "value": 1312.355,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.3,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form centre temperature of the series solution (film, cladding wall, gap, fuel), mesh 100/20. The observed value is the first fuel cell centre; the tolerance is 5 * rise / N^2 rounded up.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak"
+    ],
+    "domain": "synthetic pin, no physical gap (equal radii), effective gap conductance"
+  },
+  "toleranceHash": "8c5f7a6f1bab07e89c6b429e26d81c068c05c30e1bda56aee281bbd0deb66640"
+}

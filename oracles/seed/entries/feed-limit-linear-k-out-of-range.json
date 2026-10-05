@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-limit-linear-k-out-of-range",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "known-limit",
+  "inputs": [
+    {
+      "path": "models/limit-linear-k-out-of-range.case.json",
+      "sha256": "124d6eb84a29923196f6c5fcb33a6bf3c180d1784356e652c12f216bfcd91239"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_OUT_OF_DOMAIN"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "Fuel k(T) = 4 - 0.0006 T is stated valid on 500-800 K only, while the closed-form solution reaches 1247 K at the centre. The result must be refused as out of domain.",
+    "check": "FEED's results parser marks this as domain.verdict out-of-domain (tests/resultsParser.test.ts)."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak"
+    ],
+    "domain": "conductivity law used outside its stated temperature range"
+  },
+  "toleranceHash": "d1e2070e0d7f26510109338bd4728a509ce7f1d3d1b8c46924e9ece22a5c3ba5"
+}

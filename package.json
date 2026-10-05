@@ -7,8 +7,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
-    "start": "npm run build && node dist/server/server.js"
+    "test": "npm run build && vitest run",
+    "start": "npm run build && node dist/server/server.js",
+    "test:fast": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-transient",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-transient.case.json",
+      "sha256": "7d314d357552a02da0781d7ff78d4668d2e2ed4b2249ca2fbea3094aee28ffe4"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_UNSUPPORTED"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a transient analysis (FEED is steady state only). FEED must refuse it before any run; SEED reports E_UNSUPPORTED.",
+    "check": "FEED's schema vectors (schema/vectors/bad/unsupported-transient.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "be0cd25da730942e7f9784bcfc09d2f79454f857d7c497d9037ce42ff2ab7c7e"
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ksu-triga-hot-element-temperature-peak",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ksu-triga-hot-element.case.json",
+      "sha256": "d1606b31ce3a81ad8879b77736af57ca1980900b60a2591da2e2b89b9bf99c8f"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak",
+    "value": 776.3297,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.15,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form centre temperature of the series solution (film, cladding wall, gap, fuel), mesh 100/20. The observed value is the first fuel cell centre; the tolerance is 5 * rise / N^2 rounded up.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak"
+    ],
+    "domain": "K-State TRIGA hot element, sourced properties, prescribed surface temperature (illustrative, not a safety case)"
+  },
+  "toleranceHash": "10d73bac5ac3a869c3965b0c21e445560813a367f7a8b4665f8385cea73ab54d"
+}

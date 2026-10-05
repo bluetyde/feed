@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-mesh-too-fine",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-mesh-too-fine.case.json",
+      "sha256": "160686a4c5e2cb2fb16295da85d8361f51aa252770d6f27ce2657a8c7f9212eb"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_MESH"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: more fuel cells than the supported maximum. FEED must refuse it before any run; SEED reports E_MESH.",
+    "check": "FEED's schema vectors (schema/vectors/bad/mesh-fuel-high.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "c1f094d198e72a797f615e528174280ea5a57d435cec7ea1cce7d7d85a52ebf6"
+}

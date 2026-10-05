@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-boundary-bulk-only",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-boundary-bulk-only.case.json",
+      "sha256": "1d269f3588a471a680628082299dec9bd97061df47800ab318e47d7bfd3075b4"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_BOUNDARY_INCOMPLETE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a bulk temperature without a heat transfer coefficient. FEED must refuse it before any run; SEED reports E_BOUNDARY_INCOMPLETE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/boundary-bulk-only.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "5a4b66deed753e1891dfb13b27e64a4e9a31756f2aa28a39a0ccea0a6e87fb74"
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-linear-k-temperature-peak",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-linear-k.case.json",
+      "sha256": "381cbfefc75ad91374f0724d3306f74a946dfe0cd647384d79fe8fa182c8701e"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak",
+    "value": 1246.8586,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.25,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form centre temperature of the series solution (film, cladding wall, gap, fuel), mesh 100/20. The observed value is the first fuel cell centre; the tolerance is 5 * rise / N^2 rounded up.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak"
+    ],
+    "domain": "synthetic pin, fuel k = 4 - 0.0006 T on 500-2500 K, convective boundary"
+  },
+  "toleranceHash": "986f01a5fdb4a2242c3478dc143e4f66637019b912ea9cbf20f654fa3f4d6fb9"
+}

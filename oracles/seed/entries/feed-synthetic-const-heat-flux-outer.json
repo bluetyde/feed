@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-const-heat-flux-outer",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-const.case.json",
+      "sha256": "ca9024e76e90dab0e08b46e443a00e166093c8eb570f85877c33a86387799473"
+    }
+  ],
+  "expected": {
+    "quantity": "heat_flux_outer",
+    "value": 670126.076,
+    "unit": "W/m2"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 1e-9
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Outer-surface heat flux q'/(2 pi Rco), a direct consequence of the linear heat rate and the outer radius.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "heat_flux_outer"
+    ],
+    "domain": "synthetic pin, constant conductivities, convective boundary"
+  },
+  "toleranceHash": "d242e55f133e851bc3a11378566bd55746f3b36c6b7eaf3d1f3b53b07bb935a3"
+}

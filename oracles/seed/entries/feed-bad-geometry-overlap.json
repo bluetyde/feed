@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-geometry-overlap",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-geometry-overlap.case.json",
+      "sha256": "1877ea0115e5d7e54ec5af054d568975c4f7fa1d56e25c7d6e3630b358c87526"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_GEOMETRY"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a fuel radius larger than the cladding inner radius. FEED must refuse it before any run; SEED reports E_GEOMETRY.",
+    "check": "FEED's schema vectors (schema/vectors/bad/geometry-overlap.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "2ac4c8ee578adcb9c21465b31553721c112a1715886b44f70d6e577d12363c83"
+}
