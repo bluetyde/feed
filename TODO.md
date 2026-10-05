@@ -54,7 +54,7 @@ Started 2026-10-05; see [docs/spike/F0-note.md](docs/spike/F0-note.md) and [solv
 - [x] 2026-10-05: Results view (run list, per-run provenance, summary cards, profile with closed-form line, CSV and JSON export, Open case) and Compare view (pick A and B, input differences as a field diff, B minus A for each summary value, check verdicts side by side, point-by-point difference plot only when geometry and mesh match, same-hash repeat runs flagged). `src/core/compare.ts`, `src/core/exportResults.ts`, endpoints `/api/run/<id>/detail`, `/api/run/<id>/results.csv`, `/api/compare`.
 - [x] 2026-10-05: mesh-refinement study from the editor (Case > Check > Refinement): the case on meshes x1, x2, x4, error against the closed form per level, observed order, verdict (gate: order at least 1.3 per step; errors under 1e-4 K are treated as the solver's noise floor). `src/core/refinement.ts`, `/api/study`, tests on real saved output and a gated three-run test. Synthetic pin 20/6, 40/12, 80/24: fuel errors 0.457, 0.141, 0.040 K, orders 1.69 and 1.84.
 - [x] 2026-10-05: F2 closing items. (a) `runs/` cleanup: the oldest finished runs beyond 100 are deleted (never a queued or running run; only directories named as run ids; at start-up and after each run). (b) The five F0 failure probes replayed through the real run manager (`tests/runManagerFailures.test.ts`, gated): each broken input ends `failed` with the solver's own text and no result; the manager runs the next case after a failure. (c) Keyboard and 200% zoom pass: Properties no longer disappears below 1000 px (it moves under the editor and the page scrolls), Problems rows and tab lists are keyboard-operable (arrow keys, Home/End; menus too), run status is announced (`role=status`), the dimmest text now has 4.9:1 contrast, an audit found no unnamed controls (29 visible). Finding from (b): a power of 500 MW/m passes validation with only `W_POWER_RANGE`, the solver completes and the centre comes out at 18 million K; the warning now appears in the Results banner and provenance.
-- [ ] Still open for F2: Codex review of process handling (needs a git repo); a screen-reader pass with a real screen reader (only an automated name audit was done); touch/mobile layouts are not designed; a hard limit or refusal for physically absurd temperatures is not decided (the plan says warn, not clamp)
+- [ ] Still open for F2: Codex review of process handling (the git repo now exists; run the codex-review skill against a branch); a screen-reader pass with a real screen reader (only an automated name audit was done); touch/mobile layouts are not designed; a hard limit or refusal for physically absurd temperatures is not decided (the plan says warn, not clamp)
 - [x] 2026-10-05: temperature-dependent conductivity in OFFBEAT. No generic linear or tabulated model exists, but the `steel1515TiTobbe` model is k = par1 + par2 T[degC] and reads par1, par2 from a `conductivity { }` block, so par2 = b and par1 = a + 273.15 b reproduce any linear k = a + b T. The conductivity-integral oracle (a=4.0, b=-0.0006, centre 1246.8586 K) matches OFFBEAT with errors falling 3.7, 3.3, 3.25 times per mesh doubling. The writer now supports constant and linear laws in fuel and cladding; the results parser checks them against the closed form and flags a result `out-of-domain` when cells leave the stated range. Gated real-solver tests cover both.
 - [ ] Not expressible yet: tabulated k(T), cubic or other correlations (OFFBEAT's `ZyRELAP` takes par1..par4 and could carry a cubic; not wired). The model name is a misnomer for a generic linear law; the writer's mapping and the manifest say so. Re-check on any OFFBEAT version bump.
 - [ ] **[codex]** F0 exit review.
@@ -99,7 +99,7 @@ Started 2026-10-05; see [docs/spike/F0-note.md](docs/spike/F0-note.md) and [solv
 
 - [ ] Distribution model and license, after the solver stack's terms are known.
 - [ ] Pre-release checklist; make the repo public only when the user says so.
-- [ ] Create the repo (private first); add a SEED catalog entry once it exists.
+- [x] 2026-10-05: repo created, private: https://github.com/bluetyde/feed (local folder `fuel-performance-studio`, branch `main`, commits as bluetyde with the noreply email). Still to do: add a SEED catalog entry; choose a licence before it goes public (none chosen; the repo is all rights reserved until then).
 
 ## Fuel library and design ([plan 02](docs/plans/02-case-and-materials.md))
 
@@ -128,7 +128,7 @@ Where fuel comes from (decided with the user 2026-10-05): presets, shared materi
 - [ ] Approve the F0 solver install (disk and build cost) and its isolated environment.
 - [ ] Stack (match SEED/NODAL or choose per the editor needs).
 - [ ] Distribution model and license.
-- [ ] Create the repo and confirm its name.
+- [x] Repo created as `bluetyde/feed` (private), 2026-10-05. Confirm the name is final before making it public.
 
 ## Done
 
