@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ut-triga-pulse-4p40-energy-deposited",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ut-triga-pulse-4p40.case.json",
+      "sha256": "6a84fe8d1447c49014ec51004914802942ffff65fbc5ca4a5ce4b7e74fab4e5a"
+    }
+  ],
+  "expected": {
+    "quantity": "energy_deposited",
+    "value": 3070484.786,
+    "unit": "J/m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.000001
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The integral of the tabulated power history up to the end time (trapezoid, exact for the solver's linear interpolation).",
+    "check": "oracles/transient-case-reference.py integrates the same table in decimal arithmetic."
+  },
+  "coverage": {
+    "quantities": [
+      "energy_deposited"
+    ],
+    "domain": "TRIGA hot channel, sech^2 pulse built from UT-Austin SAR numbers (illustrative), annular fuel, U-ZrH heat capacity 2.04 + 0.00417 T[C] J/cm3/K, 824 C adiabatic peak"
+  },
+  "toleranceHash": "5baabf255bbd5751fbe42d7bfb025d9802ae51b9a689d0783f4198aec9eff5e7"
+}

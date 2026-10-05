@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ut-triga-pulse-4p40-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ut-triga-pulse-4p40.case.json",
+      "sha256": "6a84fe8d1447c49014ec51004914802942ffff65fbc5ca4a5ce4b7e74fab4e5a"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 1097.4691,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 1.61,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Adiabatic limit: the fuel interior keeps all the energy deposited by the pulse (3070484.786 J/m), so its temperature is the root of the integral of c dT = E'''. The tolerance is 0.2% of the rise, set before any run from the first-order error of the time step (about 1/N of the energy over a ramp of N steps, cancelling over a symmetric pulse).",
+    "check": "Second method: oracles/transient-case-reference.py (decimal arithmetic, reads the case file) gives 1097.469086 K; FEED's independent finite-volume solution (src/core/transientFv.ts, validated against exact cylinder solutions) agrees at the pulse end."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "TRIGA hot channel, sech^2 pulse built from UT-Austin SAR numbers (illustrative), annular fuel, U-ZrH heat capacity 2.04 + 0.00417 T[C] J/cm3/K, 824 C adiabatic peak"
+  },
+  "toleranceHash": "3e82c9ad0edd1b844676b1d67d5dfb7451cbf09b06aab901932ed24a71e7dc8b"
+}

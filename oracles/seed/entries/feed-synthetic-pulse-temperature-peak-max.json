@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-pulse-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-pulse.case.json",
+      "sha256": "246a1bc4a77886db96f2e361579c675ce75ddf6671732f79c4f6b07e0208181e"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 615.5958,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.16,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Adiabatic limit: the fuel interior keeps all the energy deposited by the pulse (50000 J/m), so its temperature is the root of the integral of c dT = E'''. The tolerance is 0.05% of the rise, set before any run from the first-order error of the time step (about 1/N of the energy over a ramp of N steps, cancelling over a symmetric pulse).",
+    "check": "Second method: oracles/transient-case-reference.py (decimal arithmetic, reads the case file) gives 615.595763 K; FEED's independent finite-volume solution (src/core/transientFv.ts, validated against exact cylinder solutions) agrees at the pulse end."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "synthetic pin, 10 ms triangular pulse of 50 kJ/m on a cold pin, constant heat capacity, convective boundary"
+  },
+  "toleranceHash": "162e963a0814dfae0393feda560b7b8f95d34a576f71e916f4545aed4a8c304d"
+}

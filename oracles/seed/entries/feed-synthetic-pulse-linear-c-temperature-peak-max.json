@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-pulse-linear-c-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-pulse-linear-c.case.json",
+      "sha256": "01dfcfe334395b24c33532263a9bd7f413807aea13ef6c623bf57efad2beaec2"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 632.8024,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 1.66,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Adiabatic limit: the fuel interior keeps all the energy deposited by the pulse (50000 J/m), so its temperature is the root of the integral of c dT = E'''. The tolerance is 0.5% of the rise, set before any run from the first-order error of the time step (about 1/N of the energy over a ramp of N steps, cancelling over a symmetric pulse).",
+    "check": "Second method: oracles/transient-case-reference.py (decimal arithmetic, reads the case file) gives 632.802419 K; FEED's independent finite-volume solution (src/core/transientFv.ts, validated against exact cylinder solutions) agrees at the pulse end."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "synthetic pin, the same pulse with a fuel heat capacity linear in temperature (carried by OFFBEAT's steel1515TiBanerjee model), step 0.025 ms"
+  },
+  "toleranceHash": "6ed4096c3a7ef720318e30b4da122f2794458c487263bbc2f9c3d6696c6b4e6c"
+}

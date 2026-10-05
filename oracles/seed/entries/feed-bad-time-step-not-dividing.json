@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-time-step-not-dividing",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-time-step-not-dividing.case.json",
+      "sha256": "a9fa443bf1975e521ae617d35309300c9f7e788829400a400b7e7449f40deae1"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_TIME"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a time step that does not divide the end time. FEED must refuse it before any run; SEED reports E_TIME.",
+    "check": "FEED's schema vectors (schema/vectors/bad/time-step-not-dividing.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "7269fb426a58daecb4642c3df647daa8ff7f96f1cfa987323e4b1bf5ca38981a"
+}

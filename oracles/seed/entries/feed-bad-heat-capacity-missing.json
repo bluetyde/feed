@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-heat-capacity-missing",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-heat-capacity-missing.case.json",
+      "sha256": "064309db1326283ea1730a7784cd5b4c2e8166d9ead289a2f374e6de878a23eb"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_PROP_MISSING"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a pulse with no fuel heat capacity. FEED must refuse it before any run; SEED reports E_PROP_MISSING.",
+    "check": "FEED's schema vectors (schema/vectors/bad/transient-no-heat-capacity.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "127d1e0fe66ba8635a27c05df81c4883cc47920ccbb50ef00cf04a1919ee2d6f"
+}

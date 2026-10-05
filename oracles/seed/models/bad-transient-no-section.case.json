@@ -1,7 +1,7 @@
 {
   "schema": "feed.case/0.1",
-  "caseId": "unsupported-transient",
-  "name": "Synthetic composite pin (illustrative numbers, not a real fuel design)",
+  "caseId": "transient-missing-section",
+  "name": "Synthetic pulse: a 10 ms triangular power pulse on a cold pin (illustrative numbers, not a real fuel design)",
   "label": "synthetic",
   "assumptions": {
     "thermalOnly": true,
@@ -22,16 +22,9 @@
       "unit": "mm"
     }
   },
-  "power": {
-    "linearHeatRate": {
-      "value": 20,
-      "unit": "kW/m"
-    },
-    "radialShape": "uniform"
-  },
   "boundary": {
     "bulkTemperature": {
-      "value": 573,
+      "value": 300,
       "unit": "K"
     },
     "heatTransferCoefficient": {
@@ -55,6 +48,18 @@
             "unit": "K"
           },
           "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the adiabatic-limit oracle"
         }
       }
     },
@@ -73,6 +78,18 @@
             "unit": "K"
           },
           "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 2.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the oracle"
         }
       }
     }
@@ -88,5 +105,6 @@
   "mesh": {
     "fuelCells": 20,
     "claddingCells": 6
-  }
+  },
+  "description": "The synthetic pin heated by a triangular pulse of linear heat rate (peak 10 MW/m at 5 ms, back to zero at 10 ms) from a uniform 300 K start, then cooling for 90 ms more. The pulse deposits 50 kJ/m, about 316 K of adiabatic heating in the fuel. The pin starts at the coolant temperature, 300 K, with a convective boundary of 30 kW/m2/K. Synthetic heat capacities. Thermal only; the power history is an input, not a result."
 }

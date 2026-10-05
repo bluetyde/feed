@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-pulse-energy-deposited",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-pulse.case.json",
+      "sha256": "246a1bc4a77886db96f2e361579c675ce75ddf6671732f79c4f6b07e0208181e"
+    }
+  ],
+  "expected": {
+    "quantity": "energy_deposited",
+    "value": 50000,
+    "unit": "J/m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.000001
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The integral of the tabulated power history up to the end time (trapezoid, exact for the solver's linear interpolation).",
+    "check": "oracles/transient-case-reference.py integrates the same table in decimal arithmetic."
+  },
+  "coverage": {
+    "quantities": [
+      "energy_deposited"
+    ],
+    "domain": "synthetic pin, 10 ms triangular pulse of 50 kJ/m on a cold pin, constant heat capacity, convective boundary"
+  },
+  "toleranceHash": "26ebe3312132a3bfb4a1de6c9573dcb4ad99d509da019aa7315aa87bd4e4a21e"
+}

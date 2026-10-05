@@ -160,6 +160,8 @@ const BAD = [
   { id: "feed-bad-mesh-too-fine", file: "mesh-fuel-high", code: "E_MESH", what: "more fuel cells than the supported maximum" },
   { id: "feed-bad-geometry-overlap", file: "geometry-overlap", code: "E_GEOMETRY", what: "a fuel radius larger than the cladding inner radius" },
   { id: "feed-bad-hole-too-large", file: "geometry-hole-too-large", code: "E_GEOMETRY", what: "a central hole as large as the fuel radius" },
+  { id: "feed-bad-time-step-not-dividing", file: "time-step-not-dividing", code: "E_TIME", what: "a time step that does not divide the end time" },
+  { id: "feed-bad-heat-capacity-missing", file: "transient-no-heat-capacity", code: "E_PROP_MISSING", what: "a pulse with no fuel heat capacity" },
   { id: "feed-bad-transient-no-section", file: "transient-missing-section", code: "E_TRANSIENT_INCOMPLETE", what: "a transient case (steadyState false) without its transient section" },
 ];
 for (const b of BAD) {
@@ -192,6 +194,106 @@ for (const b of BAD) {
   });
 }
 
+// ---- transients (plan 08). Expected values: the adiabatic limit. Over a short pulse the interior of the fuel loses and gains no heat,
+// so its temperature is the root of the integral of c dT = E''' with E''' the energy deposited per volume (exact for any uniform
+// source). The energy is the integral of the tabulated power history. Computed here with plain formulas and checked against
+// oracles/transient-case-reference.py (decimal arithmetic) through refPeak. The observed quantity is the hottest cell-centre value
+// over the run, which for a pulse followed by a hold is the interior at the end of the pulse.
+const TIME_S = { s: 1, ms: 1e-3, us: 1e-6 };
+const POWER_W = { "W/m": 1, "kW/m": 1e3, "MW/m": 1e6 };
+const CV = { "J/m3/K": 1, "J/cm3/K": 1e6, "MJ/m3/K": 1e6 };
+const CVB = { "J/m3/K2": 1, "J/cm3/K2": 1e6, "MJ/m3/K2": 1e6 };
+function adiabatic(doc) {
+  const t = doc.transient;
+  const end = t.endTime.value * TIME_S[t.endTime.unit];
+  const pts = t.powerHistory.map((p) => [p.time.value * TIME_S[p.time.unit], p.linearHeatRate.value * POWER_W[p.linearHeatRate.unit]]);
+  let e = 0;
+  for (let i = 1; i < pts.length; i++) {
+    let [t0, q0] = pts[i - 1];
+    let [t1, q1] = pts[i];
+    if (t0 >= end) break;
+    if (t1 > end) {
+      q1 = q0 + ((q1 - q0) * (end - t0)) / (t1 - t0);
+      t1 = end;
+    }
+    e += 0.5 * (q0 + q1) * (t1 - t0);
+  }
+  const R = si(doc.geometry.fuelRadius);
+  const ri = doc.geometry.fuelInnerRadius ? si(doc.geometry.fuelInnerRadius) : 0;
+  const e3 = e / (Math.PI * (R * R - ri * ri));
+  const T0 = si(t.initialTemperature);
+  const s = doc.materials.fuel.sets["thermal.volumetricHeatCapacity"];
+  let peak;
+  if (s.model === "constant") peak = T0 + e3 / (s.value.value * CV[s.value.unit]);
+  else {
+    const a = s.a.value * CV[s.a.unit];
+    const b = s.b.value * CVB[s.b.unit];
+    const kc = a + b * T0;
+    peak = T0 + (2 * e3) / (kc + Math.sqrt(kc * kc + 2 * b * e3));
+  }
+  return { energy: e, peak, rise: peak - T0 };
+}
+
+const TRANSIENT_GOOD = [
+  { name: "synthetic-pulse", from: "examples/synthetic-pulse.json", refPeak: 615.595763, relTol: 5e-4, domain: "synthetic pin, 10 ms triangular pulse of 50 kJ/m on a cold pin, constant heat capacity, convective boundary" },
+  {
+    name: "synthetic-pulse-linear-c",
+    from: "schema/vectors/good/pulse-linear-heat-capacity.json",
+    refPeak: 632.802419,
+    relTol: 5e-3,
+    edit: (d) => ((d.transient.timeStep = { value: 0.025, unit: "ms" }), (d.transient.outputs = 20)),
+    domain: "synthetic pin, the same pulse with a fuel heat capacity linear in temperature (carried by OFFBEAT's steel1515TiBanerjee model), step 0.025 ms",
+  },
+  { name: "ut-triga-pulse-4p40", from: "examples/ut-triga-pulse-4p40.json", refPeak: 1097.469086, relTol: 2e-3, domain: "TRIGA hot channel, sech^2 pulse built from UT-Austin SAR numbers (illustrative), annular fuel, U-ZrH heat capacity 2.04 + 0.00417 T[C] J/cm3/K, 824 C adiabatic peak" },
+];
+let transientGood = 0;
+for (const c of TRANSIENT_GOOD) {
+  const doc = load(c.from);
+  if (c.edit) c.edit(doc);
+  const rel = writeCase(c.name, doc);
+  const a = adiabatic(doc);
+  if (Math.abs(a.peak - c.refPeak) > 1e-4) throw new Error(c.name + ": generator " + a.peak + " vs independent Python " + c.refPeak);
+  const check = "Second method: oracles/transient-case-reference.py (decimal arithmetic, reads the case file) gives " + c.refPeak + " K; FEED's independent finite-volume solution (src/core/transientFv.ts, validated against exact cylinder solutions) agrees at the pulse end.";
+  const tol = Number((c.relTol * a.rise).toFixed(2));
+  entry({
+    id: "feed-" + c.name + "-temperature-peak-max",
+    tag: "good",
+    casePath: rel,
+    expected: { quantity: "temperature_peak_max", value: round(a.peak, 4), unit: "K" },
+    tolerance: { abs: tol, rel: 0 },
+    source: { kind: "analytic", text: "Adiabatic limit: the fuel interior keeps all the energy deposited by the pulse (" + round(a.energy, 3) + " J/m), so its temperature is the root of the integral of c dT = E'''. The tolerance is " + c.relTol * 100 + "% of the rise, set before any run from the first-order error of the time step (about 1/N of the energy over a ramp of N steps, cancelling over a symmetric pulse).", check },
+    coverage: { quantities: ["temperature_peak_max"], domain: c.domain },
+  });
+  entry({
+    id: "feed-" + c.name + "-energy-deposited",
+    tag: "good",
+    casePath: rel,
+    expected: { quantity: "energy_deposited", value: round(a.energy, 3), unit: "J/m" },
+    tolerance: { abs: 0, rel: 1e-6 },
+    source: { kind: "analytic", text: "The integral of the tabulated power history up to the end time (trapezoid, exact for the solver's linear interpolation).", check: "oracles/transient-case-reference.py integrates the same table in decimal arithmetic." },
+    coverage: { quantities: ["energy_deposited"], domain: c.domain },
+  });
+  transientGood += 2;
+}
+
+// Known limit for a transient: the fuel's heat capacity law stated valid only up to a temperature the pulse exceeds.
+{
+  const doc = load("schema/vectors/good/pulse-linear-heat-capacity.json");
+  doc.transient.timeStep = { value: 0.1, unit: "ms" };
+  doc.materials.fuel.sets["thermal.volumetricHeatCapacity"].validRange = { min: { value: 250, unit: "K" }, max: { value: 450, unit: "K" } };
+  const a = adiabatic(doc);
+  if (a.peak <= 450) throw new Error("the narrowed range no longer excludes the pulse");
+  const rel = writeCase("limit-pulse-c-out-of-range", doc);
+  entry({
+    id: "feed-limit-pulse-c-out-of-range",
+    tag: "known-limit",
+    casePath: rel,
+    expected: { refusalCode: "E_OUT_OF_DOMAIN" },
+    source: { kind: "hand", text: "The fuel heat capacity c = a + b T is stated valid on 250-450 K only, while the pulse takes the fuel to " + round(a.peak, 0) + " K. The result must be refused as out of domain.", check: "FEED's transient results mark this as domain.verdict out-of-domain (tests/transient.test.ts)." },
+    coverage: { quantities: ["temperature_peak_max"], domain: "heat capacity law used outside its stated temperature range" },
+  });
+}
+
 write(
   path.join(out, "README.md"),
   [
@@ -201,10 +303,10 @@ write(
     "Expected values are the closed-form series solution computed by the generator, never the output of a solver run. A tolerance is part of the",
     "entry's hash: changing it needs a new `entryVersion` made by a human.",
     "",
-    good + " good entries (peak, outer-wall temperature, flux and energy balance, over five pins), " + BAD.length + " bad-input entries, 1 known-limit entry.",
+    (good + transientGood) + " good entries (steady: peak, outer-wall temperature, flux and energy balance over six pins; pulses: adiabatic peak and energy deposited over three cases), " + BAD.length + " bad-input entries, 2 known-limit entries.",
     "All cases use the mesh " + MESH.fuelCells + "/" + MESH.claddingCells + " (fuel/cladding cells). The peak is the first fuel cell centre of that mesh.",
-    "Not covered: transients, mechanics, a central hole whose surface is not insulated, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
+    "Pulse entries test the adiabatic limit only: heat leaving the fuel during a long transient has no entry here (FEED checks it against its own independent solution). Not covered: mechanics, a central hole whose surface is not insulated, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
     "",
   ].join(NL)
 );
-console.log("wrote " + good + " good, " + BAD.length + " bad-input and 1 known-limit entries to " + out);
+console.log("wrote " + (good + transientGood) + " good, " + BAD.length + " bad-input and 2 known-limit entries to " + out);

@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-limit-pulse-c-out-of-range",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "known-limit",
+  "inputs": [
+    {
+      "path": "models/limit-pulse-c-out-of-range.case.json",
+      "sha256": "3d1d8ea2c2c62cdd4a18f163c19f583c0662101e1ad85b4f1d64669ec0acfe44"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_OUT_OF_DOMAIN"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "The fuel heat capacity c = a + b T is stated valid on 250-450 K only, while the pulse takes the fuel to 633 K. The result must be refused as out of domain.",
+    "check": "FEED's transient results mark this as domain.verdict out-of-domain (tests/transient.test.ts)."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "heat capacity law used outside its stated temperature range"
+  },
+  "toleranceHash": "d1e2070e0d7f26510109338bd4728a509ce7f1d3d1b8c46924e9ece22a5c3ba5"
+}

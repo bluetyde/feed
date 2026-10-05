@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-transient-no-section",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-transient-no-section.case.json",
+      "sha256": "5ff1a4342826f37c1169649df57613e9eb49eca59daf026514ec021ee660a473"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_TRANSIENT_INCOMPLETE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a transient case (steadyState false) without its transient section. FEED must refuse it before any run; SEED reports E_TRANSIENT_INCOMPLETE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/transient-missing-section.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "6962f8d2193d1a973d02e0134d5028bf5ae68221664944f8fa9036b176ed82d8"
+}
