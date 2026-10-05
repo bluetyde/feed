@@ -1,0 +1,86 @@
+{
+  "schema": "feed.digitized-figure/0.1",
+  "figure": "University of Texas TRIGA II SAR, Chapter 4 (8/2023), Figure 4.30, Hot Channel Radial Temperature Distribution (page 4-38)",
+  "condition": "hot channel at 24.34 kW element power (text of section 4.6: maximum fuel temperature 559 C)",
+  "method": "The chart is an embedded raster image (799 x 579 px). Axis positions were taken from the gridlines (x 0.00 to 0.80 at px 87 to 761; y 0 to 700 C at px 504 to 51). Circle markers were located by template matching against a clean marker (score 0.83 to 1.00) and converted to data coordinates. Estimated reading error: about 1 px, i.e. 0.001 on x and 1.5 K on temperature. These are TRACE results as printed, not raw TRACE output.",
+  "axisNote": "The x axis is labelled centimetres but the values are inches: the fuel surface marker sits at 0.7169 against a fuel radius of 0.7150 in (1.8161 cm, Table 4.1), the cladding outer marker at 0.737 against 0.7342 in, and the Zr fill rod boundary at 0.125 in (6.35 mm). Treat the label as an error in the SAR.",
+  "xUnit": "in",
+  "points": [
+    {
+      "x": 0.1246,
+      "T_C": 562.5,
+      "where": "Zr rod / fuel boundary"
+    },
+    {
+      "x": 0.2208,
+      "T_C": 560.9
+    },
+    {
+      "x": 0.2861,
+      "T_C": 548.6
+    },
+    {
+      "x": 0.3395,
+      "T_C": 534.7
+    },
+    {
+      "x": 0.3858,
+      "T_C": 518.4
+    },
+    {
+      "x": 0.4261,
+      "T_C": 500.7
+    },
+    {
+      "x": 0.4629,
+      "T_C": 482.1
+    },
+    {
+      "x": 0.4985,
+      "T_C": 462.8
+    },
+    {
+      "x": 0.53,
+      "T_C": 443.5
+    },
+    {
+      "x": 0.5614,
+      "T_C": 423.4
+    },
+    {
+      "x": 0.5893,
+      "T_C": 403.3
+    },
+    {
+      "x": 0.6172,
+      "T_C": 382.5
+    },
+    {
+      "x": 0.6439,
+      "T_C": 361.6
+    },
+    {
+      "x": 0.6688,
+      "T_C": 340
+    },
+    {
+      "x": 0.6932,
+      "T_C": 318.3
+    },
+    {
+      "x": 0.7169,
+      "T_C": 295.1,
+      "where": "fuel surface"
+    },
+    {
+      "x": 0.7181,
+      "T_C": 156.1,
+      "where": "cladding inner surface"
+    },
+    {
+      "x": 0.7371,
+      "T_C": 132.9,
+      "where": "cladding outer surface"
+    }
+  ]
+}

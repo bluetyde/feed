@@ -68,6 +68,37 @@ describe("library", () => {
     expect(doc.description).toMatch(/Source inconsistency/);
   });
 
+  it("the UT hot-channel pin is consistent with the digitized TRACE profile (Figure 4.30), and says what is read", () => {
+    const doc = read("examples/ut-triga-hot-channel-trace.json");
+    const fig = read("docs/sources/ut-triga-fig-4.30.json") as { xUnit: string; points: { x: number; T_C: number; where?: string }[] };
+    const n = validateCase(doc).normalized!;
+    const t = quickLook(n).temperatures;
+    const C = (k: number) => k - 273.15;
+    const at = (w: string) => fig.points.find((p) => p.where === w)!.T_C;
+    // the inputs read from the figure are what the case uses
+    expect(C(t.claddingOuterT)).toBeCloseTo(at("cladding outer surface"), 1);
+    expect(doc.gap.source).toMatch(/READ from SAR Figure 4.30/);
+    // the rest is FEED's own conduction, compared with the figure
+    expect(Math.abs(C(t.claddingInnerT) - at("cladding inner surface"))).toBeLessThan(8);
+    expect(Math.abs(C(t.fuelSurfaceT) - at("fuel surface"))).toBeLessThan(8);
+    expect(C(t.centreT) - 562.5).toBeGreaterThan(5); // known: solid cylinder over-predicts
+    expect(C(t.centreT) - 562.5).toBeLessThan(25);
+    // the figure's fuel profile, fitted as a solid cylinder with k = 18, implies the SAR's own linear heat rate
+    const R = 0.018161;
+    const fuel = fig.points.filter((p) => !p.where || p.where === "Zr rod / fuel boundary" || p.where === "fuel surface");
+    const s = (x: number) => 1 - ((x * 0.0254) / R) ** 2; // x is in inches although the SAR labels it cm
+    expect(fig.xUnit).toBe("in");
+    const m = fuel.length;
+    const sx = fuel.reduce((a, p) => a + s(p.x), 0);
+    const sy = fuel.reduce((a, p) => a + p.T_C, 0);
+    const sxx = fuel.reduce((a, p) => a + s(p.x) ** 2, 0);
+    const sxy = fuel.reduce((a, p) => a + s(p.x) * p.T_C, 0);
+    const c = (m * sxy - sx * sy) / (m * sxx - sx * sx);
+    const qFit = c * 4 * Math.PI * 18;
+    expect(Math.abs(qFit / n.qPrime - 1)).toBeLessThan(0.01);
+    expect(Math.abs(n.qPrime / ((24340 / 0.381) * 1.017) - 1)).toBeLessThan(1e-4);
+  });
+
   it("check() returns the profile and derived values for a valid case", () => {
     const r = check(pin) as any;
     expect(r.ok).toBe(true);
