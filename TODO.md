@@ -85,9 +85,9 @@ Started 2026-10-05; see [docs/spike/F0-note.md](docs/spike/F0-note.md) and [solv
 ## F3: suite transfers ([plan 05](docs/plans/05-suite-transfers.md))
 
 - [x] 2026-10-05: SEED adapter: seven verbs, typed errors, oracle coverage in `describe` [seed]. FEED side: headless runner `src/cli/headless.ts` (describe, validate, run, cancel) and 19 oracle entries under `oracles/seed` (generator `scripts/gen-seed-oracles.cjs`; closed-form expected values, tolerances fixed before any run). SEED side: `adapters/feed` merged into SEED main (c7f18e1) after two Codex auditors reviewed it (10 findings fixed); see SEED `docs/adapter-feed.md`. Real solver passes all 19 entries (peak within 0.03-0.05 K of closed form against 0.15-0.3 K tolerances) and a real cancel through the adapter stops OFFBEAT in the distro. Open: cancel in the instant before the solver run is registered is untested; SEED catalog entry.
-- [ ] Transfer intake: units, normalization, coverage, conservation, stale revision; tested against scripted fake sources. **[agy]** candidate once SEED's recipe format exists.
-- [ ] OpenMC heating mapping with a recipe; total mapped power conserved within a tolerance fixed beforehand [seed].
-- [ ] NODAL boundary mapping: identified axial region; explicit choice of bulk-plus-h or surface temperature; bulk temperature alone refused.
+- [x] 2026-10-05: transfer intake: units, normalization, coverage, conservation, stale revision, approval, uncertainty carried; scripted fake sources, 50 tests, four mutations of the code each caught (`src/core/transfer.ts`, [decision 0003](docs/decisions/0003-provisional-transfer-shapes.md)). Recipe and source shapes are FEED-owned and provisional until SEED defines its recipe format. Not an adapter: no OpenMC or NODAL result is read yet.
+- [~] OpenMC heating mapping with a recipe; total mapped power conserved within a tolerance fixed beforehand [seed]. The mapping and its conservation check are done against fakes (above); a real OpenMC tally reader is not.
+- [~] NODAL boundary mapping: identified axial region; explicit choice of bulk-plus-h or surface temperature; bulk temperature alone refused. Done against fakes (`mapBoundary`); no NODAL reader yet.
 - [ ] Standalone vs workspace equivalence on the same immutable input.
 - [ ] Material round trip with real OpenMC and thermal sets (cross-app acceptance case).
 - [ ] **[codex]** F3 exit review (conservation and refusal logic).
