@@ -62,6 +62,11 @@ describe("the case files of a transient that starts from a steady state", () => 
     const wedge = /\.\*Front\|\.\*Back"\s*\{[\s\S]*?value\s+uniform ([\d.]+);/.exec(T)!;
     expect(Number(wedge[1])).toBeGreaterThan(300);
     expect(Number(wedge[1])).toBeLessThan(init.peak);
+    // each gap face starts from the cell beside it, the coolant face from the wall
+    const patchValue = (name: string) => Number(new RegExp(name + "\\s*\\{[\\s\\S]*?value\\s+uniform ([-\\d.e+]+);").exec(T)![1]);
+    expect(patchValue("fuelOuter")).toBe(init.T[7]);
+    expect(patchValue("cladInner")).toBe(init.T[8]);
+    expect(patchValue("cladOuter")).toBe(init.wall);
   });
 
   it("the mapping and the placeholders say where the field came from", () => {
