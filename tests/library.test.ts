@@ -58,11 +58,11 @@ describe("library", () => {
       expect(byId("triga-uzrh-h16").revision).toBe(2);
       expect((byId("triga-uzrh-h16").sets as any)["thermal.conductivity"].value).toEqual({ value: 18, unit: "W/m/K" });
       expect((byId("ss304-k166").sets as any)["thermal.conductivity"].value).toEqual({ value: 16.6, unit: "W/m/K" });
-      for (const x of withHc) expect(x.material.revision, x.material.materialId).toBeGreaterThanOrEqual(2);
+      for (const x of withHc) if (x.material.materialId !== "ss304-ktable") expect(x.material.revision, x.material.materialId).toBeGreaterThanOrEqual(2); // ss304-ktable was born with its heat capacity
     });
 
     it("every heat capacity in the library has a stated source, and a sourced material's names a SAR or says it is assumed", () => {
-      expect(withHc.length).toBe(5);
+      expect(withHc.length).toBe(6);
       for (const x of withHc) {
         const hc = x.material.sets["thermal.volumetricHeatCapacity"] as any;
         expect(hc.source, x.material.materialId).toBeTruthy();

@@ -202,6 +202,74 @@
   },
   {
     "region": "cladding",
+    "name": "Stainless steel 304, k(T) table of the SAR's three points, quadratic fit (300-600 K)",
+    "label": "sourced",
+    "description": "The SAR's three conductivity points as a table; the degree 2 polynomial passes through all three exactly (fit deviation zero), so the model reproduces 16.6 W/m/K at 400 K, unlike the straight line. Valid only over 300 to 600 K. Shows the table model: replace the points with measured data and the fit is checked against the tolerance.",
+    "citation": "K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The three points are the SAR's; the quadratic through them is computed by FEED. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004 (research/VIRTUAL REACTOR/Kansas State University, Safety Analysis Report Dated 12_21_2004_.pdf).",
+    "material": {
+      "materialId": "ss304-ktable",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "table",
+          "points": [
+            {
+              "temperature": {
+                "value": 300,
+                "unit": "K"
+              },
+              "conductivity": {
+                "value": 14.9,
+                "unit": "W/m/K"
+              }
+            },
+            {
+              "temperature": {
+                "value": 400,
+                "unit": "K"
+              },
+              "conductivity": {
+                "value": 16.6,
+                "unit": "W/m/K"
+              }
+            },
+            {
+              "temperature": {
+                "value": 600,
+                "unit": "K"
+              },
+              "conductivity": {
+                "value": 19.8,
+                "unit": "W/m/K"
+              }
+            }
+          ],
+          "fit": {
+            "degree": 2,
+            "tolerance": {
+              "value": 1,
+              "unit": "%"
+            }
+          },
+          "source": "K-State SAR 2004 Table 13.3 (14.9, 16.6, 19.8 W/m/K at 300, 400, 600 K)"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3768300,
+            "unit": "J/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "K-State SAR Table 13.3: 7900 kg/m3 x 477 J/kg/K at 300 K (515 J/kg/K at 400 K: the value rises 8% over 100 K, which matters little for a pulse this short, and much more for a long run)"
+        }
+      }
+    }
+  },
+  {
+    "region": "cladding",
     "name": "Synthetic cladding, k = 15 W/m/K",
     "label": "synthetic",
     "description": "Chosen for the closed-form oracle. Not a real property.",
