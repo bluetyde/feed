@@ -1,0 +1,127 @@
+{
+  "about": "Non-convergence probe (F0 exit review, finding 2), 2026-10-06, feed-solver distro, OpenFOAM Foundation 9 + OFFBEAT 80e84450. Script: solver/probe-nonconvergence.sh. Case: solver/cases/synthetic-pin.mesh1.params.json with endTime replaced by 1 s (one step from the 900 K initial state). Only maxOuterIter differs between the two runs.",
+  "offbeatLoop": {
+    "source": "offbeat/offbeat.C lines 330-345 (do { ... } while ((nOuterIter < 2) || (!converged && nOuterIter < maxOuterIter)))",
+    "meaning": "At least two outer iterations per time step. When the cap is reached without convergence the loop simply ends: the step is accepted and written, with no warning, no failure and no flag in the exit code.",
+    "thermalCriterion": "offbeatLib/physicsSubSolvers/thermalSubSolver/thermalSubSolver.C converged(): converged when absErrT <= absErrT tolerance (key absErrT, default 0), else (initialResidual < T and relResidual < relT) or initialResidual < T/10 or relResidual < relT/10"
+  },
+  "tolerances": {
+    "T": 0.00001,
+    "relT": 0.000001,
+    "absErrT": 0,
+    "maxOuterIterDefault": 1000
+  },
+  "unconverged": {
+    "maxOuterIter": 2,
+    "outerIterations": 2,
+    "timeSteps": 1,
+    "lastIteration": {
+      "initialResidualT": 0.0463355,
+      "relResidualT": 0.039029,
+      "absErrT": 11.1641
+    },
+    "exitCode": 139,
+    "timeDirs": [
+      "0",
+      "1"
+    ],
+    "endLinePrinted": false,
+    "fatalErrorInLog": false,
+    "warningAboutIterationLimit": false,
+    "otherWarnings": [
+      "mechanicsSubSolver: Type 'fromLatestTime' for `mechanicsSolver` is deprecated. Please use 'constant' instead."
+    ],
+    "result": {
+      "time": 1,
+      "nCells": 13,
+      "r": [
+        0.000273333,
+        0.000637776,
+        0.00103866,
+        0.00144476,
+        0.00185259,
+        0.00226121,
+        0.00267025,
+        0.00307955,
+        0.00348901,
+        0.00389859,
+        0.00427569,
+        0.00446566,
+        0.00465563
+      ],
+      "T": [
+        1005.07,
+        1003.5,
+        999.866,
+        993.781,
+        984.481,
+        970.764,
+        950.826,
+        922.008,
+        880.413,
+        820.336,
+        635.1,
+        625.294,
+        613.955
+      ],
+      "cladOuterWallT": 607.453
+    }
+  },
+  "converged": {
+    "maxOuterIter": 1000,
+    "outerIterations": 6,
+    "timeSteps": 1,
+    "lastIteration": {
+      "initialResidualT": 5.2826e-10,
+      "relResidualT": 2.94549e-10,
+      "absErrT": 8.45091e-8
+    },
+    "exitCode": 139,
+    "timeDirs": [
+      "0",
+      "1"
+    ],
+    "endLinePrinted": false,
+    "fatalErrorInLog": false,
+    "warningAboutIterationLimit": false,
+    "result": {
+      "time": 1,
+      "nCells": 13,
+      "r": [
+        0.000273333,
+        0.000637776,
+        0.00103866,
+        0.00144476,
+        0.00185259,
+        0.00226121,
+        0.00267025,
+        0.00307955,
+        0.00348901,
+        0.00389859,
+        0.00427569,
+        0.00446566,
+        0.00465563
+      ],
+      "T": [
+        1004.6,
+        1002.98,
+        999.225,
+        992.94,
+        983.334,
+        969.166,
+        948.572,
+        918.808,
+        875.845,
+        813.793,
+        634.012,
+        624.324,
+        613.09
+      ],
+      "cladOuterWallT": 606.726
+    }
+  },
+  "other": {
+    "maxOuterIter 1 on the full 5e7 s run": "OFFBEAT still ran 2 outer iterations per step (168 iterations over 84 steps); early steps ended unconverged, later steps converged from the previous state; the final field is identical to the default run's. Exit 139, no warning.",
+    "T and relT set to 0 with maxOuterIter 5": "no effect: absErrT is exactly 0 once a step is settled and 0 <= absErrT tolerance (0) counts as converged. A tolerance of 0 cannot be used to force non-convergence; absErrT would have to be negative."
+  }
+}
