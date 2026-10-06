@@ -4,6 +4,7 @@
 // Pinned against OpenFOAM Foundation 9 + OFFBEAT 80e84450 (solver/PINS.md).
 
 import { MIN_STEADY_END_TIME, steadyEndTime } from "./steadyState";
+import { initialState } from "./transientResults";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
 export interface WrittenCase {
@@ -193,20 +194,33 @@ ${constantMaterial("cladding", kc, c.claddingHeatCapacity)}}
 `;
 }
 
-function temperatureField(c: NormalizedCase, t0: number): string {
+const NL = String.fromCharCode(10);
+
+/** The starting temperature: one number for the whole pin, or the temperature of every cell (the blockMesh order: fuel inner to outer, then cladding inner to outer) with the outer wall. */
+type StartField = { kind: "uniform"; T: number } | { kind: "field"; T: number[]; wall: number };
+
+function temperatureField(c: NormalizedCase, start: StartField): string {
+  const uniform = start.kind === "uniform";
+  const nf = c.mesh.fuelCells;
+  const cells = start.kind === "field" ? start.T : [];
+  // A uniform start is written as one value and the patches copy it ($internalField). A field cannot be copied into a patch (the sizes differ), so each patch gets a
+  // uniform starting value near it: the wedge planes the mean, the gap faces the neighbouring cell, the coolant face the wall. The boundary conditions overwrite them.
+  const mean = cells.length ? cells.reduce((x, y) => x + y, 0) / cells.length : 0;
+  const internal = start.kind === "uniform" ? `uniform ${num(start.T)}` : `nonuniform List<scalar>${NL}${cells.length}${NL}(${NL}${cells.map(num).join(NL)}${NL})${NL}`;
+  const copy = (x: number) => (uniform ? "$internalField" : `uniform ${num(x)}`);
   const inner = c.fuelInnerRadius > 0 ? `    fuelInner
     {
         type            zeroGradient;
     }
 ` : "";
-  const gap = (n: string) => `    ${n}
+  const gap = (n: string, near: number) => `    ${n}
     {
         type            resistiveGap;
         patchType       regionCoupledOFFBEAT;
         coupled         true;
         kappa           k;
         alpha           uniform ${num(c.gapConductance)};
-        value           $internalField;
+        value           ${copy(near)};
     }
 `;
   const outer =
@@ -214,29 +228,28 @@ function temperatureField(c: NormalizedCase, t0: number): string {
       ? `type convectiveHTC;
         T0 uniform ${num(c.boundary.bulkTemperature)};
         h uniform ${num(c.boundary.heatTransferCoefficient)};
-        value uniform ${num(t0)};`
+        value uniform ${num(start.kind === "uniform" ? start.T : start.wall)};`
       : `type fixedValue;
         value uniform ${num(c.boundary.surfaceTemperature)};`;
   return `${FOAM_HEADER("volScalarField", "T")}
 dimensions      [0 0 0 1 0 0 0];
 
-internalField   uniform ${num(t0)};
+internalField   ${internal};
 
 boundaryField
 {
     ".*Front|.*Back"
     {
         type            wedge;
-        value           $internalField;
+        value           ${copy(mean)};
     }
-${inner}${gap("fuelOuter")}${gap("cladInner")}    cladOuter
+${inner}${gap("fuelOuter", cells[nf - 1] ?? 0)}${gap("cladInner", cells[nf] ?? 0)}    cladOuter
     {
         ${outer}
     }
 }
 `;
 }
-
 const displacementField = (c: NormalizedCase) => `${FOAM_HEADER("volVectorField", "D")}
 dimensions          [0 1 0 0 0 0 0];
 
@@ -351,7 +364,10 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
   const kf = c.fuelConductivity;
   const kc = c.claddingConductivity;
   const tr = c.transient;
-  const t0 = tr ? tr.initialTemperature : c.boundary.kind === "convective" ? c.boundary.bulkTemperature : c.boundary.surfaceTemperature;
+  // The starting field: a uniform temperature (a steady case: the coolant or prescribed wall, which the result does not depend on), or a transient's steady operating state.
+  const steadyStart = tr !== undefined && tr.initial.kind === "steady" ? initialState(c) : undefined;
+  const t0 = tr ? (tr.initial.kind === "uniform" ? tr.initial.temperature : steadyStart!.peak) : c.boundary.kind === "convective" ? c.boundary.bulkTemperature : c.boundary.surfaceTemperature;
+  const start: StartField = steadyStart ? { kind: "field", T: steadyStart.T, wall: steadyStart.wall } : { kind: "uniform", T: t0 };
   // A steady case runs to an end time the pin's own time constants require (at least 5e7 s); the validator refuses what cannot settle.
   let steadyEnd = MIN_STEADY_END_TIME;
   if (!tr) {
@@ -365,7 +381,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     "system/fvSchemes": fvSchemes,
     "system/fvSolution": fvSolution,
     "constant/solverDict": solverDict(c, kf, kc),
-    "0/T": temperatureField(c, t0),
+    "0/T": temperatureField(c, start),
     "0/D": displacementField(c),
     // marks a transient for the run script (it then keeps the field at every write time); OpenFOAM ignores the file
     ...(tr ? { "feed-transient.json": JSON.stringify({ outputs: tr.outputs, steps: tr.steps, timeStep: tr.timeStep, endTime: tr.endTime }) + "\n" } : {}),
@@ -381,7 +397,9 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
       ? [
           { field: "transient.powerHistory", file: "constant/solverDict", note: "timeDependentLhgr: timePoints and lhgr, linear interpolation, flat profiles. One flat point is appended one step after the last: the accumulated step time can land a few ulps past the last point, and OFFBEAT aborts on a time outside its table" },
           { field: "transient.timeStep, endTime, outputs", file: "system/controlDict", note: "fixed deltaT (adjustableTimeStep false), endTime, writeInterval = steps / outputs" },
-          { field: "transient.initialTemperature", file: "0/T", note: "uniform internalField" },
+          steadyStart
+            ? { field: "transient.initialSteadyLinearHeatRate", file: "0/T", note: "nonuniform internalField: the steady temperature of every cell at that heat rate, from FEED's independent finite-volume solution on this mesh (blockMesh order: fuel cells inner to outer, then cladding cells inner to outer); the patches start from a uniform value near them" }
+            : { field: "transient.initialTemperature", file: "0/T", note: "uniform internalField" },
           { field: "materials.* thermal.volumetricHeatCapacity", file: "constant/solverDict", note: "rho " + WRITER_DENSITY + " kg/m3 and Cp = c / rho (constant), or steel1515TiBanerjee with par1 = a / rho, par2 = b / rho, par3 = 0 (linear c(T)); the model name is a misnomer" },
         ]
       : [{ field: "power.linearHeatRate", file: "constant/solverDict", note: "heatSourceOptions.lhgr, flat profiles" }]),
@@ -396,7 +414,9 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
       : { name: "rho", value: "10000 kg/m3", why: "required by the constant material model; storage only, no effect on the steady result" },
     ...(tr ? [] : [{ name: "Cp", value: "300 J/kg/K", why: "same" }]),
     { name: "emissivity, E, nu, G, alpha, Tref", value: "0.8, 2e11, 0.3, 7.69e10, 1e-5, 300", why: "required by the constant material model; unused with mechanics off" },
-    { name: "initial temperature", value: String(t0) + " K", why: tr ? "the transient's initial temperature, as given" : "starting field; the steady result does not depend on it" },
+    steadyStart
+      ? { name: "initial temperature field", value: "steady state at " + (tr!.initial as { linearHeatRate: number }).linearHeatRate + " W/m, " + Math.min(...steadyStart.T).toFixed(2) + " to " + steadyStart.peak.toFixed(2) + " K", why: "the transient starts from the steady operating state of this pin at the stated heat rate (independent finite-volume solution, same mesh)" }
+      : { name: "initial temperature", value: String(t0) + " K", why: tr ? "the transient's initial temperature, as given" : "starting field; the steady result does not depend on it" },
   ];
   return { files, mapping, placeholders, choices: tr ? { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: tr.endTime, timeStep: tr.timeStep, steps: tr.steps, outputs: tr.outputs } : { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: steadyEnd } };
 }

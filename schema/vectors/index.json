@@ -331,6 +331,46 @@
     "field": "/gap/model"
   },
   {
+    "file": "good/pulse-steady-start.json",
+    "valid": true
+  },
+  {
+    "file": "bad/transient-initial-both.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/initialSteadyLinearHeatRate"
+  },
+  {
+    "file": "bad/transient-initial-neither.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/initialTemperature"
+  },
+  {
+    "file": "bad/range-negative-initial-steady-power.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/initialSteadyLinearHeatRate"
+  },
+  {
+    "file": "bad/units-initial-steady-power-wrong-dimension.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/transient/initialSteadyLinearHeatRate"
+  },
+  {
+    "file": "bad/range-steady-start-outside-heat-capacity-range.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/initialSteadyLinearHeatRate"
+  },
+  {
+    "file": "bad/range-no-steady-state-at-this-power.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/initialSteadyLinearHeatRate"
+  },
+  {
     "file": "bad/unsupported-contact-model.json",
     "valid": false,
     "code": "E_UNSUPPORTED",

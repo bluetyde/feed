@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import Ajv2020 from "ajv/dist/2020";
 import { steadyEndTime } from "./steadyState";
+import { initialState } from "./transientResults";
 import { Dimension, toSI } from "./units";
 
 export interface Issue {
@@ -36,7 +37,8 @@ export interface NormalizedTransient {
   steps: number;
   /** Number of equally spaced output times after t = 0 (the last is the end time). */
   outputs: number;
-  initialTemperature: number;
+  /** Where the run starts: a uniform temperature, or the steady state of this pin at a constant linear heat rate (W/m) with its own boundary and properties. */
+  initial: { kind: "uniform"; temperature: number } | { kind: "steady"; linearHeatRate: number };
 }
 
 /** Limits on the time grid; beyond them a case is refused, not truncated. */
@@ -237,10 +239,11 @@ export function validateCase(doc: unknown): ValidationResult {
     if (c.transient !== undefined) transient = parseTransient(c.transient, err, qty);
     if (transient) {
       qPrime = Math.max(...transient.linearHeatRate);
-      // the heat capacity laws must hold at the starting temperature, and the work must fit the budget
+      // the heat capacity laws must hold at a uniform starting temperature (a steady start is checked below, on its field), and the work must fit the budget
+      const start = transient.initial.kind === "uniform" ? transient.initial.temperature : undefined;
       for (const [region, cp] of [["fuel", fuelCp], ["cladding", claddingCp]] as const) {
-        if (cp && cp.kind === "linear" && (transient.initialTemperature < cp.range[0] || transient.initialTemperature > cp.range[1])) {
-          err("E_OUT_OF_RANGE", "/transient/initialTemperature", "the initial temperature " + transient.initialTemperature + " K is outside the stated range of the " + region + " heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", { unit: "K", range: cp.range });
+        if (start !== undefined && cp && cp.kind === "linear" && (start < cp.range[0] || start > cp.range[1])) {
+          err("E_OUT_OF_RANGE", "/transient/initialTemperature", "the initial temperature " + start + " K is outside the stated range of the " + region + " heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", { unit: "K", range: cp.range });
           transient = undefined;
           break;
         }
@@ -279,10 +282,41 @@ export function validateCase(doc: unknown): ValidationResult {
       mesh: { fuelCells: mesh.fuelCells, claddingCells: mesh.claddingCells },
       ...(isTransient ? { transient, fuelHeatCapacity: fuelCp, claddingHeatCapacity: claddingCp } : {}),
     };
+    // A transient that starts from a steady operating state needs that state to exist and to lie where the heat capacity laws hold (the uniform start is checked above).
+    const normalized = result.normalized!;
+    const tn = normalized.transient;
+    if (tn && tn.initial.kind === "steady") {
+      const field = (() => {
+        try {
+          return initialState(normalized);
+        } catch (e) {
+          result.ok = false;
+          result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/transient/initialSteadyLinearHeatRate", message: "there is no steady state of this pin at " + tn.initial.linearHeatRate + " W/m: " + (e as Error).message, unit: "W/m" });
+          delete result.normalized;
+          return undefined;
+        }
+      })();
+      const n = result.normalized;
+      if (field && n) {
+        const nf = n.mesh.fuelCells;
+        for (const [region, cp, from, to] of [["fuel", n.fuelHeatCapacity, 0, nf], ["cladding", n.claddingHeatCapacity, nf, field.T.length]] as const) {
+          if (!cp || cp.kind !== "linear") continue;
+          const part = field.T.slice(from, to);
+          const lo = Math.min(...part);
+          const hi = Math.max(...part);
+          if (lo < cp.range[0] || hi > cp.range[1]) {
+            result.ok = false;
+            result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/transient/initialSteadyLinearHeatRate", message: "the steady state at " + tn.initial.linearHeatRate + " W/m puts the " + region + " at " + lo.toFixed(0) + " to " + hi.toFixed(0) + " K, outside the stated range of its heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", unit: "K", range: cp.range });
+            delete result.normalized;
+            break;
+          }
+        }
+      }
+    }
     // A steady case is run to a long end time; one whose pin could not settle within the longest run FEED allows is refused, not run
     // to a time at which it is still changing (src/core/steadyState.ts).
     if (!isTransient) {
-      const h = steadyEndTime(result.normalized);
+      const h = steadyEndTime(normalized);
       if (!h.ok) {
         result.ok = false;
         result.errors.push({ code: "E_TIME", severity: "error", field: "/assumptions/steadyState", message: "this case cannot be run as a steady case: " + h.message });
@@ -421,9 +455,12 @@ function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): Normali
     ok = false;
     err(code, field, message, extra);
   };
-  for (const key of ["powerHistory", "endTime", "timeStep", "outputs", "initialTemperature"]) {
+  for (const key of ["powerHistory", "endTime", "timeStep", "outputs"]) {
     if (t[key] === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/" + key, "the transient section needs '" + key + "'");
   }
+  // the initial state: exactly one of a uniform temperature and a steady operating state
+  if (t.initialTemperature !== undefined && t.initialSteadyLinearHeatRate !== undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/initialSteadyLinearHeatRate", "give either 'initialTemperature' (a uniform start) or 'initialSteadyLinearHeatRate' (the steady state at that heat rate), not both");
+  else if (t.initialTemperature === undefined && t.initialSteadyLinearHeatRate === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/initialTemperature", "the transient section needs an initial state: 'initialTemperature' (a uniform start) or 'initialSteadyLinearHeatRate' (the steady state of this pin at that heat rate)");
   const endTime = t.endTime === undefined ? undefined : qty(t.endTime, "time", "/transient/endTime");
   const timeStep = t.timeStep === undefined ? undefined : qty(t.timeStep, "time", "/transient/timeStep");
   const initialTemperature = t.initialTemperature === undefined ? undefined : qty(t.initialTemperature, "temperature", "/transient/initialTemperature");
@@ -433,6 +470,9 @@ function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): Normali
   if (endTime !== undefined && !(endTime > 0)) bad("E_OUT_OF_RANGE", "/transient/endTime", "end time must be positive", { unit: "s" });
   if (timeStep !== undefined && !(timeStep > 0)) bad("E_OUT_OF_RANGE", "/transient/timeStep", "time step must be positive", { unit: "s" });
   if (initialTemperature !== undefined && !(initialTemperature > 0)) bad("E_OUT_OF_RANGE", "/transient/initialTemperature", "initial temperature must be above 0 K", { unit: "K" });
+  const initialQ = t.initialSteadyLinearHeatRate === undefined ? undefined : qty(t.initialSteadyLinearHeatRate, "linearPower", "/transient/initialSteadyLinearHeatRate");
+  if (initialQ === undefined && t.initialSteadyLinearHeatRate !== undefined) ok = false;
+  if (initialQ !== undefined && !(initialQ >= 0)) bad("E_OUT_OF_RANGE", "/transient/initialSteadyLinearHeatRate", "the steady heat rate cannot be negative", { unit: "W/m" });
 
   let steps = 0;
   if (endTime !== undefined && timeStep !== undefined && endTime > 0 && timeStep > 0) {
@@ -477,12 +517,14 @@ function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): Normali
           }
         }
         if (endTime !== undefined && times[times.length - 1]! < endTime * (1 - 1e-12)) bad("E_TIME", "/transient/powerHistory", "the power history ends at " + times[times.length - 1] + " s, before the end time " + endTime + " s; give the power over the whole run");
-        if (!(Math.max(...lhgr) > 0)) bad("E_OUT_OF_RANGE", "/transient/powerHistory", "the power history is zero everywhere");
+        // all zero is a mistake from a uniform start (nothing is heated), but a shutdown from a steady operating state (a scram) is a real case
+        if (!(Math.max(...lhgr) > 0) && !(t.initialSteadyLinearHeatRate !== undefined && t.initialSteadyLinearHeatRate !== null)) bad("E_OUT_OF_RANGE", "/transient/powerHistory", "the power history is zero everywhere");
       } else ok = false;
     }
   } else if (hist !== undefined) {
     bad("E_SCHEMA_INVALID", "/transient/powerHistory", "the power history is a list of {time, linearHeatRate} points");
   }
-  if (!ok || endTime === undefined || timeStep === undefined || initialTemperature === undefined || typeof outputs !== "number" || times.length < 2) return undefined;
-  return { times, linearHeatRate: lhgr, endTime, timeStep, steps, outputs, initialTemperature };
+  const initial: NormalizedTransient["initial"] | undefined = initialTemperature !== undefined ? { kind: "uniform", temperature: initialTemperature } : initialQ !== undefined ? { kind: "steady", linearHeatRate: initialQ } : undefined;
+  if (!ok || endTime === undefined || timeStep === undefined || initial === undefined || typeof outputs !== "number" || times.length < 2) return undefined;
+  return { times, linearHeatRate: lhgr, endTime, timeStep, steps, outputs, initial };
 }

@@ -37,7 +37,9 @@ export interface FvOptions {
   /** Step in seconds and number of steps. */
   dt: number;
   steps: number;
-  initialTemperature: number;
+  /** Exactly one of these: a uniform starting temperature, or the temperature of every cell (fuel inner to outer, then cladding inner to outer). */
+  initialTemperature?: number;
+  initialField?: number[];
   /** Record the state after every `outputEvery` steps (and at step 0). */
   outputEvery: number;
   /** Also record, at every step, the hottest cell and the temperature extrema of each solid (cheap; independent of the outputs). */
@@ -167,9 +169,11 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
     const gFilm = TWO_PI * p.claddingOuterRadius * p.boundary.heatTransferCoefficient;
     return (gHalf * Tc[n - 1]! + gFilm * p.boundary.bulkTemperature) / (gHalf + gFilm);
   };
-  let T = new Array<number>(n).fill(o.initialTemperature);
+  if ((o.initialTemperature === undefined) === (o.initialField === undefined)) throw new Error("give exactly one of initialTemperature and initialField");
+  if (o.initialField !== undefined && (o.initialField.length !== n || !o.initialField.every((x) => Number.isFinite(x) && x > 0))) throw new Error("initialField needs " + n + " positive finite temperatures");
+  let T = o.initialField !== undefined ? o.initialField.slice() : new Array<number>(n).fill(o.initialTemperature!);
   const states: FvState[] = [{ time: 0, T: T.slice(), deposited: 0, rejected: 0, wall: wallOf(T) }];
-  const trace: FvTrace | undefined = o.trace ? { peakByStep: [o.initialTemperature], fuelMin: o.initialTemperature, fuelMax: o.initialTemperature, claddingMin: o.initialTemperature, claddingMax: o.initialTemperature } : undefined;
+  const trace: FvTrace | undefined = o.trace ? { peakByStep: [maxOf(T)], fuelMin: minOf(T.slice(0, nf)), fuelMax: maxOf(T.slice(0, nf)), claddingMin: minOf(T.slice(nf)), claddingMax: maxOf(T.slice(nf)) } : undefined;
   let deposited = 0;
   let rejected = 0;
   for (let step = 1; step <= o.steps; step++) {
@@ -241,8 +245,9 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
   return { r, states, ...(trace ? { trace } : {}) };
 }
 
-/** Energy stored in the solids relative to the initial uniform temperature, J per unit length. */
-export function storedEnergy(p: TransientPin, T: number[], initialTemperature: number): number {
+/** Energy stored in the solids relative to the initial state (a uniform temperature, or the initial temperature of every cell), J per unit length. */
+export function storedEnergy(p: TransientPin, T: number[], initial: number | number[]): number {
+  const T0 = (i: number) => (typeof initial === "number" ? initial : initial[i]!);
   const nf = p.fuelCells;
   const nc = p.claddingCells;
   const faces: number[] = [];
@@ -250,7 +255,32 @@ export function storedEnergy(p: TransientPin, T: number[], initialTemperature: n
   const cfaces: number[] = [];
   for (let i = 0; i <= nc; i++) cfaces.push(p.claddingInnerRadius + ((p.claddingOuterRadius - p.claddingInnerRadius) * i) / nc);
   let e = 0;
-  for (let i = 0; i < nf; i++) e += Math.PI * (faces[i + 1]! ** 2 - faces[i]! ** 2) * (enthalpy(p.fuelC, T[i]!) - enthalpy(p.fuelC, initialTemperature));
-  for (let i = 0; i < nc; i++) e += Math.PI * (cfaces[i + 1]! ** 2 - cfaces[i]! ** 2) * (enthalpy(p.claddingC, T[nf + i]!) - enthalpy(p.claddingC, initialTemperature));
+  for (let i = 0; i < nf; i++) e += Math.PI * (faces[i + 1]! ** 2 - faces[i]! ** 2) * (enthalpy(p.fuelC, T[i]!) - enthalpy(p.fuelC, T0(i)));
+  for (let i = 0; i < nc; i++) e += Math.PI * (cfaces[i + 1]! ** 2 - cfaces[i]! ** 2) * (enthalpy(p.claddingC, T[nf + i]!) - enthalpy(p.claddingC, T0(nf + i)));
   return e;
+}
+
+/**
+ * The steady temperature field of the pin at a constant linear heat rate: the cell values (fuel inner to outer, then cladding inner to
+ * outer) and the outer wall, from the same discretisation as the transient solution, which therefore holds it exactly. It is one
+ * implicit step of effectively infinite length (the heat capacity term vanishes), iterated for a temperature-dependent conductivity.
+ * Refuses, with the reason, a field it cannot trust: the iteration not settled, a conductivity not positive at the result, or the
+ * heat leaving not equal to the heat made.
+ */
+export function steadyFv(p: TransientPin, qPrime: number): { T: number[]; wall: number } {
+  if (!(qPrime >= 0) || !Number.isFinite(qPrime)) throw new RangeError("the steady linear heat rate must be a finite number, zero or more");
+  const outer = p.boundary.kind === "convective" ? p.boundary.bulkTemperature : p.boundary.surfaceTemperature;
+  const dt = 1e30;
+  const run = solveTransientFv({ ...p, power: () => qPrime }, { dt, steps: 1, initialTemperature: outer, outputEvery: 1 });
+  const s = run.states[1]!;
+  if (!s.T.every((x) => Number.isFinite(x) && x > 0)) throw new RangeError("the iteration for the steady state ended with a temperature that is not finite and above 0 K; a conductivity law that falls too far at this heat rate is the usual cause");
+  const nf = p.fuelCells;
+  s.T.forEach((x, i) => {
+    const k = i < nf ? p.fuelK.a + p.fuelK.b * x : p.claddingK.a + p.claddingK.b * x;
+    if (!(k > 0)) throw new RangeError("the conductivity of the " + (i < nf ? "fuel" : "cladding") + " is not positive at " + x.toFixed(0) + " K, so there is no steady state at this heat rate");
+  });
+  const out = s.rejected / dt;
+  const made = s.deposited / dt;
+  if (!(Math.abs(out - made) <= 1e-7 * Math.max(made, 1))) throw new RangeError("the steady state did not settle: " + out + " W/m leaves, " + made + " W/m is made");
+  return { T: s.T, wall: s.wall };
 }

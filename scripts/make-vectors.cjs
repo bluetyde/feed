@@ -167,6 +167,30 @@ bad("unsupported-closed-gap", "E_UNSUPPORTED", "/gap/model", (c) => {
   c.geometry.claddingInnerRadius = { value: 4.1, unit: "mm" };
   c.gap = { model: "closed" };
 });
+// a transient that starts from the pin's steady operating state instead of a uniform temperature
+{
+  const c = pulse();
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyLinearHeatRate = { value: 20, unit: "kW/m" };
+  add("good", "pulse-steady-start", c, {});
+}
+badT("transient-initial-both", "E_TRANSIENT_INCOMPLETE", "/transient/initialSteadyLinearHeatRate", (c) => (c.transient.initialSteadyLinearHeatRate = { value: 20, unit: "kW/m" }));
+badT("transient-initial-neither", "E_TRANSIENT_INCOMPLETE", "/transient/initialTemperature", (c) => delete c.transient.initialTemperature);
+const badS = (name, code, field, mutate) =>
+  badT(name, code, field, (c) => {
+    delete c.transient.initialTemperature;
+    c.transient.initialSteadyLinearHeatRate = { value: 20, unit: "kW/m" };
+    mutate(c);
+  });
+badS("range-negative-initial-steady-power", "E_OUT_OF_RANGE", "/transient/initialSteadyLinearHeatRate", (c) => (c.transient.initialSteadyLinearHeatRate = { value: -1, unit: "kW/m" }));
+badS("units-initial-steady-power-wrong-dimension", "E_UNITS", "/transient/initialSteadyLinearHeatRate", (c) => (c.transient.initialSteadyLinearHeatRate = { value: 20, unit: "K" }));
+badS("range-steady-start-outside-heat-capacity-range", "E_OUT_OF_RANGE", "/transient/initialSteadyLinearHeatRate", (c) => {
+  c.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: { value: 0.9, unit: "MJ/m3/K" }, b: { value: 0.00417, unit: "MJ/m3/K2" }, validRange: { min: { value: 250, unit: "K" }, max: { value: 600, unit: "K" } }, source: "synthetic" };
+});
+badS("range-no-steady-state-at-this-power", "E_OUT_OF_RANGE", "/transient/initialSteadyLinearHeatRate", (c) => {
+  c.materials.fuel.sets["thermal.conductivity"] = { model: "linear", a: { value: 4, unit: "W/m/K" }, b: { value: -0.0035, unit: "W/m/K2" }, validRange: { min: { value: 300, unit: "K" }, max: { value: 1000, unit: "K" } }, source: "synthetic" };
+  c.transient.initialSteadyLinearHeatRate = { value: 60, unit: "kW/m" };
+});
 bad("unsupported-contact-model", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "contact" }));
 bad("unsupported-gas-gap", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "gas-gap" }));
 bad("unsupported-mechanics", "E_UNSUPPORTED", "/assumptions/thermalOnly", (c) => (c.assumptions.thermalOnly = false));

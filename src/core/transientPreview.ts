@@ -3,7 +3,7 @@
 
 import { adiabaticTemperature } from "./transientExact";
 import { maxOf } from "./transientFv";
-import { depositedEnergy, independentSolution, pinOf } from "./transientResults";
+import { depositedEnergy, independentSolution, initialState, pinOf } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
 /** Cells x steps above which the preview is skipped (it would take noticeable time in the server). */
@@ -30,7 +30,7 @@ export function transientPreview(c: NormalizedCase): TransientPreview {
   const cp = c.fuelHeatCapacity!;
   const a = cp.kind === "constant" ? cp.c : cp.a;
   const b = cp.kind === "constant" ? 0 : cp.b;
-  const adiabaticPeak = adiabaticTemperature(a, b, t.initialTemperature, perVolume);
+  const adiabaticPeak = adiabaticTemperature(a, b, initialState(c).fuelPeak, perVolume);
   const work = (c.mesh.fuelCells + c.mesh.claddingCells) * t.steps * 6;
   let preview: TransientPreview["preview"] = null;
   let skipped: string | null = null;

@@ -3,7 +3,7 @@
 // feed.results/0.2; the steady record (feed.results/0.1) is unchanged.
 
 import { Check, DomainFinding, ResultsError, THERMAL_ONLY_TEXT, assertWholeFoamFile, parsePatchValue, parseScalarField, parseVectorField } from "./resultsParser";
-import { FvTransient, Linear, TransientPin, enthalpy, maxOf, minOf, solveTransientFv, storedEnergy } from "./transientFv";
+import { FvTransient, Linear, TransientPin, enthalpy, maxOf, minOf, solveTransientFv, steadyFv, storedEnergy } from "./transientFv";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
 const bad = (message: string): never => {
@@ -34,7 +34,9 @@ export interface TransientResultsRecord {
   schema: "feed.results/0.2";
   kind: "transient";
   caseId: string;
+  /** The temperature the run is measured from: the uniform start, or for a steady start the hottest cell of that steady state. maxRise is measured from it. */
   initialTemperature: number;
+  initialState: { kind: "uniform"; temperature: number } | { kind: "steady"; linearHeatRate: number; peakTemperature: number };
   /** Output times in seconds, the first being 0 (the initial state). */
   times: number[];
   /** Cell-centre radii (fuel then cladding, each in radial order) and the temperature of every cell at every output time. */
@@ -97,6 +99,28 @@ export function pinOf(c: NormalizedCase, cellFactor = 1): TransientPin {
   };
 }
 
+/** Where a transient starts, on this case's mesh (or one refined by cellFactor): every cell's temperature (fuel inner to outer, then cladding inner to outer),
+ *  the outer wall, and the hottest cell. A uniform start is the given temperature; a steady start is the independent solution's steady field at the stated
+ *  linear heat rate with the case's own properties and boundary, which throws a RangeError (with the reason) when there is none. */
+export interface InitialState {
+  T: number[];
+  wall: number;
+  peak: number;
+  fuelPeak: number;
+}
+export function initialState(c: NormalizedCase, cellFactor = 1): InitialState {
+  const t = c.transient;
+  if (!t) throw new Error("not a transient case");
+  const nf = c.mesh.fuelCells * cellFactor;
+  const n = nf + c.mesh.claddingCells * cellFactor;
+  if (t.initial.kind === "uniform") {
+    const T0 = t.initial.temperature;
+    return { T: new Array<number>(n).fill(T0), wall: c.boundary.kind === "surface-temperature" ? c.boundary.surfaceTemperature : T0, peak: T0, fuelPeak: T0 };
+  }
+  const s = steadyFv(pinOf(c, cellFactor), t.initial.linearHeatRate);
+  return { T: s.T, wall: s.wall, peak: maxOf(s.T), fuelPeak: maxOf(s.T.slice(0, nf)) };
+}
+
 /** Exact integral of the piecewise-linear power history from 0 to t (J/m). */
 export function depositedEnergy(times: number[], q: number[], t: number): number {
   let e = 0;
@@ -113,7 +137,8 @@ export function depositedEnergy(times: number[], q: number[], t: number): number
 /** Run the independent solution for the case: the result at the output times, with the given step divisor and cell factor. */
 export function independentSolution(c: NormalizedCase, stepFactor = 1, cellFactor = 1, trace = false): FvTransient {
   const tr = c.transient!;
-  return solveTransientFv(pinOf(c, cellFactor), { dt: tr.timeStep / stepFactor, steps: tr.steps * stepFactor, initialTemperature: tr.initialTemperature, outputEvery: (tr.steps / tr.outputs) * stepFactor, trace });
+  const start = tr.initial.kind === "uniform" ? { initialTemperature: tr.initial.temperature } : { initialField: initialState(c, cellFactor).T };
+  return solveTransientFv(pinOf(c, cellFactor), { dt: tr.timeStep / stepFactor, steps: tr.steps * stepFactor, ...start, outputEvery: (tr.steps / tr.outputs) * stepFactor, trace });
 }
 
 /**
@@ -166,8 +191,9 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   for (let j = nf + 1; j < n; j++) if (!(cells[j]!.r - cells[j - 1]!.r > 1e-12)) bad("two cladding cells share a centre");
 
   const times = [0, ...input.fields.map((f) => f.time)];
-  const profiles: number[][] = [new Array<number>(n).fill(t.initialTemperature)];
-  const walls: number[] = [c.boundary.kind === "surface-temperature" ? c.boundary.surfaceTemperature : t.initialTemperature];
+  const init = initialState(c);
+  const profiles: number[][] = [init.T.slice()];
+  const walls: number[] = [init.wall];
   for (const [k, f] of input.fields.entries()) {
     const T = parseScalarField(f.T, "T");
     if (T.length !== n) bad(`time ${f.time}: expected ${n} cells, found ${T.length}`);
@@ -198,22 +224,25 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
     series.peakT.push(maxOf(p));
     series.fuelSurfaceCellT.push(p[nf - 1]!);
     series.claddingInnerCellT.push(p[nf]!);
-    series.stored.push(storedEnergy(pin, p, t.initialTemperature));
+    series.stored.push(storedEnergy(pin, p, t.initial.kind === "uniform" ? t.initial.temperature : init.T));
     if (k > 0) rej += 0.5 * (outflow(profiles[k - 1]!, walls[k - 1]!) + outflow(p, walls[k]!)) * (times[k]! - times[k - 1]!);
     series.rejected.push(rej);
   });
 
   const checks: Check[] = [];
   /** Rise of the hottest cell over the outputs. The check thresholds use the larger rise over every step of the independent solution. */
-  const outputRise = maxOf(series.peakT) - t.initialTemperature;
+  const outputRise = maxOf(series.peakT) - init.peak;
   let peakRise = outputRise;
 
   // energy balance from the output fields
   const k = times.length - 1;
-  const dep = series.deposited[k]!;
-  if (dep > 0) {
-    const worst = Math.max(...times.map((_, j) => (series.deposited[j]! > 0 ? Math.abs(series.deposited[j]! - series.stored[j]! - series.rejected[j]!) / series.deposited[j]! : 0)));
-    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the energy deposited so far. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
+  // From a uniform start the balance is judged against the energy deposited so far. From a steady operating state the heat made and the heat leaving are both large and
+  // nearly equal (and a shutdown deposits nothing), so it is judged against the largest of the energy deposited, rejected and stored so far.
+  const steadyStart = t.initial.kind === "steady";
+  const throughput = (j: number) => (steadyStart ? Math.max(series.deposited[j]!, series.rejected[j]!, Math.abs(series.stored[j]!)) : series.deposited[j]!);
+  if (throughput(k) > 0) {
+    const worst = Math.max(...times.map((_, j) => (throughput(j) > 0 ? Math.abs(series.deposited[j]! - series.stored[j]! - series.rejected[j]!) / throughput(j) : 0)));
+    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the ${steadyStart ? "largest of the energy deposited, rejected and stored so far (the run starts from a steady operating state)" : "energy deposited so far"}. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
   }
 
   // independent solution: same mesh and step (cross-check), double mesh (spatial error of the independent solution), half step (time error)
@@ -221,7 +250,11 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   const fv2 = independentSolution(c, 1, 2);
   const fvh = independentSolution(c, 2, 1, true);
   if (fv.states.length !== times.length) bad("the independent solution has a different number of outputs");
-  peakRise = Math.max(outputRise, maxOf(fv.trace!.peakByStep) - t.initialTemperature);
+  peakRise = Math.max(outputRise, maxOf(fv.trace!.peakByStep) - init.peak);
+  // The thresholds below are fractions of how far the pin's temperatures move. From a uniform start that is the rise; from a steady operating state the
+  // peak may hardly rise (a hold, a scram) while the whole field changes, so the scale is the peak ever reached above the coolant (or prescribed wall) temperature.
+  const outerRef = c.boundary.kind === "convective" ? c.boundary.bulkTemperature : c.boundary.surfaceTemperature;
+  const scaleRise = t.initial.kind === "steady" ? Math.max(peakRise, init.peak + peakRise - outerRef) : peakRise;
   const volumeWeights = (cellsPerRegion: number, rIn: number, rOut: number) => {
     const faces = Array.from({ length: cellsPerRegion + 1 }, (_, i) => rIn + ((rOut - rIn) * i) / cellsPerRegion);
     return faces;
@@ -267,10 +300,10 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   const coarse = fv.trace!.peakByStep;
   const fine = fvh.trace!.peakByStep;
   for (let j = 0; j < coarse.length; j++) timeErr = Math.max(timeErr, Math.abs(coarse[j]! - fine[2 * j]!));
-  const crossBound = Math.min(CROSS_CHECK_SPATIAL_FACTOR * spatial, CROSS_CHECK_RISE_FRACTION * Math.max(peakRise, 1)) + CROSS_CHECK_FLOOR;
+  const crossBound = Math.min(CROSS_CHECK_SPATIAL_FACTOR * spatial, CROSS_CHECK_RISE_FRACTION * Math.max(scaleRise, 1)) + CROSS_CHECK_FLOOR;
   checks.push({ id: "crossCheckFv", label: "OFFBEAT vs the independent finite-volume solution (max cell deviation)", value: cross, unit: "K", verdict: cross <= crossBound ? "pass" : "fail", note: `largest at t = ${crossAt} s; bound ${crossBound.toFixed(3)} K = min(${CROSS_CHECK_SPATIAL_FACTOR} x ${spatial.toFixed(3)} K [the independent solution's own change when its cells are halved], ${CROSS_CHECK_RISE_FRACTION * 100}% of the peak rise) + ${CROSS_CHECK_FLOOR} K` });
   // the independent run with half the step shows how much the time stepping (first order, as OFFBEAT's) is worth
-  const timeBound = TIME_STEP_TOLERANCE * Math.max(peakRise, 1);
+  const timeBound = TIME_STEP_TOLERANCE * Math.max(scaleRise, 1);
   checks.push({ id: "timeStep", label: "Time-stepping error of the peak temperature (step vs half step)", value: timeErr, unit: "K", verdict: timeErr <= timeBound ? "pass" : "fail", note: `the peak changes by at most ${timeErr.toFixed(3)} K, at any step of the run, when the step is halved; threshold ${TIME_STEP_TOLERANCE * 100}% of the peak rise (${timeBound.toFixed(2)} K). If it fails, shorten the time step` });
 
   if (c.boundary.kind === "surface-temperature") {
@@ -313,7 +346,8 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
     schema: "feed.results/0.2",
     kind: "transient",
     caseId: c.caseId,
-    initialTemperature: t.initialTemperature,
+    initialTemperature: init.peak,
+    initialState: t.initial.kind === "uniform" ? { kind: "uniform", temperature: t.initial.temperature } : { kind: "steady", linearHeatRate: t.initial.linearHeatRate, peakTemperature: init.peak },
     times,
     cells,
     profiles,

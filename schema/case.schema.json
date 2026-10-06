@@ -43,7 +43,8 @@
         "endTime": { "$ref": "#/$defs/quantity" },
         "timeStep": { "$ref": "#/$defs/quantity" },
         "outputs": { "type": "integer" },
-        "initialTemperature": { "$ref": "#/$defs/quantity" }
+        "initialTemperature": { "$ref": "#/$defs/quantity" },
+        "initialSteadyLinearHeatRate": { "$ref": "#/$defs/quantity" }
       }
     },
     "boundary": {
