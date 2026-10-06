@@ -9,12 +9,13 @@
 // Pure functions, no I/O. `mapping.spatial` is FEED's vocabulary (documented in docs/transfer-heating.md).
 
 import { Failed, TransferIssue, firstOverlap } from "./transfer";
+import { BOUNDARY_DESCRIPTION, BOUNDARY_FIELD, BoundaryReply as BoundaryReplyType, transferBoundary } from "./transferBoundary";
 import { validateCase } from "./validate";
 
 export const REQUEST_SCHEMA = "seed.transfer-request/0.2";
 export const RECIPE_SCHEMA = "seed.transfer-recipe/0.2";
-/** The transfers FEED accepts; `describe` reports these to SEED. The coolant boundary waits for SEED's NODAL source shape. */
-export const TRANSFER_FIELDS = ["heating-to-pin"] as const;
+/** The transfers FEED accepts; `describe` reports these to SEED. */
+export const TRANSFER_FIELDS = ["heating-to-pin", BOUNDARY_FIELD] as const;
 
 export const DESCRIBE_TRANSFERS = [
   {
@@ -32,6 +33,7 @@ export const DESCRIBE_TRANSFERS = [
       time: "steady only",
     },
   },
+  BOUNDARY_DESCRIPTION,
 ];
 
 const REL_Z = 1e-9;
@@ -128,7 +130,7 @@ export function transferHeating(requestIn: unknown): TransferReply {
   const recipeDigest = typeof requestIn.recipeDigest === "string" ? requestIn.recipeDigest : undefined;
   const target = recipe.target;
   if (!isObj(target) || target.app !== "feed") return refuse("E_RECIPE_INVALID", "/recipe/target/app", "the recipe's target is not FEED");
-  if (!(TRANSFER_FIELDS as readonly string[]).includes(String(target.field))) return refuse("E_UNSUPPORTED", "/recipe/target/field", `FEED accepts ${TRANSFER_FIELDS.join(", ")}; ${String(target.field)} is not one of them`);
+  if (target.field !== "heating-to-pin") return refuse("E_UNSUPPORTED", "/recipe/target/field", `FEED accepts ${TRANSFER_FIELDS.join(", ")}; ${String(target.field)} is not one of them`);
 
   // recipe parts FEED reads
   const rs = recipe.source;
@@ -392,4 +394,10 @@ export function transferHeating(requestIn: unknown): TransferReply {
       warnings: after.warnings.map((w) => ({ code: w.code, field: w.field, message: w.message })),
     },
   };
+}
+
+/** The `transfer` command: route SEED's request to the transfer its recipe names. */
+export function transfer(requestIn: unknown): TransferReply | BoundaryReplyType {
+  const field = isObj(requestIn) && isObj(requestIn.recipe) && isObj(requestIn.recipe.target) ? requestIn.recipe.target.field : undefined;
+  return field === BOUNDARY_FIELD ? transferBoundary(requestIn) : transferHeating(requestIn);
 }

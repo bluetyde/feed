@@ -15,7 +15,7 @@ import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { isAbsolute, join } from "path";
 import { RunManager } from "../core/runManager";
-import { DESCRIBE_TRANSFERS, transferHeating } from "../core/transferRequest";
+import { DESCRIBE_TRANSFERS, transfer as runTransfer } from "../core/transferRequest";
 import { Issue, validateCase } from "../core/validate";
 import { solverAvailable, WslBackend } from "../core/wslBackend";
 
@@ -138,7 +138,7 @@ function transfer() {
   } catch {
     return out({ ok: false, errors: [{ code: "E_SCHEMA_INVALID", field: "", message: "stdin is not a JSON transfer request" }] }, 0);
   }
-  const reply = transferHeating(request);
+  const reply = runTransfer(request);
   out(reply.ok ? { ok: true, output: reply.output, checks: reply.checks } : { ok: false, errors: reply.errors.slice(0, 20) }, 0);
 }
 
