@@ -122,6 +122,16 @@ describe("a bulk temperature and a heat transfer coefficient (bulk-plus-h)", () 
     expect(doc.provenance.transfers[0].samples[0]).toMatchObject({ unit: "degC", value: 300 });
   });
 
+  it("a recipe without unitTo (it is optional in the contract) is accepted: the coefficient is converted from its own unit", () => {
+    const r = change((x) => {
+      delete x.recipe.source.additional[0].unitTo;
+      x.recipe.source.additional[0].unit = "kW/m2/K";
+      x.source.additional[0].quantity.unit = "kW/m2/K";
+      x.source.additional[0].selected.value = 12.5;
+    });
+    expect(ok(r).doc.boundary.heatTransferCoefficient).toEqual({ value: 12500, unit: "W/m2/K" });
+  });
+
   it("an interpolated sample is flagged in the case and in the checks", () => {
     const { out, doc } = ok(request({ primary: { x: 1.5, value: 571.575, interpolated: true }, extra: { x: 1.5, value: 29500, interpolated: true } }));
     expect(doc.provenance.transfers[0].samples.map((s: any) => s.interpolated)).toEqual([true, true]);
@@ -245,7 +255,6 @@ describe("refusals (each with its code)", () => {
     ["a zero coefficient", change((r) => (r.source.additional[0].selected.value = 0)), "E_OUT_OF_RANGE"],
     ["a negative coefficient", change((r) => (r.source.additional[0].selected.value = -5)), "E_OUT_OF_RANGE"],
     ["a coefficient in a unit FEED does not read", change((r) => { r.recipe.source.additional[0].unit = "W/m2"; r.source.additional[0].quantity.unit = "W/m2"; }), "E_UNITS"],
-    ["no unitTo for the coefficient", change((r) => delete r.recipe.source.additional[0].unitTo), "E_UNITS"],
     ["unitTo that is not W/m2/K", change((r) => (r.recipe.source.additional[0].unitTo = "kW/m2/K")), "E_UNITS"],
     ["no target text", change((r) => delete r.target.content), "E_SCHEMA_INVALID"],
     ["a target that is not JSON", change((r) => (r.target.content = "{nope")), "E_SCHEMA_INVALID"],

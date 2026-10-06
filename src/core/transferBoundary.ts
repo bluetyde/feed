@@ -145,7 +145,8 @@ export function transferBoundary(requestIn: unknown): BoundaryReply {
     if ("ok" in s) return s;
     const f = HTC_FACTOR[s.unit];
     if (f === undefined) return refuse("E_UNITS", "/source/additional/0/quantity/unit", `the coefficient is in ${s.unit}; FEED reads W/m2/K or kW/m2/K`);
-    if (spec.unitTo !== "W/m2/K") return refuse("E_UNITS", "/recipe/source/additional/0/unitTo", "FEED sets the coefficient in W/m2/K (unitTo is W/m2/K)");
+    // unitTo is optional in the contract: absent, FEED converts from the known source unit to the unit its case uses; present, it must name that unit
+    if (spec.unitTo !== undefined && spec.unitTo !== "W/m2/K") return refuse("E_UNITS", "/recipe/source/additional/0/unitTo", "FEED sets the coefficient in W/m2/K; unitTo is " + String(spec.unitTo));
     h = s.value * f;
     if (!finite(h) || !(h > 0)) return refuse("E_OUT_OF_RANGE", "/source/additional/0/selected/value", `the heat transfer coefficient is ${s.value} ${s.unit}; it must be positive`);
     samples.push(s);
