@@ -126,6 +126,27 @@ export interface ResultsRecord {
   thermalOnly: string;
 }
 
+/**
+ * One check for each solid whose conductivity came from a table: how far the polynomial that was run is from the table at the table's own points. The case was refused
+ * if this exceeded its tolerance, so it passes by construction; it is in the result so that a result carries the approximation it rests on.
+ */
+export function fitChecks(c: NormalizedCase): Check[] {
+  const out: Check[] = [];
+  for (const [region, k] of [["fuel", c.fuelConductivity], ["cladding", c.claddingConductivity]] as const) {
+    if (k.kind !== "polynomial" || !k.fit) continue;
+    const f = k.fit;
+    out.push({
+      id: region === "fuel" ? "conductivityFitFuel" : "conductivityFitCladding",
+      label: `The ${region}'s tabulated conductivity vs the polynomial that was run (max deviation at the table's points)`,
+      value: f.maxRelativeDeviation,
+      unit: "relative",
+      verdict: f.maxRelativeDeviation <= f.tolerance ? "pass" : "fail",
+      note: `a degree ${f.degree} polynomial fitted by least squares to ${f.points.length} points from ${k.range[0]} to ${k.range[1]} K; the largest deviation is ${(f.maxRelativeDeviation * 100).toPrecision(3)}% at ${f.worstAt} K; tolerance ${(f.tolerance * 100).toPrecision(3)}%. OFFBEAT has no tabulated conductivity, so what ran is the polynomial, not the table`,
+    });
+  }
+  return out;
+}
+
 export const THERMAL_ONLY_TEXT = "Thermal-only result. It says nothing about stress, failure or fuel integrity.";
 
 /** Energy-balance diagnostic threshold (relative). A diagnostic from two cladding cell values, not a gate. */
@@ -235,6 +256,8 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   if (rangeOf(c.fuelConductivity) || rangeOf(c.claddingConductivity)) {
     checks.push({ id: "propertyRange", label: "Conductivity law within its stated range", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated range" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". The law was extrapolated; this result is out-of-domain." });
   }
+
+  checks.push(...fitChecks(c));
 
   if (input.drift !== undefined) {
     // Steady-state gate (src/core/steadyState.ts): after an implicit step the deviation still to go is K^-1 C (dT/dt), so its largest

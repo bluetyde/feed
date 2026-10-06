@@ -4,7 +4,7 @@
 
 import { lawOf, primitive, rangeOf } from "./conductivity";
 import { GeneratedPulse } from "./pointKinetics";
-import { Check, DomainFinding, ResultsError, THERMAL_ONLY_TEXT, assertWholeFoamFile, parsePatchValue, parseScalarField, parseVectorField } from "./resultsParser";
+import { Check, DomainFinding, fitChecks, ResultsError, THERMAL_ONLY_TEXT, assertWholeFoamFile, parsePatchValue, parseScalarField, parseVectorField } from "./resultsParser";
 import { FvTransient, Linear, TransientPin, enthalpy, maxOf, minOf, solveTransientFv, steadyFv, storedEnergy } from "./transientFv";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
@@ -411,6 +411,7 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
     checks.push({ id: "propertyRange", label: "Property laws within their stated ranges", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated ranges at every output and at every step of the independent solution" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". A law was extrapolated; this result is out-of-domain." });
   }
 
+  checks.push(...fitChecks(c));
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value})`);
   const jMax = series.peakT.indexOf(maxOf(series.peakT));
   return {
