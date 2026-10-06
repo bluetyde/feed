@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, w
 import { dirname, join } from "path";
 import { writeOffbeatCase } from "./caseWriter";
 import { judgeConvergence, readCriterion } from "./convergence";
+import { lastRelativeRate } from "./steadyState";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
 import { buildTransientResults, TransientResultsRecord } from "./transientResults";
 import { Issue, validateCase } from "./validate";
@@ -391,7 +392,7 @@ export class RunManager {
         if (exit.offbeatExit !== 0) r.notes.push(`The solver exited with code ${exit.offbeatExit}${SIGNALS[exit.offbeatExit] ? " (" + SIGNALS[exit.offbeatExit] + ")" : ""} after writing a complete output. This is a known OFFBEAT shutdown crash; the result was accepted because the output is complete and finite.`);
         return;
       }
-      const results = buildResults(normalized, { T, C, time: exit.finalTime });
+      const results = buildResults(normalized, { T, C, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
       atomicWrite(join(dir, "results.json"), JSON.stringify(results, null, 2) + "\n");
       r.headline = { centreCellT: results.summary.centreCellT, claddingOuterWallT: results.summary.claddingOuterWallT };
     } catch (e) {

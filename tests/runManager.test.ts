@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, describe, expect, it } from "vitest";
 import { RunManager } from "../src/core/runManager";
-import { FakeBackend, Script } from "./helpers/fakeBackend";
+import { convergedLog, FakeBackend, Script } from "./helpers/fakeBackend";
 
 const root = join(__dirname, "..");
 const pin = () => JSON.parse(readFileSync(join(root, "examples/synthetic-pin.json"), "utf8"));
@@ -449,18 +449,41 @@ describe("run manager: convergence and exit status (F0 finding 2)", () => {
     expect(mgr.results(id)).toBeUndefined();
   });
 
+  it("a steady run whose last step printed no change gets a passing steadyState check (a bound of 0 K)", async () => {
+    const { mgr, id } = await runOne("good");
+    const c = (mgr.results(id) as ResultsRecord).checks.find((x) => x.id === "steadyState")!;
+    expect(c).toMatchObject({ verdict: "pass", value: 0, unit: "K" });
+  });
+
+  it("a steady run whose last step still printed a drift is a result with a FAILED steadyState check, not a silent pass", async () => {
+    const { rec, mgr, id } = await runOne("drifting");
+    expect(rec.state).toBe("completed");
+    const c = (mgr.results(id) as ResultsRecord).checks.find((x) => x.id === "steadyState")!;
+    expect(c.verdict).toBe("fail");
+    expect(c.value).toBeGreaterThan(0.01);
+    expect(c.note).toMatch(/still to change/);
+  });
+
+  it("a steady run whose log has no temperature-rate record cannot show it settled: the check fails, it is not skipped", async () => {
+    const { rec, mgr, id } = await runOne("no-rate-record");
+    expect(rec.state).toBe("completed");
+    const c = (mgr.results(id) as ResultsRecord).checks.find((x) => x.id === "steadyState")!;
+    expect(c.verdict).toBe("fail");
+    expect(c.note).toMatch(/cannot be judged/);
+  });
+
   // the tolerances are the ones in THIS run's system/fvSolution, read after the solver ran
   class EditsFvSolution extends FakeBackend {
-    constructor(private edit: (inputsDir: string) => void) {
+    constructor(private edit: (inputsDir: string, nativeDir: string) => void) {
       super("good");
     }
     async run(a: { id: string; inputsDir: string; nativeDir: string; timeoutMs: number }) {
       const out = await super.run(a);
-      this.edit(a.inputsDir);
+      this.edit(a.inputsDir, a.nativeDir);
       return out;
     }
   }
-  const withEdit = async (edit: (inputsDir: string) => void) => {
+  const withEdit = async (edit: (inputsDir: string, nativeDir: string) => void) => {
     const runsRoot = mkdtempSync(join(tmpdir(), "feed-runs-"));
     dirs.push(runsRoot);
     const mgr = new RunManager({ runsRoot, backend: new EditsFvSolution(edit) });
@@ -470,7 +493,8 @@ describe("run manager: convergence and exit status (F0 finding 2)", () => {
   };
 
   it("the same converged log fails when this run's own tolerances are far stricter", async () => {
-    const { rec } = await withEdit((d) => {
+    const { rec } = await withEdit((d, native) => {
+      writeFileSync(join(native, "log.offbeat"), convergedLog()); // a last step with absErrT 8e-8 (a steady run's last step has exactly 0, which meets any tolerance)
       const f = join(d, "system", "fvSolution");
       writeFileSync(f, readFileSync(f, "utf8").replace(/relT\s+1e-6;/, "relT 1e-30;").replace(/\bT\s+1e-5;/, "T 1e-30;"));
     });

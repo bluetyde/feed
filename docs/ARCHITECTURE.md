@@ -83,7 +83,7 @@ SEED's oracle-entry format: inputs, expected quantity or refusal code, tolerance
 2. Snapshot the case into `runs/<id>/inputs/` with hashes.
 3. Write the solver case; record the mapping.
 4. Run the pinned solver with an explicit argument list, timeout and owned process tree.
-5. Check completion: exit code, expected fields present, finite values, residual or convergence status from the solver. Implemented in `src/core/convergence.ts`: the log's last outer iteration (final step; every step for a transient) must meet OFFBEAT's own criterion, else `E_NOT_CONVERGED`.
+5. Check completion: exit code, expected fields present, finite values, residual or convergence status from the solver. Implemented in `src/core/convergence.ts`: the log's last outer iteration (final step; every step for a transient) must meet OFFBEAT's own criterion, else `E_NOT_CONVERGED`. A steady result also carries the `steadyState` check (`src/core/steadyState.ts`): the bound on what is still changing after OFFBEAT's last step must be at most 0.01 K.
 6. Parse to `results.json`; keep the solver's native output untouched in `native/`.
 7. Show results with the assumptions and domain status; compute the energy-balance check from the result.
 

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { ConvergenceCriterion, judgeConvergence, parseSteps, readCriterion, thermalConverged } from "../src/core/convergence";
 
 const dir = join(__dirname, "golden", "offbeat-convergence");
-const log = (n: string) => readFileSync(join(dir, n + ".log"), "utf8");
+const log = (n: string) => readFileSync(join(dir, n + ".log.txt"), "utf8");
 const fv = (n: string) => `solvers {}\n${readFileSync(join(dir, n + ".stressAnalysis.txt"), "utf8")}\nrelaxationFactors {}\n`;
 const crit = (n: string): ConvergenceCriterion => {
   const r = readCriterion(fv(n));

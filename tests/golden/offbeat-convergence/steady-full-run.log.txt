@@ -1,0 +1,5274 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 9-c96968adf6d8
+Exec   : offbeat
+Date   : Oct 06 2026
+Time   : 12:13:25
+Host   : "2ndJohnComputer"
+PID    : 707
+I/O    : uncollated
+Case   : /home/feed/runs/oracle-f0fix1
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Selected time unit: seconds
+Selected end time: 5e+07 seconds
+
+Create mesh for time = 0
+
+Selecting materials model byZone
+     For cellzone fuel: 
+     Selecting material model --> constant
+
+     For cellzone cladding: 
+     Selecting material model --> constant
+
+Selecting sliceMapper model autoAxialSlices
+
+     Thermal expansion: on
+     Plane stress: off
+     Modified plane strain: off
+
+     For material constant: 
+     Selecting rheology model elasticity
+     Selecting constitutiveLaw type --> elasticity
+
+     For material constant: 
+     Selecting rheology model elasticity
+     Selecting constitutiveLaw type --> elasticity
+
+Selecting heatSource constantLhgr
+Selecting radial profile --> flat
+Selecting azimuthal profile --> flat
+Selecting axial profile flat
+Selecting burnup: none
+Selecting neutronicsSolver model none
+Selecting fastFlux none
+Selecting thermalSolver model solidConduction
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+--> FOAM Warning : 
+    From function mechanicsSubSolver::New(const fvMesh&, const materials&, rheology&, const dictinoary&)
+    in file physicsSubSolvers/mechanicsSubSolver/mechanicsSubSolver.C at line 1560
+    Type 'fromLatestTime' for `mechanicsSolver` is deprecated. Please use 'constant' instead.
+Selecting mechanicsSolver model constant
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+
+Axisymmetric case: disabling the solution in the out-of-plane direction
+    out-of-plane direction: y
+
+Selecting fgr: none
+Selecting gapGasModel none
+--> FOAM Warning : 
+    From function elementTransport::New(fvMesh&, const materials&, const dictinoary&)
+    in file corrosion/corrosion.C at line 130
+    Type 'fromLatestTime' for `corrosion` is deprecated. Please use 'constant' instead.
+Selecting corrosion: constant
+Selecting elementTransportSolver none
+No flow solver selected. Flow solver is disabled.
+List of user-supplied parameters:
+
+List of all registered (default) user parameters:
+	behavioralModels::densification::F_epsilonDensification	behavioralModels::densification::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::UO2FRAPCON::F_epsilonDensification	behavioralModels::densification::UO2FRAPCON::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::UO2FRAPCON::delta_epsilonDensification	behavioralModels::densification::UO2FRAPCON::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::densification::delta_epsilonDensification	behavioralModels::densification::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::densification::empirical::F_epsilonDensification	behavioralModels::densification::empirical::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::empirical::delta_epsilonDensification	behavioralModels::densification::empirical::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::phaseTransition::F_betaFraction	behavioralModels::phaseTransition::F_betaFraction [0 0 0 0 0 0 0] 1
+	behavioralModels::phaseTransition::delta_betaFraction	behavioralModels::phaseTransition::delta_betaFraction [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::F_epsilonRelocation	behavioralModels::relocation::F_epsilonRelocation [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::F_epsilonRelocationRecovery	behavioralModels::relocation::F_epsilonRelocationRecovery [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::UO2FRAPCON::F_epsilonRelocation	behavioralModels::relocation::UO2FRAPCON::F_epsilonRelocation [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::UO2FRAPCON::delta_epsilonRelocation	behavioralModels::relocation::UO2FRAPCON::delta_epsilonRelocation [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::delta_epsilonRelocation	behavioralModels::relocation::delta_epsilonRelocation [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::delta_epsilonRelocationRecovery	behavioralModels::relocation::delta_epsilonRelocationRecovery [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::BufferPARFUME::F_epsilonSwelling	behavioralModels::swelling::BufferPARFUME::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::BufferPARFUME::delta_epsilonSwelling	behavioralModels::swelling::BufferPARFUME::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::FBRMOX::F_epsilonSwelling	behavioralModels::swelling::FBRMOX::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FBRMOX::delta_epsilonSwelling	behavioralModels::swelling::FBRMOX::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::F_epsilonSwelling	behavioralModels::swelling::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FrCrAl::F_epsilonSwelling	behavioralModels::swelling::FrCrAl::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FrCrAl::delta_epsilonSwelling	behavioralModels::swelling::FrCrAl::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::PyCCorrelation::F_epsilonSwelling	behavioralModels::swelling::PyCCorrelation::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::PyCCorrelation::delta_epsilonSwelling	behavioralModels::swelling::PyCCorrelation::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::PyCPARFUME::F_epsilonSwelling	behavioralModels::swelling::PyCPARFUME::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::PyCPARFUME::delta_epsilonSwelling	behavioralModels::swelling::PyCPARFUME::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::UO2FRAPCON::F_epsilonSwelling	behavioralModels::swelling::UO2FRAPCON::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::UO2FRAPCON::delta_epsilonSwelling	behavioralModels::swelling::UO2FRAPCON::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::UO2MATPRO::F_epsilonSwelling	behavioralModels::swelling::UO2MATPRO::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::UO2MATPRO::delta_epsilonSwelling	behavioralModels::swelling::UO2MATPRO::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::WrightShamHastelloyN::F_epsilonSwelling	behavioralModels::swelling::WrightShamHastelloyN::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::WrightShamHastelloyN::delta_epsilonSwelling	behavioralModels::swelling::WrightShamHastelloyN::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::constant::F_epsilonSwelling	behavioralModels::swelling::constant::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::constant::delta_epsilonSwelling	behavioralModels::swelling::constant::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::delta_epsilonSwelling	behavioralModels::swelling::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthAIM11515Ti::F_epsilonSwelling	behavioralModels::swelling::growthAIM11515Ti::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthAIM11515Ti::delta_epsilonSwelling	behavioralModels::swelling::growthAIM11515Ti::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthBISONZy::F_epsilonSwelling	behavioralModels::swelling::growthBISONZy::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthBISONZy::delta_epsilonSwelling	behavioralModels::swelling::growthBISONZy::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthGeneralized1515Ti::F_epsilonSwelling	behavioralModels::swelling::growthGeneralized1515Ti::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthGeneralized1515Ti::delta_epsilonSwelling	behavioralModels::swelling::growthGeneralized1515Ti::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::F_hContact	boundaryConditions::fuelRodGap::F_hContact [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::F_hGas	boundaryConditions::fuelRodGap::F_hGas [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::F_hRad	boundaryConditions::fuelRodGap::F_hRad [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::delta_hContact	boundaryConditions::fuelRodGap::delta_hContact [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::delta_hGas	boundaryConditions::fuelRodGap::delta_hGas [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::delta_hRad	boundaryConditions::fuelRodGap::delta_hRad [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepIrrEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepIrrEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepPrimEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepPrimEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepThEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepThEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepIrrEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepIrrEq [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepPrimEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepPrimEq [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepThEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepThEq [0 0 0 0 0 0 0] 0
+	materials::F_Cp	materials::F_Cp [0 0 0 0 0 0 0] 1
+	materials::F_E	materials::F_E [0 0 0 0 0 0 0] 1
+	materials::F_alphaT	materials::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::F_emissivity	materials::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::F_k	materials::F_k [0 0 0 0 0 0 0] 1
+	materials::F_nu	materials::F_nu [0 0 0 0 0 0 0] 1
+	materials::F_rho	materials::F_rho [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_Cp	materials::HastelloyN::F_Cp [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_E	materials::HastelloyN::F_E [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_alphaT	materials::HastelloyN::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_emissivity	materials::HastelloyN::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_k	materials::HastelloyN::F_k [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_nu	materials::HastelloyN::F_nu [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_rho	materials::HastelloyN::F_rho [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::delta_Cp	materials::HastelloyN::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::HastelloyN::delta_E	materials::HastelloyN::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::HastelloyN::delta_alphaT	materials::HastelloyN::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_emissivity	materials::HastelloyN::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_k	materials::HastelloyN::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::HastelloyN::delta_nu	materials::HastelloyN::delta_nu [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_rho	materials::HastelloyN::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::PyC::F_Cp	materials::PyC::F_Cp [0 0 0 0 0 0 0] 1
+	materials::PyC::F_E	materials::PyC::F_E [0 0 0 0 0 0 0] 1
+	materials::PyC::F_alphaT	materials::PyC::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::PyC::F_emissivity	materials::PyC::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::PyC::F_k	materials::PyC::F_k [0 0 0 0 0 0 0] 1
+	materials::PyC::F_nu	materials::PyC::F_nu [0 0 0 0 0 0 0] 1
+	materials::PyC::F_rho	materials::PyC::F_rho [0 0 0 0 0 0 0] 1
+	materials::PyC::delta_Cp	materials::PyC::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::PyC::delta_E	materials::PyC::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::PyC::delta_alphaT	materials::PyC::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_emissivity	materials::PyC::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_k	materials::PyC::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::PyC::delta_nu	materials::PyC::delta_nu [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_rho	materials::PyC::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::SiC::F_Cp	materials::SiC::F_Cp [0 0 0 0 0 0 0] 1
+	materials::SiC::F_E	materials::SiC::F_E [0 0 0 0 0 0 0] 1
+	materials::SiC::F_alphaT	materials::SiC::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::SiC::F_emissivity	materials::SiC::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::SiC::F_k	materials::SiC::F_k [0 0 0 0 0 0 0] 1
+	materials::SiC::F_nu	materials::SiC::F_nu [0 0 0 0 0 0 0] 1
+	materials::SiC::F_rho	materials::SiC::F_rho [0 0 0 0 0 0 0] 1
+	materials::SiC::delta_Cp	materials::SiC::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::SiC::delta_E	materials::SiC::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::SiC::delta_alphaT	materials::SiC::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_emissivity	materials::SiC::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_k	materials::SiC::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::SiC::delta_nu	materials::SiC::delta_nu [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_rho	materials::SiC::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::UO2::F_Cp	materials::UO2::F_Cp [0 0 0 0 0 0 0] 1
+	materials::UO2::F_E	materials::UO2::F_E [0 0 0 0 0 0 0] 1
+	materials::UO2::F_alphaT	materials::UO2::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::UO2::F_emissivity	materials::UO2::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::UO2::F_k	materials::UO2::F_k [0 0 0 0 0 0 0] 1
+	materials::UO2::F_nu	materials::UO2::F_nu [0 0 0 0 0 0 0] 1
+	materials::UO2::F_rho	materials::UO2::F_rho [0 0 0 0 0 0 0] 1
+	materials::UO2::delta_Cp	materials::UO2::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::UO2::delta_E	materials::UO2::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::UO2::delta_alphaT	materials::UO2::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_emissivity	materials::UO2::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_k	materials::UO2::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::UO2::delta_nu	materials::UO2::delta_nu [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_rho	materials::UO2::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::UPuO2::F_Cp	materials::UPuO2::F_Cp [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_E	materials::UPuO2::F_E [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_alphaT	materials::UPuO2::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_emissivity	materials::UPuO2::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_k	materials::UPuO2::F_k [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_nu	materials::UPuO2::F_nu [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_rho	materials::UPuO2::F_rho [0 0 0 0 0 0 0] 1
+	materials::UPuO2::delta_Cp	materials::UPuO2::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::UPuO2::delta_E	materials::UPuO2::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::UPuO2::delta_alphaT	materials::UPuO2::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_emissivity	materials::UPuO2::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_k	materials::UPuO2::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::UPuO2::delta_nu	materials::UPuO2::delta_nu [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_rho	materials::UPuO2::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::buffer::F_Cp	materials::buffer::F_Cp [0 0 0 0 0 0 0] 1
+	materials::buffer::F_E	materials::buffer::F_E [0 0 0 0 0 0 0] 1
+	materials::buffer::F_alphaT	materials::buffer::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::buffer::F_emissivity	materials::buffer::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::buffer::F_k	materials::buffer::F_k [0 0 0 0 0 0 0] 1
+	materials::buffer::F_nu	materials::buffer::F_nu [0 0 0 0 0 0 0] 1
+	materials::buffer::F_rho	materials::buffer::F_rho [0 0 0 0 0 0 0] 1
+	materials::buffer::delta_Cp	materials::buffer::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::buffer::delta_E	materials::buffer::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::buffer::delta_alphaT	materials::buffer::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_emissivity	materials::buffer::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_k	materials::buffer::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::buffer::delta_nu	materials::buffer::delta_nu [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_rho	materials::buffer::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::delta_Cp	materials::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::delta_E	materials::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::delta_alphaT	materials::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::delta_emissivity	materials::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::delta_k	materials::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::delta_nu	materials::delta_nu [0 0 0 0 0 0 0] 0
+	materials::delta_rho	materials::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::zircaloy::F_Cp	materials::zircaloy::F_Cp [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_E	materials::zircaloy::F_E [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_alphaT	materials::zircaloy::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_emissivity	materials::zircaloy::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_k	materials::zircaloy::F_k [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_nu	materials::zircaloy::F_nu [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_rho	materials::zircaloy::F_rho [0 0 0 0 0 0 0] 1
+	materials::zircaloy::delta_Cp	materials::zircaloy::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::zircaloy::delta_E	materials::zircaloy::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::zircaloy::delta_alphaT	materials::zircaloy::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_emissivity	materials::zircaloy::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_k	materials::zircaloy::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::zircaloy::delta_nu	materials::zircaloy::delta_nu [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_rho	materials::zircaloy::delta_rho [1 -3 0 0 0 0 0] 0
+
+--> FOAM Warning : 
+    From function virtual void Foam::probes::findElements(const Foam::fvMesh&)
+    in file probes/probes.C at line 117
+    Did not find location (0 0 1.5) in any cell. Skipping location.
+Time = 1 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+The model is axisymmetric (wedge patches are used).
+Angular fraction calculated by timeDependentRadialAxialProfile::calcAngularFraction:
+	0.000694444
+
+FDICPCG:  Solving for T, Initial residual = 1, Final residual = 0.0934315, No Iterations 2
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 11.5531
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -11.5531
+	cladOuter: 21.603
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 1
+absErrT is 285.699
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 0.0463355, Final residual = 0.00324357, No Iterations 1
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 12.1156
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -12.1156
+	cladOuter: 21.422
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0.039029
+absErrT is 11.1641
+
+OuterIteration n. 2
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 0.00343765, Final residual = 0.000134311, No Iterations 2
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 11.7594
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -11.7594
+	cladOuter: 20.959
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0.0227667
+absErrT is 6.53246
+
+OuterIteration n. 3
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 0.000134971, Final residual = 1.7427e-06, No Iterations 1
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 11.7588
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -11.7588
+	cladOuter: 20.9704
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 7.57244e-05
+absErrT is 0.021726
+
+OuterIteration n. 4
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 1.74297e-06, Final residual = 5.28258e-10, No Iterations 2
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 11.7588
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -11.7588
+	cladOuter: 20.9699
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 5.82274e-06
+absErrT is 0.0016706
+
+OuterIteration n. 5
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 5.2826e-10, Final residual = 3.06647e-14, No Iterations 1
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 11.7588
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -11.7588
+	cladOuter: 20.9699
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 2.94549e-10
+absErrT is 8.45091e-08
+
+Maximum deltaT calculated by thermal subsolver: 9.62363e+15 with a relative temperature change of 0.467973 K/s
+Maximum deltaT calculated by constantHeatSource model: 4.5036e+24 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 2.02824e+31 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 604801 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 6  Total Timesteps = 1
+
+Time = 604801 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 0.0459913, Final residual = 0.00122644, No Iterations 2
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.9761
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.9761
+	cladOuter: 14.2657
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 1
+absErrT is 303.505
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 0.000864344, Final residual = 1.93342e-05, No Iterations 2
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8876
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8876
+	cladOuter: 13.8931
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0.0123256
+absErrT is 3.69535
+
+OuterIteration n. 2
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 1.94635e-05, Final residual = 5.19027e-07, No Iterations 2
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8891
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0.000603487
+absErrT is 0.18104
+
+OuterIteration n. 3
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 5.18935e-07, Final residual = 1.16079e-08, No Iterations 2
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 7.34785e-06
+absErrT is 0.00220427
+
+Maximum deltaT calculated by thermal subsolver: 1.18451e+22 with a relative temperature change of 3.80207e-07 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.2096e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 10  Total Timesteps = 2
+
+Time = 1.2096e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 5.72024e-08, Final residual = 4.26152e-23, No Iterations 3
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 1
+absErrT is 0.00185472
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 2.67856e-15, Final residual = 2.67856e-15, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 1.91587e+27 with a relative temperature change of 2.35068e-12 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.8144e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 12  Total Timesteps = 3
+
+Time = 1.8144e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.4192e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 14  Total Timesteps = 4
+
+Time = 2.4192e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.024e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 16  Total Timesteps = 5
+
+Time = 3.024e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.6288e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 18  Total Timesteps = 6
+
+Time = 3.6288e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.2336e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 20  Total Timesteps = 7
+
+Time = 4.2336e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.8384e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 22  Total Timesteps = 8
+
+Time = 4.8384e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 5.4432e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 24  Total Timesteps = 9
+
+Time = 5.4432e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 6.048e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 26  Total Timesteps = 10
+
+Time = 6.048e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 6.6528e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 28  Total Timesteps = 11
+
+Time = 6.6528e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 7.2576e+06 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 30  Total Timesteps = 12
+
+Time = 7.2576e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 7.8624e+06 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 32  Total Timesteps = 13
+
+Time = 7.8624e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 8.4672e+06 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 34  Total Timesteps = 14
+
+Time = 8.4672e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 9.072e+06 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 36  Total Timesteps = 15
+
+Time = 9.072e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 9.6768e+06 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 38  Total Timesteps = 16
+
+Time = 9.6768e+06 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.02816e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 40  Total Timesteps = 17
+
+Time = 1.02816e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.08864e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 42  Total Timesteps = 18
+
+Time = 1.08864e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.14912e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 44  Total Timesteps = 19
+
+Time = 1.14912e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.2096e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 46  Total Timesteps = 20
+
+Time = 1.2096e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.27008e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 48  Total Timesteps = 21
+
+Time = 1.27008e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.33056e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 50  Total Timesteps = 22
+
+Time = 1.33056e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.39104e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 52  Total Timesteps = 23
+
+Time = 1.39104e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.45152e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 54  Total Timesteps = 24
+
+Time = 1.45152e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.512e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 56  Total Timesteps = 25
+
+Time = 1.512e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.57248e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 58  Total Timesteps = 26
+
+Time = 1.57248e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.63296e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 60  Total Timesteps = 27
+
+Time = 1.63296e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.69344e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 62  Total Timesteps = 28
+
+Time = 1.69344e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.75392e+07 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 64  Total Timesteps = 29
+
+Time = 1.75392e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.8144e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 66  Total Timesteps = 30
+
+Time = 1.8144e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.87488e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 68  Total Timesteps = 31
+
+Time = 1.87488e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.93536e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 70  Total Timesteps = 32
+
+Time = 1.93536e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 1.99584e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 72  Total Timesteps = 33
+
+Time = 1.99584e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.05632e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 74  Total Timesteps = 34
+
+Time = 2.05632e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.1168e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 76  Total Timesteps = 35
+
+Time = 2.1168e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.17728e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 78  Total Timesteps = 36
+
+Time = 2.17728e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.23776e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 80  Total Timesteps = 37
+
+Time = 2.23776e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.29824e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 82  Total Timesteps = 38
+
+Time = 2.29824e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.35872e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 84  Total Timesteps = 39
+
+Time = 2.35872e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.4192e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 86  Total Timesteps = 40
+
+Time = 2.4192e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.47968e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 88  Total Timesteps = 41
+
+Time = 2.47968e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.54016e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 90  Total Timesteps = 42
+
+Time = 2.54016e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.60064e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 92  Total Timesteps = 43
+
+Time = 2.60064e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.66112e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 94  Total Timesteps = 44
+
+Time = 2.66112e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.7216e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 96  Total Timesteps = 45
+
+Time = 2.7216e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.78208e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 98  Total Timesteps = 46
+
+Time = 2.78208e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.84256e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 100  Total Timesteps = 47
+
+Time = 2.84256e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.90304e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 102  Total Timesteps = 48
+
+Time = 2.90304e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 2.96352e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 104  Total Timesteps = 49
+
+Time = 2.96352e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.024e+07 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 106  Total Timesteps = 50
+
+Time = 3.024e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.08448e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 108  Total Timesteps = 51
+
+Time = 3.08448e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.14496e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 110  Total Timesteps = 52
+
+Time = 3.14496e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.20544e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 112  Total Timesteps = 53
+
+Time = 3.20544e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.26592e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 114  Total Timesteps = 54
+
+Time = 3.26592e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.3264e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 116  Total Timesteps = 55
+
+Time = 3.3264e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.38688e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 118  Total Timesteps = 56
+
+Time = 3.38688e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.44736e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 120  Total Timesteps = 57
+
+Time = 3.44736e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.50784e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 122  Total Timesteps = 58
+
+Time = 3.50784e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.56832e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 124  Total Timesteps = 59
+
+Time = 3.56832e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.6288e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 126  Total Timesteps = 60
+
+Time = 3.6288e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.68928e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 128  Total Timesteps = 61
+
+Time = 3.68928e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.74976e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 130  Total Timesteps = 62
+
+Time = 3.74976e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.81024e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 132  Total Timesteps = 63
+
+Time = 3.81024e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.87072e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 134  Total Timesteps = 64
+
+Time = 3.87072e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.9312e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 136  Total Timesteps = 65
+
+Time = 3.9312e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 3.99168e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 138  Total Timesteps = 66
+
+Time = 3.99168e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.05216e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 140  Total Timesteps = 67
+
+Time = 4.05216e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.11264e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 142  Total Timesteps = 68
+
+Time = 4.11264e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.17312e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 144  Total Timesteps = 69
+
+Time = 4.17312e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.2336e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 146  Total Timesteps = 70
+
+Time = 4.2336e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.29408e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 148  Total Timesteps = 71
+
+Time = 4.29408e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.35456e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 150  Total Timesteps = 72
+
+Time = 4.35456e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 4.41504e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 152  Total Timesteps = 73
+
+Time = 4.41504e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75294e-13, Final residual = 3.75294e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.72378e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.22668e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.47354e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 154  Total Timesteps = 74
+
+Time = 4.47354e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.53203e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 156  Total Timesteps = 75
+
+Time = 4.53203e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.59053e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 158  Total Timesteps = 76
+
+Time = 4.59053e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.64902e+07 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 160  Total Timesteps = 77
+
+Time = 4.64902e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.70752e+07 seconds
+Execution Time = 0.05 s  Clock Time = 0 s  Total Iterations = 162  Total Timesteps = 78
+
+Time = 4.70752e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.76602e+07 seconds
+Execution Time = 0.05 s  Clock Time = 0 s  Total Iterations = 164  Total Timesteps = 79
+
+Time = 4.76602e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.82451e+07 seconds
+Execution Time = 0.05 s  Clock Time = 0 s  Total Iterations = 166  Total Timesteps = 80
+
+Time = 4.82451e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.88301e+07 seconds
+Execution Time = 0.05 s  Clock Time = 0 s  Total Iterations = 168  Total Timesteps = 81
+
+Time = 4.88301e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 4.9415e+07 seconds
+Execution Time = 0.05 s  Clock Time = 0 s  Total Iterations = 170  Total Timesteps = 82
+
+Time = 4.9415e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 584960 seconds and next timeStep = 5e+07 seconds
+Execution Time = 0.05 s  Clock Time = 0 s  Total Iterations = 172  Total Timesteps = 83
+
+Time = 5e+07 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 1, 1, 1
+AMI: Patch target sum(weights) min/max/average = 0.980861, 0.980861, 0.980861
+FDICPCG:  Solving for T, Initial residual = 3.75116e-13, Final residual = 3.75116e-13, No Iterations 0
+Boundary power summary:
+	fuelBottom: 0
+	fuelTop: 0
+	fuelOuter: 13.8889
+	fuelFront: 0
+	fuelBack: 0
+	cladBottom: 0
+	cladTop: 0
+	cladInner: -13.8889
+	cladOuter: 13.8889
+	cladFront: 0
+	cladBack: 0
+	defaultFaces: 0
+
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.02824e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.63443e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5036e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 4.5036e+07 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.18644e+37 with a maximum material properties increase of 4.5036e+17%
+deltaT = 604800 seconds and next timeStep = 5.06048e+07 seconds
+Execution Time = 0.05 s  Clock Time = 0 s  Total Iterations = 174  Total Timesteps = 84
+

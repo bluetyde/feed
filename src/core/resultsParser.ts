@@ -3,6 +3,7 @@
 // Pure functions on text: no solver, no files. Tested on real saved output (tests/golden/offbeat-syn/).
 
 import { closedForm, fuelTemperatureLinearK, LinearK, solveLinearK } from "./closedForm";
+import { remainingChangeBound, STEADY_TOLERANCE } from "./steadyState";
 import { Conductivity, NormalizedCase } from "./validate";
 
 export class ResultsError extends Error {
@@ -135,6 +136,12 @@ export interface ParseInput {
   /** Text of <finalTime>/C (cell centres) */
   C: string;
   time: number;
+  /**
+   * What OFFBEAT printed for the last time step: max |dT/dt| / T over the cells (1/s). Present for runs read from a solver log; when
+   * given, the steady-state check is made, and an absent or non-finite rate fails it (a run that cannot show it settled is not
+   * silently called steady). Left out by callers that have no log, which then have no steady-state check.
+   */
+  drift?: { relativeRate: number | undefined };
 }
 
 /**
@@ -226,6 +233,19 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   const domain = { verdict: (findings.length === 0 ? "in-domain" : "out-of-domain") as "in-domain" | "out-of-domain", findings };
   if (c.fuelConductivity.kind === "linear" || c.claddingConductivity.kind === "linear") {
     checks.push({ id: "propertyRange", label: "Conductivity law within its stated range", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated range" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". The law was extrapolated; this result is out-of-domain." });
+  }
+
+  if (input.drift !== undefined) {
+    // Steady-state gate (src/core/steadyState.ts): after an implicit step the deviation still to go is K^-1 C (dT/dt), so its largest
+    // value is at most the worst Elmore delay times the largest |dT/dt|, which is OFFBEAT's printed relative rate times the hottest T.
+    const hottest = radial.reduce((m, p) => (p.T > m ? p.T : m), -Infinity);
+    const rate = input.drift.relativeRate;
+    if (rate === undefined || !Number.isFinite(rate)) {
+      checks.push({ id: "steadyState", label: "Steady state reached (bound on what is still to change)", value: null, unit: "K", verdict: "fail", note: "the solver log has no finite temperature-rate record for the last step, so how far the run is from steady cannot be judged" });
+    } else {
+      const bound = remainingChangeBound(c, rate, hottest);
+      checks.push({ id: "steadyState", label: "Steady state reached (bound on what is still to change)", value: bound, unit: "K", verdict: bound <= STEADY_TOLERANCE ? "pass" : "fail", note: `at most ${bound.toPrecision(3)} K is still to change after the last step (OFFBEAT's last relative rate ${rate}, hottest cell ${hottest.toFixed(1)} K); threshold ${STEADY_TOLERANCE} K` });
+    }
   }
 
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value}); the cell geometry is inconsistent`);

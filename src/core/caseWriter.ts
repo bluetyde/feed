@@ -3,6 +3,7 @@
 // listed in `placeholders` and in the mapping so nothing is a hidden default (see docs/spike/F0-note.md).
 // Pinned against OpenFOAM Foundation 9 + OFFBEAT 80e84450 (solver/PINS.md).
 
+import { MIN_STEADY_END_TIME, steadyEndTime } from "./steadyState";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
 export interface WrittenCase {
@@ -23,7 +24,8 @@ export const SLICE_HEIGHT_MM = 1000;
 /** Density written for every material. OFFBEAT wants rho and a mass-based Cp; a transient's volumetric heat capacity c is carried as Cp = c / rho. */
 export const WRITER_DENSITY = 10000;
 /** Steady runs use an end time far beyond any thermal time constant: a short one leaves a heat-storage term (F0 note). */
-export const STEADY_END_TIME = 5e7;
+/** The shortest steady end time; a case whose pin needs longer gets its own (src/core/steadyState.ts steadyEndTime). */
+export const STEADY_END_TIME = MIN_STEADY_END_TIME;
 
 const FOAM_HEADER = (cls: string, obj: string, loc?: string) =>
   `FoamFile
@@ -350,9 +352,16 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
   const kc = c.claddingConductivity;
   const tr = c.transient;
   const t0 = tr ? tr.initialTemperature : c.boundary.kind === "convective" ? c.boundary.bulkTemperature : c.boundary.surfaceTemperature;
+  // A steady case runs to an end time the pin's own time constants require (at least 5e7 s); the validator refuses what cannot settle.
+  let steadyEnd = MIN_STEADY_END_TIME;
+  if (!tr) {
+    const h = steadyEndTime(c);
+    if (!h.ok) throw new Error("cannot write a steady case: " + h.message);
+    steadyEnd = h.endTime;
+  }
   const files: Record<string, string> = {
     "system/blockMeshDict": blockMeshDict(c),
-    "system/controlDict": tr ? controlDict(tr.endTime, { timeStep: tr.timeStep, writeEvery: tr.steps / tr.outputs }) : controlDict(STEADY_END_TIME),
+    "system/controlDict": tr ? controlDict(tr.endTime, { timeStep: tr.timeStep, writeEvery: tr.steps / tr.outputs }) : controlDict(steadyEnd),
     "system/fvSchemes": fvSchemes,
     "system/fvSolution": fvSolution,
     "constant/solverDict": solverDict(c, kf, kc),
@@ -389,5 +398,5 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     { name: "emissivity, E, nu, G, alpha, Tref", value: "0.8, 2e11, 0.3, 7.69e10, 1e-5, 300", why: "required by the constant material model; unused with mechanics off" },
     { name: "initial temperature", value: String(t0) + " K", why: tr ? "the transient's initial temperature, as given" : "starting field; the steady result does not depend on it" },
   ];
-  return { files, mapping, placeholders, choices: tr ? { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: tr.endTime, timeStep: tr.timeStep, steps: tr.steps, outputs: tr.outputs } : { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: STEADY_END_TIME } };
+  return { files, mapping, placeholders, choices: tr ? { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: tr.endTime, timeStep: tr.timeStep, steps: tr.steps, outputs: tr.outputs } : { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: steadyEnd } };
 }

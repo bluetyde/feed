@@ -1,0 +1,80 @@
+{
+  "about": "Calibration of the steady-state bounds (src/core/steadyState.ts) against real OFFBEAT runs, 2026-10-06, feed-solver distro, OpenFOAM Foundation 9 + OFFBEAT 80e84450. The synthetic pin of examples/synthetic-pin.json on the 10/3-cell mesh of solver/results/synthetic-pin.mesh1.json, one run per end time (solver/probe-nonconvergence.sh with PROBE_ENDTIME), each compared cell by cell with the 5e7 s run.",
+  "reference": "solver/results/synthetic-pin.mesh1.json (5e7 s, last step relative rate -0)",
+  "mesh": {
+    "fuelCells": 10,
+    "claddingCells": 3
+  },
+  "runs": [
+    {
+      "endTime": 2,
+      "steps": 2,
+      "trueDeviationK": 223.62,
+      "printedRate": 0.0706555,
+      "maxT": 1080.97
+    },
+    {
+      "endTime": 5,
+      "steps": 2,
+      "trueDeviationK": 133.91,
+      "printedRate": 0.0354668,
+      "maxT": 1170.68
+    },
+    {
+      "endTime": 10,
+      "steps": 2,
+      "trueDeviationK": 81.62,
+      "printedRate": 0.01984,
+      "maxT": 1222.97
+    },
+    {
+      "endTime": 20,
+      "steps": 2,
+      "trueDeviationK": 46,
+      "printedRate": 0.0106214,
+      "maxT": 1258.59
+    },
+    {
+      "endTime": 50,
+      "steps": 2,
+      "trueDeviationK": 19.95,
+      "printedRate": 0.00444885,
+      "maxT": 1284.64
+    },
+    {
+      "endTime": 100,
+      "steps": 2,
+      "trueDeviationK": 10.27,
+      "printedRate": 0.00226105,
+      "maxT": 1294.32
+    },
+    {
+      "endTime": 1000,
+      "steps": 2,
+      "trueDeviationK": 1.06,
+      "printedRate": 0.000229557,
+      "maxT": 1303.53
+    },
+    {
+      "endTime": 10000,
+      "steps": 2,
+      "trueDeviationK": 0.11,
+      "printedRate": 0.0000229911,
+      "maxT": 1304.48
+    },
+    {
+      "endTime": 100000,
+      "steps": 2,
+      "trueDeviationK": 0.01,
+      "printedRate": 0.00000229946,
+      "maxT": 1304.58
+    },
+    {
+      "endTime": 1000000,
+      "steps": 3,
+      "trueDeviationK": 0,
+      "printedRate": 3.40505e-12,
+      "maxT": 1304.59
+    }
+  ]
+}

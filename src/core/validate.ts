@@ -5,6 +5,7 @@
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import Ajv2020 from "ajv/dist/2020";
+import { steadyEndTime } from "./steadyState";
 import { Dimension, toSI } from "./units";
 
 export interface Issue {
@@ -278,6 +279,16 @@ export function validateCase(doc: unknown): ValidationResult {
       mesh: { fuelCells: mesh.fuelCells, claddingCells: mesh.claddingCells },
       ...(isTransient ? { transient, fuelHeatCapacity: fuelCp, claddingHeatCapacity: claddingCp } : {}),
     };
+    // A steady case is run to a long end time; one whose pin could not settle within the longest run FEED allows is refused, not run
+    // to a time at which it is still changing (src/core/steadyState.ts).
+    if (!isTransient) {
+      const h = steadyEndTime(result.normalized);
+      if (!h.ok) {
+        result.ok = false;
+        result.errors.push({ code: "E_TIME", severity: "error", field: "/assumptions/steadyState", message: "this case cannot be run as a steady case: " + h.message });
+        delete result.normalized;
+      }
+    }
   }
   return result;
 }

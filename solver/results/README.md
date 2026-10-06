@@ -5,6 +5,8 @@ Real solver output, saved so the tests run without the solver. Produced 2026-10-
 | File | Case (params in `../cases/`) | Meaning |
 |---|---|---|
 | `synthetic-pin.mesh1..4.json` | `synthetic-pin.mesh1..4.params.json`: the synthetic oracle pin with 10/3, 20/6, 40/12, 80/24 fuel/cladding cells | refinement study |
+| `steady-state-calibration.json` | the synthetic pin (10/3 cells) run to 10 end times from 2 s to 1e6 s (`../probe-nonconvergence.sh` with `PROBE_ENDTIME`), each against the 5e7 s run | the steady-state gate's bound against true deviations |
+| `nonconvergence-probe.json` | the non-convergence probe (see the F0 note) | what OFFBEAT does at `maxOuterIter` |
 | `ksu-hot-element.json` | `ksu-hot-element.params.json`: K-State TRIGA hot element, zero cold gap | sourced check against SAR Table 4.8 |
 
 Each file holds the final time (5e7 s, a true steady state), cell-centre radius `r` (m), temperature `T` (K) and the outer-wall patch temperature. They are written by `../extract-result.py`; regenerate with `../run-oracle.sh <params> <tag>` and copy `result.json` out of `~/runs/oracle-<tag>/` in the distro.
