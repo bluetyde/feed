@@ -38,4 +38,4 @@ Before any fix, findings 3, 4, 5 and 10 were reproduced: `compare-runs.sh` exite
 
 Mutation checks: 18 mutations of the scripts, the tests' data and PINS.md (always exit 0, missing file allowed, any time accepted, exact-only time, default end time back, build following master, commit verification skipped, unpinned install, user not created, final-time check skipped or reordered, pins.env and PINS.md out of step, `--` back, a params file back to 2000 s, wrong cell count) were each caught. Not covered by a test that needs the distro: the refusal path of `run-oracle.sh` when OFFBEAT itself fails or times out (the final-time and exit-code logic is tested on its own).
 
-Still open for F0: the clean-distro rebuild (finding 1) and the people-items of finding 9 (listed in docs/licences/README.md section 5).
+Still open for F0: only the people-items of finding 9 (listed in docs/licences/README.md section 5). Findings 1 to 8 and 10 are fixed and checked.

@@ -65,7 +65,7 @@ The practical answer for now is route A, which needs none of the missing items.
 
 ## 4. Verifying and regenerating
 
-- `solver/collect-licences.sh <dir>` copies the texts out of a pinned installation and writes `SHA256SUMS`; run it again after the clean-distro rebuild and the hashes must not change.
+- `solver/collect-licences.sh <dir>` copies the texts out of a pinned installation and writes `SHA256SUMS`; it was run again on the clean-distro rebuild (2026-10-06) and the hashes did not change.
 - `tests/licences.test.ts` checks the saved files against `SHA256SUMS`, that this inventory names the pins and every saved file, that FEED's own licence fields are MIT, and that the licences of FEED's production npm packages are among those named here.
 
 ## 5. Still open (needs a person, or a download that was not made)

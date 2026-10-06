@@ -1,0 +1,246 @@
+{
+ "about": "Clean-distro rebuild verification, made by scripts/verify-rebuild.cjs",
+ "rebuiltDistro": "feed-solver-rebuild",
+ "originalDistro": "feed-solver",
+ "identity": {
+  "original": {
+   "offbeatCommit": "80e84450a115b0c411e1bfa5d166379f6bf6c084",
+   "offbeatWorkingTree": [
+    "M offbeatLib/Make/files"
+   ],
+   "openfoamPackage": "20220602",
+   "runUser": "uid=1000(feed) gid=1000(feed) groups=1000(feed)",
+   "compiler": "gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+   "openfoam": "9",
+   "os": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\""
+  },
+  "rebuilt": {
+   "offbeatCommit": "80e84450a115b0c411e1bfa5d166379f6bf6c084",
+   "offbeatWorkingTree": [
+    "M offbeatLib/Make/files"
+   ],
+   "openfoamPackage": "20220602",
+   "runUser": "uid=1000(feed) gid=1000(feed) groups=1000(feed)",
+   "compiler": "gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+   "openfoam": "9",
+   "os": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\""
+  },
+  "same": true
+ },
+ "packages": {
+  "original": 851,
+  "rebuilt": 842,
+  "onlyInOriginal": [
+   "gdb",
+   "libbabeltrace1:amd64",
+   "libboost-regex1.74.0:amd64",
+   "libc6-dbg:amd64",
+   "libdebuginfod-common",
+   "libdebuginfod1:amd64",
+   "libipt2",
+   "libsource-highlight-common",
+   "libsource-highlight4v5"
+  ],
+  "onlyInRebuilt": [],
+  "versionDifferences": [
+   {
+    "package": "bind9-dnsutils",
+    "original": "1:9.18.39-0ubuntu0.22.04.6",
+    "rebuilt": "1:9.18.30-0ubuntu0.22.04.2"
+   },
+   {
+    "package": "bind9-host",
+    "original": "1:9.18.39-0ubuntu0.22.04.6",
+    "rebuilt": "1:9.18.30-0ubuntu0.22.04.2"
+   },
+   {
+    "package": "bind9-libs:amd64",
+    "original": "1:9.18.39-0ubuntu0.22.04.6",
+    "rebuilt": "1:9.18.30-0ubuntu0.22.04.2"
+   },
+   {
+    "package": "git-man",
+    "original": "1:2.34.1-1ubuntu1.17",
+    "rebuilt": "1:2.34.1-1ubuntu1.12"
+   },
+   {
+    "package": "kmod",
+    "original": "29-1ubuntu1.1",
+    "rebuilt": "29-1ubuntu1"
+   },
+   {
+    "package": "libdw1:amd64",
+    "original": "0.186-1ubuntu0.1",
+    "rebuilt": "0.186-1build1"
+   },
+   {
+    "package": "libelf1:amd64",
+    "original": "0.186-1ubuntu0.1",
+    "rebuilt": "0.186-1build1"
+   },
+   {
+    "package": "libgl1-amber-dri:amd64",
+    "original": "21.3.9-0ubuntu1~22.04.2",
+    "rebuilt": "21.3.9-0ubuntu1~22.04.1"
+   },
+   {
+    "package": "libgraphite2-3:amd64",
+    "original": "1.3.14-1ubuntu0.1",
+    "rebuilt": "1.3.14-1build2"
+   },
+   {
+    "package": "libkmod2:amd64",
+    "original": "29-1ubuntu1.1",
+    "rebuilt": "29-1ubuntu1"
+   },
+   {
+    "package": "libnss-systemd:amd64",
+    "original": "249.11-0ubuntu3.22",
+    "rebuilt": "249.11-0ubuntu3.12"
+   },
+   {
+    "package": "libpam-systemd:amd64",
+    "original": "249.11-0ubuntu3.22",
+    "rebuilt": "249.11-0ubuntu3.12"
+   },
+   {
+    "package": "libpcap0.8:amd64",
+    "original": "1.10.1-4ubuntu1.22.04.2",
+    "rebuilt": "1.10.1-4ubuntu1.22.04.1"
+   },
+   {
+    "package": "libsystemd0:amd64",
+    "original": "249.11-0ubuntu3.22",
+    "rebuilt": "249.11-0ubuntu3.12"
+   },
+   {
+    "package": "python3-requests",
+    "original": "2.25.1+dfsg-2ubuntu0.4",
+    "rebuilt": "2.25.1+dfsg-2ubuntu0.1"
+   },
+   {
+    "package": "rsync",
+    "original": "3.2.7-0ubuntu0.22.04.7",
+    "rebuilt": "3.2.7-0ubuntu0.22.04.4"
+   },
+   {
+    "package": "screen",
+    "original": "4.9.0-1ubuntu0.1",
+    "rebuilt": "4.9.0-1"
+   },
+   {
+    "package": "systemd",
+    "original": "249.11-0ubuntu3.22",
+    "rebuilt": "249.11-0ubuntu3.12"
+   },
+   {
+    "package": "systemd-sysv",
+    "original": "249.11-0ubuntu3.22",
+    "rebuilt": "249.11-0ubuntu3.12"
+   },
+   {
+    "package": "systemd-timesyncd",
+    "original": "249.11-0ubuntu3.22",
+    "rebuilt": "249.11-0ubuntu3.12"
+   },
+   {
+    "package": "vim",
+    "original": "2:8.2.3995-1ubuntu2.36",
+    "rebuilt": "2:8.2.3995-1ubuntu2.23"
+   },
+   {
+    "package": "vim-common",
+    "original": "2:8.2.3995-1ubuntu2.36",
+    "rebuilt": "2:8.2.3995-1ubuntu2.23"
+   },
+   {
+    "package": "vim-runtime",
+    "original": "2:8.2.3995-1ubuntu2.36",
+    "rebuilt": "2:8.2.3995-1ubuntu2.23"
+   },
+   {
+    "package": "vim-tiny",
+    "original": "2:8.2.3995-1ubuntu2.36",
+    "rebuilt": "2:8.2.3995-1ubuntu2.23"
+   }
+  ]
+ },
+ "licences": {
+  "collectExit": 0,
+  "sameHashesAsSaved": true
+ },
+ "oracleResults": {
+  "regenerated": 9,
+  "allIdentical": true,
+  "runs": [
+   {
+    "params": "ksu-hot-element.params.json",
+    "saved": "ksu-hot-element.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   },
+   {
+    "params": "synthetic-pin-kT.mesh1.params.json",
+    "saved": "synthetic-pin-kT.mesh1.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   },
+   {
+    "params": "synthetic-pin-kT.mesh2.params.json",
+    "saved": "synthetic-pin-kT.mesh2.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   },
+   {
+    "params": "synthetic-pin-kT.mesh3.params.json",
+    "saved": "synthetic-pin-kT.mesh3.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   },
+   {
+    "params": "synthetic-pin-kT.mesh4.params.json",
+    "saved": "synthetic-pin-kT.mesh4.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   },
+   {
+    "params": "synthetic-pin.mesh1.params.json",
+    "saved": "synthetic-pin.mesh1.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   },
+   {
+    "params": "synthetic-pin.mesh2.params.json",
+    "saved": "synthetic-pin.mesh2.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   },
+   {
+    "params": "synthetic-pin.mesh3.params.json",
+    "saved": "synthetic-pin.mesh3.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   },
+   {
+    "params": "synthetic-pin.mesh4.params.json",
+    "saved": "synthetic-pin.mesh4.json",
+    "runExit": 0,
+    "identical": true,
+    "maxAbsDifferenceK": 0
+   }
+  ]
+ },
+ "upstreamBaseline": {
+  "generatorExit": 0,
+  "identicalToSaved": true
+ },
+ "passed": true
+}

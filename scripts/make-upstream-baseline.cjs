@@ -6,12 +6,14 @@
 //   - Cases/Verification/heatConservation and testUserParameters with their own Allrun (solver/run-upstream-verification.sh);
 //   and copies what OFFBEAT itself recorded for those two in Cases/Verification/results.
 // Run it again after a clean-distro rebuild and compare with `git diff`: on the pinned stack the hashes must not change.
-//   usage: node scripts/make-upstream-baseline.cjs
+//   usage: node scripts/make-upstream-baseline.cjs     (FEED_DISTRO=<distro> and FEED_BASELINE_OUT=<file> to run in another distro without touching the saved file)
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
+/** The distro to run in: the original by default; FEED_DISTRO names another (the clean rebuild). FEED_BASELINE_OUT writes the file elsewhere instead of over the saved baseline. */
+const DISTRO = process.env.FEED_DISTRO || "feed-solver";
 const repoInDistro = "/mnt/" + root[0].toLowerCase() + root.slice(2).replace(/\\/g, "/");
 const pins = Object.fromEntries(
   fs
@@ -23,11 +25,11 @@ const pins = Object.fromEntries(
 
 /** Run a bash command line in the distro as user feed; returns { code, out } with carriage returns removed. */
 function distro(cmd) {
-  const r = spawnSync("wsl.exe", ["-d", "feed-solver", "-u", "feed", "--exec", "bash", "-c", cmd], { encoding: "utf8", maxBuffer: 1 << 28, env: { ...process.env, MSYS_NO_PATHCONV: "1" } });
+  const r = spawnSync("wsl.exe", ["-d", DISTRO, "-u", "feed", "--exec", "bash", "-c", cmd], { encoding: "utf8", maxBuffer: 1 << 28, env: { ...process.env, MSYS_NO_PATHCONV: "1" } });
   return { code: r.status, out: (r.stdout || "").replace(/\r/g, "") };
 }
 function script(name, ...args) {
-  const r = spawnSync("wsl.exe", ["-d", "feed-solver", "-u", "feed", "--exec", "bash", repoInDistro + "/solver/" + name, ...args], { encoding: "utf8", maxBuffer: 1 << 28, env: { ...process.env, MSYS_NO_PATHCONV: "1" } });
+  const r = spawnSync("wsl.exe", ["-d", DISTRO, "-u", "feed", "--exec", "bash", repoInDistro + "/solver/" + name, ...args], { encoding: "utf8", maxBuffer: 1 << 28, env: { ...process.env, MSYS_NO_PATHCONV: "1" } });
   return { code: r.status, out: (r.stdout || "").replace(/\r/g, ""), err: (r.stderr || "").replace(/\r/g, "") };
 }
 const must = (r, what) => {
@@ -120,5 +122,5 @@ const baseline = {
     upstreamResultsFile: { path: "Cases/Verification/results", sha256: distro(`sha256sum ${OFF}/Cases/Verification/results`).out.split(" ")[0], date: recordedAll.split("\n")[4].trim() },
   },
 };
-fs.writeFileSync(path.join(root, "solver", "results", "upstream-baseline.json"), JSON.stringify(baseline, null, 1) + "\n");
+fs.writeFileSync(process.env.FEED_BASELINE_OUT || path.join(root, "solver", "results", "upstream-baseline.json"), JSON.stringify(baseline, null, 1) + "\n");
 console.log("saved solver/results/upstream-baseline.json:", probeT.length, "probe points; compare exit", cmp.code, "; heat", baseline.verification.heatConservation.ours, "; user", baseline.verification.testUserParameters.ours);
