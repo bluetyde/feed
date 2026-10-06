@@ -7,9 +7,11 @@ import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { IndependentRunner } from "../src/core/independentRunner";
 import { BackendOutcome, RunBackend, RunManager } from "../src/core/runManager";
-import { buildTransientResults, computeIndependent } from "../src/core/transientResults";
+import { buildTransientResults, computeIndependent, independentSolution } from "../src/core/transientResults";
 import { validateCase } from "../src/core/validate";
-import { check, checkAsync } from "../src/server/server";
+import { AddressInfo } from "net";
+import { check, checkAsync, independent, server } from "../src/server/server";
+import { transientPreview } from "../src/core/transientPreview";
 
 const root = join(__dirname, "..");
 const golden = join(root, "tests/golden/offbeat-pulse");
@@ -138,6 +140,23 @@ describe("cancel during the verification", () => {
   }, 30_000);
 });
 
+/** Occupy every thread of the server's shared runner with a long job, so a request has to wait for a slot; returns a function that frees them. */
+function saturate(): () => void {
+  const d = JSON.parse(readFileSync(join(root, "examples", "synthetic-pulse.json"), "utf8"));
+  d.mesh = { fuelCells: 100, claddingCells: 30 };
+  d.transient.endTime = { value: 100, unit: "ms" };
+  d.transient.timeStep = { value: 100 / 23000, unit: "ms" };
+  d.transient.outputs = 23;
+  const c = validateCase(d).normalized!;
+  const holds = [0, 1, 2].map(() => independent.start(c, { what: "full" }));
+  return () => holds.forEach((h) => h.cancel());
+}
+const until = async (f: () => boolean, ms = 3000) => {
+  const t0 = Date.now();
+  while (!f() && Date.now() - t0 < ms) await new Promise((r) => setTimeout(r, 10));
+  return f();
+};
+
 describe("the editor's preview", () => {
   it("through the worker it is the preview this thread gives", async () => {
     const sync: any = check(pulse());
@@ -153,6 +172,51 @@ describe("the editor's preview", () => {
     expect(j.transient.preview).toBeNull();
     expect(j.transient.previewSkipped).toMatch(/preview was skipped: .* did not finish within 0\.001 s/);
     expect(j.transient.adiabaticPeak).toBeGreaterThan(300);
+  }, 30_000);
+
+  it("the preview is the answer that was supplied, not one computed again (a supplied run 5 K hotter shows in the curve)", () => {
+    const v = validateCase(pulse()).normalized!;
+    const fv = independentSolution(v);
+    for (const s of fv.states) s.T = s.T.map((x) => x + 5);
+    const p = transientPreview(v, { fv });
+    const q = transientPreview(v);
+    expect(p.preview!.peakT[0]).toBeCloseTo(q.preview!.peakT[0]! + 5, 9);
+    expect(transientPreview(v, { fv: null, skipped: "because" })).toMatchObject({ preview: null, previewSkipped: "because" });
+  });
+
+  it("a newer preview replaces one still waiting for a thread: the older request is answered, skipped, with the reason", async () => {
+    const free = saturate();
+    try {
+      const first = checkAsync(pulse());
+      await until(() => independent.activity().queued === 1);
+      const second = checkAsync(pulse());
+      const a: any = await first;
+      expect(a.ok).toBe(true);
+      expect(a.transient.preview).toBeNull();
+      expect(a.transient.previewSkipped).toMatch(/a newer edit replaced this preview before it started/);
+      free();
+      const b: any = await second;
+      expect(b.transient.preview).not.toBeNull();
+    } finally {
+      free();
+    }
+  }, 30_000);
+
+  it("the HTTP handler waits for the runner: with every thread busy a /api/check request is queued, then answered when one is free", async () => {
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    const base = "http://127.0.0.1:" + (server.address() as AddressInfo).port;
+    const free = saturate();
+    try {
+      const req = fetch(base + "/api/check", { method: "POST", headers: { "content-type": "application/json", "x-feed-client": "1" }, body: JSON.stringify(pulse()) });
+      expect(await until(() => independent.activity().queued === 1)).toBe(true);
+      free();
+      const j: any = await (await req).json();
+      expect(j.ok).toBe(true);
+      expect(j.transient.preview).not.toBeNull();
+    } finally {
+      free();
+      await new Promise<void>((r) => server.close(() => r()));
+    }
   }, 30_000);
 
   it("a steady case and an invalid case are answered without a worker", async () => {
