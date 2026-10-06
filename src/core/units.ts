@@ -1,7 +1,7 @@
 // Quantity parsing: every physical input is {value, unit}; the unit must belong to the expected dimension.
 // SI is used inside the app (docs/ARCHITECTURE.md, Conventions).
 
-export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK";
+export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
 
 interface UnitDef {
   dim: Dimension;
@@ -32,6 +32,18 @@ const UNITS: Record<string, UnitDef> = {
   "J/m3/K2": { dim: "volumetricHeatCapacityPerK", scale: 1 },
   "J/cm3/K2": { dim: "volumetricHeatCapacityPerK", scale: 1e6 },
   "MJ/m3/K2": { dim: "volumetricHeatCapacityPerK", scale: 1e6 },
+  W: { dim: "power", scale: 1 },
+  kW: { dim: "power", scale: 1e3 },
+  MW: { dim: "power", scale: 1e6 },
+  // reactivity as a fraction of k (delta-k over k). The dollar needs the delayed fraction of the case and is converted by the validator, not here.
+  "dk/k": { dim: "reactivity", scale: 1 },
+  pcm: { dim: "reactivity", scale: 1e-5 },
+  "dk/k/K": { dim: "reactivityPerK", scale: 1 },
+  "pcm/K": { dim: "reactivityPerK", scale: 1e-5 },
+  "dk/k/K2": { dim: "reactivityPerK2", scale: 1 },
+  "pcm/K2": { dim: "reactivityPerK2", scale: 1e-5 },
+  "1/s": { dim: "rate", scale: 1 },
+  "1": { dim: "fraction", scale: 1 },
 };
 
 export const SI_UNIT: Record<Dimension, string> = {
@@ -44,6 +56,12 @@ export const SI_UNIT: Record<Dimension, string> = {
   time: "s",
   volumetricHeatCapacity: "J/m3/K",
   volumetricHeatCapacityPerK: "J/m3/K2",
+  power: "W",
+  reactivity: "dk/k",
+  reactivityPerK: "dk/k/K",
+  reactivityPerK2: "dk/k/K2",
+  rate: "1/s",
+  fraction: "1",
 };
 
 export type QuantityResult = { ok: true; si: number } | { ok: false; reason: string };

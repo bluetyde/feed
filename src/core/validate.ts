@@ -6,7 +6,8 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import Ajv2020 from "ajv/dist/2020";
 import { steadyEndTime } from "./steadyState";
-import { initialState } from "./transientResults";
+import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
+import { fuelMean, initialState } from "./transientResults";
 import { Dimension, toSI } from "./units";
 
 export interface Issue {
@@ -39,6 +40,9 @@ export interface NormalizedTransient {
   outputs: number;
   /** Where the run starts: a uniform temperature, or the steady state of this pin at a constant linear heat rate (W/m) with its own boundary and properties. */
   initial: { kind: "uniform"; temperature: number } | { kind: "steady"; linearHeatRate: number };
+  /** Present when the history comes from point kinetics: the validated inputs and, once the case is normalized, the generated pulse (times and linearHeatRate are then its thinned history). */
+  kinetics?: KineticsSpec;
+  generated?: GeneratedPulse;
 }
 
 /** Limits on the time grid; beyond them a case is refused, not truncated. */
@@ -313,6 +317,50 @@ export function validateCase(doc: unknown): ValidationResult {
         }
       }
     }
+    // A transient whose power comes from point kinetics: the pulse is generated from the fuel (its area, its heat capacity law, its starting average
+    // temperature) and replaces the placeholder history. It is generated here, once, so that everything downstream (the writer, the independent solution,
+    // the results, the preview) sees an ordinary power history.
+    if (result.ok && normalized.transient?.kinetics) {
+      const tk = normalized.transient;
+      const spec = tk.kinetics!;
+      const cp = normalized.fuelHeatCapacity!;
+      let startTemperature: number | undefined;
+      if (tk.initial.kind === "uniform") startTemperature = tk.initial.temperature;
+      else {
+        try {
+          startTemperature = fuelMean(normalized, initialState(normalized).T);
+        } catch {
+          startTemperature = undefined; // the steady start was already refused above
+        }
+      }
+      if (startTemperature !== undefined) {
+        try {
+          const pulse = generatePulse(spec, { fuelArea: Math.PI * (normalized.fuelRadius ** 2 - normalized.fuelInnerRadius ** 2), fuelC: cp.kind === "constant" ? { a: cp.c, b: 0 } : { a: cp.a, b: cp.b }, startTemperature });
+          const fb = spec.feedback;
+          const [lo, hi] = pulse.summary.temperatureRange;
+          if (fb.kind === "linear" && (lo < fb.range[0] || hi > fb.range[1])) {
+            result.ok = false;
+            result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/transient/pointKinetics/feedback/validRange", message: "the pulse takes the fuel's average from " + lo.toFixed(0) + " to " + hi.toFixed(0) + " K, outside the stated range of the temperature coefficient (" + fb.range[0] + " to " + fb.range[1] + " K)", unit: "K", range: fb.range });
+            delete result.normalized;
+          } else if (tk.initial.kind === "steady" && Math.abs(tk.initial.linearHeatRate - pulse.linearHeatRate[0]!) > 1e-6 * Math.max(tk.initial.linearHeatRate, pulse.linearHeatRate[0]!)) {
+            result.ok = false;
+            result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/transient/initialSteadyLinearHeatRate", message: "the pin starts steady at " + tk.initial.linearHeatRate + " W/m but the generator's initial power of " + spec.initialPower + " W gives " + pulse.linearHeatRate[0] + " W/m in this slice (initial power x peaking factor / (pins x active length)); they must be the same operating state", unit: "W/m" });
+            delete result.normalized;
+          } else {
+            tk.times = pulse.times;
+            tk.linearHeatRate = pulse.linearHeatRate;
+            tk.generated = pulse;
+            normalized.qPrime = Math.max(...pulse.linearHeatRate);
+          }
+        } catch (e) {
+          if (!(e instanceof KineticsError)) throw e;
+          result.ok = false;
+          result.errors.push({ code: "E_KINETICS", severity: "error", field: "/transient/pointKinetics", message: "the pulse cannot be generated: " + e.message });
+          delete result.normalized;
+        }
+      }
+    }
+
     // A steady case is run to a long end time; one whose pin could not settle within the longest run FEED allows is refused, not run
     // to a time at which it is still changing (src/core/steadyState.ts).
     if (!isTransient) {
@@ -455,9 +503,12 @@ function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): Normali
     ok = false;
     err(code, field, message, extra);
   };
-  for (const key of ["powerHistory", "endTime", "timeStep", "outputs"]) {
+  for (const key of ["endTime", "timeStep", "outputs"]) {
     if (t[key] === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/" + key, "the transient section needs '" + key + "'");
   }
+  // the power: exactly one of a table (powerHistory) and a point-kinetics generator (pointKinetics)
+  if (t.powerHistory !== undefined && t.pointKinetics !== undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/pointKinetics", "give either 'powerHistory' (a table) or 'pointKinetics' (a generated pulse), not both");
+  else if (t.powerHistory === undefined && t.pointKinetics === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/powerHistory", "the transient section needs its power: 'powerHistory' (a table) or 'pointKinetics' (a generated pulse)");
   // the initial state: exactly one of a uniform temperature and a steady operating state
   if (t.initialTemperature !== undefined && t.initialSteadyLinearHeatRate !== undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/initialSteadyLinearHeatRate", "give either 'initialTemperature' (a uniform start) or 'initialSteadyLinearHeatRate' (the steady state at that heat rate), not both");
   else if (t.initialTemperature === undefined && t.initialSteadyLinearHeatRate === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/initialTemperature", "the transient section needs an initial state: 'initialTemperature' (a uniform start) or 'initialSteadyLinearHeatRate' (the steady state of this pin at that heat rate)");
@@ -491,7 +542,16 @@ function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): Normali
   const times: number[] = [];
   const lhgr: number[] = [];
   const hist = t.powerHistory;
-  if (Array.isArray(hist)) {
+  let kinetics: KineticsSpec | undefined;
+  if (t.pointKinetics !== undefined && t.powerHistory === undefined) {
+    kinetics = parseKinetics(t.pointKinetics, err, qty, endTime);
+    if (kinetics === undefined) ok = false;
+    else {
+      // placeholders until the case is normalized and the pulse can be generated from the fuel (validateCase)
+      times.push(0, endTime ?? 1);
+      lhgr.push(0, 0);
+    }
+  } else if (Array.isArray(hist)) {
     if (hist.length < 2) bad("E_TIME", "/transient/powerHistory", "the power history needs at least two points");
     else if (hist.length > MAX_HISTORY_POINTS) bad("E_TIME", "/transient/powerHistory", "the power history has " + hist.length + " points; the maximum is " + MAX_HISTORY_POINTS);
     else {
@@ -526,5 +586,127 @@ function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): Normali
   }
   const initial: NormalizedTransient["initial"] | undefined = initialTemperature !== undefined ? { kind: "uniform", temperature: initialTemperature } : initialQ !== undefined ? { kind: "steady", linearHeatRate: initialQ } : undefined;
   if (!ok || endTime === undefined || timeStep === undefined || initial === undefined || typeof outputs !== "number" || times.length < 2) return undefined;
-  return { times, linearHeatRate: lhgr, endTime, timeStep, steps, outputs, initial };
+  return { times, linearHeatRate: lhgr, endTime, timeStep, steps, outputs, initial, ...(kinetics ? { kinetics } : {}) };
+}
+
+/** The point-kinetics section: the reactivity, the neutronics constants, the feedback and the pin's share of the power. Nothing is defaulted. */
+function parseKinetics(pk: unknown, err: ErrFn, qty: QtyFn, endTime: number | undefined): KineticsSpec | undefined {
+  const base = "/transient/pointKinetics";
+  let ok = true;
+  const bad = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+    ok = false;
+    err(code, field, message, extra);
+  };
+  if (!isObject(pk)) {
+    err("E_SCHEMA_INVALID", base, "pointKinetics is an object");
+    return undefined;
+  }
+  for (const key of ["reactivityInsertion", "insertionTime", "promptGenerationTime", "delayedGroups", "feedback", "initialPower", "core"]) {
+    if (pk[key] === undefined) bad("E_TRANSIENT_INCOMPLETE", base + "/" + key, "the pointKinetics section needs '" + key + "'");
+  }
+  // delayed groups first: a reactivity in dollars needs their sum
+  const groups: { beta: number; lambda: number }[] = [];
+  if (pk.delayedGroups !== undefined) {
+    if (!Array.isArray(pk.delayedGroups)) bad("E_SCHEMA_INVALID", base + "/delayedGroups", "delayedGroups is a list of {fraction, decayConstant} (an empty list means no delayed neutrons)");
+    else if (pk.delayedGroups.length > 8) bad("E_OUT_OF_RANGE", base + "/delayedGroups", "at most 8 delayed groups");
+    else {
+      pk.delayedGroups.forEach((g: unknown, i: number) => {
+        const at = base + "/delayedGroups/" + i;
+        if (!isObject(g)) return bad("E_SCHEMA_INVALID", at, "each group is {fraction, decayConstant}");
+        const beta = qty(g.fraction, "fraction", at + "/fraction");
+        const lambda = qty(g.decayConstant, "rate", at + "/decayConstant");
+        if (beta === undefined || lambda === undefined) return void (ok = false);
+        if (!(beta > 0) || beta > 0.02) return bad("E_OUT_OF_RANGE", at + "/fraction", "a delayed fraction is above 0 and at most 0.02 (the whole set is about 0.0065 for U-235)");
+        if (!(lambda >= 1e-4) || lambda > 1e3) return bad("E_OUT_OF_RANGE", at + "/decayConstant", "a precursor decay constant is between 1e-4 and 1e3 per second", { unit: "1/s" });
+        groups.push({ beta, lambda });
+      });
+      const sum = groups.reduce((a, g) => a + g.beta, 0);
+      if (sum > 0.05) bad("E_OUT_OF_RANGE", base + "/delayedGroups", "the delayed fractions add up to " + sum + "; more than 0.05 is not a fission reactor");
+      if (pk.delayedGroups.length > 0 && !(typeof pk.delayedSource === "string" && pk.delayedSource !== "")) bad("E_PROP_MISSING", base + "/delayedSource", "the delayed-neutron data need a stated source (for example the data set and the fuel)");
+    }
+  }
+  const beta = groups.reduce((a, g) => a + g.beta, 0);
+  let reactivity: number | undefined;
+  const ri = pk.reactivityInsertion;
+  if (isObject(ri) && ri.unit === "$") {
+    if (typeof ri.value !== "number" || !Number.isFinite(ri.value)) bad("E_UNITS", base + "/reactivityInsertion", "value must be a finite number");
+    else if (!(beta > 0)) bad("E_UNITS", base + "/reactivityInsertion", "a reactivity in dollars needs delayed groups (a dollar is the total delayed fraction); give it in dk/k or pcm for a prompt-only model");
+    else reactivity = ri.value * beta;
+  } else if (ri !== undefined) {
+    reactivity = qty(ri, "reactivity", base + "/reactivityInsertion");
+    if (reactivity === undefined) ok = false;
+  }
+  if (reactivity !== undefined && !(reactivity > 0)) bad("E_OUT_OF_RANGE", base + "/reactivityInsertion", "the inserted reactivity must be positive (a pulse is a supercritical insertion)");
+  else if (reactivity !== undefined && reactivity > 0.1) bad("E_OUT_OF_RANGE", base + "/reactivityInsertion", "the inserted reactivity is " + reactivity + " dk/k, above 0.1; check the unit", { unit: "dk/k" });
+  const insertionTime = pk.insertionTime === undefined ? undefined : qty(pk.insertionTime, "time", base + "/insertionTime");
+  if (insertionTime === undefined && pk.insertionTime !== undefined) ok = false;
+  if (insertionTime !== undefined && insertionTime < 0) bad("E_OUT_OF_RANGE", base + "/insertionTime", "the insertion time cannot be negative (0 is a step)", { unit: "s" });
+  if (insertionTime !== undefined && endTime !== undefined && insertionTime > endTime) bad("E_TIME", base + "/insertionTime", "the insertion takes longer than the run", { unit: "s" });
+  const generationTime = pk.promptGenerationTime === undefined ? undefined : qty(pk.promptGenerationTime, "time", base + "/promptGenerationTime");
+  if (generationTime === undefined && pk.promptGenerationTime !== undefined) ok = false;
+  if (generationTime !== undefined && !(generationTime >= 1e-9 && generationTime <= 1)) bad("E_OUT_OF_RANGE", base + "/promptGenerationTime", "the prompt generation time is between 1 ns and 1 s (a thermal reactor is tens of microseconds to milliseconds)", { unit: "s" });
+  const initialPower = pk.initialPower === undefined ? undefined : qty(pk.initialPower, "power", base + "/initialPower");
+  if (initialPower === undefined && pk.initialPower !== undefined) ok = false;
+  if (initialPower !== undefined && !(initialPower > 0)) bad("E_OUT_OF_RANGE", base + "/initialPower", "the initial power must be positive (a pulse grows from it)", { unit: "W" });
+
+  // the feedback: the differential coefficient d rho / d T, negative (a pulse ends itself only by it)
+  let feedback: KineticsSpec["feedback"] | undefined;
+  const fb = pk.feedback;
+  if (fb !== undefined) {
+    const at = base + "/feedback";
+    if (!isObject(fb)) bad("E_SCHEMA_INVALID", at, "feedback is an object");
+    else {
+      if (!(typeof fb.source === "string" && fb.source !== "")) bad("E_PROP_MISSING", at + "/source", "the feedback coefficient needs a stated source");
+      if (fb.model === "constant") {
+        if (fb.coefficient === undefined) bad("E_PROP_MISSING", at + "/coefficient", "the constant feedback model needs the coefficient (dk/k per K)");
+        const a = fb.coefficient === undefined ? undefined : qty(fb.coefficient, "reactivityPerK", at + "/coefficient");
+        if (a === undefined) ok = false;
+        else if (!(a < 0)) bad("E_OUT_OF_RANGE", at + "/coefficient", "the prompt temperature coefficient must be negative: with zero or positive feedback the pulse is not ended by the fuel heating", { unit: "dk/k/K" });
+        else feedback = { kind: "constant", alpha: a };
+      } else if (fb.model === "linear") {
+        for (const key of ["a", "b"]) if (fb[key] === undefined) bad("E_PROP_MISSING", at + "/" + key, "the linear feedback model alpha = a + b T needs '" + key + "'");
+        const range = fb.validRange;
+        if (!isObject(range) || range.min === undefined || range.max === undefined) bad("E_PROP_MISSING", at + "/validRange", "a temperature-dependent coefficient needs the temperature range it applies to (min and max)");
+        const a = fb.a === undefined ? undefined : qty(fb.a, "reactivityPerK", at + "/a");
+        const b = fb.b === undefined ? undefined : qty(fb.b, "reactivityPerK2", at + "/b");
+        const lo = isObject(range) && range.min !== undefined ? qty(range.min, "temperature", at + "/validRange/min") : undefined;
+        const hi = isObject(range) && range.max !== undefined ? qty(range.max, "temperature", at + "/validRange/max") : undefined;
+        if (a === undefined || b === undefined || lo === undefined || hi === undefined) ok = false;
+        else if (!(hi > lo)) bad("E_OUT_OF_RANGE", at + "/validRange", "range maximum must exceed the minimum", { unit: "K" });
+        else if (!(a + b * lo < 0) || !(a + b * hi < 0)) bad("E_OUT_OF_RANGE", at, "the prompt temperature coefficient a + b T must be negative over its whole range", { unit: "dk/k/K", range: [lo, hi] });
+        else feedback = { kind: "linear", a, b, range: [lo, hi] };
+      } else if (fb.model !== undefined) bad("E_UNSUPPORTED", at + "/model", "unknown feedback model '" + String(fb.model) + "'; supported: 'constant' and 'linear'");
+      else bad("E_PROP_MISSING", at + "/model", "the feedback needs a model: 'constant' or 'linear'");
+      if (feedback === undefined) ok = false;
+    }
+  }
+
+  // the pin's share of the power
+  let pins: number | undefined;
+  let activeLength: number | undefined;
+  let peakingFactor: number | undefined;
+  const core = pk.core;
+  if (core !== undefined) {
+    const at = base + "/core";
+    if (!isObject(core)) bad("E_SCHEMA_INVALID", at, "core is {pins, activeLength, peakingFactor}");
+    else {
+      for (const key of ["pins", "activeLength", "peakingFactor"]) if (core[key] === undefined) bad("E_TRANSIENT_INCOMPLETE", at + "/" + key, "core needs '" + key + "'");
+      if (core.pins !== undefined) {
+        if (typeof core.pins !== "number" || !Number.isInteger(core.pins) || core.pins < 1 || core.pins > 1e6) bad("E_OUT_OF_RANGE", at + "/pins", "pins is a whole number from 1 to 1000000");
+        else pins = core.pins;
+      }
+      if (core.activeLength !== undefined) {
+        activeLength = qty(core.activeLength, "length", at + "/activeLength");
+        if (activeLength === undefined) ok = false;
+        else if (!(activeLength > 0)) bad("E_OUT_OF_RANGE", at + "/activeLength", "the active length must be positive", { unit: "m" });
+      }
+      if (core.peakingFactor !== undefined) {
+        peakingFactor = qty(core.peakingFactor, "fraction", at + "/peakingFactor");
+        if (peakingFactor === undefined) ok = false;
+        else if (!(peakingFactor > 0 && peakingFactor <= 10)) bad("E_OUT_OF_RANGE", at + "/peakingFactor", "the peaking factor is the power of the modelled slice over the average pin's, above 0 and at most 10");
+      }
+    }
+  }
+  if (!ok || reactivity === undefined || insertionTime === undefined || generationTime === undefined || feedback === undefined || initialPower === undefined || pins === undefined || activeLength === undefined || peakingFactor === undefined || endTime === undefined || !(activeLength > 0)) return undefined;
+  return { reactivity, insertionTime, generationTime, groups, feedback, initialPower, pins, activeLength, peakingFactor, endTime };
 }

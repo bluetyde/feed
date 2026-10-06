@@ -371,6 +371,120 @@
     "field": "/transient/initialSteadyLinearHeatRate"
   },
   {
+    "file": "good/pulse-point-kinetics.json",
+    "valid": true
+  },
+  {
+    "file": "good/pulse-point-kinetics-steady-start.json",
+    "valid": true
+  },
+  {
+    "file": "good/pulse-point-kinetics-linear-feedback.json",
+    "valid": true
+  },
+  {
+    "file": "bad/kinetics-both-power-sources.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/pointKinetics"
+  },
+  {
+    "file": "bad/kinetics-no-power-source.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/powerHistory"
+  },
+  {
+    "file": "bad/kinetics-no-feedback.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/pointKinetics/feedback"
+  },
+  {
+    "file": "bad/kinetics-feedback-positive.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/pointKinetics/feedback/coefficient"
+  },
+  {
+    "file": "bad/kinetics-feedback-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/transient/pointKinetics/feedback/source"
+  },
+  {
+    "file": "bad/kinetics-feedback-linear-no-range.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/transient/pointKinetics/feedback/validRange"
+  },
+  {
+    "file": "bad/kinetics-groups-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/transient/pointKinetics/delayedSource"
+  },
+  {
+    "file": "bad/kinetics-dollars-without-groups.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/transient/pointKinetics/reactivityInsertion"
+  },
+  {
+    "file": "bad/kinetics-reactivity-negative.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/pointKinetics/reactivityInsertion"
+  },
+  {
+    "file": "bad/kinetics-reactivity-implausible.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/pointKinetics/reactivityInsertion"
+  },
+  {
+    "file": "bad/kinetics-generation-time-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/transient/pointKinetics/promptGenerationTime"
+  },
+  {
+    "file": "bad/kinetics-delayed-fraction-too-big.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/pointKinetics/delayedGroups/0/fraction"
+  },
+  {
+    "file": "bad/kinetics-pins-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/pointKinetics/core/pins"
+  },
+  {
+    "file": "bad/kinetics-insertion-longer-than-run.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/pointKinetics/insertionTime"
+  },
+  {
+    "file": "bad/kinetics-pulse-not-in-window.json",
+    "valid": false,
+    "code": "E_KINETICS",
+    "field": "/transient/pointKinetics"
+  },
+  {
+    "file": "bad/kinetics-feedback-range-left.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/pointKinetics/feedback/validRange"
+  },
+  {
+    "file": "bad/kinetics-steady-start-mismatch.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/initialSteadyLinearHeatRate"
+  },
+  {
     "file": "bad/unsupported-contact-model.json",
     "valid": false,
     "code": "E_UNSUPPORTED",

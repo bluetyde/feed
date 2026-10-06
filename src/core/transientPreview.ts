@@ -3,7 +3,8 @@
 
 import { adiabaticTemperature } from "./transientExact";
 import { maxOf } from "./transientFv";
-import { depositedEnergy, independentSolution, initialState, pinOf } from "./transientResults";
+import { GeneratedPulse } from "./pointKinetics";
+import { depositedEnergy, downsample, independentSolution, initialState, pinOf } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
 /** Cells x steps above which the preview is skipped (it would take noticeable time in the server). */
@@ -21,6 +22,8 @@ export interface TransientPreview {
   preview: { time: number[]; power: number[]; peakT: number[]; fuelSurfaceCellT: number[]; claddingInnerCellT: number[]; claddingOuterT: number[] } | null;
   previewSkipped: string | null;
   note: string;
+  /** Present when the power comes from point kinetics: the pulse's summary, and its curve for plotting. */
+  generator: { summary: GeneratedPulse["summary"]; curve: { time: number[]; power: number[]; reactivity: number[]; fuelTemperature: number[] }; history: { time: number[]; linearHeatRate: number[] } } | null;
 }
 
 export function transientPreview(c: NormalizedCase): TransientPreview {
@@ -56,6 +59,7 @@ export function transientPreview(c: NormalizedCase): TransientPreview {
     adiabaticPeak,
     preview,
     previewSkipped: skipped,
+    generator: t.generated ? { summary: t.generated.summary, curve: downsample(t.generated), history: { time: t.times, linearHeatRate: t.linearHeatRate } } : null,
     note: "The adiabatic peak is what the fuel reaches if no heat leaves; the real peak is lower when the pulse is long. The curve is an independent finite-volume preview, not the solver.",
   };
 }

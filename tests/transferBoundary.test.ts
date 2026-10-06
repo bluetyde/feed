@@ -307,7 +307,7 @@ describe("describe.transfers and the headless command", () => {
       { dimension: "temperature", normalization: "none" },
     ]);
     expect(Object.keys(t).sort()).toEqual(["accepts", "field", "parameters"]);
-    expect(t.accepts.every((a) => (a.additional ?? []).length <= 4)).toBe(true);
+    expect(t.accepts.every((a) => ((a as { additional?: unknown[] }).additional ?? []).length <= 4)).toBe(true);
     expect(JSON.stringify(t.parameters)).toMatch(/pressure is not accepted/);
   });
 
