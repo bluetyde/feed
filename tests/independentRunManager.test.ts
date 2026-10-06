@@ -87,7 +87,11 @@ describe("the answer of the independent runs is what the checks use", () => {
 
 describe("a deadline the checks cannot meet", () => {
   it("fails the run with E_VERIFY_INCOMPLETE, says what to do, writes no results, and keeps the solver's output", async () => {
-    const m = manager({ independentDeadlineMs: 1 });
+    // A runner that reports the deadline outcome, so this tests the manager's handling and not a race: a 1 ms deadline against a 50 ms job is decided
+    // by which the loop handles first (the worker's answer or the timer) when the machine is busy, and a complete answer that is late is accepted.
+    // The real runner's deadline is tested in independentRunner.test.ts with a job that takes seconds.
+    const stub = { start: () => ({ done: Promise.resolve({ ok: false, reason: "deadline", message: "the independent solution did not finish within 0.001 s and was stopped", ms: 1 }), cancel: () => undefined }) } as unknown as IndependentRunner;
+    const m = manager({ independent: stub });
     const s = m.start(pulse());
     if (!s.ok) throw new Error("refused");
     const rec = await m.done(s.id);
@@ -167,10 +171,16 @@ describe("the editor's preview", () => {
   }, 30_000);
 
   it("a preview that cannot finish in its deadline is skipped, with the reason, and the rest of the check is intact", async () => {
-    const j: any = await checkAsync(pulse(), 1);
+    // the largest case the validator allows, whose preview takes about a second, against a 50 ms deadline: nothing about the machine's load can let it finish
+    const d = pulse();
+    d.mesh = { fuelCells: 100, claddingCells: 30 };
+    d.transient.endTime = { value: 100, unit: "ms" };
+    d.transient.timeStep = { value: 100 / 23000, unit: "ms" };
+    d.transient.outputs = 23;
+    const j: any = await checkAsync(d, 50);
     expect(j.ok).toBe(true);
     expect(j.transient.preview).toBeNull();
-    expect(j.transient.previewSkipped).toMatch(/preview was skipped: .* did not finish within 0\.001 s/);
+    expect(j.transient.previewSkipped).toMatch(/preview was skipped: .* did not finish within 0\.050 s/);
     expect(j.transient.adiabaticPeak).toBeGreaterThan(300);
   }, 30_000);
 
