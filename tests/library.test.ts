@@ -38,6 +38,60 @@ describe("library", () => {
     });
   }
 
+  describe("presets that can run a pulse", () => {
+    const withHc = lib.materials.filter((x: any) => x.material.sets["thermal.volumetricHeatCapacity"]);
+    const ut = read("examples/ut-triga-pulse-4p40.json");
+    /** The law without its prose: the numbers and units must be the example's, the wording of the source may differ. */
+    const numbers = ({ source: _s, ...rest }: any) => rest;
+
+    it("the TRIGA fuel and the stainless-steel cladding presets carry the SAR heat capacities (the very sets the UT-Austin pulse example uses)", () => {
+      const fuel = lib.materials.find((x: any) => x.material.materialId === "triga-uzrh-h16")!.material.sets as any;
+      expect(numbers(fuel["thermal.volumetricHeatCapacity"])).toEqual(numbers(ut.materials.fuel.sets["thermal.volumetricHeatCapacity"]));
+      for (const id of ["ss304-k166", "ss304-ktemp"]) {
+        const clad = lib.materials.find((x: any) => x.material.materialId === id)!.material.sets as any;
+        expect(numbers(clad["thermal.volumetricHeatCapacity"])).toEqual(numbers(ut.materials.cladding.sets["thermal.volumetricHeatCapacity"]));
+      }
+    });
+
+    it("adding the set made a new revision and left the conductivity as it was", () => {
+      const byId = (id: string) => lib.materials.find((x: any) => x.material.materialId === id)!.material;
+      expect(byId("triga-uzrh-h16").revision).toBe(2);
+      expect((byId("triga-uzrh-h16").sets as any)["thermal.conductivity"].value).toEqual({ value: 18, unit: "W/m/K" });
+      expect((byId("ss304-k166").sets as any)["thermal.conductivity"].value).toEqual({ value: 16.6, unit: "W/m/K" });
+      for (const x of withHc) expect(x.material.revision, x.material.materialId).toBeGreaterThanOrEqual(2);
+    });
+
+    it("every heat capacity in the library has a stated source, and a sourced material's names a SAR or says it is assumed", () => {
+      expect(withHc.length).toBe(5);
+      for (const x of withHc) {
+        const hc = x.material.sets["thermal.volumetricHeatCapacity"] as any;
+        expect(hc.source, x.material.materialId).toBeTruthy();
+        if (x.label === "sourced") expect(hc.source, x.material.materialId).toMatch(/SAR/);
+        else expect(hc.source, x.material.materialId).toMatch(/^synthetic/);
+      }
+      // the one thing the SAR does not state is said, not hidden
+      expect((lib.materials.find((x: any) => x.material.materialId === "triga-uzrh-h16")!.material.sets as any)["thermal.volumetricHeatCapacity"].source).toMatch(/states no validity range; 0 to 1000 C is assumed/);
+    });
+
+    it("a library fuel and a library cladding run a pulse as they are: the pulse case validates with both swapped in", () => {
+      for (const fuel of withHc.filter((x: any) => x.region === "fuel")) {
+        for (const clad of withHc.filter((x: any) => x.region === "cladding")) {
+          const doc = read("examples/synthetic-pulse.json");
+          doc.materials.fuel = fuel.material;
+          doc.materials.cladding = clad.material;
+          expect(validateCase(doc).errors, fuel.material.materialId + " + " + clad.material.materialId).toEqual([]);
+        }
+      }
+    });
+
+    it("a preset without a heat capacity still refuses a pulse and names what is missing", () => {
+      const doc = read("examples/synthetic-pulse.json");
+      doc.materials.cladding = lib.materials.find((x: any) => x.material.materialId === "zry-clad-like")!.material;
+      const e = validateCase(doc).errors;
+      expect(e.map((x) => x.code + " " + x.field)).toEqual(["E_PROP_MISSING /materials/cladding/sets/thermal.volumetricHeatCapacity"]);
+    });
+  });
+
   it("sourced entries cite their source", () => {
     for (const m of lib.materials.filter((x: any) => x.label === "sourced")) expect((m as any).citation, m.material.materialId).toMatch(/SAR/);
   });
