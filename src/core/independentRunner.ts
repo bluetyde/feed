@@ -55,7 +55,7 @@ interface Pending {
 }
 
 /** The case without what the worker does not need (a generated pulse's integrated curve can be large), so less is copied into the thread. */
-function forWorker(c: NormalizedCase): NormalizedCase {
+export function forWorker(c: NormalizedCase): NormalizedCase {
   if (!c.transient?.generated) return c;
   const { generated: _g, ...transient } = c.transient;
   return { ...c, transient };
@@ -66,6 +66,7 @@ export class IndependentRunner {
   private running = new Set<Pending>();
   private workerFile: string | null;
   private maxConcurrent: number;
+  private live = 0;
 
   constructor(private opts: RunnerOptions) {
     this.workerFile = opts.workerFile === undefined ? resolveWorkerFile() : opts.workerFile;
@@ -75,6 +76,10 @@ export class IndependentRunner {
   /** Threads running now plus jobs waiting: zero when everything is settled. */
   activity(): { running: number; queued: number } {
     return { running: this.running.size, queued: this.queue.length };
+  }
+  /** Worker threads that have started and not yet exited: zero when none is left running (a terminated thread is counted out when it has really gone). */
+  liveThreads(): number {
+    return this.live;
   }
   get mode(): "worker" | "in-process" {
     return this.workerFile ? "worker" : "in-process";
@@ -136,6 +141,8 @@ export class IndependentRunner {
     } catch (e) {
       return fail("worker-failed", "the worker could not be started: " + String((e as Error).message));
     }
+    this.live++;
+    j.worker.once("exit", () => this.live--);
     j.timer = setTimeout(() => fail("deadline", `the independent solution did not finish within ${(j.deadlineMs / 1000).toFixed(j.deadlineMs < 1000 ? 3 : 0)} s and was stopped`), j.deadlineMs);
     j.worker.once("message", (m: { ok: boolean; set?: any; message?: string; ms: number }) => {
       if (j.settled) return;

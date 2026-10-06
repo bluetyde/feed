@@ -162,11 +162,11 @@ export function check(doc: unknown) {
 }
 
 /** The quick look with the transient's independent preview run in a worker thread, with a deadline; a newer request replaces one still waiting. */
-export async function checkAsync(doc: unknown) {
+export async function checkAsync(doc: unknown, previewDeadlineMs = PREVIEW_DEADLINE_MS) {
   const v = validateCase(doc);
   let external: { fv: FvTransient | null; skipped?: string } | undefined;
   if (v.normalized?.transient && !previewTooBig(v.normalized)) {
-    const o = await independent.start(v.normalized, { what: "single", deadlineMs: PREVIEW_DEADLINE_MS, supersede: true }).done;
+    const o = await independent.start(v.normalized, { what: "single", deadlineMs: previewDeadlineMs, supersede: true }).done;
     external = o.ok ? { fv: (o.set as { fv: FvTransient }).fv } : { fv: null, skipped: o.reason === "superseded" ? "a newer edit replaced this preview before it started" : "the preview was skipped: " + o.message };
   }
   return checkWith(v, external);
