@@ -1,6 +1,6 @@
 # Licences: FEED, the solver stack it runs, and what each way of distributing needs
 
-2026-10-06. Evidence for F0 review finding 9 ([review](../reviews/codex-2026-10-06-f0-exit.md)). **Not legal advice: no lawyer has reviewed this.** It records what the files and pages say, how that was checked, what each route of distribution would have to carry, and what is still missing.
+2026-10-06. Evidence for F0 review finding 9 ([review](../reviews/codex-2026-10-06-f0-exit.md)). **Not legal advice: no lawyer has reviewed this.** It records what the files and pages say, how that was checked, what each route of distribution would have to carry, and what is not held. **How the software is actually distributed (the owner's plan, restated 2026-10-06):** people download SEED (MIT). SEED's installer, on the user's own computer and only if the user chooses, fetches OpenFOAM, OFFBEAT and the other programs directly from their original sources. Nobody receives FEED, the solver or an image from us, and we host, copy and bundle nothing third-party. That is route A below; the items in section 5 do not apply to it.
 
 Everything about the solver is for the pinned versions in [solver/pins.env](../../solver/pins.env): OFFBEAT commit `80e84450a115b0c411e1bfa5d166379f6bf6c084` and the apt package `openfoam9` 20220602, on the Ubuntu 22.04.5 base of the `feed-solver` distro. The texts below were copied out of that installation by [solver/collect-licences.sh](../../solver/collect-licences.sh), which stops if the pins do not match; their hashes are in [third-party/SHA256SUMS](third-party/SHA256SUMS) and are checked by `tests/licences.test.ts`.
 
@@ -61,18 +61,26 @@ OpenFOAM's trademark is not addressed on the Foundation's licence page, and no t
 | For an image: Canonical's permission for a modified Ubuntu, or the marks removed | **no, undecided** |
 | OpenFOAM trademark terms | **not found** |
 
-The practical answer for now is route A, which needs none of the missing items.
+Route A is the distribution model. It needs none of the items marked **missing** in the inventory.
 
 ## 4. Verifying and regenerating
 
 - `solver/collect-licences.sh <dir>` copies the texts out of a pinned installation and writes `SHA256SUMS`; it was run again on the clean-distro rebuild (2026-10-06) and the hashes did not change.
 - `tests/licences.test.ts` checks the saved files against `SHA256SUMS`, that this inventory names the pins and every saved file, that FEED's own licence fields are MIT, and that the licences of FEED's production npm packages are among those named here.
 
-## 5. Still open (needs a person, or a download that was not made)
+## 5. Items that do not apply to the plan, and what would bring each back
 
-1. The **CeCILL-C** text and Scotch's `README_scotch` (upstream: the Scotch project). Not in the installed package and not downloaded in this pass.
-2. The **MIT text of CoolProp-IF97** as a file (its upstream licence was read, not saved), and a decision whether to add it to a source or binary distribution.
-3. **OpenFOAM trademark terms**: not on the Foundation's licence page; not found.
-4. The **fixture question** in section 2, and a **legal review** of this whole document.
-5. Route C for an image: **Canonical's** position on a modified Ubuntu.
-6. OFFBEAT's own `LICENSE` is the GPL v3 text; the "or later" comes from the per-file headers (all 776 files that mention the GPL have it). Anyone relying on "or later" should rely on the headers, which are in the pinned source.
+Under route A the licences of OpenFOAM, OFFBEAT, Scotch, SCIANTIX, CoolProp-IF97 and Ubuntu are between the user and their authors: the user's machine fetches each from its original source, and we pass nothing on. These items were found while writing this up and are kept as a record of what would have to be done if the model changed. None is needed now.
+
+| Item | Applies to route A? | Comes back if |
+|---|---|---|
+| The **CeCILL-C** text and Scotch's `README_scotch` (not in the installed package) | no | anyone hosts or hands over OpenFOAM, its libraries or an image of them |
+| The **MIT text of CoolProp-IF97** as a file (its upstream licence was read, not saved) | no | we host or hand over OFFBEAT's source or a build of it |
+| **OpenFOAM trademark terms** (not on the Foundation's licence page; none found) | practically not: saying that FEED works with OpenFOAM 9 is a statement of compatibility | a product is named or branded with OpenFOAM, or endorsement is implied |
+| The **fixtures** in section 2 (solver output with OpenFOAM's banner and OFFBEAT log text) | only if the FEED repository is made public so that something can fetch it; it is private now | FEED's repository is published: decide then whether to keep them, strip the banner or regenerate them |
+| **Canonical's** position on a modified Ubuntu | no: the user's machine fetches Ubuntu from Canonical and builds its own distro; no image is shipped | we export or host a `feed-solver` image |
+| A **legal review** of this document | not needed to run the plan; optional before SEED is promoted widely | at the owner's discretion |
+
+One item belongs to SEED, not FEED: its installer and its documentation should say that OpenFOAM and OFFBEAT are fetched from their upstream sources and not bundled, and should fetch from those sources and never from a mirror of our own (a mirror would make us redistribute). That is the SEED agent's.
+
+A note on OFFBEAT's licence: its `LICENSE` is the GPL v3 text; the "or later" comes from the per-file headers (all 776 files that mention the GPL have it). Anyone relying on "or later" should rely on the headers, which are in the pinned source.
