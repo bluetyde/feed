@@ -1,0 +1,165 @@
+[
+ {
+  "name": "synthetic-pulse-kinetics example: $3 step, constant feedback, constant heat capacity",
+  "spec": {
+   "reactivity": 0.019506,
+   "insertionTime": 0,
+   "generationTime": 0.00004,
+   "groups": [
+    {
+     "beta": 0.000215,
+     "lambda": 0.0124
+    },
+    {
+     "beta": 0.001424,
+     "lambda": 0.0305
+    },
+    {
+     "beta": 0.001274,
+     "lambda": 0.111
+    },
+    {
+     "beta": 0.002568,
+     "lambda": 0.301
+    },
+    {
+     "beta": 0.000748,
+     "lambda": 1.14
+    },
+    {
+     "beta": 0.000273,
+     "lambda": 3.01
+    }
+   ],
+   "feedback": {
+    "kind": "constant",
+    "alpha": -0.0001
+   },
+   "initialPower": 1000,
+   "pins": 100,
+   "activeLength": 0.5,
+   "peakingFactor": 1,
+   "endTime": 0.06,
+   "referenceStep": 0.000005
+  },
+  "ctx": {
+   "fuelArea": 0.00005281017250684443,
+   "fuelC": {
+    "a": 3000000,
+    "b": 0
+   },
+   "startTemperature": 300
+  },
+  "reference": {
+   "peakPower": 167740476.7000554,
+   "timeOfPeak": 0.040001043484115525,
+   "totalEnergy": 2064226.076876474,
+   "fwhm": 0.010844657208021032,
+   "finalFuelTemperature": 560.5844011850736,
+   "peakFuelRise": 260.5844011850736,
+   "finalPower": 1388839.0110103958
+  }
+ },
+ {
+  "name": "ramped $2.5, linear feedback, linear heat capacity, peaking 1.3 on 4 pins of 0.5 m, warm start",
+  "spec": {
+   "reactivity": 0.016255,
+   "insertionTime": 0.005,
+   "generationTime": 0.00006,
+   "groups": [
+    {
+     "beta": 0.000215,
+     "lambda": 0.0124
+    },
+    {
+     "beta": 0.001424,
+     "lambda": 0.0305
+    },
+    {
+     "beta": 0.001274,
+     "lambda": 0.111
+    },
+    {
+     "beta": 0.002568,
+     "lambda": 0.301
+    },
+    {
+     "beta": 0.000748,
+     "lambda": 1.14
+    },
+    {
+     "beta": 0.000273,
+     "lambda": 3.01
+    }
+   ],
+   "feedback": {
+    "kind": "linear",
+    "a": -0.00009,
+    "b": -2e-8,
+    "range": [
+     250,
+     2000
+    ]
+   },
+   "initialPower": 200,
+   "pins": 4,
+   "activeLength": 0.5,
+   "peakingFactor": 1.3,
+   "endTime": 0.08,
+   "referenceStep": 0.000005
+  },
+  "ctx": {
+   "fuelArea": 0.00005,
+   "fuelC": {
+    "a": 2000000,
+    "b": 3000
+   },
+   "startTemperature": 350
+  },
+  "reference": {
+   "peakPower": 1977020.6222112926,
+   "timeOfPeak": 0.06469671040211024,
+   "totalEnergy": 45562.60514718289,
+   "fwhm": 0.022207085680851647,
+   "finalFuelTemperature": 528.526632505771,
+   "peakFuelRise": 178.52663250577098,
+   "finalPower": 605649.8226014596
+  }
+ },
+ {
+  "name": "prompt only (no delayed groups), constant feedback: the Nordheim-Fuchs case",
+  "spec": {
+   "reactivity": 0.01,
+   "insertionTime": 0,
+   "generationTime": 0.0001,
+   "groups": [],
+   "feedback": {
+    "kind": "constant",
+    "alpha": -0.0001
+   },
+   "initialPower": 1,
+   "pins": 1,
+   "activeLength": 1,
+   "peakingFactor": 1,
+   "endTime": 0.3,
+   "referenceStep": 0.00001
+  },
+  "ctx": {
+   "fuelArea": 0.0001,
+   "fuelC": {
+    "a": 3000000,
+    "b": 0
+   },
+   "startTemperature": 300
+  },
+  "reference": {
+   "peakPower": 1500000.999999992,
+   "timeOfPeak": 0.15607265158074646,
+   "totalEnergy": 59999.97631288906,
+   "fwhm": 0.035254932191048804,
+   "finalFuelTemperature": 499.9999210429636,
+   "peakFuelRise": 199.9999210429636,
+   "finalPower": 3.36871016748701
+  }
+ }
+]

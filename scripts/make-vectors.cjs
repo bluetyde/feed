@@ -213,7 +213,7 @@ const badK = (name, code, field, mutate) => {
 };
 badK("kinetics-both-power-sources", "E_TRANSIENT_INCOMPLETE", "/transient/pointKinetics", (c) => {
   c.transient.powerHistory = pulse().transient.powerHistory;
-  c.transient.powerHistory[c.transient.powerHistory.length - 1].time = { value: 150, unit: "ms" };
+  c.transient.powerHistory[c.transient.powerHistory.length - 1].time = { value: 60, unit: "ms" };
 });
 badK("kinetics-no-power-source", "E_TRANSIENT_INCOMPLETE", "/transient/powerHistory", (c) => delete c.transient.pointKinetics);
 badK("kinetics-no-feedback", "E_TRANSIENT_INCOMPLETE", "/transient/pointKinetics/feedback", (c) => delete c.transient.pointKinetics.feedback);

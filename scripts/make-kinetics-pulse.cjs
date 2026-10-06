@@ -33,8 +33,8 @@ d.transient.pointKinetics = {
   initialPower: q(1, "kW"),
   core: { pins: 100, activeLength: q(0.5, "m"), peakingFactor: q(1, "1") },
 };
-d.transient.endTime = q(150, "ms");
+d.transient.endTime = q(60, "ms");
 d.transient.timeStep = q(0.05, "ms");
-d.transient.outputs = 30;
+d.transient.outputs = 12;
 fs.writeFileSync(path.join(root, "examples", "synthetic-pulse-kinetics.json"), JSON.stringify(d, null, 2) + "\n");
 console.log("wrote examples/synthetic-pulse-kinetics.json");
