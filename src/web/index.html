@@ -336,6 +336,7 @@ function renderProps() {
     const gen = (result && result.errors || []).filter((i) => i.field === "/boundary"); if (gen.length) p.append(elt("div", gen.map((x) => x.message).join(" "), { class: "ferr" }));
   } else if (selected === "geometry") {
     p.append(sec("Radii"), qField("Fuel radius", ["geometry", "fuelRadius"], "length"), qField("Central hole (optional, insulated)", ["geometry", "fuelInnerRadius"], "length"), qField("Clad inner", ["geometry", "claddingInnerRadius"], "length"), qField("Clad outer", ["geometry", "claddingOuterRadius"], "length"));
+    designView(p);
     if (doc.description) p.append(note("<code>" + (doc.label || "") + "</code> " + String(doc.description).replace(/</g, "&lt;")));
     if (doc.citation) p.append(note("Source: " + String(doc.citation).replace(/</g, "&lt;")));
     const d = result && result.derived; p.append(note(d ? "Gap thickness <code>" + (d.gapThickness * 1e3).toFixed(3) + " mm</code>. Equal radii are allowed only with an explicit effective gap conductance (zero cold gap); contact is not modelled." : "Radii must satisfy fuel &lt; cladding inner &lt; cladding outer."));
@@ -567,6 +568,44 @@ async function loadPin(id, name) { doc = await (await fetch("/api/pin/" + encode
 /* what the person has typed into the save-to-library fields, per region, so a re-render does not lose it */
 const libDraft = { fuel: {}, cladding: {} };
 const libMsg = { fuel: null, cladding: null };
+/* the pin as a designer states it: diameters and thicknesses. The arithmetic is the server's (src/core/design.ts); the page only sends the change. */
+const LEN = { mm: 1e-3, cm: 1e-2, m: 1 };
+const designMsg = {};
+function designField(label, field, siValue, unit0) {
+  const row = el("div", "prow"); const id = "design_" + field;
+  row.append(elt("label", label, { for: id }));
+  const box = el("div", "qin");
+  const stored = Object.keys(LEN).includes(unit0) ? unit0 : "mm";
+  const inp = elt("input", "", { type: "number", step: "any", id, value: siValue === undefined ? "" : String(Number((siValue / LEN[stored]).toPrecision(8))) });
+  const sel = elt("select", "", { "aria-label": label + " unit" });
+  for (const u of Object.keys(LEN)) sel.append(elt("option", u, { value: u }));
+  sel.value = stored;
+  const commit = async () => {
+    if (inp.value === "") return;
+    try {
+      const r = await fetch("/api/design", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ geometry: doc.geometry, field, value: { value: Number(inp.value), unit: sel.value } }) });
+      const j = await r.json();
+      if (j.ok) { designMsg[field] = null; doc.geometry = j.geometry; changed(true); }
+      else { designMsg[field] = (j.errors || [{ message: j.error || "refused" }]).map((e) => e.message).join(" "); renderProps(); }
+    } catch (e) { designMsg[field] = "Could not reach the server: " + e.message; renderProps(); }
+  };
+  inp.addEventListener("change", commit); sel.addEventListener("change", () => { inp.value = siValue === undefined ? inp.value : String(Number((siValue / LEN[sel.value]).toPrecision(8))); });
+  box.append(inp, sel); row.append(box);
+  if (designMsg[field]) { inp.classList.add("bad"); row.append(elt("div", designMsg[field], { class: "ferr" })); }
+  return row;
+}
+function designView(p) {
+  const D = result && result.derived && result.derived.design;
+  const u = (doc.geometry && doc.geometry.fuelRadius && doc.geometry.fuelRadius.unit) || "mm";
+  p.append(sec("Design view"),
+    designField("Fuel diameter", "fuelDiameter", D && D.fuelDiameter, u),
+    designField("Central hole diameter (0 = solid)", "fuelInnerDiameter", D && D.fuelInnerDiameter, u),
+    designField("Gap (radial)", "gap", D && D.gap, u),
+    designField("Cladding wall", "claddingWall", D && D.claddingWall, u),
+    designField("Cladding outer diameter", "claddingOuterDiameter", D && D.claddingOuterDiameter, u));
+  p.append(note("Changing one keeps what a designer expects to keep: the <b>fuel diameter</b> moves the cladding with it (gap and wall stay); the <b>gap</b> moves the cladding outwards (wall stays); the <b>wall</b> and the <b>outer diameter</b> move only the outer surface; the <b>hole</b> moves nothing else. The case still stores the radii above."));
+  if (D) p.append(note("Fuel cross-section <code>" + (D.fuelArea * 1e6).toFixed(3) + " mm²</code> (<code>" + (D.fuelArea * 1e6).toFixed(3) + " cm³/m</code> of pin), cladding <code>" + (D.claddingArea * 1e6).toFixed(3) + " mm²</code>. Wall over outer diameter <code>" + (D.wallToDiameter * 100).toFixed(2) + " %</code>; gap over fuel diameter <code>" + (D.gapToDiameter * 100).toFixed(2) + " %</code>." + (result.derived.volumetricPower ? " Volumetric power at the peak heat rate <code>" + (result.derived.volumetricPower / 1e6).toFixed(1) + " MW/m³</code>." : "")));
+}
 function saveToLibraryPanel(p, region) {
   const m = doc.materials[region];
   const d = libDraft[region];
