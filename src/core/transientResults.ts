@@ -2,6 +2,7 @@
 // against an independent finite-volume solution (transientFv.ts) and against energy conservation. The record schema is
 // feed.results/0.2; the steady record (feed.results/0.1) is unchanged.
 
+import { lawOf, primitive, rangeOf } from "./conductivity";
 import { GeneratedPulse } from "./pointKinetics";
 import { Check, DomainFinding, ResultsError, THERMAL_ONLY_TEXT, assertWholeFoamFile, parsePatchValue, parseScalarField, parseVectorField } from "./resultsParser";
 import { FvTransient, Linear, TransientPin, enthalpy, maxOf, minOf, solveTransientFv, steadyFv, storedEnergy } from "./transientFv";
@@ -74,7 +75,8 @@ export const GENERATOR_FEEDBACK_FLOOR = 0.1; // K
  */
 export const CROSS_CHECK_RISE_FRACTION = 0.005;
 
-const lin = (k: Conductivity): Linear => (k.kind === "constant" ? { a: k.k, b: 0 } : { a: k.a, b: k.b });
+/** A conductivity as the linear part the pin model keeps for callers that want {a, b}; the full law travels in fuelLaw / claddingLaw. */
+const lin = (k: Conductivity): Linear => (k.kind === "constant" ? { a: k.k, b: 0 } : k.kind === "linear" ? { a: k.a, b: k.b } : { a: k.coefficients[0]!, b: k.coefficients[1]! });
 const linC = (c: HeatCapacity): Linear => (c.kind === "constant" ? { a: c.c, b: 0 } : { a: c.a, b: c.b });
 
 /** The independent model of a normalized transient case. */
@@ -97,7 +99,9 @@ export function pinOf(c: NormalizedCase, cellFactor = 1): TransientPin {
     claddingCells: c.mesh.claddingCells * cellFactor,
     gapConductance: c.gapConductance,
     fuelK: lin(c.fuelConductivity),
+    fuelLaw: lawOf(c.fuelConductivity),
     claddingK: lin(c.claddingConductivity),
+    claddingLaw: lawOf(c.claddingConductivity),
     fuelC: linC(c.fuelHeatCapacity),
     claddingC: linC(c.claddingHeatCapacity),
     boundary: c.boundary.kind === "convective" ? { kind: "convective", bulkTemperature: c.boundary.bulkTemperature, heatTransferCoefficient: c.boundary.heatTransferCoefficient } : { kind: "surface-temperature", surfaceTemperature: c.boundary.surfaceTemperature },
@@ -258,9 +262,10 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const series: TransientSeries = { time: times, power: times.map((tt) => pin.power(tt)), deposited: times.map((tt) => depositedEnergy(t.times, t.linearHeatRate, tt)), peakT: [], fuelSurfaceCellT: [], claddingInnerCellT: [], claddingOuterWallT: walls, stored: [], rejected: [] };
   const outflow = (prof: number[], wall: number) => {
     if (c.boundary.kind === "convective") return c.boundary.heatTransferCoefficient * 2 * Math.PI * c.claddingOuterRadius * (wall - c.boundary.bulkTemperature);
-    const kk = lin(c.claddingConductivity);
+    const kk = lawOf(c.claddingConductivity);
     const Tl = prof[n - 1]!;
-    return ((2 * Math.PI * (kk.a + kk.b * 0.5 * (Tl + wall))) / Math.log(c.claddingOuterRadius / cells[n - 1]!.r)) * (Tl - wall);
+    // the heat through the last half cell: 2 pi (K(T_last) - K(T_wall)) / ln(Ro / r_last), K the primitive of k(T); for a linear law that is k at the mean temperature times the difference
+    return (2 * Math.PI * (primitive(kk, Tl) - primitive(kk, wall))) / Math.log(c.claddingOuterRadius / cells[n - 1]!.r);
   };
   let rej = 0;
   profiles.forEach((p, k) => {
@@ -394,12 +399,13 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
     return { lo, hi };
   };
   const rangesOf = (kk: Conductivity, cc: HeatCapacity | undefined, region: "fuel" | "cladding", e: { lo: number; hi: number }) => {
-    if (kk.kind === "linear") range(region, e.lo, e.hi, kk.range);
+    const kr = rangeOf(kk);
+    if (kr) range(region, e.lo, e.hi, kr);
     if (cc && cc.kind === "linear") range(region, e.lo, e.hi, cc.range);
   };
   rangesOf(c.fuelConductivity, c.fuelHeatCapacity, "fuel", extremes(0, nf, fv.trace!.fuelMin, fv.trace!.fuelMax));
   rangesOf(c.claddingConductivity, c.claddingHeatCapacity, "cladding", extremes(nf, n, fv.trace!.claddingMin, fv.trace!.claddingMax));
-  const anyLinear = c.fuelConductivity.kind === "linear" || c.claddingConductivity.kind === "linear" || c.fuelHeatCapacity!.kind === "linear" || c.claddingHeatCapacity!.kind === "linear";
+  const anyLinear = rangeOf(c.fuelConductivity) !== undefined || rangeOf(c.claddingConductivity) !== undefined || c.fuelHeatCapacity!.kind === "linear" || c.claddingHeatCapacity!.kind === "linear";
   const domain = { verdict: (findings.length === 0 ? "in-domain" : "out-of-domain") as "in-domain" | "out-of-domain", findings };
   if (anyLinear) {
     checks.push({ id: "propertyRange", label: "Property laws within their stated ranges", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated ranges at every output and at every step of the independent solution" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". A law was extrapolated; this result is out-of-domain." });

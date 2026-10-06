@@ -5,7 +5,21 @@
 // Everything here is plain arithmetic on numbers: no case, no solver. The closed forms and the independent finite-volume solver use these laws; the case writer
 // writes them.
 
+import type { Conductivity } from "./validate";
+
 export type Law = readonly number[];
+
+/** The law of a normalized conductivity as coefficients: a constant is [k], a linear law [a, b], a polynomial its four coefficients. */
+export function lawOf(k: Conductivity): Law {
+  if (k.kind === "constant") return [k.k];
+  if (k.kind === "linear") return [k.a, k.b];
+  return k.coefficients;
+}
+
+/** The temperature range a law is stated to hold over; a constant has none. */
+export function rangeOf(k: Conductivity): [number, number] | undefined {
+  return k.kind === "constant" ? undefined : k.range;
+}
 
 /** k(T), Horner. */
 export function evaluate(c: Law, T: number): number {
@@ -49,12 +63,12 @@ export function minimum(c: Law, lo: number, hi: number): number {
  * constant or linear law; for a higher degree a bisection on the primitive, which needs k > 0 all the way from T_cold to the answer (else RangeError: no solution).
  */
 export function solveHot(c: Law, tCold: number, integral: number): number {
-  if (!(integral >= 0)) throw new RangeError("the conductivity integral must be non-negative");
+  if (integral < 0) throw new RangeError("the conductivity integral must be non-negative"); // NaN is not refused here: the case writer refuses a number that is not finite, with its own message
   if (degree(c) <= 1) {
     const a = c[0]!;
     const b = c[1] ?? 0;
     const kCold = a + b * tCold;
-    if (!(kCold > 0)) throw new RangeError("conductivity is not positive at the cold side");
+    if (kCold <= 0) throw new RangeError("conductivity is not positive at the cold side"); // the comparisons of closedForm.solveLinearK, so a NaN passes through as it did
     if (b === 0) return tCold + integral / a;
     const disc = kCold * kCold + 2 * b * integral;
     if (disc < 0) throw new RangeError("no real solution: conductivity reaches zero first");

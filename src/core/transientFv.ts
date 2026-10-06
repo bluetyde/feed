@@ -7,6 +7,8 @@
 // (the scheme OFFBEAT uses) or Crank-Nicolson, Picard iteration for temperature-dependent conductivity and heat capacity.
 // Heat capacity c(T) = a + b T is handled through the enthalpy H(T) = a T + b T^2 / 2, so stored energy is conserved exactly.
 
+import { evaluate } from "./conductivity";
+
 const TWO_PI = 2 * Math.PI;
 
 export interface Linear {
@@ -26,6 +28,9 @@ export interface TransientPin {
   /** k = a + b T, c = a + b T (volumetric, J/m3/K), T in K. */
   fuelK: Linear;
   claddingK: Linear;
+  /** When given, the conductivity law of each solid as coefficients of k(T) = a0 + a1 T + a2 T^2 + a3 T^3 (src/core/conductivity.ts), and fuelK / claddingK are not used. */
+  fuelLaw?: readonly number[];
+  claddingLaw?: readonly number[];
   fuelC: Linear;
   claddingC: Linear;
   boundary: { kind: "convective"; bulkTemperature: number; heatTransferCoefficient: number } | { kind: "surface-temperature"; surfaceTemperature: number };
@@ -105,6 +110,14 @@ export function minOf(a: ArrayLike<number>): number {
   return m;
 }
 
+/** The conductivity of the fuel or the cladding at T: the law if the pin has one, else the linear a + b T. */
+export function conductivityOf(p: TransientPin, fuel: boolean, T: number): number {
+  const law = fuel ? p.fuelLaw : p.claddingLaw;
+  if (law) return evaluate(law, T);
+  const l = fuel ? p.fuelK : p.claddingK;
+  return l.a + l.b * T;
+}
+
 export const enthalpy = (c: Linear, T: number) => c.a * T + 0.5 * c.b * T * T;
 
 export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
@@ -127,7 +140,7 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
   const fuelArea = Math.PI * (p.fuelRadius ** 2 - p.fuelInnerRadius ** 2);
   const share: number[] = vol.map((v, i) => (i < nf ? v / fuelArea : 0));
   const cap = (i: number): Linear => (i < nf ? p.fuelC : p.claddingC);
-  const kOf = (i: number, T: number) => (i < nf ? p.fuelK.a + p.fuelK.b * T : p.claddingK.a + p.claddingK.b * T);
+  const kOf = (i: number, T: number) => conductivityOf(p, i < nf, T);
 
   /** Conductances (W/K per unit length) between cell i and i+1 and to the outside, at temperatures T. */
   const conductances = (T: number[]) => {
@@ -276,7 +289,7 @@ export function steadyFv(p: TransientPin, qPrime: number): { T: number[]; wall: 
   if (!s.T.every((x) => Number.isFinite(x) && x > 0)) throw new RangeError("the iteration for the steady state ended with a temperature that is not finite and above 0 K; a conductivity law that falls too far at this heat rate is the usual cause");
   const nf = p.fuelCells;
   s.T.forEach((x, i) => {
-    const k = i < nf ? p.fuelK.a + p.fuelK.b * x : p.claddingK.a + p.claddingK.b * x;
+    const k = conductivityOf(p, i < nf, x);
     if (!(k > 0)) throw new RangeError("the conductivity of the " + (i < nf ? "fuel" : "cladding") + " is not positive at " + x.toFixed(0) + " K, so there is no steady state at this heat rate");
   });
   // Every linear solve conserves energy whether or not the conductivity iteration has settled, so the heat balance proves nothing here. A settled field is a fixed

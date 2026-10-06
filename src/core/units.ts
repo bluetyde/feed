@@ -1,7 +1,7 @@
 // Quantity parsing: every physical input is {value, unit}; the unit must belong to the expected dimension.
 // SI is used inside the app (docs/ARCHITECTURE.md, Conventions).
 
-export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
+export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "conductivityPerK2" | "conductivityPerK3" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
 
 interface UnitDef {
   dim: Dimension;
@@ -21,6 +21,8 @@ const UNITS: Record<string, UnitDef> = {
   "W/cm": { dim: "linearPower", scale: 1e2 },
   "W/m/K": { dim: "conductivity", scale: 1 },
   "W/m/K2": { dim: "conductivityPerK", scale: 1 },
+  "W/m/K3": { dim: "conductivityPerK2", scale: 1 },
+  "W/m/K4": { dim: "conductivityPerK3", scale: 1 },
   "W/m2/K": { dim: "htc", scale: 1 },
   "kW/m2/K": { dim: "htc", scale: 1e3 },
   s: { dim: "time", scale: 1 },
@@ -44,6 +46,7 @@ const UNITS: Record<string, UnitDef> = {
   "pcm/K2": { dim: "reactivityPerK2", scale: 1e-5 },
   "1/s": { dim: "rate", scale: 1 },
   "1": { dim: "fraction", scale: 1 },
+  "%": { dim: "fraction", scale: 0.01 },
 };
 
 export const SI_UNIT: Record<Dimension, string> = {
@@ -52,6 +55,8 @@ export const SI_UNIT: Record<Dimension, string> = {
   linearPower: "W/m",
   conductivity: "W/m/K",
   conductivityPerK: "W/m/K2",
+  conductivityPerK2: "W/m/K3",
+  conductivityPerK3: "W/m/K4",
   htc: "W/m2/K",
   time: "s",
   volumetricHeatCapacity: "J/m3/K",

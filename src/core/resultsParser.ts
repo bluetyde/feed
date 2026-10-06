@@ -2,7 +2,8 @@
 // Incomplete, non-finite or inconsistent output is REFUSED with a typed error; it never becomes a partial result.
 // Pure functions on text: no solver, no files. Tested on real saved output (tests/golden/offbeat-syn/).
 
-import { closedForm, fuelTemperatureLinearK, LinearK, solveLinearK } from "./closedForm";
+import { closedForm, fuelTemperatureLaw } from "./closedForm";
+import { lawOf, primitive, rangeOf, solveHot } from "./conductivity";
 import { remainingChangeBound, STEADY_TOLERANCE } from "./steadyState";
 import { Conductivity, NormalizedCase } from "./validate";
 
@@ -185,16 +186,15 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   assertWholeFoamFile(input.C, "C");
 
   // --- checks
-  const lin = (k: Conductivity): LinearK => (k.kind === "constant" ? { a: k.k, b: 0 } : { a: k.a, b: k.b });
-  const kf = lin(c.fuelConductivity);
-  const kc = lin(c.claddingConductivity);
+  const kf = lawOf(c.fuelConductivity);
+  const kc = lawOf(c.claddingConductivity);
   const checks: Check[] = [];
-  // Energy balance from the solver's own cladding temperatures: for k = a + b T the radial flux through the wall is
-  // 2 pi (a (T_i - T_j) + b/2 (T_i^2 - T_j^2)) / ln(r_j / r_i), independent of the boundary form. Compared with the input linear heat rate.
+  // Energy balance from the solver's own cladding temperatures: the radial flux through the wall is 2 pi (K(T_i) - K(T_j)) / ln(r_j / r_i), with K the primitive of k(T)
+  // (for k = a + b T that is 2 pi (a (T_i - T_j) + b/2 (T_i^2 - T_j^2)) / ln(r_j / r_i)), independent of the boundary form. Compared with the input linear heat rate.
   if (clad.length >= 2) {
     const a = clad[0]!;
     const b = clad[1]!;
-    const qWall = (2 * Math.PI * (kc.a * (a.T - b.T) + (kc.b / 2) * (a.T * a.T - b.T * b.T))) / Math.log(b.r / a.r);
+    const qWall = (2 * Math.PI * (primitive(kc, a.T) - primitive(kc, b.T))) / Math.log(b.r / a.r);
     const rel = (qWall - c.qPrime) / c.qPrime;
     checks.push({ id: "energyBalance", label: "Energy balance (cladding wall flux vs input)", value: rel, unit: "relative", verdict: Math.abs(rel) <= BALANCE_TOLERANCE ? "pass" : "fail", note: `flux from the two innermost cladding cells = ${qWall.toFixed(1)} W/m against ${c.qPrime} W/m; threshold ${BALANCE_TOLERANCE * 100}%` });
   }
@@ -202,13 +202,13 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   // Closed-form agreement (constant or linear conductivity), same discretization-error bound used for the finite-volume cross-check.
   const filmDrop = c.boundary.kind === "convective" ? closedForm.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.boundary.heatTransferCoefficient) : 0;
   const tOuter = c.boundary.kind === "convective" ? c.boundary.bulkTemperature + filmDrop : c.boundary.surfaceTemperature;
-  const claddingAt = (r: number) => solveLinearK(kc.a, kc.b, tOuter, (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI));
+  const claddingAt = (r: number) => solveHot(kc, tOuter, (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI));
   const tCladInner = claddingAt(c.claddingInnerRadius);
   const tFuelSurface = tCladInner + closedForm.gapDeltaT(c.qPrime, c.fuelRadius, c.gapConductance);
   // the hottest fuel point: the axis of solid fuel, or the surface of the central hole
-  const fuelDeltaT = fuelTemperatureLinearK(kf, c.qPrime, c.fuelRadius, c.fuelInnerRadius === 0 ? 0 : c.fuelInnerRadius, tFuelSurface, c.fuelInnerRadius) - tFuelSurface;
+  const fuelDeltaT = fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, c.fuelInnerRadius === 0 ? 0 : c.fuelInnerRadius, tFuelSurface, c.fuelInnerRadius) - tFuelSurface;
   const claddingDeltaT = tCladInner - tOuter;
-  const fuelErr = Math.max(...fuel.map((p) => Math.abs(p.T - fuelTemperatureLinearK(kf, c.qPrime, c.fuelRadius, p.r, tFuelSurface, c.fuelInnerRadius))));
+  const fuelErr = Math.max(...fuel.map((p) => Math.abs(p.T - fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, p.r, tFuelSurface, c.fuelInnerRadius))));
   const cladErr = Math.max(...clad.map((p) => Math.abs(p.T - claddingAt(p.r))));
   const fuelBound = (5 * fuelDeltaT) / (c.mesh.fuelCells * c.mesh.fuelCells);
   const cladBound = (5 * claddingDeltaT) / (c.mesh.claddingCells * c.mesh.claddingCells);
@@ -222,16 +222,17 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   // Property range: a conductivity law is used outside its stated range => the result is out-of-domain, never plain success.
   const findings: DomainFinding[] = [];
   const range = (region: "fuel" | "cladding", k: Conductivity, pts: RadialPoint[]) => {
-    if (k.kind !== "linear") return;
+    const r = rangeOf(k);
+    if (!r) return;
     const t = pts.map((p) => p.T);
     const lo = Math.min(...t);
     const hi = Math.max(...t);
-    if (lo < k.range[0] || hi > k.range[1]) findings.push({ region, produced: [lo, hi], validRange: k.range });
+    if (lo < r[0] || hi > r[1]) findings.push({ region, produced: [lo, hi], validRange: r });
   };
   range("fuel", c.fuelConductivity, fuel);
   range("cladding", c.claddingConductivity, clad);
   const domain = { verdict: (findings.length === 0 ? "in-domain" : "out-of-domain") as "in-domain" | "out-of-domain", findings };
-  if (c.fuelConductivity.kind === "linear" || c.claddingConductivity.kind === "linear") {
+  if (rangeOf(c.fuelConductivity) || rangeOf(c.claddingConductivity)) {
     checks.push({ id: "propertyRange", label: "Conductivity law within its stated range", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated range" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". The law was extrapolated; this result is out-of-domain." });
   }
 

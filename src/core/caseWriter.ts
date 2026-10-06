@@ -119,6 +119,12 @@ mergePatchPairs
  */
 function conductivityLines(c: Conductivity): string {
   if (c.kind === "constant") return `        k           k     [1 1 -3 -1 0]  ${num(c.k)};\n`;
+  if (c.kind === "polynomial") {
+    // ZyRELAP evaluates par1 + par2 T - par3 T^2 + par4 T^3 (T in K), so the T^2 parameter is MINUS the coefficient; all four are always written because an omitted
+    // or mistyped parameter takes a Zircaloy default silently (docs/spike/property-model-survey.md).
+    const [a0, a1, a2, a3] = c.coefficients as [number, number, number, number];
+    return `        conductivityModel ZyRELAP;\n        conductivity { par1 ${num(a0)}; par2 ${num(a1)}; par3 ${num(-a2)}; par4 ${num(a3)}; }\n`;
+  }
   return `        conductivityModel steel1515TiTobbe;\n        conductivity { par1 ${num(c.a + 273.15 * c.b)}; par2 ${num(c.b)}; }\n`;
 }
 
@@ -129,6 +135,13 @@ function heatCapacityLines(cp: HeatCapacity | undefined): string {
   if (cp === undefined) return cpLine(300);
   if (cp.kind === "constant") return cpLine(cp.c / WRITER_DENSITY);
   return cpLine(300) + `        heatCapacityModel steel1515TiBanerjee;\n        heatCapacity { par1 ${num(cp.a / WRITER_DENSITY)}; par2 ${num(cp.b / WRITER_DENSITY)}; par3 0; }\n`;
+}
+
+/** What was written for a region's conductivity, for the run's mapping record. */
+function conductivityNote(region: string, k: Conductivity): string {
+  if (k.kind === "constant") return `materials.${region}.k (constant)`;
+  if (k.kind === "linear") return `materials.${region}: steel1515TiTobbe with par1 = a + 273.15 b, par2 = b (linear k(T))`;
+  return `materials.${region}: ZyRELAP (k = par1 + par2 T - par3 T^2 + par4 T^3, T in K) with par1 = a, par2 = b, par3 = -c, par4 = d, all four written` + (k.fit ? `; fitted to a table of ${k.fit.points.length} points, degree ${k.fit.degree}, largest deviation ${(k.fit.maxRelativeDeviation * 100).toPrecision(3)}% at ${k.fit.worstAt} K (tolerance ${(k.fit.tolerance * 100).toPrecision(3)}%)` : "");
 }
 
 function constantMaterial(name: string, k: Conductivity, cp?: HeatCapacity): string {
@@ -403,8 +416,8 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
           { field: "materials.* thermal.volumetricHeatCapacity", file: "constant/solverDict", note: "rho " + WRITER_DENSITY + " kg/m3 and Cp = c / rho (constant), or steel1515TiBanerjee with par1 = a / rho, par2 = b / rho, par3 = 0 (linear c(T)); the model name is a misnomer" },
         ]
       : [{ field: "power.linearHeatRate", file: "constant/solverDict", note: "heatSourceOptions.lhgr, flat profiles" }]),
-    { field: "materials.fuel thermal.conductivity", file: "constant/solverDict", note: kf.kind === "constant" ? "materials.fuel.k (constant)" : "materials.fuel: steel1515TiTobbe with par1 = a + 273.15 b, par2 = b (linear k(T))" },
-    { field: "materials.cladding thermal.conductivity", file: "constant/solverDict", note: kc.kind === "constant" ? "materials.cladding.k (constant)" : "materials.cladding: steel1515TiTobbe with par1 = a + 273.15 b, par2 = b (linear k(T))" },
+    { field: "materials.fuel thermal.conductivity", file: "constant/solverDict", note: conductivityNote("fuel", kf) },
+    { field: "materials.cladding thermal.conductivity", file: "constant/solverDict", note: conductivityNote("cladding", kc) },
     { field: "gap.conductance", file: "0/T", note: "resistiveGap alpha on fuelOuter and cladInner" },
     { field: "boundary", file: "0/T", note: c.boundary.kind === "convective" ? "cladOuter convectiveHTC (T0, h)" : "cladOuter fixedValue" },
   ];

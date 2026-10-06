@@ -1,0 +1,143 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "table-temperatures-not-increasing",
+  "name": "Synthetic composite pin (illustrative numbers, not a real fuel design)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.18,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 20,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 573,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "table",
+          "points": [
+            {
+              "temperature": {
+                "value": 300,
+                "unit": "K"
+              },
+              "conductivity": {
+                "value": 2.8,
+                "unit": "W/m/K"
+              }
+            },
+            {
+              "temperature": {
+                "value": 600,
+                "unit": "K"
+              },
+              "conductivity": {
+                "value": 3.5,
+                "unit": "W/m/K"
+              }
+            },
+            {
+              "temperature": {
+                "value": 500,
+                "unit": "K"
+              },
+              "conductivity": {
+                "value": 3.9,
+                "unit": "W/m/K"
+              }
+            },
+            {
+              "temperature": {
+                "value": 1200,
+                "unit": "K"
+              },
+              "conductivity": {
+                "value": 4.05,
+                "unit": "W/m/K"
+              }
+            },
+            {
+              "temperature": {
+                "value": 1500,
+                "unit": "K"
+              },
+              "conductivity": {
+                "value": 4.1,
+                "unit": "W/m/K"
+              }
+            }
+          ],
+          "fit": {
+            "degree": 3,
+            "tolerance": {
+              "value": 2,
+              "unit": "%"
+            }
+          },
+          "source": "synthetic: a table chosen to exercise the table model"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 15,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 6
+  }
+}

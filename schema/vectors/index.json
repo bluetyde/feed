@@ -485,6 +485,118 @@
     "field": "/transient/initialSteadyLinearHeatRate"
   },
   {
+    "file": "good/cubic-conductivity.json",
+    "valid": true
+  },
+  {
+    "file": "good/cubic-conductivity-zero-terms.json",
+    "valid": true
+  },
+  {
+    "file": "good/table-conductivity.json",
+    "valid": true
+  },
+  {
+    "file": "good/table-conductivity-celsius.json",
+    "valid": true
+  },
+  {
+    "file": "bad/polynomial-missing-coefficient.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity/d"
+  },
+  {
+    "file": "bad/polynomial-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity/source"
+  },
+  {
+    "file": "bad/polynomial-no-range.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity/validRange"
+  },
+  {
+    "file": "bad/polynomial-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/materials/fuel/sets/thermal.conductivity/c"
+  },
+  {
+    "file": "bad/polynomial-negative-inside-range.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity"
+  },
+  {
+    "file": "bad/polynomial-range-inverted.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity/validRange"
+  },
+  {
+    "file": "bad/table-no-fit.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity/fit"
+  },
+  {
+    "file": "bad/table-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity/source"
+  },
+  {
+    "file": "bad/table-no-points.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/thermal.conductivity/points"
+  },
+  {
+    "file": "bad/table-degree-4.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity/fit/degree"
+  },
+  {
+    "file": "bad/table-tolerance-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity/fit/tolerance"
+  },
+  {
+    "file": "bad/table-temperatures-not-increasing.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity/points/2/temperature"
+  },
+  {
+    "file": "bad/table-conductivity-not-positive.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity/points/1/conductivity"
+  },
+  {
+    "file": "bad/table-one-point.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/thermal.conductivity/points"
+  },
+  {
+    "file": "bad/table-too-few-points-for-the-degree.json",
+    "valid": false,
+    "code": "E_FIT",
+    "field": "/materials/fuel/sets/thermal.conductivity/fit/degree"
+  },
+  {
+    "file": "bad/table-fit-too-far.json",
+    "valid": false,
+    "code": "E_FIT",
+    "field": "/materials/fuel/sets/thermal.conductivity/fit"
+  },
+  {
     "file": "bad/unsupported-contact-model.json",
     "valid": false,
     "code": "E_UNSUPPORTED",

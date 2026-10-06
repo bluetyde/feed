@@ -235,6 +235,33 @@ badK("kinetics-steady-start-mismatch", "E_OUT_OF_RANGE", "/transient/initialStea
   c.transient.initialSteadyLinearHeatRate = { value: 25, unit: "W/m" };
 });
 
+// conductivity as a polynomial or as a fitted table (docs/conductivity-models.md)
+const polyFuel = (extra = {}) => ({ model: "polynomial", a: { value: 2, unit: "W/m/K" }, b: { value: 0.003, unit: "W/m/K2" }, c: { value: -1.2e-6, unit: "W/m/K3" }, d: { value: 2e-10, unit: "W/m/K4" }, validRange: { min: { value: 500, unit: "K" }, max: { value: 2500, unit: "K" } }, source: "synthetic: a cubic chosen to exercise the polynomial model", ...extra });
+const tableFuel = (extra = {}) => ({ model: "table", points: [[300, 2.8], [600, 3.5], [900, 3.9], [1200, 4.05], [1500, 4.1]].map(([T, k]) => ({ temperature: { value: T, unit: "K" }, conductivity: { value: k, unit: "W/m/K" } })), fit: { degree: 3, tolerance: { value: 2, unit: "%" } }, source: "synthetic: a table chosen to exercise the table model", ...extra });
+const withFuelK = (set) => { const c = clone(); c.materials.fuel.sets["thermal.conductivity"] = set; return c; };
+add("good", "cubic-conductivity", withFuelK(polyFuel()), {});
+add("good", "cubic-conductivity-zero-terms", withFuelK(polyFuel({ c: { value: 0, unit: "W/m/K3" }, d: { value: 0, unit: "W/m/K4" } })), {});
+add("good", "table-conductivity", withFuelK(tableFuel()), {});
+add("good", "table-conductivity-celsius", withFuelK(tableFuel({ points: [[27, 2.8], [327, 3.5], [627, 3.9], [927, 4.05], [1227, 4.1]].map(([T, k]) => ({ temperature: { value: T, unit: "degC" }, conductivity: { value: k, unit: "W/m/K" } })) })), {});
+const badK2 = (name, code, field, set) => { const c = withFuelK(set); add("bad", name, c, { code, field }); };
+const dropKey = (o, k) => { const x = JSON.parse(JSON.stringify(o)); delete x[k]; return x; };
+badK2("polynomial-missing-coefficient", "E_PROP_MISSING", "/materials/fuel/sets/thermal.conductivity/d", dropKey(polyFuel(), "d"));
+badK2("polynomial-no-source", "E_PROP_MISSING", "/materials/fuel/sets/thermal.conductivity/source", dropKey(polyFuel(), "source"));
+badK2("polynomial-no-range", "E_PROP_MISSING", "/materials/fuel/sets/thermal.conductivity/validRange", dropKey(polyFuel(), "validRange"));
+badK2("polynomial-wrong-unit", "E_UNITS", "/materials/fuel/sets/thermal.conductivity/c", polyFuel({ c: { value: -1.2e-6, unit: "W/m/K2" } }));
+badK2("polynomial-negative-inside-range", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.conductivity", polyFuel({ c: { value: -4e-6, unit: "W/m/K3" }, d: { value: 0, unit: "W/m/K4" } }));
+badK2("polynomial-range-inverted", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.conductivity/validRange", polyFuel({ validRange: { min: { value: 2500, unit: "K" }, max: { value: 500, unit: "K" } } }));
+badK2("table-no-fit", "E_PROP_MISSING", "/materials/fuel/sets/thermal.conductivity/fit", dropKey(tableFuel(), "fit"));
+badK2("table-no-source", "E_PROP_MISSING", "/materials/fuel/sets/thermal.conductivity/source", dropKey(tableFuel(), "source"));
+badK2("table-no-points", "E_PROP_MISSING", "/materials/fuel/sets/thermal.conductivity/points", dropKey(tableFuel(), "points"));
+badK2("table-degree-4", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.conductivity/fit/degree", tableFuel({ fit: { degree: 4, tolerance: { value: 2, unit: "%" } } }));
+badK2("table-tolerance-zero", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.conductivity/fit/tolerance", tableFuel({ fit: { degree: 3, tolerance: { value: 0, unit: "%" } } }));
+badK2("table-temperatures-not-increasing", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.conductivity/points/2/temperature", tableFuel({ points: [[300, 2.8], [600, 3.5], [500, 3.9], [1200, 4.05], [1500, 4.1]].map(([T, k]) => ({ temperature: { value: T, unit: "K" }, conductivity: { value: k, unit: "W/m/K" } })) }));
+badK2("table-conductivity-not-positive", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.conductivity/points/1/conductivity", tableFuel({ points: [[300, 2.8], [600, 0], [900, 3.9], [1200, 4.05], [1500, 4.1]].map(([T, k]) => ({ temperature: { value: T, unit: "K" }, conductivity: { value: k, unit: "W/m/K" } })) }));
+badK2("table-one-point", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.conductivity/points", tableFuel({ points: [{ temperature: { value: 300, unit: "K" }, conductivity: { value: 2.8, unit: "W/m/K" } }] }));
+badK2("table-too-few-points-for-the-degree", "E_FIT", "/materials/fuel/sets/thermal.conductivity/fit/degree", tableFuel({ points: [[300, 2.8], [900, 3.9], [1500, 4.1]].map(([T, k]) => ({ temperature: { value: T, unit: "K" }, conductivity: { value: k, unit: "W/m/K" } })) }));
+badK2("table-fit-too-far", "E_FIT", "/materials/fuel/sets/thermal.conductivity/fit", tableFuel({ fit: { degree: 1, tolerance: { value: 1, unit: "%" } } }));
+
 bad("unsupported-contact-model", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "contact" }));
 bad("unsupported-gas-gap", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "gas-gap" }));
 bad("unsupported-mechanics", "E_UNSUPPORTED", "/assumptions/thermalOnly", (c) => (c.assumptions.thermalOnly = false));

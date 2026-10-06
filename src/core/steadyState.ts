@@ -27,7 +27,8 @@
 // steps faster). The drift bound in 2 is the certificate.
 
 import type { NormalizedCase, Conductivity } from "./validate";
-import { closedForm, compositeLinearK } from "./closedForm";
+import { compositeLaw } from "./closedForm";
+import { lawOf, minimum } from "./conductivity";
 
 /** rho Cp the writer gives every material of a steady case (rho 10000 kg/m3, Cp 300 J/kg/K); a numerical vehicle, not a property. */
 export const STEADY_PSEUDO_HEAT_CAPACITY = 10000 * 300;
@@ -45,7 +46,7 @@ const TWO_PI = 2 * Math.PI;
 /** The lowest conductivity a law takes over the temperatures it is valid for. */
 export function lowestConductivity(k: Conductivity): number {
   if (k.kind === "constant") return k.k;
-  return Math.min(k.a + k.b * k.range[0], k.a + k.b * k.range[1]);
+  return minimum(lawOf(k), k.range[0], k.range[1]); // exact, including a turning point inside the range
 }
 
 export interface TimeScale {
@@ -86,19 +87,18 @@ export function timeScale(n: NormalizedCase): TimeScale {
 
 /** Upper bound on how far any cell can start from its steady value, K: from the coolant temperature to the closed-form centre. */
 export function initialDeviationBound(n: NormalizedCase): number {
-  const lin = (k: Conductivity) => (k.kind === "constant" ? { a: k.k, b: 0 } : { a: k.a, b: k.b });
   const t0 = n.boundary.kind === "convective" ? n.boundary.bulkTemperature : n.boundary.surfaceTemperature;
-  const comp = compositeLinearK({
+  const comp = compositeLaw({
     qPrime: n.qPrime,
-    fuelK: lin(n.fuelConductivity),
+    fuelK: lawOf(n.fuelConductivity),
     fuelRadius: n.fuelRadius,
     fuelInnerRadius: n.fuelInnerRadius,
     hGap: n.gapConductance,
     claddingInnerRadius: n.claddingInnerRadius,
     claddingOuterRadius: n.claddingOuterRadius,
-    claddingK: lin(n.claddingConductivity),
+    claddingK: lawOf(n.claddingConductivity),
     boundary: n.boundary.kind === "convective" ? { kind: "convective", bulkTemperature: n.boundary.bulkTemperature, hFilm: n.boundary.heatTransferCoefficient } : { kind: "surface-temperature", surfaceTemperature: n.boundary.surfaceTemperature },
-  }, closedForm);
+  });
   return Math.max(Math.abs(comp.centreT - t0), 1);
 }
 

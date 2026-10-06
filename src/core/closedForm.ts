@@ -2,6 +2,8 @@
 // Derived without any solver (docs/plans/04-verification.md). Used as the oracle
 // the solver must match and as the quick-look check on a case.
 
+import { Law, solveHot } from "./conductivity";
+
 const TWO_PI = 2 * Math.PI;
 const FOUR_PI = 4 * Math.PI;
 
@@ -122,6 +124,34 @@ export function compositeLinearK(c: CompositeLinearInput, impl: ClosedFormImpl =
   const fuelSurfaceT = claddingInnerT + gapDeltaT;
   const centreT = impl.solveLinearK(c.fuelK.a, c.fuelK.b, fuelSurfaceT, impl.fuelConductivityIntegral(c.qPrime) * impl.fuelCentreFactor(c.fuelInnerRadius ?? 0, c.fuelRadius));
   return { filmDeltaT, claddingDeltaT: claddingInnerT - claddingOuterT, gapDeltaT, fuelDeltaT: centreT - fuelSurfaceT, claddingOuterT, claddingInnerT, fuelSurfaceT, centreT };
+}
+
+export interface CompositeLawInput {
+  qPrime: number;
+  fuelK: Law;
+  fuelRadius: number;
+  fuelInnerRadius?: number;
+  hGap: number;
+  claddingInnerRadius: number;
+  claddingOuterRadius: number;
+  claddingK: Law;
+  boundary: { kind: "convective"; bulkTemperature: number; hFilm: number } | { kind: "surface-temperature"; surfaceTemperature: number };
+}
+
+/** The same series as compositeLinearK for ANY conductivity law (constant, linear, quadratic, cubic): the conductivity integral of each solid solved by solveHot. */
+export function compositeLaw(c: CompositeLawInput): CompositeResult {
+  const filmDeltaT = c.boundary.kind === "convective" ? closedForm.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.boundary.hFilm) : 0;
+  const claddingOuterT = c.boundary.kind === "convective" ? c.boundary.bulkTemperature + filmDeltaT : c.boundary.surfaceTemperature;
+  const claddingInnerT = solveHot(c.claddingK, claddingOuterT, closedForm.claddingConductivityIntegral(c.qPrime, c.claddingInnerRadius, c.claddingOuterRadius));
+  const gapDeltaT = closedForm.gapDeltaT(c.qPrime, c.fuelRadius, c.hGap);
+  const fuelSurfaceT = claddingInnerT + gapDeltaT;
+  const centreT = solveHot(c.fuelK, fuelSurfaceT, closedForm.fuelConductivityIntegral(c.qPrime) * closedForm.fuelCentreFactor(c.fuelInnerRadius ?? 0, c.fuelRadius));
+  return { filmDeltaT, claddingDeltaT: claddingInnerT - claddingOuterT, gapDeltaT, fuelDeltaT: centreT - fuelSurfaceT, claddingOuterT, claddingInnerT, fuelSurfaceT, centreT };
+}
+
+/** Fuel temperature at radius r for any conductivity law, given the fuel surface temperature (and the hole radius, if any). */
+export function fuelTemperatureLaw(k: Law, qPrime: number, fuelRadius: number, r: number, surfaceT: number, fuelInnerRadius = 0): number {
+  return solveHot(k, surfaceT, (qPrime * annulusShape(r, fuelRadius, fuelInnerRadius)) / FOUR_PI);
 }
 
 /**
