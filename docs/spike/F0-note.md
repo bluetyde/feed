@@ -1,6 +1,6 @@
 # F0 note: backend reproduction (2026-10-05, Claude Code)
 
-Status: **partly done.** The solver builds, runs an upstream example end to end, is deterministic, and fails in classifiable ways. It does not yet run a case that FEED can compare with a closed form. Pins and environment: [../../solver/PINS.md](../../solver/PINS.md). Decision record: [../decisions/0002-solver-pair-and-run-classification.md](../decisions/0002-solver-pair-and-run-classification.md).
+Status: **partly done.** The solver builds, runs an upstream example end to end, is deterministic, and fails in classifiable ways. A thermal-only case reproduces the closed-form oracle (see the results below: four meshes, a sourced K-State element, k(T)), but F0 is NOT closed: the clean-distro rebuild, a non-convergence probe with a convergence predicate, a steady-state gate, the licence texts and a baseline for the upstream example are still open (see the end of this note and docs/reviews/codex-2026-10-06-f0-exit.md). Pins and environment: [../../solver/PINS.md](../../solver/PINS.md). Decision record: [../decisions/0002-solver-pair-and-run-classification.md](../decisions/0002-solver-pair-and-run-classification.md).
 
 ## What was done, with cost
 
@@ -79,8 +79,10 @@ Cautions: (1) OFFBEAT does not enforce a stated range; FEED flags a result out-o
 ## Not done in F0 yet
 
 - Licenses: OFFBEAT is GPL-3.0 (repository `LICENSE` read; the web page says GPL-3.0-or-later). The OpenFOAM Foundation license text was not read in this session, and redistribution obligations are not written up.
-- Windows story beyond "run it through `wsl.exe -d feed-solver`" (Git Bash needed `MSYS_NO_PATHCONV=1` for `/mnt/c` paths).
-- Clean-distro rebuild by script: the scripts ran once, end to end, but a rebuild from a fresh import was not repeated.
-- Non-convergence probe: not triggered; the power probe failed by floating-point exception before iterating.
+- Windows story: now recorded in solver/PINS.md (run user created by setup, `--exec` invocation, supported path classes: drive-letter paths only, UNC and `\\wsl$\...` paths refused with a tested error). A workspace under `\\wsl$` is not supported.
+- Clean-distro rebuild by script: the scripts ran once, end to end, but a rebuild from a fresh import was not repeated. Since 2026-10-06 the scripts enforce the pins (OFFBEAT commit checked out detached and verified, OpenFOAM package installed at its exact version and verified, run user created; `solver/pins.env`, stopping with `PIN MISMATCH`); the rebuild that proves it is still to do.
+- Non-convergence probe: not triggered; the power probe failed by floating-point exception before iterating. No convergence predicate exists, so the run manager's `completed` means "intended end time reached, fields complete and finite", not "the solver converged"; the exit-code exception (any nonzero exit after a complete write is called the shutdown crash) is wider than the one demonstrated (139). Needs the solver.
+- Steady-state gate: "an end time well beyond the slowest thermal time constant" has no measurable threshold. The oracle generator now has no default end time and refuses anything under 1e7 s, and the extraction scripts refuse a run that did not write its intended end time, but an acceptance test (temperature change below a stated amount when the run is extended) is not defined. Needs a run.
+- Upstream example baseline: `generic_pwr_1D` has determinism observations but no preserved expected output with tolerances.
 - Property models available (which conductivity and gap models exist and their units): not surveyed.
-- Codex review of this evidence (F0 exit).
+- Codex review of this evidence (F0 exit): done 2026-10-06, 10 findings, see docs/reviews/codex-2026-10-06-f0-exit.md; the solver-free ones are fixed (status table in the record).

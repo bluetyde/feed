@@ -19,6 +19,23 @@ Verdict: the saved thermal comparisons support the configurations they test, but
 | 9 | MEDIUM | Licence identification and redistribution evidence unfinished: OFFBEAT grant ("GPL-3.0" in the repository, "or later" on the web page) unresolved, OpenFOAM Foundation licence text unread, no obligations note per route (install instructions, source, WSL image). Already listed as not done in the note | `F0-note.md:81` | read and save the licence texts; write the per-route checklist | no |
 | 10 | MEDIUM | `compare-runs.sh` prints `DIFFERENT` for a difference or a missing file and still exits 0; the numeric difference its comment promises is never computed | `compare-runs.sh:7` | exit nonzero for mismatch or unreadable file, require at least one comparison, choose byte equality or a tolerance, test equal, unequal and missing | no |
 
-## Status
+## Fix status (2026-10-06, solver-free pass)
 
-Nothing was fixed in this pass (the review skill does not apply fixes unasked). Findings 1, 3 (default), 4, 5, 6, 7 (user and PINS text) and 10 are script, test and documentation edits that need no solver. Findings 2, 3 (gate), 8 and the clean rebuild from 1 need the `feed-solver` distro. Finding 9 is reading and writing, no code.
+Before any fix, findings 3, 4, 5 and 10 were reproduced: `compare-runs.sh` exited 0 for a different file and a missing file; the k(T) oracle tests passed all 24 checks with the four records set to time 0, zero cells and the cladding removed; the constant-k test passed with the records saying time 2e7 instead of 5e7; the generator and `synthetic-pin.params.json` still said 2000 s.
+
+| # | Status | What was done | Evidence |
+|---|---|---|---|
+| 1 | **fixed in the scripts; clean rebuild still open** | `solver/pins.env`; `build-offbeat.sh` checks out the pinned commit detached, verifies `git rev-parse HEAD` and the installed package version, and stops with `PIN MISMATCH`; `setup-feed-solver.sh` installs `openfoam9=20220602` and verifies it | `tests/solverScripts.test.ts` (pins agree with PINS.md; build and setup text); the installed distro matches the pins (OFFBEAT 80e84450, openfoam9 20220602, user feed uid 1000). The rebuild from a fresh import was NOT run |
+| 2 | **open (needs the solver)** | not touched: no non-convergence probe, no convergence predicate, the nonzero-exit exception in `runManager.ts` is still wider than exit 139. The oracle scripts now accept only exit 0 or 139 and refuse `FOAM FATAL`, which narrows the F0 harness, not the run manager | |
+| 3 | **default fixed; steady-state gate open** | no default end time in `make-oracle-case.py` (refuses a missing, non-numeric or under-1e7 s value); `synthetic-pin.params.json` now 5e7; a test requires every params file to be at least 5e7. The measurable acceptance threshold is not defined (needs a run) | `tests/solverScripts.test.ts` (generator refusals, params horizon) |
+| 4 | **fixed** | `check-final-time.sh` (latest written time must equal the controlDict endTime to 1e-9, exit 4 or 5 otherwise) runs before extraction in `run-oracle.sh` and `run-case.sh`, which exit nonzero when no result was published; the saved-output tests compare the record's time with its params file exactly | tests for exit 0, 4 and 5; reproduction repeated: time 2e7 now fails; real distro run of `run-oracle.sh` (mesh 1): final time 5e7 reached, result identical to the saved record (max abs dT 0) |
+| 5 | **fixed** | `expectComplete` checks each saved record against its params file (exact end time and cell counts, array lengths, fuel and cladding counts, finite positive values, increasing centres) for the constant-k, k(T) and K-State records | reproduction repeated: the gutted k(T) records now fail |
+| 6 | **fixed** | the note's status line no longer contradicts its results | |
+| 7 | **fixed** | setup creates the run user (uid 1000, idempotent, refuses another uid); PINS.md shows `--exec`; supported path classes stated (drive-letter only) and the UNC and `/mnt` refusals tested | `tests/solverScripts.test.ts`, `tests/wslBackend.test.ts` |
+| 8 | **open (needs the solver)** | recorded as open in the note | |
+| 9 | **open** | recorded as open in the note (licence texts, per-route obligations) | |
+| 10 | **fixed** | `compare-runs.sh` is a byte-equality gate: exit 1 for a difference or a missing file, 2 for no files; its comment now says what it does | tests for equal, different, missing, mixed and no files |
+
+Mutation checks: 18 mutations of the scripts, the tests' data and PINS.md (always exit 0, missing file allowed, any time accepted, exact-only time, default end time back, build following master, commit verification skipped, unpinned install, user not created, final-time check skipped or reordered, pins.env and PINS.md out of step, `--` back, a params file back to 2000 s, wrong cell count) were each caught. Not covered by a test that needs the distro: the refusal path of `run-oracle.sh` when OFFBEAT itself fails or times out (the final-time and exit-code logic is tested on its own).
+
+Still open for F0: findings 2, 8, 9, the steady-state gate, and the clean-distro rebuild.

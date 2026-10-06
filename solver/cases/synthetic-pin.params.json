@@ -9,6 +9,6 @@
   "boundary": { "kind": "convective", "bulkTemperature": 573, "h": 30000 },
   "fuelCells": 40,
   "claddingCells": 12,
-  "endTime": 2000,
+  "endTime": 50000000,
   "initialTemperature": 900
 }

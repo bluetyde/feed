@@ -18,6 +18,12 @@ TEMPLATE = os.path.expanduser("~/OpenFOAM/feed-9/applications/solvers/offbeat/Ca
 
 def main(params_path, out):
     p = json.load(open(params_path))
+    # No default end time: the first runs ended at 2000 s and kept a heat-storage term (F0 note), so the horizon must be a choice.
+    # The verified steady-state runs use 5e7 s; anything shorter than 1e7 s is refused for these steady oracles.
+    if not isinstance(p.get("endTime"), (int, float)) or isinstance(p.get("endTime"), bool):
+        sys.exit("make-oracle-case: params must give endTime (s); there is no default (2000 s leaves a storage term, verified runs use 5e7)")
+    if p["endTime"] < 1e7:
+        sys.exit("make-oracle-case: endTime %r s is too short for a steady oracle (needs at least 1e7 s; verified runs use 5e7)" % p["endTime"])
     if os.path.exists(out):
         shutil.rmtree(out)
     shutil.copytree(TEMPLATE, out, symlinks=False)  # follows the rodMaker.py symlink
@@ -172,7 +178,7 @@ boundaryField
 
     # --- system/controlDict: fixed end time, no burnup/creep/fgr limits, probes at the axis and outer fuel/clad faces
     c = open("system/controlDict").read()
-    c = re.sub(r"^endTime\s+.*$", "endTime         %r;" % p.get("endTime", 2000.0), c, flags=re.M)
+    c = re.sub(r"^endTime\s+.*$", "endTime         %r;" % p["endTime"], c, flags=re.M)
     c = re.sub(r"^writeInterval\s+.*$", "writeInterval   1000;", c, flags=re.M)
     c = re.sub(r"^deltaT\s+.*$", "deltaT          1;", c, flags=re.M)
     open("system/controlDict", "w").write(c)

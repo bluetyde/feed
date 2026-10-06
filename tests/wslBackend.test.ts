@@ -26,4 +26,14 @@ describe("WSL invocation (Codex finding #6): no default Linux shell between Node
   it("toWslPath refuses a relative path", () => {
     expect(() => toWslPath("solver\\run-feed.sh")).toThrow(/absolute Windows path/);
   });
+
+  // Supported path classes (F0 exit review): an absolute drive-letter path with either slash and any characters, spaces included.
+  // Everything else is refused up front, with the same error, rather than passed to wsl.exe to fail there.
+  it("toWslPath accepts drive-letter paths (either slash, either case, spaces) and nothing else", () => {
+    expect(toWslPath("C:\\Users\\a b\\x")).toBe("/mnt/c/Users/a b/x");
+    expect(toWslPath("d:/work/x")).toBe("/mnt/d/work/x");
+    for (const bad of ["\\\\wsl$\\feed-solver\\home\\feed\\x", "\\\\server\\share\\x", "\\\\?\\C:\\x", "//wsl$/feed-solver/x", "/mnt/c/x", "C:x", "C:", "", "~/x"]) {
+      expect(() => toWslPath(bad), bad).toThrow(/absolute Windows path/);
+    }
+  });
 });

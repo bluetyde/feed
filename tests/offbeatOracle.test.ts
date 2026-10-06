@@ -17,6 +17,24 @@ interface Saved {
   T: number[];
   cladOuterWallT: number;
 }
+/**
+ * Structural checks of a saved record against the params file that produced it (F0 exit review): the INTENDED end time exactly (an
+ * intermediate time left by a timeout must not pass), the exact fuel and cladding cell counts, arrays of one length, finite
+ * positive temperatures, strictly increasing cell centres. Without these a truncated or gutted export would keep a passing verdict.
+ */
+function expectComplete(res: Saved, paramsFile: string) {
+  const p = read("solver/cases/" + paramsFile);
+  expect(res.time).toBe(p.endTime);
+  expect(res.nCells).toBe(p.fuelCells + p.claddingCells);
+  expect(res.r.length).toBe(res.nCells);
+  expect(res.T.length).toBe(res.nCells);
+  expect(res.r.filter((r) => r < p.fuelRadius).length).toBe(p.fuelCells);
+  expect(res.r.filter((r) => r >= p.claddingInnerRadius).length).toBe(p.claddingCells);
+  expect(res.r.every((r, i) => Number.isFinite(r) && Number.isFinite(res.T[i]!) && res.T[i]! > 0)).toBe(true);
+  expect(res.r.every((r, i) => i === 0 || r > res.r[i - 1]!)).toBe(true);
+  expect(Number.isFinite(res.cladOuterWallT) && res.cladOuterWallT > 0).toBe(true);
+}
+
 const meshes = [
   { tag: "mesh1", nf: 10, nc: 3 },
   { tag: "mesh2", nf: 20, nc: 6 },
@@ -52,11 +70,11 @@ function maxError(res: Saved, region: "fuel" | "clad", T: number[] = res.T): num
 }
 
 describe("OFFBEAT thermal oracle (saved output)", () => {
-  it("input sanity: the saved cells cover the pin and the run reached a late time", () => {
+  it("input sanity: each saved record is complete for its params file, at the intended end time (5e7 s, long enough to be steady)", () => {
     for (const m of meshes) {
+      expectComplete(m.res, "synthetic-pin." + m.tag + ".params.json");
       expect(m.res.nCells).toBe(m.nf + m.nc);
-      expect(m.res.time).toBeGreaterThanOrEqual(1e7); // long enough to be steady: the storage term is negligible
-      expect(m.res.T.every(Number.isFinite)).toBe(true);
+      expect(m.res.time).toBeGreaterThanOrEqual(5e7); // the storage term is negligible only this late
     }
   });
 
@@ -106,6 +124,11 @@ describe("OFFBEAT on the K-State TRIGA hot element (saved output)", () => {
   const tCladInner = tOuter + closedForm.claddingDeltaT(k.qPrime, k.claddingInnerRadius, k.claddingOuterRadius, k.claddingK);
   const tFuelSurface = tCladInner + closedForm.gapDeltaT(k.qPrime, k.fuelRadius, k.hGap);
 
+  it("input sanity: the saved record is complete for its params file, at the intended end time", () => {
+    expectComplete(res, "ksu-hot-element.params.json");
+    expect(res.nCells).toBe(40 + 8); // 40 fuel cells, 8 cladding cells (the params file)
+  });
+
   it("matches the closed form within the discretization bound (40 fuel cells)", () => {
     let worst = 0;
     res.r.forEach((r, i) => {
@@ -142,6 +165,13 @@ describe("OFFBEAT with k(T) in the fuel (saved output)", () => {
     });
     return worst;
   };
+
+  it("input sanity: each saved record is complete for its params file, at the intended end time", () => {
+    for (const m of runs) {
+      expectComplete(m.res, "synthetic-pin-kT." + m.tag + ".params.json");
+      expect(m.res.nCells).toBe(m.nf + 3 * (m.nf / 10)); // 10/3, 20/6, 40/12, 80/24
+    }
+  });
 
   it("the oracle value the comparison rests on is the table's 1246.8586 K", () => {
     expect(lin.centreT).toBeCloseTo(1246.8586, 3);
