@@ -152,10 +152,11 @@ describe.skipIf(!solverOn)("what OFFBEAT's property models do, on the synthetic 
     expect(Number(list![1])).toBe(15);
     expect(names).toEqual(["BufferPARFUME", "Mo", "SiCPARFUME", "SwindemanHastelloyN", "UO2MATPRO", "UO2NFIR", "UPuO2Brancheria", "UPuO2Kato", "UPuO2LanningBeyer", "UPuO2MagniMAMOX", "UPuO2Philipponeau", "ZyRELAP", "conductivityUO2IFA601", "constant", "steel1515TiTobbe"].sort());
   }, 300_000);
-  it("a burnup- or composition-dependent model (UO2MATPRO) cannot be used in a thermal-only case: it needs fields the case does not have", async () => {
+  it("a burnup- or composition-dependent model (UO2MATPRO) is refused in a thermal-only case, at the first thing it lacks", async () => {
     const { rec } = await run(pinDoc(), (d) => inFuelBlock(d, K_LINE, "        conductivityModel UO2MATPRO;\n"));
     expect(rec.state).toBe("failed");
-    expect(rec.failure?.native ?? "").toMatch(/densityFraction|burnup|Bu\b|lookup/i);
+    // it stops at the first thing missing, the keyword densityFraction; the burnup, porosity and swelling fields it also reads were not reached
+    expect(rec.failure?.native ?? "").toMatch(/FOAM FATAL IO ERROR[\s\S]*keyword densityFraction is undefined/);
   }, 300_000);
 
   it("no range is enforced: above ZyRELAP's stated 1800 K the run completes, with a warning in the log and a result nobody refused", async () => {

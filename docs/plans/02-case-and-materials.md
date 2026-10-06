@@ -56,6 +56,6 @@ Documented pins are labelled `synthetic` or `sourced`. A sourced example carries
 
 ## Open
 
-- Which conductivity correlations and gap models the first release exposes, from F0 and from sources with clear terms.
+- Which conductivity correlations and gap models the first release exposes: F0's survey is done ([property-model-survey.md](../spike/property-model-survey.md)): the gap model stays the constant effective conductance (the only one without mechanics); the conductivity carriers are constant, linear (today), quadratic, cubic (`ZyRELAP`, par3 = -a2), a/T + b; a tabulated law would be a fitted polynomial with its deviation stated. The choice of what to expose, and from which sources, is the next step.
 - Whether radial power shape beyond `uniform` (for example a depression near the pellet edge) is a later option.
 - Representation of an axial layout (several slices) for the transfer in plan 05.
