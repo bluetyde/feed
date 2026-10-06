@@ -55,6 +55,6 @@ Evidence: `tests/steadyInitialState.test.ts` (solver-free) and `tests/steadyStar
 
 ## Open
 
-- Pulse shape for TRIGA: the SAR gives peak power and maximum temperature versus reactivity, not the power curve. A parametric pulse (Fuchs-Nordheim) would be a separate, clearly labelled input generator.
+- Pulse shape for TRIGA: the SAR gives peak power and maximum temperature versus reactivity, not the power curve. Done 2026-10-06: the point-kinetics generator ([../point-kinetics.md](../point-kinetics.md)) is that separate, clearly labelled input generator; the UT-Austin case itself still uses its assumed sech^2 table until sourced kinetics constants for that reactor are put in.
 - Gap heat capacity and gas dynamics: none.
 - Boiling and film boiling after a pulse (K-State SAR discusses it): the film coefficient is an input; no boiling model.
