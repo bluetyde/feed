@@ -115,7 +115,8 @@ Started 2026-10-05; see [docs/spike/F0-note.md](docs/spike/F0-note.md) and [solv
 
 ## F4: further physics ([plan 06](docs/plans/06-mechanics-and-irradiation.md))
 
-- [ ] Plan mechanics separately after the thermal release: property needs, reference cases, validation gate per step.
+- [ ] **Temperature-limit checks (no mechanics needed, do first)**: pass/fail checks of the fuel's and cladding's peak temperature against stated, sourced limits (TRIGA U-ZrH fuel limit, cladding limit, melting), each with its citation (K-State SAR); a limit is a labelled input of the case, never a built-in verdict; the thermal-only banner stays and says what a limit check is not. Decide with the user which limits to trust (U-ZrH hydrogen-pressure and swelling limits are not covered by general fuel codes).
+- [ ] Plan mechanics separately after the thermal release: property needs, reference cases, validation gate per step. Other fuel codes (BISON, FRAPCON/FRAPTRAN, TRANSURANUS, FALCON) have stress, strain, contact, swelling, creep, gas release and cladding failure criteria; OFFBEAT has the mechanics solver, FEED switches it off (`resistiveGap` is the only gap model without it). Order: mechanics case structure with contact and gap models, then material models (elasticity, thermal expansion, swelling, creep), then failure criteria on the stress results.
 - [ ] Irradiation histories only with a burnup definition, data terms and validation cases chosen.
 - [ ] Decide whether steps 5 and 6 (swelling and gas release, transients) belong in a teaching tool.
 
