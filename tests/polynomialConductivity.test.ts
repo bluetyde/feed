@@ -135,11 +135,11 @@ describe("what OFFBEAT is told", () => {
   const dict = (set: unknown) => writeOffbeatCase(normalized(set)).files["constant/solverDict"]!;
   it("a cubic: ZyRELAP, par3 is MINUS the T^2 coefficient, and all four parameters are written", () => {
     const d = dict(polySet());
-    expect(d).toMatch(/conductivityModel ZyRELAP;\s+conductivity \{ par1 2; par2 0\.003; par3 1\.2e-6; par4 2e-10; \}/);
+    expect(d).toMatch(/conductivityModel ZyRELAP;\s+conductivity \{ par1 2; par2 0\.003; par3 (0\.0000012|1\.2e-6); par4 2e-10; \}/);
     expect(d).not.toMatch(/k\s+k\s+\[1 1 -3 -1 0\]\s+2;/); // no constant k line for the fuel beside it
   });
   it("a quadratic and a line are written with the zero terms written, never left to a default", () => {
-    expect(dict(polySet([5, 0.002, 4e-7, 0]))).toMatch(/par1 5; par2 0\.002; par3 -4e-7; par4 0; \}/);
+    expect(dict(polySet([5, 0.002, 4e-7, 0]))).toMatch(/par1 5; par2 0\.002; par3 -(0\.0000004|4e-7); par4 0; \}/);
     expect(dict(polySet([5, 0.002, 0, 0]))).toMatch(/par1 5; par2 0\.002; par3 0; par4 0; \}/); // minus zero is written as 0, not -0
   });
   it("a table is written as its fitted coefficients, and the mapping says it was fitted, to what, and how far it is", () => {
