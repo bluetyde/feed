@@ -64,6 +64,14 @@ export const SI_UNIT: Record<Dimension, string> = {
   fraction: "1",
 };
 
+/** A value in SI as a number in `unit` (the inverse of toSI), to 12 significant digits so that 0.0041 m is 4.1 mm and not 4.1000000000000005. Undefined for an unknown unit or one of another dimension. */
+export function fromSI(si: number, unit: string, dim: Dimension): number | undefined {
+  const def = Object.prototype.hasOwnProperty.call(UNITS, unit) ? UNITS[unit] : undefined;
+  if (!def || def.dim !== dim || !Number.isFinite(si)) return undefined;
+  const v = (si - (def.offset ?? 0)) / def.scale;
+  return Number.isFinite(v) ? Number(v.toPrecision(12)) : undefined;
+}
+
 export type QuantityResult = { ok: true; si: number } | { ok: false; reason: string };
 
 /** Convert `{value, unit}` to SI. A bare number, a missing unit, an unknown unit or a unit of another dimension is refused. */

@@ -11,6 +11,7 @@ import { projectRoot, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
 import { resultsToCsv, transientResultsToCsv } from "../core/exportResults";
+import { applyDesign, designOf } from "../core/design";
 import { IndependentRunner } from "../core/independentRunner";
 import { previewTooBig, transientPreview } from "../core/transientPreview";
 import { FvTransient } from "../core/transientFv";
@@ -194,6 +195,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
         volumetricPower: n.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
         gapThickness: n.claddingInnerRadius - n.fuelRadius,
         outerSurfaceHeatFlux: n.qPrime / (2 * Math.PI * n.claddingOuterRadius),
+        design: designOf(n),
       },
     };
   }
@@ -209,6 +211,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
       volumetricPower: n.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
       gapThickness: n.claddingInnerRadius - n.fuelRadius,
       outerSurfaceHeatFlux: n.qPrime / (2 * Math.PI * n.claddingOuterRadius),
+      design: designOf(n),
     },
   };
 }
@@ -221,6 +224,17 @@ export const server = createServer(async (req, res) => {
     if (req.method === "GET" && url === "/") return send(res, 200, "text/html; charset=utf-8", readFileSync(join(root, "src", "web", "index.html"), "utf8"));
     if (req.method === "GET" && url === "/api/ping") return json(res, 200, { ok: true, app: "fuel-performance-studio", solver: solverUp ? "OpenFOAM Foundation 9 + OFFBEAT (feed-solver)" : null });
     if (req.method === "GET" && url === "/api/library") return json(res, 200, library());
+    if (req.method === "POST" && url === "/api/design") {
+      if (!(req.headers["content-type"] ?? "").startsWith("application/json")) return json(res, 415, { error: "send application/json" });
+      let input: any;
+      try {
+        input = JSON.parse(await readBody(req));
+      } catch {
+        return json(res, 400, { error: "body is not valid JSON" });
+      }
+      const r = applyDesign(input?.geometry, { field: input?.field, value: input?.value });
+      return json(res, r.ok ? 200 : 400, r);
+    }
     if (req.method === "POST" && url === "/api/library/material") {
       if (!(req.headers["content-type"] ?? "").startsWith("application/json")) return json(res, 415, { error: "send application/json" });
       let input: any;
