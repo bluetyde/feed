@@ -6,6 +6,7 @@ Real solver output, saved so the tests run without the solver. Produced 2026-10-
 |---|---|---|
 | `synthetic-pin.mesh1..4.json` | `synthetic-pin.mesh1..4.params.json`: the synthetic oracle pin with 10/3, 20/6, 40/12, 80/24 fuel/cladding cells | refinement study |
 | `steady-state-calibration.json` | the synthetic pin (10/3 cells) run to 10 end times from 2 s to 1e6 s (`../probe-nonconvergence.sh` with `PROBE_ENDTIME`), each against the 5e7 s run | the steady-state gate's bound against true deviations |
+| `upstream-baseline.json` | OFFBEAT's `generic_pwr_1D` (twice, byte-compared) and its verification cases `heatConservation` and `testUserParameters`, with upstream's recorded numbers, made by `../../scripts/make-upstream-baseline.cjs` | the upstream baseline (F0 note) |
 | `nonconvergence-probe.json` | the non-convergence probe (see the F0 note) | what OFFBEAT does at `maxOuterIter` |
 | `ksu-hot-element.json` | `ksu-hot-element.params.json`: K-State TRIGA hot element, zero cold gap | sourced check against SAR Table 4.8 |
 

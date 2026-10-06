@@ -196,3 +196,21 @@ describe("the oracle generator has no default end time", () => {
     for (const f of files) expect({ f, t: JSON.parse(text("solver/cases/" + f)).endTime >= 5e7 }).toEqual({ f, t: true });
   });
 });
+
+describe("the scripts that run OFFBEAT's own cases never delete, and refuse an existing run folder", () => {
+  for (const f of ["solver/run-example.sh", "solver/run-upstream-verification.sh"]) {
+    it(f + ": no rm, an existing folder is refused with exit 3, runs happen in a copy of the case", () => {
+      const s = text(f);
+      expect(s).not.toMatch(/\brm\b/);
+      expect(s).toMatch(/if \[ -e "\$RUN" \]; then .*exit 3; fi/);
+      expect(s).toMatch(/cp -rL "\$SRC" "\$RUN"/);
+    });
+  }
+  it("run-upstream-verification.sh checks the OFFBEAT pin before it copies or runs anything", () => {
+    const s = text("solver/run-upstream-verification.sh");
+    expect(s).toContain('. "$HERE/pins.env"');
+    expect(s.indexOf("PIN MISMATCH")).toBeGreaterThan(-1);
+    expect(s.indexOf("PIN MISMATCH")).toBeLessThan(s.indexOf("cp -rL"));
+    expect(s).toContain("bash ./Allrun"); // upstream's own script, not a re-implementation of it
+  });
+});
