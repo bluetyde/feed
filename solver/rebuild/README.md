@@ -49,4 +49,4 @@ wsl -d feed-solver-rebuild -u feed --exec bash /mnt/c/.../solver/build-offbeat.s
 node scripts/verify-rebuild.cjs feed-solver-rebuild
 ```
 
-`feed-solver-rebuild` (5.8 GB) is left registered. It is a second, identical solver environment; remove it with `wsl --unregister feed-solver-rebuild` (this deletes `C:\WSL\feed-solver-rebuild`) when it is no longer wanted.
+The rebuilt distro `feed-solver-rebuild` (5.8 GB) was **removed on 2026-10-06** with `wsl --unregister feed-solver-rebuild`, after this evidence was committed and pushed (commit `64f0abe`), on the owner's instruction. The original `feed-solver` and the other distros were not touched. Nothing here depends on the rebuilt distro still existing: the report, the package inventory and the hashes are in this folder. To make another one, use the four commands above; the rootfs tarball is not in the repository (PINS.md has its name and SHA-256), and a rebuild takes about 11 minutes plus the download.
