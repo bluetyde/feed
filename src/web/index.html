@@ -241,7 +241,7 @@ input.bad,select.bad{border-color:var(--err)}
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
-const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"] };
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["1"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
 let doc = null, result = null, selected = "power", outTab = "problems", logText = "", showDegC = false, seq = 0, timer = null;
 
@@ -378,7 +378,7 @@ function meta(id) {
   const fmt = (q) => (q && typeof q === "object" && q.value !== undefined ? q.value + " " + (q.unit || "?") : "—");
   if (!doc) return "";
   switch (id) {
-    case "power": return isTransient() ? "pulse · " + ((doc.transient && doc.transient.powerHistory) || []).length + " pts" : fmt(doc.power && doc.power.linearHeatRate);
+    case "power": return isTransient() ? (doc.transient && doc.transient.pointKinetics ? "pulse · kinetics" : "pulse · " + ((doc.transient && doc.transient.powerHistory) || []).length + " pts") : fmt(doc.power && doc.power.linearHeatRate);
     case "boundary": return doc.boundary.surfaceTemperature !== undefined ? "T surface " + fmt(doc.boundary.surfaceTemperature) : (doc.boundary.bulkTemperature !== undefined ? fmt(doc.boundary.bulkTemperature) : "—");
     case "geometry": return fmt(doc.geometry.fuelRadius) + " fuel R";
     case "gap": return doc.gap.model === "constant-conductance" ? fmt(doc.gap.conductance) : doc.gap.model;
@@ -703,6 +703,74 @@ function setInitialKind(kind) {
   solverRes = null; runRec = null; setChip();
   changed(true);
 }
+const KEEPIN = [[0.000215, 0.0124], [0.001424, 0.0305], [0.001274, 0.111], [0.002568, 0.301], [0.000748, 1.14], [0.000273, 3.01]];
+const KEEPIN_SOURCE = "Keepin (1957) thermal-fission U-235 six-group set, sum 0.006502; textbook data, not measured for any reactor";
+function defaultKinetics() {
+  return {
+    reactivityInsertion: { value: 3, unit: "$" },
+    insertionTime: { value: 0, unit: "ms" },
+    promptGenerationTime: { value: 40, unit: "us" },
+    delayedGroups: KEEPIN.map(([b, l]) => ({ fraction: { value: b, unit: "1" }, decayConstant: { value: l, unit: "1/s" } })),
+    delayedSource: KEEPIN_SOURCE,
+    feedback: { model: "constant", coefficient: { value: -1e-4, unit: "dk/k/K" }, source: "" },
+    initialPower: { value: 1, unit: "kW" },
+    core: { pins: 100, activeLength: { value: 0.5, unit: "m" }, peakingFactor: { value: 1, unit: "1" } },
+  };
+}
+function setPowerSource(kind) {
+  const t = doc.transient;
+  if (kind === "kinetics" && t.pointKinetics === undefined) {
+    delete t.powerHistory;
+    t.pointKinetics = defaultKinetics();
+    logText += "The power now comes from point kinetics: fill in the feedback source and check the other numbers; the Checks tab compares the pulse's feedback temperature with the pin's real average." + String.fromCharCode(10);
+  } else if (kind === "table" && t.pointKinetics !== undefined) {
+    delete t.pointKinetics;
+    t.powerHistory = defaultTransient().powerHistory;
+    logText += "The power is a table again." + String.fromCharCode(10);
+  }
+  solverRes = null; runRec = null; setChip();
+  changed(true);
+}
+function powerSourceControl() {
+  const row = el("div", "prow"); row.append(elt("label", "Power from", { for: "powerSource" }));
+  const sel = elt("select", "", { id: "powerSource" });
+  sel.append(elt("option", "A table of points", { value: "table" }), elt("option", "Point kinetics (reactivity insertion)", { value: "kinetics" }));
+  sel.value = doc.transient && doc.transient.pointKinetics !== undefined ? "kinetics" : "table";
+  sel.addEventListener("change", () => setPowerSource(sel.value));
+  row.append(sel); return row;
+}
+function renderKineticsProps(p, t, info) {
+  const K0 = ["transient", "pointKinetics"];
+  const pk = t.pointKinetics || {};
+  p.append(sec("Reactivity insertion"), qField("Inserted reactivity", [...K0, "reactivityInsertion"], "reactivity"), qField("Insertion time (0 = step)", [...K0, "insertionTime"], "time"), qField("Prompt generation time", [...K0, "promptGenerationTime"], "time"), qField("Initial reactor power", [...K0, "initialPower"], "power"));
+  p.append(sec("Delayed neutrons"));
+  const groups = Array.isArray(pk.delayedGroups) ? pk.delayedGroups : [];
+  groups.forEach((_, i) => p.append(qField("β" + (i + 1), [...K0, "delayedGroups", i, "fraction"], "fraction"), qField("λ" + (i + 1), [...K0, "delayedGroups", i, "decayConstant"], "rate")));
+  const gbar = el("div", "prow note");
+  const keepin = elt("button", "Keepin U-235, six groups", { class: "tbtn", type: "button" });
+  keepin.addEventListener("click", () => { pk.delayedGroups = KEEPIN.map(([b, l]) => ({ fraction: { value: b, unit: "1" }, decayConstant: { value: l, unit: "1/s" } })); pk.delayedSource = KEEPIN_SOURCE; changed(true); });
+  const none = elt("button", "No delayed neutrons", { class: "tbtn", type: "button" });
+  none.addEventListener("click", () => { pk.delayedGroups = []; if (pk.reactivityInsertion && pk.reactivityInsertion.unit === "$") pk.reactivityInsertion = { value: pk.reactivityInsertion.value * 0.0065, unit: "dk/k" }; changed(true); });
+  gbar.append(keepin, none); p.append(gbar);
+  if (groups.length) p.append(tField("Source of the data", [...K0, "delayedSource"]));
+  p.append(sec("Temperature feedback (prompt, fuel)"));
+  const fbPath = [...K0, "feedback"];
+  p.append(sField("Model", [...fbPath, "model"], [["constant", "constant coefficient"], ["linear", "linear in temperature"]], (m) => {
+    const fb = pk.feedback || (pk.feedback = {});
+    if (m === "constant") { delete fb.a; delete fb.b; delete fb.validRange; fb.coefficient = fb.coefficient || { value: -1e-4, unit: "dk/k/K" }; }
+    else { delete fb.coefficient; fb.a = fb.a || { value: -1e-4, unit: "dk/k/K" }; fb.b = fb.b || { value: -1e-8, unit: "dk/k/K2" }; fb.validRange = fb.validRange || { min: { value: 250, unit: "K" }, max: { value: 1500, unit: "K" } }; }
+  }));
+  const fbm = pk.feedback && pk.feedback.model;
+  if (fbm === "constant") p.append(qField("dρ/dT", [...fbPath, "coefficient"], "reactivityPerK"));
+  else if (fbm === "linear") p.append(qField("a", [...fbPath, "a"], "reactivityPerK"), qField("b", [...fbPath, "b"], "reactivityPerK2"), qField("valid from", [...fbPath, "validRange", "min"], "temperature"), qField("valid to", [...fbPath, "validRange", "max"], "temperature"));
+  p.append(tField("Source of the coefficient", [...fbPath, "source"]));
+  p.append(sec("This pin's share of the power"), iField("Pins in the core", [...K0, "core", "pins"]), qField("Active length", [...K0, "core", "activeLength"], "length"), qField("Peaking factor", [...K0, "core", "peakingFactor"], "fraction"));
+  const g = info && info.generator;
+  if (g) {
+    const S = g.summary;
+    p.append(note("Generated pulse: peak <code>" + (S.peakPower / 1e6).toPrecision(4) + " MW" + "</code> (<code>" + (S.peakLinearHeatRate / 1e6).toPrecision(4) + " MW/m</code> in this pin) at <code>" + fmtT(S.timeOfPeak) + "</code>" + (S.fwhm !== null ? ", width at half maximum <code>" + fmtT(S.fwhm) + "</code>" : "") + ". Energy <code>" + (S.energyPerLength / 1e3).toFixed(2) + " kJ/m</code>; the fuel average rises <code>" + S.peakFuelRise.toFixed(1) + " K</code> if no heat leaves. " + (S.insertedDollars !== null ? "Inserted <code>$" + S.insertedDollars.toFixed(3) + "</code>. " : "") + "The history has <code>" + S.points + "</code> points (energy within <code>" + (S.energyError * 100).toFixed(3) + "%</code> of the integrated value)."));
+  } else p.append(note("The pulse is generated when the inputs are complete and valid; the problems appear above and under Problems."));
+}
 function renderTransientProps(p) {
   const t = doc.transient || {};
   const initialKind = el("div", "prow"); initialKind.append(elt("label", "Starts from", { for: "initialKind" }));
@@ -714,8 +782,11 @@ function renderTransientProps(p) {
   p.append(sec("Timing"), initialKind, startsSteady() ? qField("Operating linear heat rate", ["transient", "initialSteadyLinearHeatRate"], "linearPower") : qField("Initial temperature", ["transient", "initialTemperature"], "temperature"), qField("End time", ["transient", "endTime"], "time"), qField("Time step", ["transient", "timeStep"], "time"), iField("Outputs", ["transient", "outputs"]));
   const info = result && result.transient;
   p.append(note(info ? "<code>" + info.steps + "</code> steps of a fixed size, <code>" + info.outputs + "</code> outputs (the temperature field is kept at each). The step is first order: the Checks tab reports how much halving it would change the peak." : "The end time must be a whole number of steps and the outputs must divide the steps."));
-  const gen = (result && result.errors || []).filter((i) => i.field === "/transient" || i.field === "/transient/powerHistory" || i.field === "/power/linearHeatRate");
+  const gen = (result && result.errors || []).filter((i) => i.field === "/transient" || i.field === "/transient/powerHistory" || i.field === "/transient/pointKinetics" || i.field === "/power/linearHeatRate");
   for (const g of gen) p.append(elt("div", g.message, { class: "ferr" }));
+  p.append(sec("Power"), powerSourceControl());
+  if (t.pointKinetics !== undefined) renderKineticsProps(p, t, info);
+  else {
   p.append(sec("Power history"));
   const pts = Array.isArray(t.powerHistory) ? t.powerHistory : [];
   pts.forEach((_, i) => {
@@ -727,8 +798,9 @@ function renderTransientProps(p) {
   const rem = elt("button", "Remove last", { class: "tbtn", type: "button" });
   rem.addEventListener("click", () => { if (doc.transient.powerHistory && doc.transient.powerHistory.length) { doc.transient.powerHistory.pop(); changed(true); } });
   bar.append(add, rem); p.append(bar);
+  }
   p.append(note(info ? "Energy deposited over the run <code>" + (info.depositedEnergy / 1e3).toFixed(2) + " kJ/m</code>, <code>" + (info.depositedPerVolume / 1e6).toFixed(1) + " MJ/m³</code> of fuel. If no heat left the fuel it would reach <code>" + K(info.adiabaticPeak) + "</code> (the adiabatic limit; the real peak is lower for a long pulse)." : "Power is linear between the points. The first point is at time 0 and the last at or after the end time."));
-  p.append(sec("Scope"), note("Thermal only. The power history is an <b>input</b>: FEED does not compute the pulse, so it says nothing about reactivity, stress or fuel integrity. " + (startsSteady() ? "The start is the steady state of this pin at the operating heat rate (an independent finite-volume solution on the same mesh); OFFBEAT's own steady state differs from it by a fraction of a percent, so the first seconds show a small settling that the Checks tab reports." : "The start is a uniform temperature.")));
+  p.append(sec("Scope"), note("Thermal only. " + (t.pointKinetics !== undefined ? "The pulse comes from <b>point kinetics</b> with the fuel's own average temperature as feedback (as if no heat left the fuel): no control action, coolant or void feedback, no stress or fuel integrity. The Checks tab compares that temperature with the pin's real average; keep the run to the pulse and a little after. " : "The power history is an <b>input</b>: FEED does not compute the pulse, so it says nothing about reactivity, stress or fuel integrity. ") + "" + (startsSteady() ? "The start is the steady state of this pin at the operating heat rate (an independent finite-volume solution on the same mesh); OFFBEAT's own steady state differs from it by a fraction of a percent, so the first seconds show a small settling that the Checks tab reports." : "The start is a uniform temperature.")));
 }
 function heatCapacityPanel(p, base, k) {
   p.append(sec("Heat capacity (volumetric, for the pulse)"));
@@ -790,7 +862,7 @@ function transientSpecCase() {
     series.push({ label: "fuel surface cell", t: info.preview.time, v: info.preview.fuelSurfaceCellT, color: COL.closed, line: true, dash: true, width: 1.2 });
     series.push({ label: "outer cladding cell", t: info.preview.time, v: info.preview.claddingOuterT, color: "#8fb7c9", line: true, dash: true, width: 1.2 });
   }
-  const power = info.preview ? { t: info.preview.time, v: info.preview.power } : null;
+  const power = info.generator ? { t: info.generator.history.time, v: info.generator.history.linearHeatRate } : info.preview ? { t: info.preview.time, v: info.preview.power } : null;
   if (isTransientResult(solverRes)) {
     const s = solverRes.series;
     series.push({ label: "peak (OFFBEAT)", t: s.time, v: s.peakT, color: COL.solver, dots: true, line: true, width: 1 });
