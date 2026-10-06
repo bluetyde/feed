@@ -21,7 +21,7 @@ SEED has already checked: the approval and its digest, units against the quantit
   accepts: [ {energy, per-source-particle}, {power, none}, {power-per-length, none}, {power-per-volume, none} ] }
 ```
 
-`coolant-boundary` is not offered yet: SEED has not fixed the NODAL source shape (the provisional boundary code stays in `src/core/transfer.ts`, unreachable from the command).
+`coolant-boundary` is the second transfer of the same command: see [transfer-boundary.md](transfer-boundary.md).
 
 ## `mapping.spatial` (FEED's vocabulary)
 
@@ -56,6 +56,6 @@ An unknown key is a refusal (`E_RECIPE_INVALID`), not an ignored one.
 
 ## What it does not do
 
-- No coolant boundary (waits for the NODAL source shape). No time series (a pulse from a transferred power history is a later step).
+- No time series (a pulse from a transferred power history is a later step).
 - Uncertainty is carried into the slice's `relError` and recorded in the case's provenance; propagation into temperature is still open (plan 05). **Bins are taken as independent**: the table gives marginal std only and has no way to state correlation, so a source whose bins are correlated understates the slice's uncertainty (two fully correlated bins would combine linearly, not in quadrature). The model is written into `checks.uncertaintyModel` and the case's provenance (`independent-bins`). For a `total-power` the slice is P times a ratio of sums over the same bins, so the uncertainty of the denominator is propagated too (derivative `P (share_b S - A) / S^2`); a whole-pin slice with an exact total has none from the tally. Squares are summed scaled by the largest term, and a relative error that is not finite is `E_NUMERIC`.
 - The case's other inputs are untouched: a transferred heat rate with a film coefficient fitted to a different power is the recipe author's responsibility, recorded only in the provenance.
