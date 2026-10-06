@@ -357,6 +357,7 @@ function renderProps() {
     const cur = mine.find((x) => x.material.materialId === m.materialId);
     if (cur) p.append(note("<code>" + cur.label + "</code> " + cur.description.replace(/</g, "&lt;")));
     if (cur && cur.citation) p.append(note("Source: " + cur.citation.replace(/</g, "&lt;")));
+    if (cur && cur.label === "custom") p.append(note("Yours: revision " + cur.material.revision + " of " + cur.revisions + " saved. Editing it and saving again makes a new revision."));
     p.append(tField("ID", base.concat("materialId")), iField("Revision", base.concat("revision")));
     const kp = base.concat("sets", "thermal.conductivity"); const k = getp(doc, kp);
     p.append(sec("Thermal conductivity"));
@@ -369,6 +370,7 @@ function renderProps() {
     }
     if (isTransient()) heatCapacityPanel(p, base.concat("sets", "thermal.volumetricHeatCapacity"), getp(doc, base.concat("sets", "thermal.volumetricHeatCapacity")));
     const others = Object.keys(m.sets || {}).filter((s) => s !== "thermal.conductivity" && !(isTransient() && s === "thermal.volumetricHeatCapacity"));
+    saveToLibraryPanel(p, selected);
     if (others.length) p.append(sec("Kept unchanged"), note(others.map((s) => "<code>" + s.replace(/</g, "&lt;") + "</code>").join(", ") + " belong to other apps and are saved as they are."));
   }
 }
@@ -562,6 +564,47 @@ document.addEventListener("click", (e) => { if (menuEl && !menuEl.contains(e.tar
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
 async function loadLibrary() { try { lib = await (await fetch("/api/library")).json(); } catch (_) { logText += "Couldn't load the library.\n"; } }
 async function loadPin(id, name) { doc = await (await fetch("/api/pin/" + encodeURIComponent(id))).json(); selected = "power"; logText += "Loaded pin: " + name + ".\n"; await runCheck(true); renderAll(); }
+/* what the person has typed into the save-to-library fields, per region, so a re-render does not lose it */
+const libDraft = { fuel: {}, cladding: {} };
+const libMsg = { fuel: null, cladding: null };
+function saveToLibraryPanel(p, region) {
+  const m = doc.materials[region];
+  const d = libDraft[region];
+  const known = lib.materials.find((x) => x.region === region && x.material.materialId === m.materialId);
+  p.append(sec("Save to library"));
+  const nrow = el("div", "prow"); nrow.append(elt("label", "Name", { for: "libname" }));
+  const nin = elt("input", "", { type: "text", id: "libname", maxlength: "120", value: d.name !== undefined ? d.name : known ? known.name : m.materialId || "" });
+  nin.addEventListener("input", () => { d.name = nin.value; }); nrow.append(nin); p.append(nrow);
+  const crow = el("div", "prow"); crow.append(elt("label", "Source note", { for: "libcite" }));
+  const cin = elt("input", "", { type: "text", id: "libcite", maxlength: "2000", value: d.citation !== undefined ? d.citation : known ? known.citation || "" : "" });
+  cin.addEventListener("input", () => { d.citation = cin.value; }); crow.append(cin); p.append(crow);
+  const bar = el("div", "prow note");
+  const btn = elt("button", "Save to library", { class: "tbtn", type: "button" });
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    try {
+      const r = await fetch("/api/library/material", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ region, name: nin.value, description: known && known.description ? known.description : "", citation: cin.value, material: doc.materials[region] }) });
+      const j = await r.json();
+      if (j.ok) {
+        doc.materials[region].revision = j.entry.material.revision;
+        libMsg[region] = { ok: true, text: j.status === "unchanged" ? "Already in the library as revision " + j.entry.material.revision + "; nothing changed." : "Saved as " + j.entry.material.materialId + ", revision " + j.entry.material.revision + ". Earlier revisions are kept." };
+        logText += libMsg[region].text + String.fromCharCode(10);
+        await loadLibrary();
+        changed(true);
+      } else {
+        libMsg[region] = { ok: false, text: (j.errors || [{ message: j.error || "The library refused it." }]).map((e) => (e.field ? e.field + ": " : "") + e.message).join(" ") };
+        renderProps();
+      }
+    } catch (e) {
+      libMsg[region] = { ok: false, text: "Could not reach the server: " + e.message };
+      renderProps();
+    }
+  });
+  bar.append(btn); p.append(bar);
+  const msg = libMsg[region];
+  if (msg) p.append(elt("div", msg.text, { class: msg.ok ? "ok-note" : "ferr" }));
+  p.append(note("Saved to <code>library/custom</code> on this computer, apart from the sourced library. The properties are checked as a case checks them (a conductivity needs its source, a temperature-dependent law its range). A changed material is a new revision; earlier ones stay. Sets that belong to other apps are saved as they are."));
+}
 function applyMaterial(region, entry) { doc.materials[region] = JSON.parse(JSON.stringify(entry.material)); logText += "Set " + region + " to " + entry.name + " (" + entry.label + ").\n"; changed(true); }
 $("bPins").onclick = (e) => openMenu(e.currentTarget, "Pins", [["Pin presets", lib.pins.map((p) => ({ name: p.name, label: p.label, description: p.description, pick: () => loadPin(p.id, p.name) }))]]);
 $("bMats").onclick = (e) => openMenu(e.currentTarget, "Materials", [["Fuel", lib.materials.filter((x) => x.region === "fuel").map((x) => ({ ...x, pick: () => applyMaterial("fuel", x) }))], ["Cladding", lib.materials.filter((x) => x.region === "cladding").map((x) => ({ ...x, pick: () => applyMaterial("cladding", x) }))]]);

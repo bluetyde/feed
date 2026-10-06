@@ -8,3 +8,4 @@ solver/logs/
 *.tmp
 .claude/
 Thumbs.db
+library/custom/

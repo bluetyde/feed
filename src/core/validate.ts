@@ -375,6 +375,42 @@ export function validateCase(doc: unknown): ValidationResult {
   return result;
 }
 
+/** A material id: lower case letters, digits and hyphens, 3 to 64 characters, not starting or ending with a hyphen. */
+export const MATERIAL_ID = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
+
+/**
+ * A material as the library stores it, checked with the same rules a case applies to it: an id, a revision, a thermal conductivity with its stated source (and
+ * range for a temperature-dependent law), and, if present, a volumetric heat capacity under the same rules. Sets that belong to other apps are not looked at
+ * beyond being objects: they are kept as they are. Errors name fields as they would in a case (/materials/<region>/...).
+ */
+export function validateMaterial(region: "fuel" | "cladding", material: unknown): { ok: boolean; errors: Issue[] } {
+  const issues: Issue[] = [];
+  const err = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => issues.push({ code, severity: "error", field, message, ...extra });
+  const base = "/materials/" + region;
+  if (!isObject(material)) {
+    err("E_SCHEMA_INVALID", base, "a material is an object with a materialId, a revision and sets");
+    return finish(issues);
+  }
+  if (typeof material.materialId !== "string" || !MATERIAL_ID.test(material.materialId)) err("E_SCHEMA_INVALID", base + "/materialId", "the material id is 3 to 64 characters: lower case letters, digits and hyphens, not starting or ending with a hyphen");
+  if (typeof material.revision !== "number" || !Number.isInteger(material.revision) || material.revision < 1) err("E_SCHEMA_INVALID", base + "/revision", "the revision is a whole number from 1");
+  if (!isObject(material.sets)) {
+    err("E_SCHEMA_INVALID", base + "/sets", "sets is an object of named property sets");
+    return finish(issues);
+  }
+  const sets = material.sets;
+  if (Object.keys(sets).length > 20) err("E_OUT_OF_RANGE", base + "/sets", "at most 20 property sets");
+  for (const [k, v] of Object.entries(sets)) if (!isObject(v)) err("E_SCHEMA_INVALID", base + "/sets/" + k, "a property set is an object");
+  const qty = (value: unknown, dim: Dimension, field: string): number | undefined => {
+    const r = toSI(value, dim);
+    if (r.ok) return r.si;
+    err("E_UNITS", field, r.reason);
+    return undefined;
+  };
+  conductivity(material, region, err as ErrFn, qty);
+  if (sets["thermal.volumetricHeatCapacity"] !== undefined) heatCapacity(material, region, err as ErrFn, qty);
+  return finish(issues);
+}
+
 function finish(issues: Issue[]): ValidationResult {
   const errors = issues.filter((i) => i.severity === "error");
   return { ok: errors.length === 0, errors, warnings: issues.filter((i) => i.severity === "warning") };

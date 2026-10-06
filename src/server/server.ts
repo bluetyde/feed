@@ -14,6 +14,7 @@ import { resultsToCsv, transientResultsToCsv } from "../core/exportResults";
 import { IndependentRunner } from "../core/independentRunner";
 import { previewTooBig, transientPreview } from "../core/transientPreview";
 import { FvTransient } from "../core/transientFv";
+import { latestEntries, readUserEntries, saveUserMaterial } from "../core/userLibrary";
 import { NormalizedCase } from "../core/validate";
 import { refinementStudy, studyCases } from "../core/refinement";
 import { solverAvailable, WslBackend } from "../core/wslBackend";
@@ -87,15 +88,21 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
-/** Pin presets are the example cases; materials come from library/materials.json. Ids are file base names, never paths. */
+function sourcedMaterials(): any[] {
+  return JSON.parse(readFileSync(join(root, "library", "materials.json"), "utf8"));
+}
+
+/** Pin presets are the example cases; materials come from library/materials.json (sourced, committed) and the user's own saved materials (library/custom, kept apart). Ids are file base names, never paths. */
 export function library() {
   const dir = join(root, "examples");
   const pins = readdirSync(dir).filter((f) => /^[a-z0-9-]+\.json$/.test(f)).map((f) => {
     const c = JSON.parse(readFileSync(join(dir, f), "utf8"));
     return { id: f.slice(0, -5), name: c.name, label: c.label, description: c.description ?? "", citation: c.citation ?? "" };
   });
-  const materials = JSON.parse(readFileSync(join(root, "library", "materials.json"), "utf8"));
-  return { pins, materials };
+  const sourced = sourcedMaterials();
+  const user = readUserEntries();
+  const custom = latestEntries(user.entries).map((e) => ({ region: e.region, name: e.name, label: e.label, description: e.description, citation: e.citation, savedAt: e.savedAt, revisions: user.entries.filter((x) => x.material.materialId === e.material.materialId).length, material: e.material }));
+  return { pins, materials: [...sourced, ...custom], userLibrary: user.problem ? { problem: user.problem } : { entries: user.entries.length } };
 }
 
 /** Largest finest-level cell counts a study may request (the finest level is 4x the case's mesh). */
@@ -214,6 +221,17 @@ export const server = createServer(async (req, res) => {
     if (req.method === "GET" && url === "/") return send(res, 200, "text/html; charset=utf-8", readFileSync(join(root, "src", "web", "index.html"), "utf8"));
     if (req.method === "GET" && url === "/api/ping") return json(res, 200, { ok: true, app: "fuel-performance-studio", solver: solverUp ? "OpenFOAM Foundation 9 + OFFBEAT (feed-solver)" : null });
     if (req.method === "GET" && url === "/api/library") return json(res, 200, library());
+    if (req.method === "POST" && url === "/api/library/material") {
+      if (!(req.headers["content-type"] ?? "").startsWith("application/json")) return json(res, 415, { error: "send application/json" });
+      let input: any;
+      try {
+        input = JSON.parse(await readBody(req));
+      } catch {
+        return json(res, 400, { error: "body is not valid JSON" });
+      }
+      const r = saveUserMaterial(input ?? {}, new Set(sourcedMaterials().map((m) => m.material.materialId)));
+      return r.ok ? json(res, r.status === "saved" ? 201 : 200, { ok: true, status: r.status, entry: r.entry }) : json(res, r.status, { ok: false, errors: r.errors });
+    }
     if (req.method === "GET" && url.startsWith("/api/pin/")) {
       const id = decodeURIComponent(url.slice(9));
       if (!library().pins.some((p) => p.id === id)) return json(res, 404, { error: "no such pin" });
