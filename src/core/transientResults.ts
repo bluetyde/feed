@@ -162,6 +162,17 @@ export function independentSolution(c: NormalizedCase, stepFactor = 1, cellFacto
   return solveTransientFv(pinOf(c, cellFactor), { dt: tr.timeStep / stepFactor, steps: tr.steps * stepFactor, ...start, outputEvery: (tr.steps / tr.outputs) * stepFactor, trace });
 }
 
+/** The three independent runs the results need: same mesh and step (with its trace), double mesh (the spatial error of the independent solution), half step (the time error). */
+export interface IndependentSet {
+  fv: FvTransient;
+  fv2: FvTransient;
+  fvh: FvTransient;
+}
+/** Run them in this thread. The run manager runs them in a worker instead (independentRunner.ts) and hands the answer to buildTransientResults. */
+export function computeIndependent(c: NormalizedCase): IndependentSet {
+  return { fv: independentSolution(c, 1, 1, true), fv2: independentSolution(c, 1, 2), fvh: independentSolution(c, 2, 1, true) };
+}
+
 /**
  * Build the transient results record. Throws ResultsError for anything that is not a complete, finite, consistent set of fields:
  * wrong cell count or write times, non-finite or non-positive temperatures, a file cut short, a missing wall value.
@@ -177,7 +188,7 @@ export function downsample(g: GeneratedPulse) {
   return { time: pick(g.trace.time), power: pick(g.trace.power), reactivity: pick(g.trace.reactivity), fuelTemperature: pick(g.trace.fuelTemperature) };
 }
 
-export function buildTransientResults(c: NormalizedCase, input: TransientInput): TransientResultsRecord {
+export function buildTransientResults(c: NormalizedCase, input: TransientInput, independent?: IndependentSet): TransientResultsRecord {
   const tr = c.transient;
   if (!tr || !c.fuelHeatCapacity || !c.claddingHeatCapacity) bad("the case is not a transient");
   const t = tr!;
@@ -278,9 +289,7 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput):
   }
 
   // independent solution: same mesh and step (cross-check), double mesh (spatial error of the independent solution), half step (time error)
-  const fv = independentSolution(c, 1, 1, true);
-  const fv2 = independentSolution(c, 1, 2);
-  const fvh = independentSolution(c, 2, 1, true);
+  const { fv, fv2, fvh } = independent ?? computeIndependent(c);
   if (fv.states.length !== times.length) bad("the independent solution has a different number of outputs");
   peakRise = Math.max(outputRise, maxOf(fv.trace!.peakByStep) - init.peak);
   // The thresholds below are fractions of how far the pin's temperatures move. From a uniform start that is the rise; from a steady operating state the

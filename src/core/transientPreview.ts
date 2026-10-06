@@ -4,6 +4,7 @@
 import { adiabaticTemperature } from "./transientExact";
 import { maxOf } from "./transientFv";
 import { GeneratedPulse } from "./pointKinetics";
+import { FvTransient } from "./transientFv";
 import { depositedEnergy, downsample, independentSolution, initialState, pinOf } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
@@ -26,7 +27,16 @@ export interface TransientPreview {
   generator: { summary: GeneratedPulse["summary"]; curve: { time: number[]; power: number[]; reactivity: number[]; fuelTemperature: number[] }; history: { time: number[]; linearHeatRate: number[] } } | null;
 }
 
-export function transientPreview(c: NormalizedCase): TransientPreview {
+/** True when the editor's independent preview would take too long for this case, so it is not run at all. */
+export function previewTooBig(c: NormalizedCase): boolean {
+  return (c.mesh.fuelCells + c.mesh.claddingCells) * c.transient!.steps * 6 > PREVIEW_MAX_WORK;
+}
+
+/**
+ * The editor's quick look at a transient. `external` carries the independent solution when it was run elsewhere (a worker), or the reason it was not;
+ * left out, it is run here, in this thread.
+ */
+export function transientPreview(c: NormalizedCase, external?: { fv: FvTransient | null; skipped?: string }): TransientPreview {
   const t = c.transient!;
   const energy = depositedEnergy(t.times, t.linearHeatRate, t.endTime);
   const perVolume = energy / (Math.PI * (c.fuelRadius ** 2 - c.fuelInnerRadius ** 2));
@@ -34,12 +44,12 @@ export function transientPreview(c: NormalizedCase): TransientPreview {
   const a = cp.kind === "constant" ? cp.c : cp.a;
   const b = cp.kind === "constant" ? 0 : cp.b;
   const adiabaticPeak = adiabaticTemperature(a, b, initialState(c).fuelPeak, perVolume);
-  const work = (c.mesh.fuelCells + c.mesh.claddingCells) * t.steps * 6;
   let preview: TransientPreview["preview"] = null;
   let skipped: string | null = null;
-  if (work > PREVIEW_MAX_WORK) skipped = "the preview would take too long for this mesh and number of steps; run the solver instead";
+  if (previewTooBig(c)) skipped = "the preview would take too long for this mesh and number of steps; run the solver instead";
+  else if (external && external.fv === null) skipped = external.skipped ?? "the preview was not run";
   else {
-    const fv = independentSolution(c);
+    const fv = external?.fv ?? independentSolution(c);
     const nf = c.mesh.fuelCells;
     const pin = pinOf(c);
     preview = {

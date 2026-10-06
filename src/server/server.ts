@@ -11,7 +11,10 @@ import { projectRoot, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
 import { resultsToCsv, transientResultsToCsv } from "../core/exportResults";
-import { transientPreview } from "../core/transientPreview";
+import { IndependentRunner } from "../core/independentRunner";
+import { previewTooBig, transientPreview } from "../core/transientPreview";
+import { FvTransient } from "../core/transientFv";
+import { NormalizedCase } from "../core/validate";
 import { refinementStudy, studyCases } from "../core/refinement";
 import { solverAvailable, WslBackend } from "../core/wslBackend";
 
@@ -39,6 +42,15 @@ function allowedRequest(req: IncomingMessage): string | null {
 }
 const root = projectRoot();
 
+/**
+ * The independent finite-volume runs of a transient (the results' cross-check and time-step error, the editor's preview) are done in worker threads with
+ * deadlines, so a big case cannot freeze the server (docs/independent-runs.md). A run whose checks cannot finish in RUN_DEADLINE_MS fails; a preview that
+ * cannot finish in PREVIEW_DEADLINE_MS is skipped with the reason.
+ */
+export const RUN_DEADLINE_MS = 120_000;
+export const PREVIEW_DEADLINE_MS = 20_000;
+export const independent = new IndependentRunner({ deadlineMs: RUN_DEADLINE_MS });
+
 /** The run manager exists only when the feed-solver distro does; runs live under runs/ (git-ignored). */
 let manager: RunManager | null = null;
 let solverUp = false;
@@ -49,7 +61,7 @@ export function useManager(m: RunManager | null) {
 }
 export async function initSolver(): Promise<boolean> {
   solverUp = await solverAvailable();
-  manager = solverUp ? new RunManager({ runsRoot: join(root, "runs"), backend: new WslBackend(), timeoutMs: 300_000 }) : null;
+  manager = solverUp ? new RunManager({ runsRoot: join(root, "runs"), backend: new WslBackend(), timeoutMs: 300_000, independent }) : null;
   return solverUp;
 }
 
@@ -137,8 +149,30 @@ export function compareRuns(ida: string, idb: string) {
   };
 }
 
+/** The normalized case for the editor: without the integrated curve of a generated pulse (thousands of numbers; the preview carries a downsampled one). */
+function slim(n: NormalizedCase): NormalizedCase {
+  if (!n.transient?.generated) return n;
+  const { trace: _t, ...generated } = n.transient.generated;
+  return { ...n, transient: { ...n.transient, generated: { ...generated, trace: { time: [], power: [], reactivity: [], fuelTemperature: [], energy: [] } } } };
+}
+
+/** The quick look, with a transient's preview run in this thread. The server's handler uses checkAsync, which runs it in a worker with a deadline. */
 export function check(doc: unknown) {
+  return checkWith(validateCase(doc));
+}
+
+/** The quick look with the transient's independent preview run in a worker thread, with a deadline; a newer request replaces one still waiting. */
+export async function checkAsync(doc: unknown) {
   const v = validateCase(doc);
+  let external: { fv: FvTransient | null; skipped?: string } | undefined;
+  if (v.normalized?.transient && !previewTooBig(v.normalized)) {
+    const o = await independent.start(v.normalized, { what: "single", deadlineMs: PREVIEW_DEADLINE_MS, supersede: true }).done;
+    external = o.ok ? { fv: (o.set as { fv: FvTransient }).fv } : { fv: null, skipped: o.reason === "superseded" ? "a newer edit replaced this preview before it started" : "the preview was skipped: " + o.message };
+  }
+  return checkWith(v, external);
+}
+
+function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransient | null; skipped?: string }) {
   if (!v.normalized) return { ok: false, errors: v.errors, warnings: v.warnings };
   const n = v.normalized;
   if (n.transient) {
@@ -147,8 +181,8 @@ export function check(doc: unknown) {
       ok: true,
       errors: v.errors,
       warnings: v.warnings,
-      normalized: n,
-      transient: transientPreview(n),
+      normalized: slim(n),
+      transient: transientPreview(n, external),
       derived: {
         volumetricPower: n.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
         gapThickness: n.claddingInnerRadius - n.fuelRadius,
@@ -252,7 +286,7 @@ export const server = createServer(async (req, res) => {
       } catch {
         return json(res, 400, { error: "body is not valid JSON" });
       }
-      return json(res, 200, check(doc));
+      return json(res, 200, await checkAsync(doc));
     }
     json(res, 404, { error: "not found" });
   } catch (e) {

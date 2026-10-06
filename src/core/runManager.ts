@@ -10,14 +10,15 @@ import { writeOffbeatCase } from "./caseWriter";
 import { judgeConvergence, readCriterion } from "./convergence";
 import { lastRelativeRate } from "./steadyState";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
-import { buildTransientResults, TransientResultsRecord } from "./transientResults";
+import { IndependentHandle, IndependentRunner } from "./independentRunner";
+import { IndependentSet, buildTransientResults, TransientResultsRecord } from "./transientResults";
 import { Issue, validateCase } from "./validate";
 
 export type RunState = "queued" | "running" | "completed" | "failed" | "cancelled" | "interrupted";
 
 export interface RunFailure {
   /** SEED error code vocabulary (schema/error-codes.json of SEED). */
-  code: "E_APP_FAILED" | "E_TIMEOUT" | "E_CANCELLED" | "E_OUTPUT_INCOMPLETE" | "E_NOT_CONVERGED" | "E_SCHEMA_INVALID";
+  code: "E_APP_FAILED" | "E_TIMEOUT" | "E_CANCELLED" | "E_OUTPUT_INCOMPLETE" | "E_NOT_CONVERGED" | "E_VERIFY_INCOMPLETE" | "E_SCHEMA_INVALID";
   message: string;
   /** The solver's own words, kept untouched when there are any. */
   native?: string;
@@ -63,6 +64,10 @@ export interface ManagerOptions {
   now?: () => Date;
   /** Keep at most this many run directories; the oldest finished ones are deleted first. Default 100. */
   maxRuns?: number;
+  /** Where a transient's independent finite-volume runs are done (in a worker thread, with a deadline). Default: a runner with `independentDeadlineMs`. */
+  independent?: IndependentRunner;
+  /** Deadline of those runs, ms. Default 120000. A run whose independent checks cannot finish in it fails (E_VERIFY_INCOMPLETE): without them the result is not verified. */
+  independentDeadlineMs?: number;
 }
 
 const SOLVER_TEXT = "OpenFOAM Foundation 9 + OFFBEAT 80e84450";
@@ -96,12 +101,16 @@ export class RunManager {
   private active: string | null = null;
   private waiters = new Map<string, ((r: RunRecord) => void)[]>();
   private cancelRequested = new Set<string>();
+  private independent: IndependentRunner;
+  /** The independent-run job of a run that is being verified (after its solver has finished); cancel stops it. */
+  private postJobs = new Map<string, IndependentHandle>();
   private timedOut = new Set<string>();
   private timeoutMs: number;
   private now: () => Date;
 
   constructor(private opts: ManagerOptions) {
     this.timeoutMs = opts.timeoutMs ?? 300_000;
+    this.independent = opts.independent ?? new IndependentRunner({ deadlineMs: opts.independentDeadlineMs ?? 120_000 });
     this.now = opts.now ?? (() => new Date());
     mkdirSync(opts.runsRoot, { recursive: true });
     this.recover();
@@ -247,6 +256,7 @@ export class RunManager {
       this.finish(r);
     } else if (r.state === "running") {
       this.cancelRequested.add(id);
+      this.postJobs.get(id)?.cancel();
       try {
         await this.opts.backend.cancel(id);
       } catch (e) {
@@ -305,7 +315,7 @@ export class RunManager {
       clearTimeout(timer);
     }
     try {
-      this.classify(r, dir, nativeDir, outcome, infra);
+      await this.classify(r, dir, nativeDir, outcome, infra);
     } catch (e) {
       r.state = "failed";
       r.failure = { code: "E_APP_FAILED", message: "The run could not be classified: " + String((e as Error).message) };
@@ -313,7 +323,7 @@ export class RunManager {
     this.finish(r);
   }
 
-  private classify(r: RunRecord, dir: string, nativeDir: string, outcome: BackendOutcome | undefined, infra: string | undefined) {
+  private async classify(r: RunRecord, dir: string, nativeDir: string, outcome: BackendOutcome | undefined, infra: string | undefined) {
     const fail = (f: RunFailure) => {
       r.state = "failed";
       r.failure = f;
@@ -385,7 +395,19 @@ export class RunManager {
         const tdir = join(nativeDir, "times");
         const names = existsSync(tdir) ? readdirSync(tdir).filter((d) => /^[0-9.eE+-]+$/.test(d) && Number.isFinite(Number(d))).sort((a, b) => Number(a) - Number(b)) : [];
         const fields = names.map((d) => ({ time: Number(d), T: read(join(tdir, d, "T")) ?? "" }));
-        const tr = buildTransientResults(normalized, { C, fields });
+        // The independent finite-volume runs (the cross-check and the time-step error) are done in a worker thread with a deadline, so the server stays
+        // responsive, and a cancel reaches them. Without them the result is not verified, so a run whose checks cannot be completed is not a result.
+        const job = this.independent.start(normalized, { what: "full" });
+        this.postJobs.set(r.id, job);
+        const ind = await job.done.finally(() => this.postJobs.delete(r.id));
+        if (this.cancelRequested.has(r.id) || (!ind.ok && ind.reason === "cancelled")) {
+          r.state = "cancelled";
+          r.failure = { code: "E_CANCELLED", message: "Cancelled by the user while the result was being checked. No result was collected." };
+          return;
+        }
+        if (!ind.ok) return fail({ code: "E_VERIFY_INCOMPLETE", message: "The solver finished, but its result could not be verified: " + ind.message + ". Without the independent cross-check and time-step error the result is not accepted. Use a coarser mesh or a longer time step, or raise the deadline; the solver's own output is in the run folder.", native });
+        r.notes.push(`The independent finite-volume runs took ${(ind.ms / 1000).toFixed(1)} s in ${ind.mode === "worker" ? "a worker thread" : "the server's own thread (no compiled worker was found, so no deadline applied)"}.`);
+        const tr = buildTransientResults(normalized, { C, fields }, ind.set as IndependentSet);
         atomicWrite(join(dir, "results.json"), JSON.stringify(tr, null, 2) + "\n");
         r.headline = { centreCellT: tr.summary.maxT, claddingOuterWallT: tr.series.claddingOuterWallT[tr.series.claddingOuterWallT.length - 1]!, transient: true };
         r.state = "completed";
