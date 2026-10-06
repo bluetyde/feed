@@ -193,6 +193,10 @@ describe("the region against the slice the case was heated for", () => {
     expect(e.code).toBe("E_COVERAGE_INCOMPLETE");
     expect(e.message).toMatch(/lower/);
   });
+  it("a region that ends below the top of the heated slice is refused (the upper end is checked, not only the lower)", () => {
+    const e = refusal(request({ target: heated({ min: 0.9, max: 1.1 }) }));
+    expect(e.code).toBe("E_COVERAGE_INCOMPLETE");
+  });
   it("a region that only partly overlaps it is refused", () => {
     expect(refusal(request({ target: heated({ min: 0.7, max: 0.9 }) })).code).toBe("E_COVERAGE_INCOMPLETE");
   });
@@ -255,6 +259,13 @@ describe("refusals (each with its code)", () => {
       expect(e.message.length).toBeGreaterThan(10);
     });
   }
+
+  // The case's own validator would refuse some of these values too, with the same code; the transfer's check comes first and names the cause.
+  it("each check is the transfer's own, not the validator's behind it (the message says which)", () => {
+    expect(refusal(change((r) => (r.source.selected.value = 0))).message).toMatch(/absolute zero/);
+    expect(refusal(change((r) => (r.source.additional[0].selected.value = 0))).message).toMatch(/must be positive/);
+    expect(refusal(change((r) => (r.target.content = JSON.stringify({ schema: "feed.case/0.1" })))).message).toMatch(/^the target case is not valid/);
+  });
 
   it("the surface-temperature form refuses a missing sample and a bad temperature too", () => {
     expect(refusal(surfaceRequest((r) => delete r.source.selected)).code).toBe("E_TIME_MAPPING");
