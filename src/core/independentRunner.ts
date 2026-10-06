@@ -67,6 +67,7 @@ export class IndependentRunner {
   private workerFile: string | null;
   private maxConcurrent: number;
   private live = 0;
+  private timers = 0;
 
   constructor(private opts: RunnerOptions) {
     this.workerFile = opts.workerFile === undefined ? resolveWorkerFile() : opts.workerFile;
@@ -80,6 +81,10 @@ export class IndependentRunner {
   /** Worker threads that have started and not yet exited: zero when none is left running (a terminated thread is counted out when it has really gone). */
   liveThreads(): number {
     return this.live;
+  }
+  /** Deadline timers still pending: zero when every job has settled (a leftover one would hold the process open until its deadline). */
+  timersPending(): number {
+    return this.timers;
   }
   get mode(): "worker" | "in-process" {
     return this.workerFile ? "worker" : "in-process";
@@ -106,7 +111,11 @@ export class IndependentRunner {
   private settle(j: Pending, o: IndependentOutcome) {
     if (j.settled) return;
     j.settled = true;
-    if (j.timer) clearTimeout(j.timer);
+    if (j.timer) {
+      clearTimeout(j.timer);
+      j.timer = undefined;
+      this.timers--;
+    }
     this.running.delete(j);
     j.resolve(o);
   }
@@ -142,6 +151,7 @@ export class IndependentRunner {
       return fail("worker-failed", "the worker could not be started: " + String((e as Error).message));
     }
     this.live++;
+    this.timers++;
     j.worker.once("exit", () => this.live--);
     j.timer = setTimeout(() => fail("deadline", `the independent solution did not finish within ${(j.deadlineMs / 1000).toFixed(j.deadlineMs < 1000 ? 3 : 0)} s and was stopped`), j.deadlineMs);
     j.worker.once("message", (m: { ok: boolean; set?: any; message?: string; ms: number }) => {

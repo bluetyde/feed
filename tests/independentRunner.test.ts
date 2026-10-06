@@ -102,15 +102,20 @@ describe("the deadline", () => {
     expect(out.ok).toBe(true);
   }, 30_000);
 
-  it("a finished job leaves no deadline timer behind (a leftover one would hold the process open until the deadline)", async () => {
-    const timers = () => process.getActiveResourcesInfo().filter((x) => x === "Timeout").length;
-    const before = timers();
+  it("a finished job leaves no deadline timer behind (a leftover one would hold the process open until the deadline), and neither does a stopped or a cancelled one", async () => {
     const r = new IndependentRunner({ deadlineMs: 600_000 });
-    expect((await r.start(small()).done).ok).toBe(true);
-    await new Promise((x) => setTimeout(x, 60));
-    expect(timers()).toBeLessThanOrEqual(before);
-  });
-
+    const h = r.start(small());
+    expect(r.timersPending()).toBe(1);
+    expect((await h.done).ok).toBe(true);
+    expect(r.timersPending()).toBe(0);
+    await r.start(heavy(), { deadlineMs: 100 }).done;
+    expect(r.timersPending()).toBe(0);
+    const g = r.start(heavy());
+    await new Promise((x) => setTimeout(x, 100));
+    g.cancel();
+    await g.done;
+    expect(r.timersPending()).toBe(0);
+  }, 30_000);
   it("a job that finishes in time is not stopped, and its timer is gone (nothing fires later)", async () => {
     const r = new IndependentRunner({ deadlineMs: 400 });
     const out = await r.start(small()).done;
