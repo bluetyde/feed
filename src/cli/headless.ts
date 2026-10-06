@@ -4,6 +4,7 @@
 //   node dist/cli/headless.js validate <case.json>
 //   node dist/cli/headless.js run <case.json> --out <absDir> [--run-id feed] [--timeout-seconds 300]
 //   node dist/cli/headless.js cancel --out <absDir>
+//   node dist/cli/headless.js transfer            (a seed.transfer-request/0.2 on stdin; exit 0 for every answer)
 //
 // Exit codes: 0 a reply was produced (a run that ended failed is exit 0 with status "failed" and a reason), 2 the case was
 // refused (ok:false with typed errors), 1 the runner itself failed (ok:false). `run` writes <out>/<run-id>/ with
@@ -14,6 +15,7 @@ import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { isAbsolute, join } from "path";
 import { RunManager } from "../core/runManager";
+import { DESCRIBE_TRANSFERS, transferHeating } from "../core/transferRequest";
 import { Issue, validateCase } from "../core/validate";
 import { solverAvailable, WslBackend } from "../core/wslBackend";
 
@@ -62,6 +64,7 @@ async function describe() {
       caseFormat: { format: "feed.case", version: "0.1" },
       solver: { text: SOLVER, available: await solverAvailable() },
       thermalOnly: "Thermal calculation only. Not a stress, failure or integrity assessment.",
+      transfers: DESCRIBE_TRANSFERS,
     },
     0,
   );
@@ -124,6 +127,21 @@ async function run(args: string[]) {
   out({ ok: true, status: "completed", runId, feedRunId: started.id, solverExit: detail.record.exitCode ?? null }, 0);
 }
 
+/**
+ * `transfer`: SEED's request (seed.transfer-request/0.2) on stdin, one reply on stdout. Every answer, accepted or refused, is
+ * exit 0 (SEED turns a non-zero exit or no JSON into E_APP_FAILED). SEED has already checked the approval and the revisions.
+ */
+function transfer() {
+  let request: unknown;
+  try {
+    request = JSON.parse(readFileSync(0, "utf8"));
+  } catch {
+    return out({ ok: false, errors: [{ code: "E_SCHEMA_INVALID", field: "", message: "stdin is not a JSON transfer request" }] }, 0);
+  }
+  const reply = transferHeating(request);
+  out(reply.ok ? { ok: true, output: reply.output, checks: reply.checks } : { ok: false, errors: reply.errors.slice(0, 20) }, 0);
+}
+
 async function cancel(args: string[]) {
   const outDir = option(args, "--out");
   if (!outDir || !isAbsolute(outDir)) return fail("E_PATH_INVALID", "--out must be an absolute folder");
@@ -152,7 +170,8 @@ async function main() {
     else if (verb === "validate") validate(args);
     else if (verb === "run") await run(args);
     else if (verb === "cancel") await cancel(args);
-    else fail("E_VERB_UNKNOWN", "usage: describe | validate <case.json> | run <case.json> --out <dir> | cancel --out <dir>");
+    else if (verb === "transfer") transfer();
+    else fail("E_VERB_UNKNOWN", "usage: describe | validate <case.json> | run <case.json> --out <dir> | cancel --out <dir> | transfer (request on stdin)");
   } catch (e) {
     if (e instanceof Reply) code = e.code;
     else {
