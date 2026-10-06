@@ -180,3 +180,43 @@ describe("fitPolynomial", () => {
     expect(() => fitPolynomial(same, 3)).toThrow(/does not determine/);
   });
 });
+
+describe("edges the mutation run found", () => {
+  it("a minimum that lies above the range is not a candidate; one at the range's end is", () => {
+    // k = 2 + 0.003 T - 1.2e-6 T^2 + 2e-10 T^3 has its interior minimum at one root of dk/dT; a range ending before it must not see it
+    const c = [1000, -2, 0.001, 0]; // minimum 0 at 1000 K
+    expect(minimum(c, 100, 500)).toBe(evaluate(c, 500));
+    expect(minimum(c, 1000, 1500)).toBe(0);
+    expect(minimum(c, 500, 1000)).toBe(0);
+    expect(minimum(c, 1200, 1500)).toBe(evaluate(c, 1200));
+    const cub = [100, -0.5, 0, 1e-6]; // k' = -0.5 + 3e-6 T^2: minimum at T = sqrt(1/6e-6) = 408.2
+    expect(minimum(cub, 100, 300)).toBe(evaluate(cub, 300));
+  });
+
+  it("solveHot refuses a conductivity of exactly zero at the cold side, and accepts a double root of the linear solution", () => {
+    expect(() => solveHot([0, 1], 0, 5)).toThrow(/not positive/);
+    // k = 2 - 0.5 T at 2 K is 1; the integral 1 is exactly where the line reaches zero (disc = 1 - 1 = 0): T = 2 + 2 I / kCold = 4
+    expect(solveHot([2, -0.5], 2, 1)).toBe(4);
+  });
+
+  it("a higher-degree law that is zero at the cold side, or touches zero before the integral is reached, has no solution", () => {
+    expect(() => solveHot([1000, -2, 0.001], 1000, 5)).toThrow(/not positive at the cold side/);
+    expect(() => solveHot([1000, -2, 0.001], 500, 1e9)).toThrow(/reaches zero before/); // tangent to zero at 1000 K
+  });
+
+  it("the bracketing reaches 1e18 K and not one doubling less, and refuses beyond it", () => {
+    const c = [1, 0, 0, 1e-80]; // k is 1 until about 1e27 K, so the integral is the temperature rise
+    near(solveHot(c, 0, 4e17), 4e17, 1e-9);
+    expect(() => solveHot(c, 0, 1e19)).toThrow(/no temperature below 1e18 K/);
+  });
+
+  it("fit degree must be an integer", () => {
+    const p = [{ T: 300, k: 1 }, { T: 400, k: 2 }, { T: 500, k: 3 }, { T: 600, k: 3 }];
+    expect(() => fitPolynomial(p, 1.5)).toThrow(/degree is 1, 2 or 3/);
+  });
+
+  it("lawOf a constant is exactly [k]", async () => {
+    const { lawOf } = await import("../src/core/conductivity");
+    expect(lawOf({ kind: "constant", k: 3 } as never)).toEqual([3]);
+  });
+});
