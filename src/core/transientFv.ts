@@ -265,7 +265,7 @@ export function storedEnergy(p: TransientPin, T: number[], initial: number | num
  * outer) and the outer wall, from the same discretisation as the transient solution, which therefore holds it exactly. It is one
  * implicit step of effectively infinite length (the heat capacity term vanishes), iterated for a temperature-dependent conductivity.
  * Refuses, with the reason, a field it cannot trust: the iteration not settled, a conductivity not positive at the result, or the
- * heat leaving not equal to the heat made.
+ * field that another iteration still moves.
  */
 export function steadyFv(p: TransientPin, qPrime: number): { T: number[]; wall: number } {
   if (!(qPrime >= 0) || !Number.isFinite(qPrime)) throw new RangeError("the steady linear heat rate must be a finite number, zero or more");
@@ -279,8 +279,10 @@ export function steadyFv(p: TransientPin, qPrime: number): { T: number[]; wall: 
     const k = i < nf ? p.fuelK.a + p.fuelK.b * x : p.claddingK.a + p.claddingK.b * x;
     if (!(k > 0)) throw new RangeError("the conductivity of the " + (i < nf ? "fuel" : "cladding") + " is not positive at " + x.toFixed(0) + " K, so there is no steady state at this heat rate");
   });
-  const out = s.rejected / dt;
-  const made = s.deposited / dt;
-  if (!(Math.abs(out - made) <= 1e-7 * Math.max(made, 1))) throw new RangeError("the steady state did not settle: " + out + " W/m leaves, " + made + " W/m is made");
+  // Every linear solve conserves energy whether or not the conductivity iteration has settled, so the heat balance proves nothing here. A settled field is a fixed
+  // point: one more step of the same problem from it must not move it.
+  const again = solveTransientFv({ ...p, power: () => qPrime }, { dt, steps: 1, initialField: s.T, outputEvery: 1 }).states[1]!;
+  const moved = Math.max(...again.T.map((x, i) => Math.abs(x - s.T[i]!)));
+  if (!(moved <= 1e-6)) throw new RangeError("the steady state did not settle: another iteration still moves it by " + moved.toPrecision(3) + " K");
   return { T: s.T, wall: s.wall };
 }

@@ -686,9 +686,32 @@ function analysisField() {
   sel.addEventListener("change", () => setAnalysis(sel.value));
   row.append(sel); return row;
 }
+const startsSteady = () => !!(doc && doc.transient && doc.transient.initialSteadyLinearHeatRate !== undefined);
+function setInitialKind(kind) {
+  const t = doc.transient;
+  if (kind === "steady" && !startsSteady()) {
+    const first = t.powerHistory && t.powerHistory[0] && t.powerHistory[0].linearHeatRate;
+    delete t.initialTemperature;
+    t.initialSteadyLinearHeatRate = first && first.value > 0 ? { value: first.value, unit: first.unit } : { value: 20, unit: "kW/m" };
+    logText += "The run now starts from the steady operating state of the pin at that heat rate." + String.fromCharCode(10);
+  } else if (kind === "uniform" && startsSteady()) {
+    delete t.initialSteadyLinearHeatRate;
+    const b = doc.boundary && (doc.boundary.bulkTemperature || doc.boundary.surfaceTemperature);
+    t.initialTemperature = b && b.value !== undefined ? { value: b.value, unit: b.unit } : { value: 300, unit: "K" };
+    logText += "The run now starts from a uniform temperature." + String.fromCharCode(10);
+  }
+  solverRes = null; runRec = null; setChip();
+  changed(true);
+}
 function renderTransientProps(p) {
   const t = doc.transient || {};
-  p.append(sec("Timing"), qField("Initial temperature", ["transient", "initialTemperature"], "temperature"), qField("End time", ["transient", "endTime"], "time"), qField("Time step", ["transient", "timeStep"], "time"), iField("Outputs", ["transient", "outputs"]));
+  const initialKind = el("div", "prow"); initialKind.append(elt("label", "Starts from", { for: "initialKind" }));
+  const ik = elt("select", "", { id: "initialKind" });
+  ik.append(elt("option", "Uniform temperature", { value: "uniform" }), elt("option", "Steady operating state", { value: "steady" }));
+  ik.value = startsSteady() ? "steady" : "uniform";
+  ik.addEventListener("change", () => setInitialKind(ik.value));
+  initialKind.append(ik);
+  p.append(sec("Timing"), initialKind, startsSteady() ? qField("Operating linear heat rate", ["transient", "initialSteadyLinearHeatRate"], "linearPower") : qField("Initial temperature", ["transient", "initialTemperature"], "temperature"), qField("End time", ["transient", "endTime"], "time"), qField("Time step", ["transient", "timeStep"], "time"), iField("Outputs", ["transient", "outputs"]));
   const info = result && result.transient;
   p.append(note(info ? "<code>" + info.steps + "</code> steps of a fixed size, <code>" + info.outputs + "</code> outputs (the temperature field is kept at each). The step is first order: the Checks tab reports how much halving it would change the peak." : "The end time must be a whole number of steps and the outputs must divide the steps."));
   const gen = (result && result.errors || []).filter((i) => i.field === "/transient" || i.field === "/transient/powerHistory" || i.field === "/power/linearHeatRate");
@@ -705,7 +728,7 @@ function renderTransientProps(p) {
   rem.addEventListener("click", () => { if (doc.transient.powerHistory && doc.transient.powerHistory.length) { doc.transient.powerHistory.pop(); changed(true); } });
   bar.append(add, rem); p.append(bar);
   p.append(note(info ? "Energy deposited over the run <code>" + (info.depositedEnergy / 1e3).toFixed(2) + " kJ/m</code>, <code>" + (info.depositedPerVolume / 1e6).toFixed(1) + " MJ/m³</code> of fuel. If no heat left the fuel it would reach <code>" + K(info.adiabaticPeak) + "</code> (the adiabatic limit; the real peak is lower for a long pulse)." : "Power is linear between the points. The first point is at time 0 and the last at or after the end time."));
-  p.append(sec("Scope"), note("Thermal only. The power history is an <b>input</b>: FEED does not compute the pulse, so it says nothing about reactivity, stress or fuel integrity. The start is a uniform temperature."));
+  p.append(sec("Scope"), note("Thermal only. The power history is an <b>input</b>: FEED does not compute the pulse, so it says nothing about reactivity, stress or fuel integrity. " + (startsSteady() ? "The start is the steady state of this pin at the operating heat rate (an independent finite-volume solution on the same mesh); OFFBEAT's own steady state differs from it by a fraction of a percent, so the first seconds show a small settling that the Checks tab reports." : "The start is a uniform temperature.")));
 }
 function heatCapacityPanel(p, base, k) {
   p.append(sec("Heat capacity (volumetric, for the pulse)"));
@@ -797,7 +820,7 @@ function transientChecks(o, row) {
     head("Solver result (OFFBEAT, thermal only)");
     const s = solverRes.summary;
     row("Peak temperature", K(s.maxT), "", "hottest cell centre, at t = " + fmtT(s.timeOfMaxT));
-    row("Peak at the end", K(s.finalPeakT), "", "t = " + fmtT(s.finalTime)); row("Largest rise", s.maxRise.toFixed(1) + " K", "", "above the initial " + K(solverRes.initialTemperature));
+    row("Peak at the end", K(s.finalPeakT), "", "t = " + fmtT(s.finalTime)); row("Largest rise", s.maxRise.toFixed(1) + " K", "", (solverRes.initialState && solverRes.initialState.kind === "steady" ? "above the operating peak " : "above the initial ") + K(solverRes.initialTemperature));
     for (const c of solverRes.checks) row(c.label, c.value === null ? "n/a" : (c.unit === "relative" ? (c.value * 100).toFixed(2) + " %" : c.value.toFixed(3) + " " + c.unit), c.verdict === "na" ? "na" : c.verdict, c.verdict.toUpperCase() + ": " + c.note);
     const b = el("div", "log"); b.style.paddingTop = "6px"; b.textContent = solverRes.thermalOnly; o.append(b);
   } else if (runRec && (runRec.state === "failed" || runRec.state === "cancelled" || runRec.state === "interrupted")) {
@@ -809,7 +832,7 @@ function transientChecks(o, row) {
 }
 function renderTransientResults(d, m) {
   const r = d.results, s = r.summary, ser = r.series, last = ser.time.length - 1;
-  m.append(card("Peak temperature", K(s.maxT), "at t = " + fmtT(s.timeOfMaxT)), card("Peak at the end", K(s.finalPeakT), "t = " + fmtT(s.finalTime)), card("Largest rise", s.maxRise.toFixed(1) + " K", "above the initial " + K(r.initialTemperature)), card("Energy deposited", (ser.deposited[last] / 1e3).toFixed(2) + " kJ/m", "stored " + (ser.stored[last] / 1e3).toFixed(2) + " kJ/m, net heat out " + (ser.rejected[last] / 1e3).toFixed(2) + " kJ/m"));
+  m.append(card("Peak temperature", K(s.maxT), "at t = " + fmtT(s.timeOfMaxT)), card("Peak at the end", K(s.finalPeakT), "t = " + fmtT(s.finalTime)), card("Largest rise", s.maxRise.toFixed(1) + " K", (r.initialState && r.initialState.kind === "steady" ? "above the operating peak " : "above the initial ") + K(r.initialTemperature)), card("Energy deposited", (ser.deposited[last] / 1e3).toFixed(2) + " kJ/m", "stored " + (ser.stored[last] / 1e3).toFixed(2) + " kJ/m, net heat out " + (ser.rejected[last] / 1e3).toFixed(2) + " kJ/m"));
   const bad = r.checks.filter((c) => c.verdict === "fail").length, ok = r.checks.filter((c) => c.verdict === "pass").length;
   m.append(card("Checks", ok + " pass" + (bad ? ", " + bad + " fail" : ""), r.checks.map((c) => c.id + ": " + c.verdict).join(" · ")));
   const series = [

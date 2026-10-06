@@ -161,4 +161,19 @@ describe("steadyFv refuses what it cannot trust", () => {
     const p = pin({ fuelK: { a: 4, b: -0.0035 } });
     expect(() => steadyFv(p, 60000)).toThrow(/conductivity|settle|finite/);
   });
+
+  // k = 4 - 0.0035 T reaches zero at 1143 K; the heat that can be carried before then is far below what 20 kW/m needs, so there is no steady state.
+  const poor = () => pin({ fuelCells: 20, claddingCells: 6, fuelK: { a: 4, b: -0.0035 } });
+  it("an iteration that does not settle is refused as such (another step still moves the field)", () => {
+    expect(() => steadyFv(poor(), 30000)).toThrow(/did not settle: another iteration still moves it by/);
+    expect(() => steadyFv(poor(), 20000)).toThrow(/did not settle/);
+  });
+
+  it("a conductivity that is not positive at the result is named, with the temperature", () => {
+    expect(() => steadyFv(poor(), 28000)).toThrow(/conductivity of the fuel is not positive at -?[0-9]+ K/);
+  });
+
+  it("a law that does carry the heat settles to a fixed point", () => {
+    expect(() => steadyFv(pin({ fuelK: { a: 5, b: -0.002 } }), 25000)).not.toThrow();
+  });
 });

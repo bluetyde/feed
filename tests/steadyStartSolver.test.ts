@@ -98,6 +98,11 @@ describe("validation of the steady start", () => {
     expect(validateCase(cold).errors.map((e) => e.code + " " + e.field)).toEqual(["E_OUT_OF_RANGE /transient/powerHistory"]);
   });
 
+  it("a negative steady heat rate is refused by the input check itself, not only by the solver behind it", () => {
+    const d = operating(-5, [[0, "s", 1], [100, "s", 1]], q(100, "s"), q(1, "s"), 10);
+    expect(validateCase(d).errors.map((e) => e.message)).toEqual(["the steady heat rate cannot be negative"]);
+  });
+
   it("zero is a valid steady heat rate: the pin sits at the coolant temperature", () => {
     const d = operating(0, [[0, "s", 1], [100, "s", 1]], q(100, "s"), q(1, "s"), 10);
     const n = normalized(d);
