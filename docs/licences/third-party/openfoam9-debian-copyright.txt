@@ -1,0 +1,41 @@
+This work was packaged for Debian by:
+
+    OpenFOAM Foundation <noreply@openfoam.org> on Thu Jun  2 08:42:58 UTC 2022
+
+Copyright:
+
+    Copyright (C) 1991-2022 OpenFOAM Foundation <noreply@openfoam.org>
+
+License:
+
+    This file is part of OpenFOAM.
+
+    OpenFOAM is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+    On Debian systems, the full text of the GNU General Public License
+    version 3 can be found in the file "/usr/share/common-licenses/GPL-3".
+
+The work includes shared object libraries from Scotch and PT-Scotch
+
+    Copyright (C) 2004-2014 ENSEIRB, IPB, Universite de Bordeaux, INRIA, CNRS
+    https://www.labri.fr/perso/pelegrin/scotch/
+
+    Scotch and PT-Scotch is distributed under the CeCILL-C_V1 licence.
+    See README_scotch for details.
+
+The Debian packaging is:
+
+    Copyright (C) 2022 OpenFOAM Foundation <noreply@openfoam.org>
+
+    and is licensed under the GPL version 3
