@@ -5,9 +5,12 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { BackendOutcome, RunBackend } from "../../src/core/runManager";
 
-export type Script = "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
+export type Script = "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "unconverged" | "exit-1-complete" | "fatal-in-log" | "no-iteration-records" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
 
 const golden = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-syn", f), "utf8");
+/** Real OFFBEAT logs from the non-convergence probe: one step that converged (6 outer iterations), one that hit its cap unconverged. */
+export const convergedLog = () => readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "converged-1s.log"), "utf8");
+export const unconvergedLog = () => readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "capped-unconverged.log"), "utf8");
 
 export class FakeBackend implements RunBackend {
   runs: string[] = [];
@@ -55,12 +58,14 @@ export class FakeBackend implements RunBackend {
         return { cancelled: false };
       case "truncated": {
         const T = golden("T");
+        writeFileSync(join(nativeDir, "log.offbeat"), convergedLog()); // a converged run whose field file is cut short
         writeFileSync(join(nativeDir, "final", "T"), T.slice(0, T.indexOf("1101.0777")));
         writeFileSync(join(nativeDir, "final", "C"), golden("C"));
         exit(0, 139, 50000000);
         return { cancelled: false };
       }
       case "nan": {
+        writeFileSync(join(nativeDir, "log.offbeat"), convergedLog()); // a converged run whose field has a nan
         writeFileSync(join(nativeDir, "final", "T"), golden("T").replace("1299.6625", "nan"));
         writeFileSync(join(nativeDir, "final", "C"), golden("C"));
         exit(0, 0, 50000000);
@@ -105,8 +110,21 @@ export class FakeBackend implements RunBackend {
       case "good-exit-0":
         writeFileSync(join(nativeDir, "final", "T"), golden("T"));
         writeFileSync(join(nativeDir, "final", "C"), golden("C"));
-        writeFileSync(join(nativeDir, "log.offbeat"), "Time = 5e+07 seconds\n");
+        writeFileSync(join(nativeDir, "log.offbeat"), convergedLog());
         exit(0, script === "good" ? 139 : 0, 50000000);
+        return { cancelled: false };
+      // complete, finite output at the intended end time, each with one thing wrong that only the log or the exit status shows
+      case "unconverged":
+      case "exit-1-complete":
+      case "fatal-in-log":
+      case "no-iteration-records":
+        writeFileSync(join(nativeDir, "final", "T"), golden("T"));
+        writeFileSync(join(nativeDir, "final", "C"), golden("C"));
+        writeFileSync(
+          join(nativeDir, "log.offbeat"),
+          script === "unconverged" ? unconvergedLog() : script === "no-iteration-records" ? "Time = 5e+07 seconds\n" : script === "fatal-in-log" ? convergedLog() + "\n--> FOAM FATAL ERROR:\nsomething after the last write\n" : convergedLog(),
+        );
+        exit(0, script === "exit-1-complete" ? 1 : 139, 50000000);
         return { cancelled: false };
     }
   }

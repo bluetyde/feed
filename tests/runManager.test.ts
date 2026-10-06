@@ -402,3 +402,89 @@ describe("run manager: re-review findings", () => {
     expect(["running", "failed"]).toContain(mgr.get(s.id)!.state);
   });
 });
+
+// F0 exit review, finding 2: complete, finite output at the intended end time is NOT a result unless the solver converged, and only
+// exit 0 and the demonstrated shutdown crash (139) are accepted. The logs are real OFFBEAT logs from the non-convergence probe.
+describe("run manager: convergence and exit status (F0 finding 2)", () => {
+  it("a converged run that exits 139 after its last write is a result (the baseline for the cases below)", async () => {
+    const { rec, mgr, id } = await runOne("good");
+    expect(rec.state).toBe("completed");
+    expect(mgr.results(id)).toBeDefined();
+  });
+
+  it("THE PROBE CASE: the last step hit the iteration cap unconverged, the output is complete and the exit is 139, yet the run FAILS and yields no result", async () => {
+    const { rec, mgr, id, runsRoot } = await runOne("unconverged");
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_NOT_CONVERGED");
+    expect(rec.failure!.message).toMatch(/did not converge at t = 1/);
+    expect(rec.failure!.message).toMatch(/absErrT 11\.1641/);
+    expect(rec.failure!.message).toMatch(/without a warning/);
+    expect(rec.failure!.native).toMatch(/absErrT is 11\.1641/); // the evidence from the log is kept
+    expect(mgr.results(id)).toBeUndefined();
+    expect(existsSync(join(runsRoot, id, "results.json"))).toBe(false);
+  });
+
+  it("a nonzero exit other than 139 after a complete write is a failure, not 'the known shutdown crash'", async () => {
+    const { rec, mgr, id } = await runOne("exit-1-complete");
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_APP_FAILED");
+    expect(rec.failure!.message).toMatch(/code 1/);
+    expect(rec.failure!.message).toMatch(/Only exit 0 and the known shutdown crash/);
+    expect(mgr.results(id)).toBeUndefined();
+  });
+
+  it("a FOAM FATAL in the log fails the run even when the exit is 139 and the output looks complete", async () => {
+    const { rec, mgr, id } = await runOne("fatal-in-log");
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_APP_FAILED");
+    expect(rec.failure!.message).toMatch(/FOAM FATAL/);
+    expect(mgr.results(id)).toBeUndefined();
+  });
+
+  it("a log with no outer-iteration records cannot show convergence: refused, not assumed fine", async () => {
+    const { rec, mgr, id } = await runOne("no-iteration-records");
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_OUTPUT_INCOMPLETE");
+    expect(rec.failure!.message).toMatch(/no outer-iteration records/);
+    expect(mgr.results(id)).toBeUndefined();
+  });
+
+  // the tolerances are the ones in THIS run's system/fvSolution, read after the solver ran
+  class EditsFvSolution extends FakeBackend {
+    constructor(private edit: (inputsDir: string) => void) {
+      super("good");
+    }
+    async run(a: { id: string; inputsDir: string; nativeDir: string; timeoutMs: number }) {
+      const out = await super.run(a);
+      this.edit(a.inputsDir);
+      return out;
+    }
+  }
+  const withEdit = async (edit: (inputsDir: string) => void) => {
+    const runsRoot = mkdtempSync(join(tmpdir(), "feed-runs-"));
+    dirs.push(runsRoot);
+    const mgr = new RunManager({ runsRoot, backend: new EditsFvSolution(edit) });
+    const s = mgr.start(pin());
+    if (!s.ok) throw new Error("start refused");
+    return { rec: await mgr.done(s.id), mgr, id: s.id };
+  };
+
+  it("the same converged log fails when this run's own tolerances are far stricter", async () => {
+    const { rec } = await withEdit((d) => {
+      const f = join(d, "system", "fvSolution");
+      writeFileSync(f, readFileSync(f, "utf8").replace(/relT\s+1e-6;/, "relT 1e-30;").replace(/\bT\s+1e-5;/, "T 1e-30;"));
+    });
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_NOT_CONVERGED");
+    expect(rec.failure!.message).toMatch(/T 1e-30/);
+  });
+
+  it("a run whose system/fvSolution is missing or unreadable cannot be judged and is refused", async () => {
+    const missing = await withEdit((d) => rmSync(join(d, "system", "fvSolution")));
+    expect(missing.rec.failure!.code).toBe("E_OUTPUT_INCOMPLETE");
+    expect(missing.rec.failure!.message).toMatch(/fvSolution is missing/);
+    const noKey = await withEdit((d) => writeFileSync(join(d, "system", "fvSolution"), "solvers { }"));
+    expect(noKey.rec.failure!.code).toBe("E_OUTPUT_INCOMPLETE");
+    expect(noKey.rec.failure!.message).toMatch(/no stressAnalysis dictionary/);
+  });
+});

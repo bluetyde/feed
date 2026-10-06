@@ -7,6 +7,7 @@ import { createHash, randomBytes } from "crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { writeOffbeatCase } from "./caseWriter";
+import { judgeConvergence, readCriterion } from "./convergence";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
 import { buildTransientResults, TransientResultsRecord } from "./transientResults";
 import { Issue, validateCase } from "./validate";
@@ -15,7 +16,7 @@ export type RunState = "queued" | "running" | "completed" | "failed" | "cancelle
 
 export interface RunFailure {
   /** SEED error code vocabulary (schema/error-codes.json of SEED). */
-  code: "E_APP_FAILED" | "E_TIMEOUT" | "E_CANCELLED" | "E_OUTPUT_INCOMPLETE" | "E_SCHEMA_INVALID";
+  code: "E_APP_FAILED" | "E_TIMEOUT" | "E_CANCELLED" | "E_OUTPUT_INCOMPLETE" | "E_NOT_CONVERGED" | "E_SCHEMA_INVALID";
   message: string;
   /** The solver's own words, kept untouched when there are any. */
   native?: string;
@@ -355,6 +356,26 @@ export class RunManager {
     // a transient's last write time is the sum of many steps, so it can sit a few ulps below the intended end (1e-9 relative)
     const isTransient = !!JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8")).transient;
     if (exit.finalTime < (isTransient ? expectedEnd * (1 - 1e-9) : expectedEnd)) return fail({ code: "E_OUTPUT_INCOMPLETE", message: `The solver stopped at ${exit.finalTime} s, before the intended ${expectedEnd} s (exit ${exit.offbeatExit}). The partial output is not a result.`, native });
+
+    // Only exit 0 and the demonstrated shutdown crash (139, SIGSEGV after the last write; docs/spike/F0-note.md) are accepted. Any
+    // other nonzero exit after a complete write is a different failure, and a FOAM FATAL in the log is a failure whatever the code.
+    if (exit.offbeatExit !== 0 && exit.offbeatExit !== 139) {
+      const sig = SIGNALS[exit.offbeatExit];
+      return fail({ code: "E_APP_FAILED", message: `The solver exited with code ${exit.offbeatExit}${sig ? " (" + sig + ")" : ""} after writing output. Only exit 0 and the known shutdown crash (139, SIGSEGV after the last write) are accepted; this output is not a result.`, native });
+    }
+    if (log.includes("FOAM FATAL")) return fail({ code: "E_APP_FAILED", message: `The solver log contains a FOAM FATAL error (exit ${exit.offbeatExit}), so the output is not accepted as a result.`, native });
+
+    // Convergence. OFFBEAT ends a time step at maxOuterIter without converging and accepts it silently (same output, same exit code),
+    // so the log is the only evidence: the last outer iteration of the final step (steady), of every step (transient), must meet
+    // OFFBEAT's own thermal criterion with the tolerances this run was given (src/core/convergence.ts).
+    const fvSolution = read(join(dir, "inputs", "system", "fvSolution"));
+    const criterion = fvSolution === undefined ? ({ ok: false, message: "the run's system/fvSolution is missing" } as const) : readCriterion(fvSolution);
+    if (!criterion.ok) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "Convergence cannot be judged: " + criterion.message + ". The run is not accepted as a result.", native });
+    const convergence = judgeConvergence(log, criterion.criterion, isTransient ? "every-step" : "final-step");
+    if (!convergence.ok) {
+      const evidence = log.split(/\r?\n/).filter((l) => /^(Time = |OuterIteration|relResidualT|absErrT)|Solving for T/.test(l)).slice(-16).join("\n");
+      return fail({ code: convergence.code, message: convergence.message, native: evidence || native });
+    }
 
     try {
       const normalized = JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8"));

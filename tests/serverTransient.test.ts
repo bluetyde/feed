@@ -12,15 +12,22 @@ const root = join(__dirname, "..");
 const golden = join(root, "tests/golden/offbeat-pulse");
 const pulse = () => JSON.parse(readFileSync(join(root, "examples/synthetic-pulse.json"), "utf8"));
 
+/** The outer-iteration records OFFBEAT prints, converged, for each of n steps (synthetic: the golden pulse output has no log). */
+const convergedStepsLog = (n: number, unconvergedStep = -1) =>
+  Array.from({ length: n }, (_, i) =>
+    ["Time = " + (i + 1) * 1e-4 + " s", "", "OuterIteration n. 0", "FDICPCG:  Solving for T, Initial residual = 1e-3, Final residual = 1e-5, No Iterations 2", "relResidualT is 1", "absErrT is 5", "", "OuterIteration n. 1", "FDICPCG:  Solving for T, Initial residual = " + (i === unconvergedStep ? "0.05" : "1e-12") + ", Final residual = 1e-13, No Iterations 1", "relResidualT is " + (i === unconvergedStep ? "0.04" : "1e-12"), "absErrT is " + (i === unconvergedStep ? "11" : "1e-12"), ""].join("\n"),
+  ).join("\n");
+
 /** A backend that "runs" by copying the saved OFFBEAT output of the synthetic pulse into the native folder. */
 class SavedPulseBackend implements RunBackend {
+  constructor(private log: string = convergedStepsLog(1000)) {}
   async run(args: { nativeDir: string }): Promise<BackendOutcome> {
     mkdirSync(join(args.nativeDir, "final"), { recursive: true });
     cpSync(join(golden, "C"), join(args.nativeDir, "final", "C"));
     cpSync(join(golden, "times"), join(args.nativeDir, "times"), { recursive: true });
     const last = readdirSync(join(golden, "times")).sort((x, y) => Number(x) - Number(y)).pop()!;
     cpSync(join(golden, "times", last, "T"), join(args.nativeDir, "final", "T"));
-    writeFileSync(join(args.nativeDir, "log.offbeat"), "saved output\n");
+    writeFileSync(join(args.nativeDir, "log.offbeat"), this.log);
     writeFileSync(join(args.nativeDir, "exit.json"), JSON.stringify({ blockMeshExit: 0, offbeatExit: 139, finalTime: 0.10000000000000184 }));
     return { cancelled: false };
   }
@@ -99,5 +106,28 @@ describe("transient case through the server", () => {
   it("compare refuses a transient run", async () => {
     const j: any = await (await get(`/api/compare?a=${runId}&b=${runId}`)).json();
     expect(j.error).toMatch(/steady runs only/);
+  });
+});
+
+// F0 finding 2 for a transient: an unconverged step in the middle corrupts the history that follows, so EVERY step must converge,
+// not only the last (a steady run is judged on its final step only).
+describe("transient convergence: every step must converge", () => {
+  const run = async (log: string) => {
+    const mgr = new RunManager({ runsRoot: mkdtempSync(join(tmpdir(), "feed-trconv-")), backend: new SavedPulseBackend(log) });
+    const s = mgr.start(pulse());
+    if (!s.ok) throw new Error("start refused");
+    return { rec: await mgr.done(s.id), mgr, id: s.id };
+  };
+  it("all 1000 steps converged: a result", async () => {
+    const { rec, mgr, id } = await run(convergedStepsLog(1000));
+    expect(rec.state).toBe("completed");
+    expect(mgr.results(id)).toBeDefined();
+  });
+  it("step 500 hit its cap unconverged while the last step converged: failed, no result, the step named", async () => {
+    const { rec, mgr, id } = await run(convergedStepsLog(1000, 499));
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_NOT_CONVERGED");
+    expect(rec.failure!.message).toMatch(/did not converge at t = 0\.05/);
+    expect(mgr.results(id)).toBeUndefined();
   });
 });

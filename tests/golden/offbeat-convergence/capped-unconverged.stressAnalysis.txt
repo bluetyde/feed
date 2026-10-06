@@ -1,0 +1,19 @@
+stressAnalysis
+{
+    nCorrectors     
+    {
+        D 3;
+        default 1;
+    }
+    maxOuterIter    2;
+
+    referencePairs  ();
+
+    D                   (1e-5 1 1e-5);
+    T                   1e-5;
+    neutronFlux0        1e-5;
+
+    relD                1e-6;
+    relT                1e-6;
+    relneutronFlux0     1e-6;
+}
