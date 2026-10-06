@@ -216,6 +216,25 @@ describe("the history it writes", () => {
   });
 });
 
+describe("the error control and the budgets", () => {
+  it("a very fast pulse in a long window stays exact: the step size is chosen by the error, not by the window", () => {
+    // Lambda = 1 microsecond, rho0 = 0.01: the pulse is 0.35 ms wide in a 0.3 s window, whose step cap (60 microseconds) alone would be far too coarse
+    const s = spec({ generationTime: 1e-6, endTime: 0.3 });
+    const gamma = 1e-4 / (1e-4 * 3e6);
+    const p = generatePulse(s, ctx());
+    expect(Math.abs(p.summary.peakPower - 0.01 ** 2 / (2 * gamma * 1e-6)) / (0.01 ** 2 / (2 * gamma * 1e-6))).toBeLessThan(1e-3);
+    expect(Math.abs(p.summary.fwhm! - (3.5255 * 1e-6) / 0.01) / ((3.5255 * 1e-6) / 0.01)).toBeLessThan(5e-3);
+    expect(p.summary.steps).toBeGreaterThan(5000); // the controller took more steps than the cap alone would have
+  });
+  it("a history that cannot be written within the point budget is refused, with the count it needs", () => {
+    expect(() => generatePulse(spec(), ctx(), { maxPoints: 5 })).toThrow(/at most 5 points/);
+    expect(generatePulse(spec(), ctx(), { maxPoints: 1000 }).times.length).toBeLessThanOrEqual(1000);
+  });
+  it("a negative power is refused, not carried on", () => {
+    expect(() => integrate(spec({ initialPower: -1 }), ctx())).toThrow(/negative/);
+  });
+});
+
 describe("what it refuses", () => {
   it("a pulse that has not happened by the end of the window", () => {
     expect(() => generatePulse(spec({ initialPower: 1e-6, endTime: 0.001 }), ctx())).toThrow(/still rising at the end time/);

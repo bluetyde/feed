@@ -8,6 +8,8 @@ import { writeOffbeatCase } from "../src/core/caseWriter";
 import { RunBackend, RunManager } from "../src/core/runManager";
 import { transientPreview } from "../src/core/transientPreview";
 import { TransientResultsRecord, depositedEnergy } from "../src/core/transientResults";
+import { generatePulse } from "../src/core/pointKinetics";
+import { fuelMean, initialState } from "../src/core/transientResults";
 import { validateCase } from "../src/core/validate";
 import { WslBackend } from "../src/core/wslBackend";
 
@@ -85,6 +87,29 @@ describe("steady start and generator are one operating state", () => {
     expect(e).toHaveLength(1);
     expect(e[0]!.message).toMatch(/25 W\/m/);
     expect(e[0]!.message).toMatch(/gives 20 W\/m/);
+  });
+});
+
+describe("the start of a steady-started pulse is the average of the steady fuel field", () => {
+  // with a heat capacity that depends on temperature the starting temperature matters; a 100 kW start puts the fuel well above its coolant
+  const doc = () => {
+    const d = example();
+    d.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: { value: 1.2, unit: "MJ/m3/K" }, b: { value: 0.005, unit: "MJ/m3/K2" }, validRange: { min: { value: 250, unit: "K" }, max: { value: 1500, unit: "K" } }, source: "synthetic" };
+    d.transient.pointKinetics.initialPower = { value: 100, unit: "kW" };
+    d.transient.pointKinetics.endTime = undefined;
+    delete d.transient.initialTemperature;
+    d.transient.initialSteadyLinearHeatRate = { value: 2000, unit: "W/m" };
+    d.transient.endTime = { value: 60, unit: "ms" };
+    return d;
+  };
+  it("the generator starts from the volume average of that field, and that is not the coolant temperature", () => {
+    const n = normalized(doc());
+    const mean = fuelMean(n, initialState(n).T);
+    expect(mean).toBeGreaterThan(340); // 47 K above the coolant at 2 kW/m
+    const direct = generatePulse(n.transient!.kinetics!, { fuelArea: FUEL_AREA, fuelC: { a: 1.2e6, b: 5000 }, startTemperature: mean });
+    expect(n.transient!.generated!.summary.peakPower).toBe(direct.summary.peakPower);
+    const cold = generatePulse(n.transient!.kinetics!, { fuelArea: FUEL_AREA, fuelC: { a: 1.2e6, b: 5000 }, startTemperature: 300 });
+    expect(Math.abs(cold.summary.peakPower - direct.summary.peakPower) / direct.summary.peakPower).toBeGreaterThan(1e-3);
   });
 });
 

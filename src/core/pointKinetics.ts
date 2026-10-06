@@ -231,7 +231,8 @@ const polylineEnergy = (t: number[], p: number[], idx: number[]) => {
 };
 
 /** Generate the pulse: integrate, find the peak, thin to a history, and summarise. Throws KineticsError with the reason. */
-export function generatePulse(spec: KineticsSpec, ctx: KineticsContext): GeneratedPulse {
+export function generatePulse(spec: KineticsSpec, ctx: KineticsContext, options: { maxPoints?: number } = {}): GeneratedPulse {
+  const maxPoints = options.maxPoints ?? MAX_POINTS;
   const tr = integrate(spec, ctx);
   const n = tr.time.length;
   let ip = 0;
@@ -244,13 +245,13 @@ export function generatePulse(spec: KineticsSpec, ctx: KineticsContext): Generat
   let tol = 1e-3 * peak;
   let idx = simplify(tr.time, tr.power, tol, ip);
   let err = Math.abs(polylineEnergy(tr.time, tr.power, idx) - total) / total;
-  for (let round = 0; round < 40 && (err > ENERGY_TOLERANCE || idx.length > MAX_POINTS); round++) {
-    if (idx.length > MAX_POINTS && err <= ENERGY_TOLERANCE) tol *= 1.5;
+  for (let round = 0; round < 40 && (err > ENERGY_TOLERANCE || idx.length > maxPoints); round++) {
+    if (idx.length > maxPoints && err <= ENERGY_TOLERANCE) tol *= 1.5;
     else tol *= 0.5;
     idx = simplify(tr.time, tr.power, tol, ip);
     err = Math.abs(polylineEnergy(tr.time, tr.power, idx) - total) / total;
   }
-  if (idx.length > MAX_POINTS || err > ENERGY_TOLERANCE) throw new KineticsError(`the pulse cannot be written as a history of at most ${MAX_POINTS} points within ${ENERGY_TOLERANCE * 100}% of its energy (it needs ${idx.length}, error ${(err * 100).toFixed(3)}%)`);
+  if (idx.length > maxPoints || err > ENERGY_TOLERANCE) throw new KineticsError(`the pulse cannot be written as a history of at most ${maxPoints} points within ${ENERGY_TOLERANCE * 100}% of its energy (it needs ${idx.length}, error ${(err * 100).toFixed(3)}%)`);
 
   const share = spec.peakingFactor / (spec.pins * spec.activeLength);
   const times = idx.map((i) => tr.time[i]!);
