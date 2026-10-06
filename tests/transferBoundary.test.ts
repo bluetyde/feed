@@ -263,7 +263,7 @@ describe("refusals (each with its code)", () => {
   // The case's own validator would refuse some of these values too, with the same code; the transfer's check comes first and names the cause.
   it("each check is the transfer's own, not the validator's behind it (the message says which)", () => {
     expect(refusal(change((r) => (r.source.selected.value = 0))).message).toMatch(/absolute zero/);
-    expect(refusal(change((r) => (r.source.additional[0].selected.value = 0))).message).toMatch(/must be positive/);
+    expect(refusal(change((r) => (r.source.additional[0].selected.value = 0))).message).toMatch(/^the heat transfer coefficient is 0 W/);
     expect(refusal(change((r) => (r.target.content = JSON.stringify({ schema: "feed.case/0.1" })))).message).toMatch(/^the target case is not valid/);
   });
 
