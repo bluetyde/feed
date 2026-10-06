@@ -54,6 +54,12 @@ describe("the material check", () => {
     expect(codes({ "thermal.conductivity": { model: "constant", value: q(3, "K"), referenceTemperature: q(300, "K"), source: "x" } })[0]).toMatch(/^E_UNITS/);
     expect(codes({ "thermal.volumetricHeatCapacity": { model: "constant", value: q(2.8, "MJ/m3/K"), referenceTemperature: q(300, "K") } })).toEqual(["E_PROP_MISSING /materials/fuel/sets/thermal.volumetricHeatCapacity/source"]);
   });
+  it("the revision is a whole number from 1", () => {
+    const rev = (revision: unknown) => validateMaterial("fuel", { ...fuelMaterial(), revision }).errors.map((e) => e.code + " " + e.field);
+    expect(rev(1)).toEqual([]);
+    expect(rev(12)).toEqual([]);
+    for (const bad of [0, -1, 1.5, "1", null, NaN]) expect(rev(bad), String(bad)).toEqual(["E_SCHEMA_INVALID /materials/fuel/revision"]);
+  });
   it("the id pattern", () => {
     for (const ok of ["abc", "my-uo2-a", "u-zrh-2", "a1b"]) expect(MATERIAL_ID.test(ok), ok).toBe(true);
     for (const bad of ["ab", "-abc", "abc-", "My-Fuel", "a b c", "../x", "a/b", "a_b", "x".repeat(65), ""]) expect(MATERIAL_ID.test(bad), bad).toBe(false);
@@ -73,6 +79,18 @@ describe("saving", () => {
     expect(file.entries).toHaveLength(1);
     expect(file.entries[0].material.sets["openmc.composition"]).toEqual(fuelMaterial().sets["openmc.composition"]); // a set that belongs to another app, unchanged
     expect(readdirSync(join(userLibraryFile(), ".."))).toEqual(["materials.json"]); // no temporary file left
+  });
+
+  it("the saved entry is its own copy: editing the object that was passed in afterwards changes neither the returned entry nor the file", () => {
+    const m = fuelMaterial();
+    const r = save({ material: m });
+    if (!r.ok) throw new Error("refused");
+    const text = readFileSync(userLibraryFile(), "utf8");
+    (m.sets["thermal.conductivity"] as any).a.value = 99;
+    (m.sets["openmc.composition"] as any).density.value = 1;
+    expect((r.entry.material.sets["thermal.conductivity"] as any).a.value).toBe(5.5);
+    expect((r.entry.material.sets["openmc.composition"] as any).density.value).toBe(10.4);
+    expect(readFileSync(userLibraryFile(), "utf8")).toBe(text);
   });
 
   it("the same again is unchanged and writes nothing", () => {
