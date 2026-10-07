@@ -24,6 +24,6 @@ It refuses a value with no unit or the wrong one, a diameter or wall of zero or 
 
 ## Not done
 
-- Hot dimensions (thermal expansion): the gap and diameters are the case's, as given; nothing is corrected for temperature.
+- Hot dimensions: the designer's diameters and gap are cold values; an optional `hotDimensions` section on the case expands them to operating temperature at run time ([hot-dimensions.md](hot-dimensions.md)). The design view edits the cold values.
 - Axial layout, and any dimension other than the pin's radial ones (plenum, reflectors).
 - A pitch, a lattice or a coolant channel: FEED models one pin with its boundary.
