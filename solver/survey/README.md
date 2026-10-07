@@ -18,6 +18,8 @@ wsl -d feed-solver -u feed --exec bash "/mnt/c/.../fuel-performance-studio/solve
 | `05-gap-models.sh`, `06-fuelrodgap.sh` | the gap boundary conditions and the gap-gas models |
 | `07-fields-and-defaults.sh` | which fields each conductivity model needs, and the default models of each material class |
 | `08-heatcapacity-fields.sh` | the same for heat capacity |
+| `09-mechanics.sh`, `10-mechanics-details.sh` | OFFBEAT's mechanics solvers, constitutive laws, elasticity and expansion models, the mechanical boundary patch fields (for [plan 09](../../docs/plans/09-mechanics.md)) |
+| `11-verification-cases.sh`, `12-mechanics-cases.sh` | OFFBEAT's own verification and test cases, and how its mechanics cases are set up |
 | `show.sh <file> [from] [to]` | any file under `offbeatLib` with line numbers |
 
 What was run rather than read is in `tests/propertyModelProbe.test.ts` (`FEED_SOLVER=1`).

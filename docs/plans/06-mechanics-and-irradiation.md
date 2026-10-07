@@ -34,6 +34,8 @@ Published fuel-performance benchmark databases and code-to-code comparison exerc
 
 Each step defines its own: free-expansion closed form, thin-wall cylinder stress, a refusal for a missing property, out-of-range flagging, a regression against the thermal oracle set (the thermal results must not change when mechanics is switched off).
 
+The concrete plan for steps 1 and 2 is [plan 09](09-mechanics.md).
+
 ## Open
 
 - Whether step 1 can reuse the thermal pin case with one added section or needs a new case schema.
