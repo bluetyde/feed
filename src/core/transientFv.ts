@@ -7,7 +7,7 @@
 // (the scheme OFFBEAT uses) or Crank-Nicolson, Picard iteration for temperature-dependent conductivity and heat capacity.
 // Heat capacity c(T) = a + b T is handled through the enthalpy H(T) = a T + b T^2 / 2, so stored energy is conserved exactly.
 
-import { evaluate, primitive } from "./conductivity";
+import { Law, evaluate, primitive } from "./conductivity";
 
 const TWO_PI = 2 * Math.PI;
 
@@ -29,8 +29,8 @@ export interface TransientPin {
   fuelK: Linear;
   claddingK: Linear;
   /** When given, the conductivity law of each solid as coefficients of k(T) = a0 + a1 T + a2 T^2 + a3 T^3 (src/core/conductivity.ts), and fuelK / claddingK are not used. */
-  fuelLaw?: readonly number[];
-  claddingLaw?: readonly number[];
+  fuelLaw?: Law;
+  claddingLaw?: Law;
   fuelC: Linear;
   claddingC: Linear;
   /** When given, the volumetric heat capacity of each solid as coefficients c0 + c1 T + c2 T^2 (src/core/heatCapacity.ts), and fuelC / claddingC are not used. */

@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import Ajv2020 from "ajv/dist/2020";
 import { steadyEndTime } from "./steadyState";
-import { Law, fitPolynomial, minimum } from "./conductivity";
+import { Law, evaluate, fitPolynomial, minimum } from "./conductivity";
 import { heatCapacityLaw } from "./heatCapacity";
 import type { LimitRule } from "./limits";
 import { alphaAt, ExpansionLaw, hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
@@ -37,6 +37,8 @@ export interface TableFit {
 export type Conductivity =
   | { kind: "constant"; k: number; referenceTemperature: number }
   | { kind: "linear"; a: number; b: number; range: [number, number] }
+  /** k = a / T + b (a in W/m, b in W/m/K, T in K) over a range. */
+  | { kind: "reciprocal"; a: number; b: number; range: [number, number] }
   /** k = a0 + a1 T + a2 T^2 + a3 T^3 (W/m/K, T in K) over a range; `fit` is present when it came from a table. */
   | { kind: "polynomial"; coefficients: number[]; range: [number, number]; fit?: TableFit };
 
@@ -410,7 +412,18 @@ export function validateCase(doc: unknown): ValidationResult {
     // A steady case is run to a long end time; one whose pin could not settle within the longest run FEED allows is refused, not run
     // to a time at which it is still changing (src/core/steadyState.ts).
     if (!isTransient) {
-      const h = steadyEndTime(normalized);
+      // The time scale needs the pin's temperatures, which the closed form finds by integrating the conductivity: a law that is positive over its stated range can still reach
+      // zero further out, where the pin may run. That is a refusal with the reason, not an exception out of the validator.
+      let h: ReturnType<typeof steadyEndTime>;
+      try {
+        h = steadyEndTime(normalized);
+      } catch (e) {
+        if (!(e instanceof RangeError)) throw e;
+        result.ok = false;
+        result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/materials", message: "the temperatures of this pin cannot be found: " + e.message + ". A conductivity that is positive over its stated range can still reach zero outside it, where the pin runs; widen the range with a law that stays positive, or change the case" });
+        delete result.normalized;
+        return result;
+      }
       if (!h.ok) {
         result.ok = false;
         result.errors.push({ code: "E_TIME", severity: "error", field: "/assumptions/steadyState", message: "this case cannot be run as a steady case: " + h.message });
@@ -512,9 +525,10 @@ function conductivity(material: Record<string, any>, region: string, err: ErrFn,
     }
     return { kind: "linear", a, b: bb, range: [lo, hi] };
   }
+  if (set.model === "reciprocal") return reciprocalConductivity(set, region, base, sourceMissing, err, qty);
   if (set.model === "polynomial") return polynomialConductivity(set, region, base, sourceMissing, err, qty);
   if (set.model === "table") return tableConductivity(set, region, base, sourceMissing, err, qty);
-  err("E_UNSUPPORTED", base + "/model", "unknown conductivity model '" + String(set.model) + "'; supported: 'constant', 'linear', 'polynomial' and 'table'");
+  err("E_UNSUPPORTED", base + "/model", "unknown conductivity model '" + String(set.model) + "'; supported: 'constant', 'linear', 'reciprocal', 'polynomial' and 'table'");
   return undefined;
 }
 
@@ -562,7 +576,7 @@ const HEAT_CAPACITY_SPEC: LawSpec = {
 /** The property must be positive over the whole of its range, exactly (the end points and the turning points), not at samples; and inside its bounds if it has any. */
 function positiveOver(c: Law, lo: number, hi: number, base: string, region: string, err: ErrFn, spec: LawSpec = CONDUCTIVITY_SPEC): boolean {
   const m = minimum(c, lo, hi);
-  const top = -minimum(c.map((x) => -x), lo, hi);
+  const top = "kind" in c ? Math.max(evaluate(c, lo), evaluate(c, hi)) : -minimum(c.map((x) => -x), lo, hi); // the reciprocal law is monotone: its highest value is at an end
   if (!Number.isFinite(m) || !Number.isFinite(top)) {
     err("E_OUT_OF_RANGE", base, "the " + region + " " + spec.what + " cannot be evaluated over its stated range " + lo + " to " + hi + " K: it overflows; check the coefficients and their units", { unit: spec.unit, range: [lo, hi] });
     return false;
@@ -600,6 +614,32 @@ function polynomialLaw(spec: LawSpec, set: Record<string, any>, region: string, 
   const coefficients = co as number[];
   if (!positiveOver(coefficients, lo, hi, base, region, err, spec)) return undefined;
   return { coefficients, range: [lo, hi] };
+}
+
+/**
+ * k = a / T + b over a stated range (the phonon-limited shape: a in W/m, b in W/m/K). Both terms are given (a zero is written as a zero), with a source and the
+ * range. The law is monotone in T, so positivity over the range is the two end points, exactly.
+ */
+function reciprocalConductivity(set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn): Conductivity | undefined {
+  for (const key of ["a", "b"]) if (set[key] === undefined) err("E_PROP_MISSING", base + "/" + key, "the reciprocal conductivity model k = a / T + b needs '" + key + "' (give 0 for a term that is not there)");
+  const range = set.validRange;
+  if (!isObject(range) || range.min === undefined || range.max === undefined) err("E_PROP_MISSING", base + "/validRange", "a temperature-dependent conductivity needs the temperature range it applies to (min and max)");
+  const a = set.a === undefined ? undefined : qty(set.a, "linearPower", base + "/a"); // W/m: the unit of a linear heat rate
+  const b = set.b === undefined ? undefined : qty(set.b, "conductivity", base + "/b");
+  const lo = isObject(range) && range.min !== undefined ? qty(range.min, "temperature", base + "/validRange/min") : undefined;
+  const hi = isObject(range) && range.max !== undefined ? qty(range.max, "temperature", base + "/validRange/max") : undefined;
+  if (a === undefined || b === undefined || lo === undefined || hi === undefined || sourceMissing) return undefined;
+  if (!(hi > lo)) {
+    err("E_OUT_OF_RANGE", base + "/validRange", "range maximum must exceed the minimum", { unit: "K" });
+    return undefined;
+  }
+  if (!(lo > 0)) {
+    err("E_OUT_OF_RANGE", base + "/validRange/min", "the range starts above 0 K (a / T is not defined at 0)", { unit: "K" });
+    return undefined;
+  }
+  const law = { kind: "reciprocal", a, b } as const;
+  if (!positiveOver(law, lo, hi, base, region, err)) return undefined;
+  return { kind: "reciprocal", a, b, range: [lo, hi] };
 }
 
 const polynomialConductivity = (set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn): Conductivity | undefined => {

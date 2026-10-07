@@ -7,12 +7,23 @@
 
 import type { Conductivity } from "./validate";
 
-export type Law = readonly number[];
+/** k(T) = a / T + b, T in kelvin: the shape of a phonon-limited ceramic (OFFBEAT's SiCPARFUME). a is in W/m and b in W/m/K. */
+export interface ReciprocalLaw {
+  readonly kind: "reciprocal";
+  readonly a: number;
+  readonly b: number;
+}
 
-/** The law of a normalized conductivity as coefficients: a constant is [k], a linear law [a, b], a polynomial its four coefficients. */
+/** A conductivity law: the coefficients of a polynomial in T (lowest power first), or the reciprocal law a / T + b. */
+export type Law = readonly number[] | ReciprocalLaw;
+
+const isReciprocal = (c: Law): c is ReciprocalLaw => !Array.isArray(c);
+
+/** The law of a normalized conductivity: a constant is [k], a linear law [a, b], a polynomial its four coefficients, a reciprocal law a / T + b. */
 export function lawOf(k: Conductivity): Law {
   if (k.kind === "constant") return [k.k];
   if (k.kind === "linear") return [k.a, k.b];
+  if (k.kind === "reciprocal") return { kind: "reciprocal", a: k.a, b: k.b };
   return k.coefficients;
 }
 
@@ -23,6 +34,7 @@ export function rangeOf(k: Conductivity): [number, number] | undefined {
 
 /** k(T), Horner. */
 export function evaluate(c: Law, T: number): number {
+  if (isReciprocal(c)) return c.a / T + c.b;
   let k = 0;
   for (let i = c.length - 1; i >= 0; i--) k = k * T + c[i]!;
   return k;
@@ -30,6 +42,7 @@ export function evaluate(c: Law, T: number): number {
 
 /** The conductivity integral's primitive K(T) = a0 T + a1 T^2/2 + a2 T^3/3 + a3 T^4/4, so that K(T2) - K(T1) is the integral of k from T1 to T2. */
 export function primitive(c: Law, T: number): number {
+  if (isReciprocal(c)) return c.a * Math.log(T) + c.b * T; // the integral of a / T + b
   let K = 0;
   for (let i = c.length - 1; i >= 0; i--) K = K * T + c[i]! / (i + 1);
   return K * T;
@@ -37,12 +50,14 @@ export function primitive(c: Law, T: number): number {
 
 /** The degree of a law: the highest coefficient that is not zero (0 for a constant). */
 export function degree(c: Law): number {
+  if (isReciprocal(c)) return c.a === 0 ? 0 : 2; // not a polynomial: counted as curved, never as the linear case with a closed form
   for (let i = c.length - 1; i > 0; i--) if (c[i] !== 0) return i;
   return 0;
 }
 
 /** The lowest value of k over [lo, hi], exactly: the end points and the real roots of dk/dT that lie inside. */
 export function minimum(c: Law, lo: number, hi: number): number {
+  if (isReciprocal(c)) return Math.min(evaluate(c, lo), evaluate(c, hi)); // a / T + b is monotone in T for T > 0, so the lowest value is at an end
   const candidates = [lo, hi];
   const [, b = 0, cc = 0, d = 0] = c;
   // dk/dT = b + 2 cc T + 3 d T^2
@@ -68,7 +83,7 @@ export function minimum(c: Law, lo: number, hi: number): number {
  */
 export function solveHot(c: Law, tCold: number, integral: number): number {
   if (integral < 0) throw new RangeError("the conductivity integral must be non-negative"); // NaN is not refused here: the case writer refuses a number that is not finite, with its own message
-  if (degree(c) <= 1) {
+  if (!isReciprocal(c) && degree(c) <= 1) {
     const a = c[0]!;
     const b = c[1] ?? 0;
     const kCold = a + b * tCold;

@@ -2,11 +2,10 @@
 // T in kelvin, the same representation as a conductivity (src/core/conductivity.ts has the arithmetic: evaluate, the primitive that is the enthalpy, the exact
 // minimum, the temperature a given energy reaches). OFFBEAT carries a quadratic through SiCSnead with its T^-2 term set to zero.
 
-import type { Law } from "./conductivity";
 import type { HeatCapacity } from "./validate";
 
 /** The law of a normalized heat capacity as coefficients: a constant is [c], a linear law [a, b], a polynomial its three coefficients. */
-export function heatCapacityLaw(c: HeatCapacity): Law {
+export function heatCapacityLaw(c: HeatCapacity): readonly number[] {
   if (c.kind === "constant") return [c.c];
   if (c.kind === "linear") return [c.a, c.b];
   return c.coefficients;

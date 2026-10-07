@@ -78,7 +78,17 @@ export const GENERATOR_FEEDBACK_FLOOR = 0.1; // K
 export const CROSS_CHECK_RISE_FRACTION = 0.005;
 
 /** A conductivity as the linear part the pin model keeps for callers that want {a, b}; the full law travels in fuelLaw / claddingLaw. */
-const lin = (k: Conductivity): Linear => (k.kind === "constant" ? { a: k.k, b: 0 } : k.kind === "linear" ? { a: k.a, b: k.b } : { a: k.coefficients[0]!, b: k.coefficients[1]! });
+const lin = (k: Conductivity): Linear => {
+  if (k.kind === "constant") return { a: k.k, b: 0 };
+  if (k.kind === "linear") return { a: k.a, b: k.b };
+  if (k.kind === "reciprocal") {
+    // not a line: the chord between the ends of its range, for a caller that wants {a, b}; the law itself travels in fuelLaw / claddingLaw
+    const klo = k.a / k.range[0] + k.b, khi = k.a / k.range[1] + k.b;
+    const slope = (khi - klo) / (k.range[1] - k.range[0]);
+    return { a: klo - slope * k.range[0], b: slope };
+  }
+  return { a: k.coefficients[0]!, b: k.coefficients[1]! };
+};
 const linC = (c: HeatCapacity): Linear => (c.kind === "constant" ? { a: c.c, b: 0 } : c.kind === "linear" ? { a: c.a, b: c.b } : { a: c.coefficients[0]!, b: c.coefficients[1]! });
 
 /** The independent model of a normalized transient case. */

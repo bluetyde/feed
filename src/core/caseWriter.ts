@@ -119,6 +119,10 @@ mergePatchPairs
  */
 function conductivityLines(c: Conductivity): string {
   if (c.kind === "constant") return `        k           k     [1 1 -3 -1 0]  ${num(c.k)};\n`;
+  if (c.kind === "reciprocal") {
+    // SiCPARFUME evaluates par1 / T + par2 (T in K). Both are written: an omitted one takes a silicon-carbide default (17885, 2) without a word.
+    return `        conductivityModel SiCPARFUME;\n        conductivity { par1 ${num(c.a)}; par2 ${num(c.b)}; }\n`;
+  }
   if (c.kind === "polynomial") {
     // ZyRELAP evaluates par1 + par2 T - par3 T^2 + par4 T^3 (T in K), so the T^2 parameter is MINUS the coefficient; all four are always written because an omitted
     // or mistyped parameter takes a Zircaloy default silently (docs/spike/property-model-survey.md).
@@ -146,6 +150,7 @@ function heatCapacityLines(cp: HeatCapacity | undefined): string {
 function conductivityNote(region: string, k: Conductivity): string {
   if (k.kind === "constant") return `materials.${region}.k (constant)`;
   if (k.kind === "linear") return `materials.${region}: steel1515TiTobbe with par1 = a + 273.15 b, par2 = b (linear k(T))`;
+  if (k.kind === "reciprocal") return `materials.${region}: SiCPARFUME (k = par1 / T + par2, T in K; the model's name is a misnomer) with par1 = a, par2 = b, both written`;
   return `materials.${region}: ZyRELAP (k = par1 + par2 T - par3 T^2 + par4 T^3, T in K) with par1 = a, par2 = b, par3 = -c, par4 = d, all four written` + (k.fit ? `; fitted to a table of ${k.fit.points.length} points, degree ${k.fit.degree}, largest deviation ${(k.fit.maxRelativeDeviation * 100).toPrecision(3)}% at ${k.fit.worstAt} K (tolerance ${(k.fit.tolerance * 100).toPrecision(3)}%)` : "");
 }
 
