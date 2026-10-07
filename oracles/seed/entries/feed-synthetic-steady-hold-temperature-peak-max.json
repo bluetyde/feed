@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-steady-hold-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-steady-hold.case.json",
+      "sha256": "af3948b6b810b429e6e47c992a78ebc09e451afb586496f2b206fd20706a7252"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 1035.2542,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.3,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "A pin started from its steady state at a power that then stays constant does not change: the hottest cell is the closed-form steady centre temperature (film, cladding wall, gap, fuel), mesh 100/20.",
+    "check": "Second method: the same series solved in Python for oracles/closed-form-table.json, and FEED's own steady start (an independent finite-volume solution on the mesh, src/core/transientFv.ts) reproduces it within the mesh bound; FEED's steady-start tests in tests/steadyInitialState.test.ts."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "synthetic pin, constant properties, convective boundary, started from its steady operating state at 20 kW/m and held there for 100 ms (mesh 100/20)"
+  },
+  "toleranceHash": "ccd56b9960814911e4449f9ca205b4bf4568d5c07caa3a06d582accca9776da1"
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-pulse-nordheim-fuchs-energy-deposited",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-pulse-nordheim-fuchs.case.json",
+      "sha256": "de0b9a5ee03832cbb1926050225a0eec746e507d36b7c0e6e8069e1cc6264788"
+    }
+  ],
+  "expected": {
+    "quantity": "energy_deposited",
+    "value": 47529.084,
+    "unit": "J/m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.003
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Nordheim-Fuchs: E(t) = (rho0 / gamma)(1 + tanh(rho0 (t - tp) / (2 Lambda))) at the end of the window (2376454.2 J of reactor energy, peak power 222792915 W at 24.253 ms), times peaking / (pins x length) for the slice. The tolerance covers the thinning of the generated history (energy within 1e-3) and its integration.",
+    "check": "Second method: oracles/point-kinetics-reference.py (RK4 with bisection and quadrature, run in the feed-solver distro) agrees with the same formulas on the Nordheim-Fuchs case (oracles/point-kinetics-reference.json); FEED's generator tests (tests/pointKinetics.test.ts) check the same closed forms; through the solver, tests/pointKineticsSolver.test.ts."
+  },
+  "coverage": {
+    "quantities": [
+      "energy_deposited"
+    ],
+    "domain": "synthetic pin, generated pulse from point kinetics (a 1.5 % dk/k step, prompt neutrons only, constant feedback -1e-4 dk/k/K), constant heat capacity, 60 ms window"
+  },
+  "toleranceHash": "23f11729317788d033b8fe48f6bdba0fa87bb7e285a54ef59667a5857a814e77"
+}

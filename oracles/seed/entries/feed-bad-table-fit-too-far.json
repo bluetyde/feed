@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-table-fit-too-far",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-table-fit-too-far.case.json",
+      "sha256": "7b8cf049d97e1d04c4e5d7f4cdf25dc0b9b35f94735163c6ddb14764770bdd3e"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_FIT"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a conductivity table that the polynomial asked for cannot follow within the stated tolerance. FEED must refuse it before any run; SEED reports E_FIT.",
+    "check": "FEED's schema vectors (schema/vectors/bad/table-fit-too-far.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "839e5735fd11257c2388a6897eb29c820dd4a535580fbd9e35a126955f35a2db"
+}

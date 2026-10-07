@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-pulse-kinetics-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-pulse-kinetics.case.json",
+      "sha256": "7cc2904d5a00fa825efd70fdbadc058903732758110bb15969cb49503684f896"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 560.5844,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.78,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The fuel interior keeps the energy deposited (adiabatic over 60 ms): the independent integration's final lumped fuel temperature, 560.584 K.",
+    "check": "Independent integration: oracles/point-kinetics-reference.py (RK4, not the generator's Dormand-Prince) in the feed-solver distro; the reference file records its inputs; FEED's generator agrees to 1e-5 (tests/pointKinetics.test.ts, reference cases)."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "synthetic pin, generated pulse from point kinetics (a 3 dollar step, six delayed groups, constant feedback), constant heat capacity, 60 ms window"
+  },
+  "toleranceHash": "a9bb36f8c8947eb64f08d987ae8973823237712e0325463115b19a76578b2890"
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-kinetics-pulse-not-in-window",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-kinetics-pulse-not-in-window.case.json",
+      "sha256": "baf6354dac32d8305f4cab12e1e79be26ef3cbd8b5e045125eda6b39a4e9874b"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_KINETICS"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a generated pulse that does not happen inside the run's window. FEED must refuse it before any run; SEED reports E_KINETICS.",
+    "check": "FEED's schema vectors (schema/vectors/bad/kinetics-pulse-not-in-window.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "011209e6cb592f5788454079ebac56188b4971e7094948f74d609b19eceeaa59"
+}

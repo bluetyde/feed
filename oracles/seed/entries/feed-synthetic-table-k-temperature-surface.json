@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-table-k-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-table-k.case.json",
+      "sha256": "dac175922a1545a051546ec855f14102a0af856bf6592697fda2d536ec6ba943"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 595.3375,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form outer cladding wall temperature: bulk temperature plus the film drop q'/(2 pi Rco h), or the prescribed surface temperature.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "synthetic pin, fuel conductivity as a table of three points (300-1800 K) carried by its exact degree 2 polynomial, convective boundary"
+  },
+  "toleranceHash": "f20635c01487373b512738b6ae9634c814c304d0d1f1c9d62bf7e10d2916681e"
+}

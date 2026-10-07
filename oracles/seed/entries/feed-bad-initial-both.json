@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-initial-both",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-initial-both.case.json",
+      "sha256": "da510517e9d640bdd746a77ebc893ac71270b125896c616642b1fb0850b72f9d"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_TRANSIENT_INCOMPLETE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a start given both as a uniform temperature and as a steady operating state. FEED must refuse it before any run; SEED reports E_TRANSIENT_INCOMPLETE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/transient-initial-both.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "6962f8d2193d1a973d02e0134d5028bf5ae68221664944f8fa9036b176ed82d8"
+}

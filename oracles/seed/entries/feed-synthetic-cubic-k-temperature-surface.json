@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-cubic-k-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-cubic-k.case.json",
+      "sha256": "8b5c849e474eaa4e4f96c516b4bc08ff489ce8cf39d4c22c052ba2aedf041154"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 595.3375,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form outer cladding wall temperature: bulk temperature plus the film drop q'/(2 pi Rco h), or the prescribed surface temperature.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "synthetic pin, fuel k = 2 + 0.003 T - 1.2e-6 T^2 + 2e-10 T^3 on 500-2500 K (carried by OFFBEAT's ZyRELAP, T^2 sign turned round), convective boundary"
+  },
+  "toleranceHash": "f20635c01487373b512738b6ae9634c814c304d0d1f1c9d62bf7e10d2916681e"
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-heat-capacity-table-fit-too-far",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-heat-capacity-table-fit-too-far.case.json",
+      "sha256": "b209e01544e080b25728fcffdf28e0aa1127475ae91dfda3398b59d057e7df43"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_FIT"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a heat capacity table that the polynomial asked for cannot follow within the stated tolerance. FEED must refuse it before any run; SEED reports E_FIT.",
+    "check": "FEED's schema vectors (schema/vectors/bad/cp-table-fit-too-far.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "839e5735fd11257c2388a6897eb29c820dd4a535580fbd9e35a126955f35a2db"
+}

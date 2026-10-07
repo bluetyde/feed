@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-pulse-quadratic-c-energy-deposited",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-pulse-quadratic-c.case.json",
+      "sha256": "4d69454fbd01fedea26f19c0fb5ac5655382ab96fbc30529e1029feced909178"
+    }
+  ],
+  "expected": {
+    "quantity": "energy_deposited",
+    "value": 50000,
+    "unit": "J/m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.000001
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The integral of the tabulated power history up to the end time (trapezoid, exact for the solver's linear interpolation).",
+    "check": "oracles/transient-case-reference.py integrates the same table in decimal arithmetic."
+  },
+  "coverage": {
+    "quantities": [
+      "energy_deposited"
+    ],
+    "domain": "synthetic pin, the same pulse with a fuel heat capacity quadratic in temperature (carried by OFFBEAT's SiCSnead with its T^-2 term set to zero), step 0.025 ms"
+  },
+  "toleranceHash": "26ebe3312132a3bfb4a1de6c9573dcb4ad99d509da019aa7315aa87bd4e4a21e"
+}

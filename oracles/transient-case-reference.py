@@ -13,6 +13,7 @@ POWER = {"W/m": D(1), "kW/m": D(1000), "MW/m": D(1000000)}
 LEN = {"m": D(1), "cm": D("0.01"), "mm": D("0.001")}
 CV = {"J/m3/K": D(1), "J/cm3/K": D(1000000), "MJ/m3/K": D(1000000)}
 CVB = {"J/m3/K2": D(1), "J/cm3/K2": D(1000000), "MJ/m3/K2": D(1000000)}
+CVC = {"J/m3/K3": D(1), "J/cm3/K3": D(1000000), "MJ/m3/K3": D(1000000)}
 
 
 def temp_k(q):
@@ -42,6 +43,23 @@ def adiabatic_peak(case):
     s = case["materials"]["fuel"]["sets"]["thermal.volumetricHeatCapacity"]
     if s["model"] == "constant":
         peak = t0k + e3 / (D(str(s["value"]["value"])) * CV[s["value"]["unit"]])
+    elif s["model"] == "polynomial":
+        # c = a + b T + c2 T^2: bisection on the integral from t0k, 200 halvings in 60-digit arithmetic
+        a = D(str(s["a"]["value"])) * CV[s["a"]["unit"]]
+        b = D(str(s["b"]["value"])) * CVB[s["b"]["unit"]]
+        c2 = D(str(s["c"]["value"])) * CVC[s["c"]["unit"]]
+
+        def prim(T):
+            return a * T + b * T * T / 2 + c2 * T * T * T / 3
+
+        lo, hi = t0k, t0k + D(5000)
+        for _ in range(200):
+            mid = (lo + hi) / 2
+            if prim(mid) - prim(t0k) < e3:
+                lo = mid
+            else:
+                hi = mid
+        peak = (lo + hi) / 2
     else:
         a = D(str(s["a"]["value"])) * CV[s["a"]["unit"]]
         b = D(str(s["b"]["value"])) * CVB[s["b"]["unit"]]

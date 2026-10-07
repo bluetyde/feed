@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-pulse-nordheim-fuchs-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-pulse-nordheim-fuchs.case.json",
+      "sha256": "de0b9a5ee03832cbb1926050225a0eec746e507d36b7c0e6e8069e1cc6264788"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 599.9995,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.9,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The fuel interior keeps the energy the pulse deposits (adiabatic, the window is 60 ms against a 17 s diffusion time over the radius): T = T0 + E s / c = 600 K.",
+    "check": "Second method: oracles/point-kinetics-reference.py (RK4 with bisection and quadrature, run in the feed-solver distro) agrees with the same formulas on the Nordheim-Fuchs case (oracles/point-kinetics-reference.json); FEED's generator tests (tests/pointKinetics.test.ts) check the same closed forms; through the solver, tests/pointKineticsSolver.test.ts."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "synthetic pin, generated pulse from point kinetics (a 1.5 % dk/k step, prompt neutrons only, constant feedback -1e-4 dk/k/K), constant heat capacity, 60 ms window"
+  },
+  "toleranceHash": "4092691444e2edc13624b6ee35d9532d86ee297e6ad3b64ad6efe6bbcffb33d8"
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-steady-hold-energy-deposited",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-steady-hold.case.json",
+      "sha256": "af3948b6b810b429e6e47c992a78ebc09e451afb586496f2b206fd20706a7252"
+    }
+  ],
+  "expected": {
+    "quantity": "energy_deposited",
+    "value": 2000,
+    "unit": "J/m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.000001
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The constant heat rate over the run: q' x t = 20 kW/m x 0.1 s.",
+    "check": "Trivial product; oracles/transient-case-reference.py integrates the tabulated history to the same number."
+  },
+  "coverage": {
+    "quantities": [
+      "energy_deposited"
+    ],
+    "domain": "synthetic pin, constant properties, convective boundary, started from its steady operating state at 20 kW/m and held there for 100 ms (mesh 100/20)"
+  },
+  "toleranceHash": "9429b4f4b610f63961968a2a220d3a4f3ebfabcd5175ad0a9914513a414c9397"
+}
