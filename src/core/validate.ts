@@ -9,7 +9,7 @@ import { steadyEndTime } from "./steadyState";
 import { Law, fitPolynomial, minimum } from "./conductivity";
 import { heatCapacityLaw } from "./heatCapacity";
 import type { LimitRule } from "./limits";
-import { hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
+import { alphaAt, ExpansionLaw, hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
 import { Dimension, toSI } from "./units";
@@ -316,8 +316,16 @@ export function validateCase(doc: unknown): ValidationResult {
     // Hot dimensions: the radii above are cold; replace them with the radii each solid has at its own mean temperature (the temperatures and the radii are iterated together).
     if (hotSpec && !isTransient) {
       const h = hotGeometry(result.normalized, hotSpec);
-      if (h.ok) Object.assign(result.normalized, h.radii, { hot: h.record });
-      else {
+      if (h.ok) {
+        Object.assign(result.normalized, h.radii, { hot: h.record });
+        for (const solid of ["fuel", "cladding"] as const) {
+          const sr = h.record[solid];
+          if (sr.outOfRange && sr.expansion.kind === "linear") {
+            result.warnings.push({ code: "W_EXPANSION_RANGE", severity: "warning", field: "/hotDimensions/" + solid, message: "the " + solid + " runs from " + sr.temperatureRange[0].toFixed(1) + " to " + sr.temperatureRange[1].toFixed(1) + " K, outside the " + sr.expansion.range[0] + " to " + sr.expansion.range[1] + " K its expansion coefficient is stated for; the formula is applied beyond it, as given" });
+          }
+        }
+      }
+      if (!h.ok) {
         result.ok = false;
         result.errors.push({ code: "E_GEOMETRY", severity: "error", field: "/hotDimensions", message: h.reason });
         delete result.normalized;
@@ -764,6 +772,68 @@ export const MAX_LIMITS = 10;
 export const MAX_LIMIT_TEMPERATURE = 10000;
 
 /**
+ * One solid's linear expansion coefficient: a constant {value, unit}, or {model: "linear", a, b, validRange} for alpha = a + b T over a stated range of temperature
+ * (a range is required: the coefficient is not extrapolated silently). Positive, and at most MAX_EXPANSION_COEFFICIENT, over the whole range.
+ */
+function expansionLaw(raw: unknown, field: string, err: ErrFn, qty: QtyFn): ExpansionLaw | undefined {
+  const outOfBounds = (a: number) => !(a > 0 && a <= MAX_EXPANSION_COEFFICIENT);
+  if (!isObject(raw) || raw.model === undefined) {
+    const a = qty(raw, "expansion", field);
+    if (a === undefined) return undefined;
+    if (outOfBounds(a)) {
+      err("E_OUT_OF_RANGE", field, "a linear expansion coefficient is above 0 and at most " + MAX_EXPANSION_COEFFICIENT + " 1/K (solids are about 1e-5)", { unit: "1/K" });
+      return undefined;
+    }
+    return { kind: "constant", alpha: a };
+  }
+  if (raw.model !== "linear") {
+    err("E_UNSUPPORTED", field + "/model", "the expansion models are a constant coefficient and 'linear' (alpha = a + b T)");
+    return undefined;
+  }
+  let ok = true;
+  for (const k of Object.keys(raw)) if (!["model", "a", "b", "validRange"].includes(k)) {
+    err("E_SCHEMA_INVALID", field + "/" + k, "unknown key '" + k + "' (a linear expansion has model, a, b and validRange)");
+    ok = false;
+  }
+  const get = (key: "a" | "b", dim: Dimension): number | undefined => {
+    if (raw[key] === undefined) {
+      err("E_PROP_MISSING", field + "/" + key, "a linear expansion needs its term '" + key + "'");
+      ok = false;
+      return undefined;
+    }
+    const v = qty(raw[key], dim, field + "/" + key);
+    if (v === undefined) ok = false;
+    return v;
+  };
+  const a = get("a", "expansion");
+  const b = get("b", "expansionPerK");
+  let range: [number, number] | undefined;
+  const vr = raw.validRange;
+  if (vr === undefined) {
+    err("E_PROP_MISSING", field + "/validRange", "a linear expansion needs the temperature range it is valid over: it is not extrapolated silently");
+    ok = false;
+  } else if (!isObject(vr) || vr.min === undefined || vr.max === undefined) {
+    err("E_SCHEMA_INVALID", field + "/validRange", "validRange is {min, max}, each a temperature");
+    ok = false;
+  } else {
+    const lo = qty(vr.min, "temperature", field + "/validRange/min");
+    const hi = qty(vr.max, "temperature", field + "/validRange/max");
+    if (lo === undefined || hi === undefined) ok = false;
+    else if (!(lo > 0 && hi > lo && hi <= MAX_REFERENCE_TEMPERATURE)) {
+      err("E_OUT_OF_RANGE", field + "/validRange", "the range is above 0 K, increasing and at most " + MAX_REFERENCE_TEMPERATURE + " K", { unit: "K" });
+      ok = false;
+    } else range = [lo, hi];
+  }
+  if (!ok || a === undefined || b === undefined || !range) return undefined;
+  const law: ExpansionLaw = { kind: "linear", a, b, range };
+  if (outOfBounds(alphaAt(law, range[0])) || outOfBounds(alphaAt(law, range[1]))) {
+    err("E_OUT_OF_RANGE", field, "the coefficient a + b T must be above 0 and at most " + MAX_EXPANSION_COEFFICIENT + " 1/K across the whole valid range (it is " + alphaAt(law, range[0]).toExponential(3) + " at " + range[0] + " K and " + alphaAt(law, range[1]).toExponential(3) + " at " + range[1] + " K)", { unit: "1/K" });
+    return undefined;
+  }
+  return law;
+}
+
+/**
  * The hot-dimensions section: the temperature the radii are stated at and, for each solid, a linear expansion coefficient with its source. Nothing is defaulted:
  * FEED has no expansion data of its own (docs/hot-dimensions.md).
  */
@@ -796,13 +866,12 @@ function parseHot(raw: unknown, err: ErrFn, qty: QtyFn): HotSpec | undefined {
     for (const k of Object.keys(r)) if (!["linearExpansion", "source"].includes(k)) bad("E_SCHEMA_INVALID", base + "/" + k, "unknown key '" + k + "' (a solid has linearExpansion and source)");
     if (typeof r.source !== "string" || r.source.trim() === "") bad("E_PROP_MISSING", base + "/source", "the expansion coefficient needs the source it comes from: FEED has no expansion data of its own");
     if (r.linearExpansion === undefined) return void bad("E_PROP_MISSING", base + "/linearExpansion", "the " + name + " needs its linear expansion coefficient");
-    const a = qty(r.linearExpansion, "expansion", base + "/linearExpansion");
-    if (a === undefined) {
+    const law = expansionLaw(r.linearExpansion, base + "/linearExpansion", err, qty);
+    if (!law) {
       ok = false;
       return;
     }
-    if (!(a > 0 && a <= MAX_EXPANSION_COEFFICIENT)) return void bad("E_OUT_OF_RANGE", base + "/linearExpansion", "a linear expansion coefficient is above 0 and at most " + MAX_EXPANSION_COEFFICIENT + " 1/K (solids are about 1e-5)", { unit: "1/K" });
-    return { alpha: a, source: typeof r.source === "string" ? r.source.trim() : "" };
+    return { expansion: law, source: typeof r.source === "string" ? r.source.trim() : "" };
   };
   const fuel = solid("fuel");
   const cladding = solid("cladding");

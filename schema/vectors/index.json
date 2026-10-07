@@ -19,6 +19,17 @@
     ]
   },
   {
+    "file": "good/hot-dimensions.json",
+    "valid": true
+  },
+  {
+    "file": "good/hot-dimensions-range-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_EXPANSION_RANGE"
+    ]
+  },
+  {
     "file": "good/unknown-fields-kept.json",
     "valid": true
   },

@@ -246,7 +246,7 @@ input.bad,select.bad{border-color:var(--err)}
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
-const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"] };
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
 let doc = null, result = null, selected = "power", outTab = "problems", logText = "", showDegC = false, seq = 0, timer = null;
 
@@ -591,7 +591,7 @@ function refreshErrors() {  /* update inline error text without rebuilding field
 function renderPropsKeepFocus() { const id = document.activeElement && document.activeElement.id; const pos = document.activeElement && document.activeElement.selectionStart; renderProps(); if (id) { const e = $(id); if (e) { e.focus(); try { if (pos != null) e.setSelectionRange(pos, pos); } catch (_) {} } } }
 function changed(rebuild) { if (study) { study = null; clearTimeout(studyTimer); } if (solverRes) { solverRes = null; runRec = null; logText += "Solver result cleared: the case changed.\n"; setChip(); } clearTimeout(timer); timer = setTimeout(() => runCheck(!!rebuild), rebuild ? 0 : 150); renderTreeMetaOnly(); }
 function renderTreeMetaOnly() { document.querySelectorAll("#tree .titem").forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(ITEMS[i][0]); }); }
-let lib = { pins: [], materials: [], limits: [] }, menuEl = null;
+let lib = { pins: [], materials: [], limits: [], expansion: [] }, menuEl = null;
 function closeMenu() { if (menuEl) { const had = menuEl.contains(document.activeElement), opener = menuEl.dataset.for && document.getElementById(menuEl.dataset.for); menuEl.remove(); menuEl = null; if (had && opener) opener.focus(); /* focus goes back to the button that opened it */ } }
 function openMenu(btn, heading, groups) {
   const was = menuEl && menuEl.dataset.for === btn.id; closeMenu(); if (was) return;
@@ -709,8 +709,33 @@ function hotPanel(p) {
     return;
   }
   p.append(qField("Radii stated at", ["hotDimensions", "referenceTemperature"], "temperature"));
-  p.append(sec("Fuel"), qField("Linear expansion", ["hotDimensions", "fuel", "linearExpansion"], "expansion"), tField("Source", ["hotDimensions", "fuel", "source"]));
-  p.append(sec("Cladding"), qField("Linear expansion", ["hotDimensions", "cladding", "linearExpansion"], "expansion"), tField("Source", ["hotDimensions", "cladding", "source"]));
+  for (const solid of ["fuel", "cladding"]) {
+    p.append(sec(solid === "fuel" ? "Fuel" : "Cladding"));
+    const sets = (lib.expansion || []).filter((e) => e.solid === solid);
+    if (sets.length) {
+      const bar2 = el("div", "prow note");
+      for (const set of sets) {
+        const b = elt("button", "Use: " + set.name, { class: "tbtn", type: "button", title: set.description });
+        b.addEventListener("click", () => { doc.hotDimensions[solid] = { linearExpansion: JSON.parse(JSON.stringify(set.linearExpansion)), source: set.source }; logText += "Hot dimensions, " + solid + ": " + set.name + String.fromCharCode(10); changed(true); renderProps(); });
+        bar2.append(b);
+      }
+      p.append(bar2);
+    }
+    const le = doc.hotDimensions[solid] && doc.hotDimensions[solid].linearExpansion;
+    const linear = le && typeof le === "object" && le.model === "linear";
+    { /* the form of the coefficient is not a field of the case (the case holds either a quantity or a linear law), so this select edits the law itself */
+      const row = el("div", "prow"), id = "hot_" + solid + "_form";
+      row.append(elt("label", "Coefficient", { for: id }));
+      const sel = elt("select", "", { id });
+      sel.append(elt("option", "Constant", { value: "constant" }), elt("option", "a + b T", { value: "linear" }));
+      sel.value = linear ? "linear" : "constant";
+      sel.addEventListener("change", () => { doc.hotDimensions[solid].linearExpansion = sel.value === "linear" ? { model: "linear", a: { value: 0, unit: "1/K" }, b: { value: 0, unit: "1/K2" }, validRange: { min: { value: 293.15, unit: "K" }, max: { value: 1073.15, unit: "K" } } } : { value: 1e-5, unit: "1/K" }; changed(true); renderProps(); });
+      row.append(sel); p.append(row);
+    }
+    if (linear) p.append(qField("a", ["hotDimensions", solid, "linearExpansion", "a"], "expansion"), qField("b", ["hotDimensions", solid, "linearExpansion", "b"], "expansionPerK"), qField("Valid from", ["hotDimensions", solid, "linearExpansion", "validRange", "min"], "temperature"), qField("Valid to", ["hotDimensions", solid, "linearExpansion", "validRange", "max"], "temperature"));
+    else p.append(qField("Linear expansion", ["hotDimensions", solid, "linearExpansion"], "expansion"));
+    p.append(tField("Source", ["hotDimensions", solid, "source"]));
+  }
   const off = elt("button", "Switch hot dimensions off", { class: "tbtn", type: "button" });
   off.addEventListener("click", () => { delete doc.hotDimensions; changed(true); renderProps(); });
   bar.append(off); p.append(bar);

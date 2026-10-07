@@ -150,3 +150,145 @@ describe("what the section refuses", () => {
     expect(c.fuelRadius).toBe(b.fuelRadius);
   });
 });
+
+describe("a temperature-dependent coefficient, alpha = a + b T", () => {
+  const lin = (a: number, b: number, lo = 250, hi = 1500) => ({ model: "linear", a: { value: a, unit: "1/K" }, b: { value: b, unit: "1/K2" }, validRange: { min: { value: lo, unit: "K" }, max: { value: hi, unit: "K" } } });
+  const linHot = (fuel: unknown, cladding: unknown = { value: 1e-5, unit: "1/K" }, ref = 300) =>
+    withHot({ referenceTemperature: { value: ref, unit: "K" }, fuel: { linearExpansion: fuel, source: "test" }, cladding: { linearExpansion: cladding, source: "test" } });
+
+  /** The same pin by hand: the mean thermal strain of each solid (fuel analytic in theta = 1 - r^2/a^2, cladding by a fine midpoint rule), fixed point by a plain loop. */
+  function oracleLinear(af: number, bf: number, ac: number, bc: number, Tref: number, q = 20000) {
+    const a0 = 4.1e-3, b0 = 4.18e-3, c0 = 4.75e-3, kf = 3, kc = 15, hf = 30000, hg = 5000, Tb = 573;
+    const eps = (a: number, b: number, T: number) => a * (T - Tref) + 0.5 * b * (T * T - Tref * Tref);
+    let a = a0, b = b0, c = c0, ef = 0, ec = 0;
+    for (let i = 0; i < 200; i++) {
+      const Tco = Tb + q / (2 * Math.PI * c * hf);
+      const Tci = Tco + (q * Math.log(c / b)) / (2 * Math.PI * kc);
+      const Ts = Tci + q / (2 * Math.PI * a * hg);
+      const C = q / (4 * Math.PI * kf);
+      const meanT = Ts + C / 2, meanT2 = Ts * Ts + Ts * C + (C * C) / 3; // means of T and T^2 over the disc (mean theta 1/2, mean theta^2 1/3)
+      ef = a_(af, bf, meanT, meanT2, Tref);
+      let sum = 0;
+      const N = 20000;
+      for (let j = 0; j < N; j++) {
+        const r = b + ((j + 0.5) * (c - b)) / N;
+        sum += eps(ac, bc, Tco + (q / (2 * Math.PI * kc)) * Math.log(c / r)) * 2 * r;
+      }
+      ec = (sum * (c - b)) / N / (c * c - b * b);
+      a = a0 * (1 + ef);
+      const fc = 1 + ec;
+      b = b0 * fc;
+      c = c0 * fc;
+    }
+    return { a, b, c, ef, ec };
+  }
+  const a_ = (a: number, b: number, meanT: number, meanT2: number, Tref: number) => a * (meanT - Tref) + 0.5 * b * (meanT2 - Tref * Tref);
+
+  it("gives the radii of the fixed point of radii and mean thermal strains", () => {
+    for (const [af, bf, ac, bc] of [[-7.381375e-7, 1.925e-8, 1.2e-5, 0], [2e-6, 2e-8, 1.4e-5, 4e-9]] as const) {
+      const r = linHot(lin(af, bf), lin(ac, bc, 250, 1500), 293.15);
+      expect(r.errors, JSON.stringify(r.errors)).toEqual([]);
+      const n = r.normalized!;
+      const o = oracleLinear(af, bf, ac, bc, 293.15);
+      expect(Math.abs(n.fuelRadius / o.a - 1)).toBeLessThan(1e-9);
+      expect(Math.abs(n.claddingInnerRadius / o.b - 1)).toBeLessThan(1e-8);
+      expect(Math.abs(n.claddingOuterRadius / o.c - 1)).toBeLessThan(1e-8);
+      expect(Math.abs(n.hot!.fuel.meanStrain / o.ef - 1)).toBeLessThan(1e-8);
+    }
+  });
+
+  it("with b = 0 it is the constant coefficient, to the last digits", () => {
+    const c = linHot({ value: 1.2e-5, unit: "1/K" }).normalized!;
+    const l = linHot(lin(1.2e-5, 0)).normalized!;
+    expect(l.fuelRadius).toBeCloseTo(c.fuelRadius, 14);
+    expect(l.claddingInnerRadius).toBeCloseTo(c.claddingInnerRadius, 14);
+  });
+
+  it("a rising coefficient gives more growth than its value at the reference temperature, and less than its value at the hottest point", () => {
+    const n = linHot(lin(5e-6, 2e-8)).normalized!;
+    const range = n.hot!.fuel.temperatureRange;
+    const lo = 4.1e-3 * (1 + (5e-6 + 2e-8 * 300) * (n.hot!.fuel.meanTemperature - 300));
+    const hi = 4.1e-3 * (1 + (5e-6 + 2e-8 * range[1]) * (n.hot!.fuel.meanTemperature - 300));
+    expect(n.fuelRadius).toBeGreaterThan(lo);
+    expect(n.fuelRadius).toBeLessThan(hi);
+  });
+
+  it("warns, and says where, when a solid leaves the stated range; says nothing when the range covers it", () => {
+    const out = linHot(lin(5e-6, 2e-8, 293, 600));
+    expect(out.ok).toBe(true);
+    expect(out.warnings.map((w) => w.code + " " + w.field)).toEqual(["W_EXPANSION_RANGE /hotDimensions/fuel"]);
+    expect(out.warnings[0]!.message).toMatch(/runs from .* to .* K, outside the 293 to 600 K/);
+    expect(out.normalized!.hot!.fuel.outOfRange).toBe(true);
+    const ok = linHot(lin(5e-6, 2e-8, 250, 1500));
+    expect(ok.warnings).toEqual([]);
+    expect(ok.normalized!.hot!.fuel.outOfRange).toBe(false);
+    expect(withHot(hot()).warnings).toEqual([]); // a constant has no range
+  });
+
+  it("refuses the malformed ones", () => {
+    const codes = (f: unknown) => linHot(f).errors.map((e) => e.code + " " + e.field);
+    expect(codes({ model: "linear", a: { value: 5e-6, unit: "1/K" }, b: { value: 2e-8, unit: "1/K2" } })).toEqual(["E_PROP_MISSING /hotDimensions/fuel/linearExpansion/validRange"]);
+    expect(codes({ model: "quadratic" })).toEqual(["E_UNSUPPORTED /hotDimensions/fuel/linearExpansion/model"]);
+    expect(codes({ model: "linear", b: { value: 2e-8, unit: "1/K2" }, validRange: lin(1, 1).validRange })).toEqual(["E_PROP_MISSING /hotDimensions/fuel/linearExpansion/a"]);
+    expect(codes({ ...lin(5e-6, 2e-8), b: { value: 2e-8, unit: "1/K" } })).toEqual(["E_UNITS /hotDimensions/fuel/linearExpansion/b"]);
+    expect(codes({ ...lin(5e-6, 2e-8), extra: 1 })).toEqual(["E_SCHEMA_INVALID /hotDimensions/fuel/linearExpansion/extra"]);
+    expect(codes({ ...lin(5e-6, 2e-8), validRange: { min: { value: 900, unit: "K" }, max: { value: 400, unit: "K" } } })).toEqual(["E_OUT_OF_RANGE /hotDimensions/fuel/linearExpansion/validRange"]);
+    expect(codes({ ...lin(5e-6, 2e-8), validRange: { min: { value: 300, unit: "K" } } })).toEqual(["E_SCHEMA_INVALID /hotDimensions/fuel/linearExpansion/validRange"]);
+    // negative at the cold end of the range, and above the bound at the hot end
+    expect(codes(lin(-7.381375e-7, 1.925e-8, 20, 1000))).toEqual(["E_OUT_OF_RANGE /hotDimensions/fuel/linearExpansion"]);
+    expect(codes(lin(5e-6, 2e-6, 250, 1500))).toEqual(["E_OUT_OF_RANGE /hotDimensions/fuel/linearExpansion"]);
+  });
+});
+
+describe("the sourced coefficients in library/expansion.json", () => {
+  const sets: any[] = JSON.parse(readFileSync(join(__dirname, "..", "library", "expansion.json"), "utf8"));
+  const bySolid = (s: "fuel" | "cladding") => sets.filter((x) => x.solid === s);
+  const apply = (d: any, ref = { value: 20, unit: "degC" }) => {
+    d.hotDimensions = { referenceTemperature: ref };
+    for (const s of sets) d.hotDimensions[s.solid] = { linearExpansion: s.linearExpansion, source: s.source };
+    return d;
+  };
+
+  it("has one set per solid, each labelled sourced with a citation, a description and the source text a case carries", () => {
+    expect(bySolid("fuel").length).toBe(1);
+    expect(bySolid("cladding").length).toBe(1);
+    for (const s of sets) {
+      expect(s.label).toBe("sourced");
+      expect(/^[a-z0-9-]{8,}$/.test(s.id), s.id).toBe(true);
+      for (const k of ["description", "citation", "source"]) expect(typeof s[k] === "string" && s[k].length > 40, s.id + " " + k).toBe(true);
+    }
+    expect(new Set(sets.map((s) => s.id)).size).toBe(sets.length);
+  });
+
+  it("the fuel law is Simnad's 4.52e-6 + 19.25e-9 T(C) per C rewritten in kelvin: its values at 20, 650 and 800 C", () => {
+    const f = bySolid("fuel")[0].linearExpansion;
+    const a = f.a.value, b = f.b.value;
+    for (const C of [20, 650, 800]) expect(Math.abs((a + b * (C + 273.15)) / (4.52e-6 + 19.25e-9 * C) - 1), "at " + C + " C").toBeLessThan(1e-9);
+    expect(f.validRange.min.value).toBeCloseTo(293.15, 10);
+    expect(f.validRange.max.value).toBeCloseTo(1073.15, 10);
+  });
+
+  it("the cladding coefficient is the 17.2e-6 per K of the cited paper", () => {
+    const c = bySolid("cladding")[0].linearExpansion;
+    expect(c.unit).toBe("1e-6/K");
+    expect(c.value).toBe(17.2);
+  });
+
+  it("both apply to a pin with a gap wide enough, and the hot gap closes a little", () => {
+    const d = apply(base(), { value: 20, unit: "degC" });
+    d.geometry.claddingInnerRadius = { value: 4.3, unit: "mm" };
+    const r = validateCase(d);
+    expect(r.errors).toEqual([]);
+    expect(r.normalized!.hot!.hotGap).toBeLessThan(r.normalized!.hot!.coldGap);
+  });
+
+  it("FINDING: every TRIGA example has a zero cold gap with an effective conductance, so free expansion with these coefficients closes it and the case is refused", () => {
+    for (const f of ["ksu-triga-hot-element", "ksu-triga-1p25mw-film", "ut-triga-hot-channel-annular", "ut-triga-hot-channel-trace"]) {
+      const d = apply(JSON.parse(readFileSync(join(__dirname, "..", "examples", f + ".json"), "utf8")));
+      const r = validateCase(d);
+      expect(r.ok, f).toBe(false);
+      expect(r.errors.map((e) => e.code + " " + e.field), f).toEqual(["E_GEOMETRY /hotDimensions"]);
+      expect(r.errors[0]!.message, f).toMatch(/closes the gap/);
+    }
+  });
+});

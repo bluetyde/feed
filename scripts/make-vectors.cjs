@@ -45,6 +45,24 @@ add("good", "synthetic-pin", clone(), {});
 }
 {
   const c = clone();
+  c.hotDimensions = {
+    referenceTemperature: { value: 20, unit: "degC" },
+    fuel: { linearExpansion: { value: 12, unit: "ppm/K" }, source: "synthetic: a typical order of magnitude" },
+    cladding: { linearExpansion: { value: 10, unit: "ppm/K" }, source: "synthetic: a typical order of magnitude" },
+  };
+  add("good", "hot-dimensions", c, {});
+}
+{
+  const c = clone();
+  c.hotDimensions = {
+    referenceTemperature: { value: 20, unit: "degC" },
+    fuel: { linearExpansion: { model: "linear", a: { value: 5, unit: "ppm/K" }, b: { value: 20, unit: "1e-9/K2" }, validRange: { min: { value: 293, unit: "K" }, max: { value: 600, unit: "K" } } }, source: "synthetic: a range that the pin leaves" },
+    cladding: { linearExpansion: { value: 10, unit: "ppm/K" }, source: "synthetic: a typical order of magnitude" },
+  };
+  add("good", "hot-dimensions-range-warning", c, { warnings: ["W_EXPANSION_RANGE"] });
+}
+{
+  const c = clone();
   c.materials.fuel.sets["openmc.composition"] = { nuclides: { U235: 0.02, U238: 0.98 } };
   c.futureField = { kept: true };
   add("good", "unknown-fields-kept", c, {});

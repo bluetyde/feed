@@ -1,0 +1,27 @@
+[
+  {
+    "id": "triga-uzrh-simnad-expansion",
+    "solid": "fuel",
+    "name": "U-ZrH (TRIGA, H/Zr 1.6): linear expansion, Simnad 1980",
+    "label": "sourced",
+    "description": "The linear thermal expansion coefficient of uranium-zirconium hydride that General Atomics gives for TRIGA fuel: alpha = 4.52e-6 + 19.25e-9 T per degree C, strongly dependent on temperature (4.9e-6 at 20 C, 17.0e-6 at 650 C, 19.9e-6 at 800 C). The paper says it fits the SNAP data (45 wt% uranium); for TRIGA's 8 to 12 wt% uranium it states a maximum radial expansion of about 0.5% against 0.6% for the 45 wt% fuel, so this coefficient may over-state the growth of TRIGA fuel by up to a fifth. Rewritten here in kelvin; the paper states no validity range, so 20 to 800 C (the range its two specimens were thermally cycled over) is assumed. Neither the K-State nor the UT-Austin SAR gives an expansion coefficient (the K-State SAR names this paper as the source of its fuel properties).",
+    "citation": "M. T. Simnad, 'The U-ZrHx alloy: its properties and use in TRIGA fuel', Nuclear Engineering and Design 64 (1981) 403-422, section 2.10 (Thermal expansion), page 410: 'Delta l / l = 4.52e-6 + 19.25e-9 T (C)^-1' for the SNAP data. File: research/VIRTUAL REACTOR/PII_ 0029-5493(81)90135-7.pdf. The K-State SAR (Dec 2004, Table 13.3) names Simnad (1980) as the source of its fuel properties.",
+    "linearExpansion": {
+      "model": "linear",
+      "a": { "value": -7.381375e-7, "unit": "1/K" },
+      "b": { "value": 1.925e-8, "unit": "1/K2" },
+      "validRange": { "min": { "value": 293.15, "unit": "K" }, "max": { "value": 1073.15, "unit": "K" } }
+    },
+    "source": "Simnad, Nucl. Eng. Des. 64 (1981) 403, section 2.10: 4.52e-6 + 19.25e-9 T(C) per C (SNAP data), rewritten in kelvin (a = 4.52e-6 - 19.25e-9 x 273.15); range 20 to 800 C assumed from the cycled specimens"
+  },
+  {
+    "id": "triga-ss304-jsi-expansion",
+    "solid": "cladding",
+    "name": "Stainless steel 304 cladding: linear expansion, 17.2e-6 per K (JSI TRIGA)",
+    "label": "sourced",
+    "description": "A constant linear expansion coefficient of 17.2e-6 per K for the stainless steel (type 304) cladding of the Jozef Stefan Institute TRIGA Mark II, as used in a published pulse-experiment evaluation. It is a secondary source (the paper takes it from a reference by Kraut and others), it states no temperature range, and stainless steel's coefficient does rise with temperature, so over a range of several hundred kelvin it is an average, not a local value. Neither SAR gives a coefficient for the cladding. A primary source (a handbook value with its temperature range) would replace this.",
+    "citation": "I. Svajger et al., 'Evaluation of reactor pulse experiments', Nuclear Engineering and Technology 56 (2024) 1165-1203, section 4, equation (4.7): alpha_cladding = 17.2e-6 per K, citing reference [36] (B. Kraut, J. Zerovnik, B. Gabrovsek et al.); the cladding is SS type 304 (the paper's Table of materials). File: research/VIRTUAL REACTOR/Evaluation of reactor pulse experiments.pdf.",
+    "linearExpansion": { "value": 17.2, "unit": "1e-6/K" },
+    "source": "Svajger et al., Nucl. Eng. Technol. 56 (2024) 1165, eq. (4.7): 17.2e-6 per K for the SS 304 cladding of the JSI TRIGA, citing Kraut et al.; a secondary source with no stated temperature range"
+  }
+]
