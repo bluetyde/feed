@@ -219,10 +219,25 @@ describe("a temperature-dependent coefficient, alpha = a + b T", () => {
     expect(out.warnings.map((w) => w.code + " " + w.field)).toEqual(["W_EXPANSION_RANGE /hotDimensions/fuel"]);
     expect(out.warnings[0]!.message).toMatch(/runs from .* to .* K, outside the 293 to 600 K/);
     expect(out.normalized!.hot!.fuel.outOfRange).toBe(true);
+    expect(out.warnings[0]!.message).toMatch(/runs from 7\d\d\.\d to 1[23]\d\d\.\d K/); // the fuel's coolest then hottest point, in that order
+    const [tlo, thi] = out.normalized!.hot!.fuel.temperatureRange;
+    expect(tlo).toBeLessThan(thi);
+    // below the range only: the fuel (about 780 to 1310 K) leaves a range that starts at 900 K from the cool side, not from the hot side
+    const low = linHot(lin(5e-6, 2e-8, 900, 1500));
+    expect(low.warnings.map((w) => w.field)).toEqual(["/hotDimensions/fuel"]);
+    expect(low.normalized!.hot!.fuel.outOfRange).toBe(true);
     const ok = linHot(lin(5e-6, 2e-8, 250, 1500));
     expect(ok.warnings).toEqual([]);
     expect(ok.normalized!.hot!.fuel.outOfRange).toBe(false);
     expect(withHot(hot()).warnings).toEqual([]); // a constant has no range
+  });
+
+  it("a coefficient that is positive over its stated range but not over the temperatures the pin reaches is refused at run time, not applied", () => {
+    // positive from 700 K up (6e-6) but negative at the cladding's 595 K
+    const r = linHot({ value: 1.2e-5, unit: "1/K" }, lin(-5e-5, 8e-8, 700, 1500));
+    expect(r.ok).toBe(false);
+    expect(r.errors.map((e) => e.code + " " + e.field)).toEqual(["E_GEOMETRY /hotDimensions"]);
+    expect(r.errors[0]!.message).toMatch(/cladding's expansion coefficient is not positive/);
   });
 
   it("refuses the malformed ones", () => {
@@ -234,6 +249,7 @@ describe("a temperature-dependent coefficient, alpha = a + b T", () => {
     expect(codes({ ...lin(5e-6, 2e-8), extra: 1 })).toEqual(["E_SCHEMA_INVALID /hotDimensions/fuel/linearExpansion/extra"]);
     expect(codes({ ...lin(5e-6, 2e-8), validRange: { min: { value: 900, unit: "K" }, max: { value: 400, unit: "K" } } })).toEqual(["E_OUT_OF_RANGE /hotDimensions/fuel/linearExpansion/validRange"]);
     expect(codes({ ...lin(5e-6, 2e-8), validRange: { min: { value: 300, unit: "K" } } })).toEqual(["E_SCHEMA_INVALID /hotDimensions/fuel/linearExpansion/validRange"]);
+    expect(codes({ ...lin(5e-6, 2e-8), validRange: { min: { value: 0, unit: "K" }, max: { value: 600, unit: "K" } } })).toEqual(["E_OUT_OF_RANGE /hotDimensions/fuel/linearExpansion/validRange"]);
     // negative at the cold end of the range, and above the bound at the hot end
     expect(codes(lin(-7.381375e-7, 1.925e-8, 20, 1000))).toEqual(["E_OUT_OF_RANGE /hotDimensions/fuel/linearExpansion"]);
     expect(codes(lin(5e-6, 2e-6, 250, 1500))).toEqual(["E_OUT_OF_RANGE /hotDimensions/fuel/linearExpansion"]);
