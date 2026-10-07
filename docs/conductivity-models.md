@@ -1,6 +1,6 @@
-# Conductivity models: constant, linear, cubic, table
+# Conductivity and heat capacity models: constant, linear, cubic or quadratic, table
 
-A material's `thermal.conductivity` set takes one of four models. Code: `src/core/conductivity.ts` (laws as arithmetic), `src/core/validate.ts` (the rules), `src/core/caseWriter.ts` (what OFFBEAT is given). Tests: `tests/conductivity.test.ts`, `tests/polynomialConductivity.test.ts`, `tests/conductivityEdges.test.ts`, `tests/fitChecks.test.ts`, and, with `FEED_SOLVER=1`, `tests/polynomialConductivitySolver.test.ts`. Why these and not others: [the property-model survey](spike/property-model-survey.md).
+A material's `thermal.conductivity` set takes one of four models. Code: `src/core/conductivity.ts` (laws as arithmetic), `src/core/validate.ts` (the rules), `src/core/caseWriter.ts` (what OFFBEAT is given). Tests: `tests/conductivity.test.ts`, `tests/polynomialConductivity.test.ts`, `tests/conductivityEdges.test.ts`, `tests/fitChecks.test.ts`, `tests/polynomialHeatCapacity.test.ts`, and, with `FEED_SOLVER=1`, `tests/polynomialConductivitySolver.test.ts` and `tests/polynomialHeatCapacitySolver.test.ts`. Why these and not others: [the property-model survey](spike/property-model-survey.md).
 
 ## The models
 
@@ -25,10 +25,18 @@ A result of a tabulated case carries a check, `conductivityFitFuel` / `conductiv
 
 ## The editor
 
-The material panel's Model select offers Constant, Linear, Cubic and Table. Changing model keeps the source, the range and the values that carry over; a table made from a law is sampled at 5 temperatures **only when the units are SI**, and the source then says the points are sampled and must be replaced by measured ones. A table shows its points (Add point / Remove last), the fit degree and tolerance, a plot of the points and the fitted curve, and the fitted deviation.
+The material panel's Model select offers Constant, Linear, Cubic (Quadratic for a heat capacity) and Table, for both properties, from one editor. Changing model keeps the source, the range and the values that carry over; a table made from a law is sampled at 5 temperatures (in the units the law is written in, when the editor knows them), and the source then says the points are sampled and must be replaced by measured ones. A table shows its points (Add point / Remove last), the fit degree and tolerance, a plot of the points and the fitted curve, and the fitted deviation.
+
+## Heat capacity (volumetric, for transients)
+
+The same four models, with a quadratic where the conductivity has a cubic. The set is `thermal.volumetricHeatCapacity`, the law is **c = a + b T + c T²** in J/m³/K (keys `a`, `b`, `c` with units J/m³/K, J/m³/K², J/m³/K³; MJ and J/cm³ are accepted), a `validRange` and a `source`; a table has `points` of `{temperature, heatCapacity}`, `fit {degree 1–2, tolerance}` and a `source`. The rules are the conductivity's, through the same code (`src/core/validate.ts`, one specification per property): positive over the whole range, exactly; a table is a least-squares fit refused with `E_FIT` beyond its tolerance; the range of a table is its own. One more rule: the value must stay between 1e3 and 1e8 J/m³/K over the range, found from the extremes and not from samples, because the likeliest mistake is a unit.
+
+OFFBEAT is given the polynomial through **`SiCSnead`** (`Cp = par1 + par2 T + par3 T² + par4 T⁻²`, J/kg/K): par1..par3 are a, b, c over the writer's density (10000 kg/m³, the carrier of the volumetric law) and **par4 = 0**, all four written. The linear law keeps its own route (`steel1515TiBanerjee` with par3 = 0). Run through the real solver, with FEED's writer: a quadratic pulse agrees with the independent finite-volume solution, every check passes, and a table's result carries `heatCapacityFitFuel` / `heatCapacityFitCladding` (the fit's largest deviation).
+
+What uses the law: the independent finite-volume solver (enthalpy is the primitive of the law, so stored energy is conserved exactly), the point-kinetics generator's fuel feedback (the temperature at which the enthalpy has risen by the energy per volume, a bracketed solve; a law that would have to turn negative is `E_KINETICS`), the preview's adiabatic ceiling, the range checks (a pulse that leaves the stated range is out-of-domain), and the initial-state checks.
 
 ## What this is not
 
-- Not a heat-capacity model: heat capacities are still constant or linear in T (a quadratic is possible through `SiCSnead` with par4 = 0, not done).
+- Not a cubic heat capacity, nor a T^-2 term (OFFBEAT's `SiCSnead` and `steel1515TiBanerjee` have one; FEED sets it to zero): the heat capacity stops at the quadratic.
 - Not a pressure, burnup or composition dependence (U-ZrH hydrogen ratio is a TRIGA decision still open).
 - A table is not a measurement: the points are the user's, with the source they give.
