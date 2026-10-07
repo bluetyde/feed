@@ -1,0 +1,14 @@
+# 0004: Scope and release decisions (2026-10-07)
+
+The user asked for the open decisions to be explained one by one and then said "go with your recommendations". Each line records what was decided and what would reopen it.
+
+| # | Decision | Reopened by |
+|---|---|---|
+| 1 | **Mechanics stays paused after M0** ([plan 09](../plans/09-mechanics.md); its seven answers stand). The thermal release is coherent without it, and the temperature limits already say they compare temperature only. The TRIGA cases stay on cold, as-built dimensions with the SAR's gap conductance (hot dimensions refuse them: free expansion overlaps the solids by about 50 microns). | the user restarting it; a concrete need for stress or a hot TRIGA gap |
+| 2 | **No digitising of the cladding yield-strength figures** (K-State Fig 3.7, UT Figs 4.3a and 4.3b; the one point value in K-State Table 13.3 is 250 MPa yield and 455 MPa tensile at 400 C) until mechanics restarts: there is nothing to feed them to. | decision 1 |
+| 3 | **The stainless expansion coefficient stays as labelled** in `library/expansion.json` (17.2e-6 per K, a secondary source with no temperature range). It only matters for pins with a real gap, which are not the TRIGA cases. | a handbook or standard value arriving; a case that needs it |
+| 4 | **Distribution: source only.** FEED (MIT) plus a script that builds the solver stack. FEED runs OFFBEAT and OpenFOAM as separate programs and does not link to them; a bundled installer would carry the GPL terms of the solver for that part and is not offered. This is the project's reading, not legal advice, and it is to be checked before anything is published. | a wish to ship an installer; advice that says otherwise |
+| 5 | **Making the repo public is decided last, and only when the user says so.** Before it: a pass for private paths, the research PDFs (the two SARs and the papers are not ours to redistribute and must stay out), third-party notices, and confirming the name. Nothing has been made public. | the user |
+| 6 | **No screen-reader testing with real software** (the user's choice). The release notes say "not tested with a real screen reader"; what was checked is in [accessibility.md](../accessibility.md). | the user |
+| 7 | **Touch and mobile layouts are dropped.** The editor is a desktop layout; a phone layout is a design task, not a tweak. | a wish for students on phones |
+| 8 | **Physically absurd temperatures: warn, never clamp, no hard refusal.** A refusal needs a sourced limit per material and FEED invents none; a case that wants one states it as a temperature limit, with its source. | a sourced melting or decomposition limit worth building in |
