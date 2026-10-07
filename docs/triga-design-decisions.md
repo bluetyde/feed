@@ -1,6 +1,6 @@
 # TRIGA design decisions
 
-Five decisions from the TODO's fuel-library item, each with what FEED does now, why, and what would change it. They were not settled in chat; the **defaults below were chosen from the sourced SAR material in the repository and stand until the user says otherwise**. Date: 2026-10-07.
+Five decisions from the TODO's fuel-library item, each with what FEED does now, why, and what would change it. I chose the defaults below from the sourced SAR material in the repository, and **the user confirmed all five on 2026-10-07** ("keep all five") after each was explained. They stand until the user changes one.
 
 ## 1. Cladding: stainless steel first
 
