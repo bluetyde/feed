@@ -65,7 +65,9 @@ export interface HotRecord {
   coldGap: number;
 }
 
-export type HotResult = { ok: true; radii: Radii; record: HotRecord } | { ok: false; reason: string };
+/** Why there are no hot radii: the geometry (the gap closes, nothing settles), the temperatures (a conductivity cannot be solved), or the expansion law (not positive where it is used). */
+export type HotFailureKind = "geometry" | "temperatures" | "expansion";
+export type HotResult = { ok: true; radii: Radii; record: HotRecord } | { ok: false; kind: HotFailureKind; reason: string };
 
 interface Stats {
   meanT: number;
@@ -115,14 +117,14 @@ export function hotGeometry(cold: NormalizedCase, spec: HotSpec): HotResult {
       sf = s.fuel;
       sc = s.cladding;
     } catch (e) {
-      return { ok: false, reason: "the temperatures could not be found on the expanded radii (" + (e instanceof Error ? e.message : String(e)) + ")" };
+      return { ok: false, kind: "temperatures", reason: "the temperatures of this pin cannot be found on the expanded radii: " + (e instanceof Error ? e.message : String(e)) + ". A conductivity that is positive over its stated range can still reach zero outside it, where the pin runs" };
     }
     for (const [name, law, s] of [["fuel", spec.fuel.expansion, sf], ["cladding", spec.cladding.expansion, sc]] as const) {
-      if (!(alphaAt(law, s.min) > 0) || !(alphaAt(law, s.max) > 0)) return { ok: false, reason: "the " + name + "'s expansion coefficient is not positive over its temperatures (" + s.min.toFixed(1) + " to " + s.max.toFixed(1) + " K)" };
+      if (!(alphaAt(law, s.min) > 0) || !(alphaAt(law, s.max) > 0)) return { ok: false, kind: "expansion", reason: "the " + name + "'s expansion coefficient is not positive over its temperatures (" + s.min.toFixed(1) + " to " + s.max.toFixed(1) + " K)" };
     }
     const fuelFactor = 1 + sf.mean;
     const claddingFactor = 1 + sc.mean;
-    if (!(fuelFactor > 0) || !(claddingFactor > 0)) return { ok: false, reason: "the expansion factor is not positive (the mean temperature is far below the reference temperature for this coefficient)" };
+    if (!(fuelFactor > 0) || !(claddingFactor > 0)) return { ok: false, kind: "expansion", reason: "the expansion factor is not positive (the mean temperature is far below the reference temperature for this coefficient)" };
     const next: Radii = {
       fuelRadius: base.fuelRadius * fuelFactor,
       fuelInnerRadius: base.fuelInnerRadius * fuelFactor,
@@ -132,6 +134,7 @@ export function hotGeometry(cold: NormalizedCase, spec: HotSpec): HotResult {
     if (!(next.claddingInnerRadius > next.fuelRadius)) {
       return {
         ok: false,
+        kind: "geometry" as const,
         reason:
           "free expansion closes the gap: the fuel radius would be " + (next.fuelRadius * 1e3).toPrecision(6) + " mm and the cladding inner radius " + (next.claddingInnerRadius * 1e3).toPrecision(6) +
           " mm. The solids would press on each other, which needs the mechanics (contact, stress) that FEED does not have yet; use the cold radii, or enlarge the gap",
@@ -146,7 +149,8 @@ export function hotGeometry(cold: NormalizedCase, spec: HotSpec): HotResult {
         temperatureRange: [s.min, s.max],
         meanStrain: s.mean,
         factor: 1 + s.mean,
-        outOfRange: hs.expansion.kind === "linear" && (s.min < hs.expansion.range[0] || s.max > hs.expansion.range[1]),
+        // the strain is the integral of alpha from the reference temperature to the solid's temperature, so the whole interval must lie in the range, not only the operating end
+        outOfRange: hs.expansion.kind === "linear" && (Math.min(s.min, Tref) < hs.expansion.range[0] || Math.max(s.max, Tref) > hs.expansion.range[1]),
       });
       return {
         ok: true,
@@ -163,5 +167,5 @@ export function hotGeometry(cold: NormalizedCase, spec: HotSpec): HotResult {
       };
     }
   }
-  return { ok: false, reason: "the hot radii did not settle in " + HOT_MAX_ITERATIONS + " iterations" };
+  return { ok: false, kind: "geometry", reason: "the hot radii did not settle in " + HOT_MAX_ITERATIONS + " iterations" };
 }

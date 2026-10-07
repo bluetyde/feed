@@ -59,8 +59,13 @@ export function degree(c: Law): number {
 export function minimum(c: Law, lo: number, hi: number): number {
   if (isReciprocal(c)) return Math.min(evaluate(c, lo), evaluate(c, hi)); // a / T + b is monotone in T for T > 0, so the lowest value is at an end
   const candidates = [lo, hi];
-  const [, b = 0, cc = 0, d = 0] = c;
-  // dk/dT = b + 2 cc T + 3 d T^2
+  const [, b0 = 0, cc0 = 0, d0 = 0] = c;
+  // dk/dT = b + 2 cc T + 3 d T^2. The roots do not change when the three coefficients are divided by their largest, and that keeps the discriminant from overflowing
+  // (a huge cubic gave Infinity - Infinity = NaN, which skipped the interior minimum and let a law that goes negative through).
+  const scale = Math.max(Math.abs(b0), Math.abs(cc0), Math.abs(d0)) || 1;
+  const b = b0 / scale;
+  const cc = cc0 / scale;
+  const d = d0 / scale;
   if (d !== 0) {
     const disc = 4 * cc * cc - 12 * d * b;
     if (disc >= 0) {
@@ -91,10 +96,12 @@ export function solveHot(c: Law, tCold: number, integral: number): number {
     if (b === 0) return tCold + integral / a;
     const disc = kCold * kCold + 2 * b * integral;
     if (disc < 0) throw new RangeError("no real solution: conductivity reaches zero first");
+    if (!Number.isFinite(disc)) throw new RangeError("the conductivity integral overflows: the values are too large for the closed form");
     return tCold + (2 * integral) / (kCold + Math.sqrt(disc));
   }
   if (!(evaluate(c, tCold) > 0)) throw new RangeError("conductivity is not positive at the cold side");
   const base = primitive(c, tCold);
+  if (!Number.isFinite(base)) throw new RangeError("the conductivity integral overflows at the cold side");
   let hi = tCold + 1;
   for (let i = 0; i < 60; i++) {
     if (!(minimum(c, tCold, hi) > 0)) {
@@ -110,7 +117,9 @@ export function solveHot(c: Law, tCold: number, integral: number): number {
       hi = lo;
       break;
     }
-    if (primitive(c, hi) - base >= integral) break;
+    const reached = primitive(c, hi);
+    if (!Number.isFinite(reached)) throw new RangeError("the conductivity integral overflows before it reaches the requested value");
+    if (reached - base >= integral) break;
     hi = tCold + 2 * (hi - tCold);
     if (i === 59) throw new RangeError("no temperature below 1e18 K reaches the conductivity integral");
   }

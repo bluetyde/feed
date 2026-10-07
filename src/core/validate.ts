@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import Ajv2020 from "ajv/dist/2020";
 import { steadyEndTime } from "./steadyState";
-import { Law, evaluate, fitPolynomial, minimum } from "./conductivity";
+import { Law, evaluate, fitPolynomial, lawOf, minimum } from "./conductivity";
 import { heatCapacityLaw } from "./heatCapacity";
 import type { LimitRule } from "./limits";
 import { alphaAt, ExpansionLaw, hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
@@ -76,6 +76,12 @@ export const MAX_HISTORY_POINTS = 1000;
 export const MAX_TRANSIENT_WORK = 3e6;
 /** Sanity bounds on a volumetric heat capacity (J/m3/K): below air at room temperature, above anything solid. */
 export const HEAT_CAPACITY_MIN = 1e3;
+/** A conductivity outside this is a units mistake (vacuum insulation to diamond); it also keeps the closed forms away from overflow. W/m/K. */
+export const CONDUCTIVITY_MIN = 1e-3;
+export const CONDUCTIVITY_MAX = 1e5;
+/** A radius outside this is a units mistake, and a smaller one underflows the cell areas. m. */
+export const RADIUS_MIN = 1e-9;
+export const RADIUS_MAX = 1e3;
 export const HEAT_CAPACITY_MAX = 1e8;
 
 export interface NormalizedCase {
@@ -179,6 +185,10 @@ export function validateCase(doc: unknown): ValidationResult {
       err("E_GEOMETRY", field, what + " must be positive", { unit: "m" });
       return undefined;
     }
+    if (v < RADIUS_MIN || v > RADIUS_MAX) {
+      err("E_GEOMETRY", field, what + " " + v + " m is outside " + RADIUS_MIN + " to " + RADIUS_MAX + " m; check the units", { unit: "m" });
+      return undefined;
+    }
     return v;
   };
   const Rf = radius(c.geometry.fuelRadius, "/geometry/fuelRadius", "fuel radius");
@@ -191,6 +201,7 @@ export function validateCase(doc: unknown): ValidationResult {
     if (r !== undefined) {
       if (r < 0) err("E_GEOMETRY", "/geometry/fuelInnerRadius", "the central hole radius cannot be negative (use 0 for solid fuel)", { unit: "m" });
       else if (Rf !== undefined && r > 0 && !(r < Rf)) err("E_GEOMETRY", "/geometry/fuelInnerRadius", "the central hole radius must be smaller than the fuel radius", { unit: "m" });
+      else if (r > 0 && r < RADIUS_MIN) err("E_GEOMETRY", "/geometry/fuelInnerRadius", "the central hole radius " + r + " m is below " + RADIUS_MIN + " m; use 0 for solid fuel, or check the units", { unit: "m" });
       else if (Rf !== undefined && r > 0.95 * Rf) err("E_GEOMETRY", "/geometry/fuelInnerRadius", "the central hole radius leaves less than 5% of the fuel radius as wall; refused (the cell widths would be unreliable)", { unit: "m" });
       else Rfi = r; // 0 is solid fuel
     }
@@ -221,7 +232,7 @@ export function validateCase(doc: unknown): ValidationResult {
   if (gap.model === "constant-conductance") {
     if (gap.conductance === undefined) err("E_PROP_MISSING", "/gap/conductance", "the constant-conductance gap model needs the gap conductance (W/m2/K)");
     else hGap = positive(gap.conductance, "htc", "/gap/conductance", "gap conductance", "W/m2/K");
-    if (typeof gap.source !== "string" || gap.source === "") err("E_PROP_MISSING", "/gap/source", "the gap conductance needs a stated source");
+    if (typeof gap.source !== "string" || gap.source.trim() === "") err("E_PROP_MISSING", "/gap/source", "the gap conductance needs a stated source");
   } else if (gap.model === "closed" || gap.model === "contact") {
     err("E_UNSUPPORTED", "/gap/model", "a closed or contacting gap needs mechanics to know the contact state; V1 requires an explicit gap conductance");
   } else if (gap.model === "gas-gap") {
@@ -273,6 +284,14 @@ export function validateCase(doc: unknown): ValidationResult {
       qPrime = Math.max(...transient.linearHeatRate);
       // the heat capacity laws must hold at a uniform starting temperature (a steady start is checked below, on its field), and the work must fit the budget
       const start = transient.initial.kind === "uniform" ? transient.initial.temperature : undefined;
+      for (const [region, k] of [["fuel", fuelK], ["cladding", claddingK]] as const) {
+        const kStart = start !== undefined && k ? evaluate(lawOf(k), start) : undefined;
+        if (kStart !== undefined && !(Number.isFinite(kStart) && kStart > 0)) {
+          err("E_OUT_OF_RANGE", "/transient/initialTemperature", "the " + region + " conductivity at the initial temperature " + start + " K is " + kStart.toPrecision(4) + " W/m/K: a conductivity law that is positive over its stated range can be zero or negative where the pin starts", { unit: "W/m/K" });
+          transient = undefined;
+          break;
+        }
+      }
       for (const [region, cp] of [["fuel", fuelCp], ["cladding", claddingCp]] as const) {
         if (start !== undefined && cp && cp.kind !== "constant" && (start < cp.range[0] || start > cp.range[1])) {
           err("E_OUT_OF_RANGE", "/transient/initialTemperature", "the initial temperature " + start + " K is outside the stated range of the " + region + " heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", { unit: "K", range: cp.range });
@@ -329,7 +348,9 @@ export function validateCase(doc: unknown): ValidationResult {
       }
       if (!h.ok) {
         result.ok = false;
-        result.errors.push({ code: "E_GEOMETRY", severity: "error", field: "/hotDimensions", message: h.reason });
+        // the cause decides the code: a closed gap is a geometry problem, a conductivity that cannot be solved is the material's, a coefficient that goes non-positive is the section's
+        const [code, field] = h.kind === "geometry" ? ["E_GEOMETRY", "/hotDimensions"] : h.kind === "temperatures" ? ["E_OUT_OF_RANGE", "/materials"] : ["E_OUT_OF_RANGE", "/hotDimensions"];
+        result.errors.push({ code, severity: "error", field, message: h.reason });
         delete result.normalized;
       }
     }
@@ -485,7 +506,7 @@ function conductivity(material: Record<string, any>, region: string, err: ErrFn,
     err("E_PROP_MISSING", base, region + " material '" + material.materialId + "' has no thermal.conductivity set; a thermal model needs conductivity (composition and density alone do not satisfy it)");
     return undefined;
   }
-  const sourceMissing = (set.source === undefined || typeof set.source !== "string" || set.source === "");
+  const sourceMissing = set.source === undefined || typeof set.source !== "string" || set.source.trim() === "";
   if (sourceMissing) err("E_PROP_MISSING", base + "/source", "the " + region + " conductivity needs a stated source");
   if (set.model === "constant") {
     if (set.value === undefined) {
@@ -497,6 +518,14 @@ function conductivity(material: Record<string, any>, region: string, err: ErrFn,
     const tref = set.referenceTemperature === undefined ? undefined : qty(set.referenceTemperature, "temperature", base + "/referenceTemperature");
     if (k !== undefined && !(k > 0)) {
       err("E_OUT_OF_RANGE", base + "/value", region + " conductivity must be positive", { unit: "W/m/K" });
+      return undefined;
+    }
+    if (k !== undefined && (k < CONDUCTIVITY_MIN || k > CONDUCTIVITY_MAX)) {
+      err("E_OUT_OF_RANGE", base + "/value", region + " conductivity " + k + " W/m/K is outside " + CONDUCTIVITY_MIN + " to " + CONDUCTIVITY_MAX + "; check the units", { unit: "W/m/K" });
+      return undefined;
+    }
+    if (tref !== undefined && !(tref > 0)) {
+      err("E_OUT_OF_RANGE", base + "/referenceTemperature", "the reference temperature is above 0 K", { unit: "K" });
       return undefined;
     }
     if (k === undefined || tref === undefined || sourceMissing) return undefined;
@@ -519,8 +548,18 @@ function conductivity(material: Record<string, any>, region: string, err: ErrFn,
       err("E_OUT_OF_RANGE", base + "/validRange", "range maximum must exceed the minimum", { unit: "K" });
       return undefined;
     }
+    if (!(lo > 0)) {
+      err("E_OUT_OF_RANGE", base + "/validRange/min", "the range starts above 0 K", { unit: "K" });
+      return undefined;
+    }
     if (!(a + bb * lo > 0) || !(a + bb * hi > 0)) {
       err("E_OUT_OF_RANGE", base, "conductivity a + b T is not positive over its stated range", { unit: "W/m/K", range: [lo, hi] });
+      return undefined;
+    }
+    const kLo = Math.min(a + bb * lo, a + bb * hi);
+    const kHi = Math.max(a + bb * lo, a + bb * hi);
+    if (!(kLo >= CONDUCTIVITY_MIN) || !(kHi <= CONDUCTIVITY_MAX)) {
+      err("E_OUT_OF_RANGE", base, "conductivity is outside " + CONDUCTIVITY_MIN + " to " + CONDUCTIVITY_MAX + " W/m/K somewhere in its stated range (" + kLo.toPrecision(4) + " to " + kHi.toPrecision(4) + "); check the units", { unit: "W/m/K", range: [lo, hi] });
       return undefined;
     }
     return { kind: "linear", a, b: bb, range: [lo, hi] };
@@ -560,6 +599,7 @@ const CONDUCTIVITY_SPEC: LawSpec = {
   terms: [["a", "conductivity"], ["b", "conductivityPerK"], ["c", "conductivityPerK2"], ["d", "conductivityPerK3"]],
   pointKey: "conductivity",
   maxDegree: 3,
+  bounds: [CONDUCTIVITY_MIN, CONDUCTIVITY_MAX],
 };
 
 const HEAT_CAPACITY_SPEC: LawSpec = {
@@ -746,7 +786,7 @@ function heatCapacity(material: Record<string, any>, region: string, err: ErrFn,
     err("E_PROP_MISSING", base, region + " material '" + material.materialId + "' has no thermal.volumetricHeatCapacity set; a transient needs the heat capacity of both solids");
     return undefined;
   }
-  const sourceMissing = set.source === undefined || typeof set.source !== "string" || set.source === "";
+  const sourceMissing = set.source === undefined || typeof set.source !== "string" || set.source.trim() === "";
   if (sourceMissing) err("E_PROP_MISSING", base + "/source", "the " + region + " heat capacity needs a stated source");
   if (set.model === "constant") {
     if (set.value === undefined) {
@@ -762,6 +802,10 @@ function heatCapacity(material: Record<string, any>, region: string, err: ErrFn,
     }
     if (c !== undefined && (c < HEAT_CAPACITY_MIN || c > HEAT_CAPACITY_MAX)) {
       err("E_OUT_OF_RANGE", base + "/value", region + " heat capacity " + c + " J/m3/K is outside " + HEAT_CAPACITY_MIN + " to " + HEAT_CAPACITY_MAX + "; check the units", { unit: "J/m3/K" });
+      return undefined;
+    }
+    if (tref !== undefined && !(tref > 0)) {
+      err("E_OUT_OF_RANGE", base + "/referenceTemperature", "the reference temperature is above 0 K", { unit: "K" });
       return undefined;
     }
     if (c === undefined || tref === undefined || sourceMissing) return undefined;
@@ -782,6 +826,10 @@ function heatCapacity(material: Record<string, any>, region: string, err: ErrFn,
     if (a === undefined || bb === undefined || lo === undefined || hi === undefined || sourceMissing) return undefined;
     if (!(hi > lo)) {
       err("E_OUT_OF_RANGE", base + "/validRange", "range maximum must exceed the minimum", { unit: "K" });
+      return undefined;
+    }
+    if (!(lo > 0)) {
+      err("E_OUT_OF_RANGE", base + "/validRange/min", "the range starts above 0 K", { unit: "K" });
       return undefined;
     }
     const cLo = a + bb * lo;

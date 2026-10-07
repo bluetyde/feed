@@ -236,7 +236,7 @@ describe("a temperature-dependent coefficient, alpha = a + b T", () => {
     // positive from 700 K up (6e-6) but negative at the cladding's 595 K
     const r = linHot({ value: 1.2e-5, unit: "1/K" }, lin(-5e-5, 8e-8, 700, 1500));
     expect(r.ok).toBe(false);
-    expect(r.errors.map((e) => e.code + " " + e.field)).toEqual(["E_GEOMETRY /hotDimensions"]);
+    expect(r.errors.map((e) => e.code + " " + e.field)).toEqual(["E_OUT_OF_RANGE /hotDimensions"]); // the coefficient is the section's, not the geometry's
     expect(r.errors[0]!.message).toMatch(/cladding's expansion coefficient is not positive/);
   });
 

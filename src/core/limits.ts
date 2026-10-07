@@ -29,6 +29,8 @@ export interface LimitOutcome {
   margin: number | null;
   /** The moment of that smallest margin. */
   worst: { time: number; temperature: number; cladding: number } | null;
+  /** Moments whose temperatures were not finite numbers. They are counted, never skipped: a rule that cannot be judged does not pass. */
+  invalid: number;
 }
 
 export const limitApplies = (rule: LimitRule, s: LimitState): boolean => {
@@ -43,7 +45,12 @@ export function evaluateLimit(rule: LimitRule, states: readonly LimitState[]): L
   let applied = 0;
   let margin: number | null = null;
   let worst: LimitOutcome["worst"] = null;
+  let invalid = 0;
   for (const s of states) {
+    if (!Number.isFinite(s.fuelMax) || !Number.isFinite(s.claddingMax)) {
+      invalid++;
+      continue;
+    }
     if (!limitApplies(rule, s)) continue;
     applied++;
     const T = rule.region === "fuel" ? s.fuelMax : s.claddingMax;
@@ -53,7 +60,7 @@ export function evaluateLimit(rule: LimitRule, states: readonly LimitState[]): L
       worst = { time: s.time, temperature: T, cladding: s.claddingMax };
     }
   }
-  return { applied, margin, worst };
+  return { applied, margin, worst, invalid };
 }
 
 /** A temperature the way the SARs write it too: kelvin, with degrees Celsius beside it. */
@@ -78,10 +85,14 @@ export function limitChecks(rules: readonly LimitRule[], observed: readonly Limi
     const b = independent ? evaluateLimit(rule, independent) : null;
     const pick = b && b.margin !== null && (a.margin === null || b.margin < a.margin) ? { o: b, basis: "the independent solution (every step)" } : { o: a, basis: independent ? "the solver's outputs" : "the solver's result" };
     const o = pick.o;
+    const invalid = a.invalid + (b ? b.invalid : 0);
     const head = `${rule.name}: the hottest ${rule.region} stays at or below ${showT(rule.maxTemperature)}${condition(rule)}. Source: ${rule.source}.`;
     const tail = " FEED computes no stress; staying below a limit is not an integrity assessment.";
     const id = `temperatureLimit${i + 1}`;
     const label = `Temperature limit: ${rule.name}`;
+    if (invalid > 0) {
+      return { id, label, value: null, unit: "K", verdict: "fail" as const, note: `${head} ${invalid} moment(s) had a temperature that is not a finite number, so the limit cannot be judged and the check fails.` + tail };
+    }
     if (o.margin === null || o.worst === null) {
       return { id, label, value: null, unit: "K", verdict: "pass" as const, note: head + " The cladding condition never held in this run, so the limit was not in force." + tail };
     }

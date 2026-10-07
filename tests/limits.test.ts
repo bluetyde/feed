@@ -53,8 +53,8 @@ describe("the margin of a rule over a run", () => {
     expect(evaluateLimit(rule({ maxTemperature: 1150, whileCladding: { above: 773.15 } }), states).margin).toBe(150);
   });
   it("a rule that never applies has no margin and no worst moment", () => {
-    expect(evaluateLimit(rule({ whileCladding: { above: 2000 } }), [S(0, 1, 1)])).toEqual({ applied: 0, margin: null, worst: null });
-    expect(evaluateLimit(rule(), [])).toEqual({ applied: 0, margin: null, worst: null });
+    expect(evaluateLimit(rule({ whileCladding: { above: 2000 } }), [S(0, 1, 1)])).toEqual({ applied: 0, margin: null, worst: null, invalid: 0 });
+    expect(evaluateLimit(rule(), [])).toEqual({ applied: 0, margin: null, worst: null, invalid: 0 });
   });
 });
 

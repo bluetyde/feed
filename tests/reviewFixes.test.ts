@@ -53,7 +53,13 @@ describe("finding 2: a law that overflows over its range is refused", () => {
     const h = validateMaterial("fuel", cp);
     expect(h.errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
     expect(h.errors[0]!.message).toMatch(/heat capacity cannot be evaluated/);
-    expect(validateMaterial("fuel", polyMaterial([1, 0, 1e100, 0], [200, 2000])).errors).toEqual([]);
+    // finite but absurd: it is not an overflow, it is a units mistake, and is refused as one (a conductivity is 0.001 to 100000 W/m/K)
+    const big = validateMaterial("fuel", polyMaterial([1, 0, 1e100, 0], [200, 2000]));
+    expect(big.errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+    expect(big.errors[0]!.message).toMatch(/outside 0\.001 to 100000/);
+    expect(big.errors[0]!.message).not.toMatch(/overflows/);
+    // a large law that is inside the bounds is accepted
+    expect(validateMaterial("fuel", polyMaterial([1, 0, 1e-3, 0], [200, 2000])).errors).toEqual([]);
   });
 });
 
