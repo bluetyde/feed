@@ -20,6 +20,7 @@ wsl -d feed-solver -u feed --exec bash "/mnt/c/.../fuel-performance-studio/solve
 | `08-heatcapacity-fields.sh` | the same for heat capacity |
 | `09-mechanics.sh`, `10-mechanics-details.sh` | OFFBEAT's mechanics solvers, constitutive laws, elasticity and expansion models, the mechanical boundary patch fields (for [plan 09](../../docs/plans/09-mechanics.md)) |
 | `11-verification-cases.sh`, `12-mechanics-cases.sh` | OFFBEAT's own verification and test cases, and how its mechanics cases are set up |
+| `13-case-files.sh`, `14-inspect-run.sh`, `15-log-lines.sh` | the files of OFFBEAT's 1D mechanics cases (Allrun, `0/D`, changeDictionary), a finished run folder, and what a run's log prints about the displacement |
 | `show.sh <file> [from] [to]` | any file under `offbeatLib` with line numbers |
 
 What was run rather than read is in `tests/propertyModelProbe.test.ts` (`FEED_SOLVER=1`).
