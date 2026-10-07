@@ -2,7 +2,7 @@
   "$id": "https://feed.invalid/schema/case.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "FEED thermal case (V1, proposed)",
-  "description": "Structure only. Units, ranges, boundary completeness and required properties are checked by the semantic validator (src/core/validate.ts). Unknown fields are allowed and preserved on save; unknown option values are refused by the validator.",
+  "description": "Structure only. Units, ranges, boundary completeness and required properties are checked by the semantic validator (src/core/validate.ts). Unknown fields are allowed and preserved on save (at the top level and in material sets), except inside `hotDimensions`, whose objects are closed so that a misspelt physical input cannot pass silently; unknown option values are refused by the validator.",
   "type": "object",
   "required": ["schema", "caseId", "name", "assumptions", "geometry", "boundary", "materials", "gap", "mesh"],
   "properties": {

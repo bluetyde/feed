@@ -24,7 +24,7 @@ Linear heat rate q′ (W/m) is primary. Volumetric q‴ = q′ / (π R_fuel²) i
 | Model | Needs | Refusal if missing |
 |---|---|---|
 | Constant conductivity | k (W/m/K), source, reference temperature | `E_PROP_MISSING` naming k |
-| Conductivity as a function of temperature | Correlation identifier or table, units, applicable temperature range, interpolation | `E_PROP_MISSING`, or `E_OUT_OF_RANGE` when the solution leaves the range |
+| Conductivity as a function of temperature | Correlation identifier or table, units, applicable temperature range, interpolation | `E_PROP_MISSING` for a missing term, range or source. **Two outcomes for the range (clarified 2026-10-07, F1 review):** a law that is not positive, or not finite, over its stated range, or that cannot be solved where the pin runs, is **refused** (`E_OUT_OF_RANGE`, no normalized case); a solvable case whose temperatures leave the stated range is **run and flagged** `out-of-domain`, never plain success, and never extrapolated silently. |
 | Constant gap conductance | h_gap (W/m²/K), source | `E_PROP_MISSING` |
 | Convective boundary | h (W/m²/K), T_bulk (K) | `E_BOUNDARY_INCOMPLETE` (bulk temperature alone is incomplete) |
 | Prescribed surface temperature | T_surface (K) | `E_BOUNDARY_INCOMPLETE` |

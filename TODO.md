@@ -14,7 +14,7 @@ Started 2026-10-05. As of the 2026-10-07 audit the solver, editor, server, SEED 
 3. [x] 2026-10-05: closed-form oracle module and table test, done by Claude directly (not delegated; it was small). `src/core/closedForm.ts`, `oracles/closed-form-table.json`; each value rechecked by Python and a finite-volume solve; 12 mutants fail the table. Tolerances here are for the closed-form implementation only.
 4. [x] 2026-10-07 audit: tolerances are fixed in `scripts/gen-seed-oracles.cjs` before any run (its header says so, and the entry hashes pin them); the refinement design is `src/core/refinement.ts` with `tests/refinement.test.ts` ([plan 04](docs/plans/04-verification.md)).
 5. [~] 2026-10-05: case schema, validator and 35 vectors written, every error code has a bad vector (`schema/`, `src/core/validate.ts`). Provisional until item 2 and F0 decide the solver geometry; then re-review.
-6. [~] **[codex]** Review of the F0 evidence, decision record, case schema and oracle derivations (F0/F1 exit). The F0 half is done ([codex-2026-10-06-f0-exit.md](docs/reviews/codex-2026-10-06-f0-exit.md), 10 findings fixed); its evidence list does **not** include the case schema or validator, so the F1 half (below) is still open.
+6. [x] **[codex]** Review of the F0 evidence, decision record, case schema and oracle derivations (F0/F1 exit): the F0 half is [codex-2026-10-06-f0-exit.md](docs/reviews/codex-2026-10-06-f0-exit.md) (10 findings fixed), the schema and validator half is [codex-2026-10-07-f1-exit.md](docs/reviews/codex-2026-10-07-f1-exit.md) (13 findings, 11 fixed).
 7. [~] 2026-10-05: provisional stack TypeScript/Node, vitest, ajv (SEED's), recorded in [docs/decisions/0001-provisional-stack.md](docs/decisions/0001-provisional-stack.md). The user confirms or changes it.
 
 ## Now
@@ -79,7 +79,7 @@ Started 2026-10-05; see [docs/spike/F0-note.md](docs/spike/F0-note.md) and [solv
 - [x] 2026-10-07 audit: Oracle set with tolerances fixed before any solver run, closed forms recomputed by a script and checked a second way: `oracles/closed-form-table.json` (each value rechecked by Python and a finite-volume solve, 12 mutants fail the table), `oracles/transient-reference.py`, `scripts/gen-seed-oracles.cjs` (plain formulas, no `src/core`). The set has grown since (53 entries) but every addition followed the same rule.
 - [x] 2026-10-07 audit: Material round trip and unknown-set preservation on the fake: `tests/userLibrary.test.ts` (save, reload, revision rule), `tests/projectImport.test.ts` (import from a SEED project, every other set kept exactly), the vector `unknown-fields-kept`. The round trip with real OpenMC is the F3 item below.
 - [x] 2026-10-07 audit: Example pin documented, labelled synthetic or sourced: every case in `examples/` carries a `label` (13 of 13 checked) and `examples/README.md` lists them.
-- [ ] **[codex]** F1 exit review: not done as such. The F0 exit review did not read the case schema or the validator; later Codex reviews covered transfers, transients, process handling, the transfer command and (2026-10-07) the project import. A review of the schema and validator remains.
+- [x] 2026-10-07: **[codex]** F1 exit review of the case schema, validator and laws: [codex-2026-10-07-f1-exit.md](docs/reviews/codex-2026-10-07-f1-exit.md). 13 findings, all reproduced; 11 fixed, one by design (hotDimensions is a closed object), one deferred (the embedded material id rule). `tests/f1ReviewFixes.test.ts`.
 
 ## F2: guided thermal editor ([plan 03](docs/plans/03-editor-and-adapter.md), [04](docs/plans/04-verification.md))
 

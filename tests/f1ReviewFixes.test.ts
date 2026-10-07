@@ -1,5 +1,5 @@
 // The fixes that came out of the F1 exit review (2026-10-07, specification-gap-auditor on the validator, silent-failure-hunter on the laws): each finding was
-// reproduced first, and each test here fails on the code before the fix. Review record: docs/reviews/codex-2026-10-07-f1-exit.md.
+// reproduced first, and the tests here are written from those reproductions. Review record: docs/reviews/codex-2026-10-07-f1-exit.md.
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";

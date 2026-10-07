@@ -12,6 +12,8 @@ A material's `thermal.conductivity` set takes one of five models (a heat capacit
 | `polynomial` | a + b T + c T² + d T³ | `a` W/m/K, `b` W/m/K², `c` W/m/K³, `d` W/m/K⁴, `validRange`, `source` | all four are given (a zero is written as 0); T in kelvin |
 | `table` | fitted polynomial | `points`, `fit {degree 1–3, tolerance}`, `source` | the range is the table's own |
 
+A conductivity must also lie between **0.001 and 100000 W/m/K** over its stated range (`CONDUCTIVITY_MIN` and `CONDUCTIVITY_MAX`): outside that is a units mistake, and it keeps the closed forms from overflowing (a law of 1e155 W/m/K gave a finite, wrong temperature before the 2026-10-07 review). Reference temperatures and range minima must be above 0 K, for every model and for the heat capacity too; a source of whitespace is no source; a uniform transient start needs a positive conductivity at the start temperature.
+
 The conductivity must be **positive over the whole stated range**, checked exactly (end points and the turning points of the cubic; the end points for the reciprocal law, which is monotone), not at samples; a law that touches zero is refused (`E_OUT_OF_RANGE`).
 
 A law that is positive over its range can still reach zero **outside** it, where the pin may run. The validator now refuses such a case with the reason (`E_OUT_OF_RANGE` at `/materials`: "the temperatures of this pin cannot be found ..."); until 2026-10-07 it threw an exception out of `validateCase` for a linear or cubic law (found while testing the reciprocal law, which is the shape that does it most easily: `a/T + b` with a negative `b` is zero at `a / -b`).
