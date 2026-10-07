@@ -1,7 +1,7 @@
 // Quantity parsing: every physical input is {value, unit}; the unit must belong to the expected dimension.
 // SI is used inside the app (docs/ARCHITECTURE.md, Conventions).
 
-export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
+export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "expansion" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
 
 interface UnitDef {
   dim: Dimension;
@@ -23,6 +23,10 @@ const UNITS: Record<string, UnitDef> = {
   "W/m/K2": { dim: "conductivityPerK", scale: 1 },
   "W/m/K3": { dim: "conductivityPerK2", scale: 1 },
   "W/m/K4": { dim: "conductivityPerK3", scale: 1 },
+  // linear thermal expansion coefficient (a length change per length per kelvin)
+  "1/K": { dim: "expansion", scale: 1 },
+  "1e-6/K": { dim: "expansion", scale: 1e-6 },
+  "ppm/K": { dim: "expansion", scale: 1e-6 },
   "W/m2/K": { dim: "htc", scale: 1 },
   "kW/m2/K": { dim: "htc", scale: 1e3 },
   s: { dim: "time", scale: 1 },
@@ -60,6 +64,7 @@ export const SI_UNIT: Record<Dimension, string> = {
   conductivityPerK: "W/m/K2",
   conductivityPerK2: "W/m/K3",
   conductivityPerK3: "W/m/K4",
+  expansion: "1/K",
   htc: "W/m2/K",
   time: "s",
   volumetricHeatCapacity: "J/m3/K",

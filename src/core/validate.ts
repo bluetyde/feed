@@ -9,6 +9,7 @@ import { steadyEndTime } from "./steadyState";
 import { Law, fitPolynomial, minimum } from "./conductivity";
 import { heatCapacityLaw } from "./heatCapacity";
 import type { LimitRule } from "./limits";
+import { hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
 import { Dimension, toSI } from "./units";
@@ -95,6 +96,8 @@ export interface NormalizedCase {
   claddingHeatCapacity?: HeatCapacity;
   /** Temperature limits the case states, with their sources (src/core/limits.ts). */
   limits?: LimitRule[];
+  /** Present when the case asks for hot dimensions: the radii above are then the hot ones and this holds the cold ones, the mean temperatures and the factors (src/core/hotDimensions.ts). */
+  hot?: HotRecord;
 }
 
 export interface ValidationResult {
@@ -253,6 +256,8 @@ export function validateCase(doc: unknown): ValidationResult {
   const claddingK = conductivity(c.materials.cladding, "cladding", err, qty);
 
   const limits = c.limits === undefined ? undefined : parseLimits(c.limits, err, qty);
+  const hotSpec = c.hotDimensions === undefined ? undefined : parseHot(c.hotDimensions, err, qty);
+  if (c.hotDimensions !== undefined && isTransient) err("E_UNSUPPORTED", "/hotDimensions", "hot dimensions are for steady cases: in a transient the temperatures, and so the radii, change with time");
 
   // Transient: heat capacities of both solids and the time section.
   let fuelCp: HeatCapacity | undefined;
@@ -308,8 +313,19 @@ export function validateCase(doc: unknown): ValidationResult {
       ...(isTransient ? { transient, fuelHeatCapacity: fuelCp, claddingHeatCapacity: claddingCp } : {}),
       ...(limits ? { limits } : {}),
     };
+    // Hot dimensions: the radii above are cold; replace them with the radii each solid has at its own mean temperature (the temperatures and the radii are iterated together).
+    if (hotSpec && !isTransient) {
+      const h = hotGeometry(result.normalized, hotSpec);
+      if (h.ok) Object.assign(result.normalized, h.radii, { hot: h.record });
+      else {
+        result.ok = false;
+        result.errors.push({ code: "E_GEOMETRY", severity: "error", field: "/hotDimensions", message: h.reason });
+        delete result.normalized;
+      }
+    }
     // A transient that starts from a steady operating state needs that state to exist and to lie where the heat capacity laws hold (the uniform start is checked above).
-    const normalized = result.normalized!;
+    const normalized = result.normalized;
+    if (!normalized) return result;
     const tn = normalized.transient;
     if (tn && tn.initial.kind === "steady") {
       const field = (() => {
@@ -746,6 +762,52 @@ function heatCapacity(material: Record<string, any>, region: string, err: ErrFn,
 
 export const MAX_LIMITS = 10;
 export const MAX_LIMIT_TEMPERATURE = 10000;
+
+/**
+ * The hot-dimensions section: the temperature the radii are stated at and, for each solid, a linear expansion coefficient with its source. Nothing is defaulted:
+ * FEED has no expansion data of its own (docs/hot-dimensions.md).
+ */
+function parseHot(raw: unknown, err: ErrFn, qty: QtyFn): HotSpec | undefined {
+  if (!isObject(raw)) {
+    err("E_SCHEMA_INVALID", "/hotDimensions", "hotDimensions is an object with referenceTemperature, fuel and cladding");
+    return undefined;
+  }
+  let ok = true;
+  const bad = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+    ok = false;
+    err(code, field, message, extra);
+  };
+  for (const k of Object.keys(raw)) if (!["referenceTemperature", "fuel", "cladding"].includes(k)) bad("E_SCHEMA_INVALID", "/hotDimensions/" + k, "unknown key '" + k + "' (hotDimensions has referenceTemperature, fuel and cladding)");
+  let ref: number | undefined;
+  if (raw.referenceTemperature === undefined) bad("E_PROP_MISSING", "/hotDimensions/referenceTemperature", "the temperature at which the radii are stated is needed (it is not assumed to be room temperature)");
+  else {
+    ref = qty(raw.referenceTemperature, "temperature", "/hotDimensions/referenceTemperature");
+    if (ref === undefined) ok = false;
+    else if (!(ref > 0 && ref <= MAX_REFERENCE_TEMPERATURE)) {
+      bad("E_OUT_OF_RANGE", "/hotDimensions/referenceTemperature", "the reference temperature is above 0 K and at most " + MAX_REFERENCE_TEMPERATURE + " K", { unit: "K" });
+      ref = undefined;
+    }
+  }
+  const solid = (name: "fuel" | "cladding") => {
+    const base = "/hotDimensions/" + name;
+    const r = raw[name];
+    if (r === undefined) return void bad("E_PROP_MISSING", base, "the " + name + " needs a linear expansion coefficient and its source");
+    if (!isObject(r)) return void bad("E_SCHEMA_INVALID", base, "the " + name + " is an object with linearExpansion and source");
+    for (const k of Object.keys(r)) if (!["linearExpansion", "source"].includes(k)) bad("E_SCHEMA_INVALID", base + "/" + k, "unknown key '" + k + "' (a solid has linearExpansion and source)");
+    if (typeof r.source !== "string" || r.source.trim() === "") bad("E_PROP_MISSING", base + "/source", "the expansion coefficient needs the source it comes from: FEED has no expansion data of its own");
+    if (r.linearExpansion === undefined) return void bad("E_PROP_MISSING", base + "/linearExpansion", "the " + name + " needs its linear expansion coefficient");
+    const a = qty(r.linearExpansion, "expansion", base + "/linearExpansion");
+    if (a === undefined) {
+      ok = false;
+      return;
+    }
+    if (!(a > 0 && a <= MAX_EXPANSION_COEFFICIENT)) return void bad("E_OUT_OF_RANGE", base + "/linearExpansion", "a linear expansion coefficient is above 0 and at most " + MAX_EXPANSION_COEFFICIENT + " 1/K (solids are about 1e-5)", { unit: "1/K" });
+    return { alpha: a, source: typeof r.source === "string" ? r.source.trim() : "" };
+  };
+  const fuel = solid("fuel");
+  const cladding = solid("cladding");
+  return ok && ref !== undefined && fuel && cladding && fuel.source !== "" && cladding.source !== "" ? { referenceTemperature: ref, fuel, cladding } : undefined;
+}
 
 /**
  * The limits a case states: each with a name, a region, a maximum temperature and the source it comes from; a fuel limit may apply only while the hottest cladding

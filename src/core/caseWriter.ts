@@ -404,11 +404,14 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     // marks a transient for the run script (it then keeps the field at every write time); OpenFOAM ignores the file
     ...(tr ? { "feed-transient.json": JSON.stringify({ outputs: tr.outputs, steps: tr.steps, timeStep: tr.timeStep, endTime: tr.endTime }) + "\n" } : {}),
   };
+  // With hot dimensions the radii written are the expanded ones; the notes say so and give the cold value.
+  const hotNote = (key: "fuelRadius" | "fuelInnerRadius" | "claddingInnerRadius" | "claddingOuterRadius", solid: "fuel" | "cladding"): string =>
+    c.hot ? "; HOT value: the case's " + (c.hot.cold[key] * 1e3).toPrecision(8) + " mm expanded by " + c.hot[solid].factor.toPrecision(8) + " (docs/hot-dimensions.md)" : "";
   const mapping: WrittenCase["mapping"] = [
-    { field: "geometry.fuelRadius", file: "system/blockMeshDict", note: "block 'fuel' outer radius (mm), wedge " + WEDGE_ANGLE_DEG + " deg" },
-    ...(c.fuelInnerRadius > 0 ? [{ field: "geometry.fuelInnerRadius", file: "system/blockMeshDict", note: "block 'fuel' inner radius (central hole); patch fuelInner, zeroGradient in 0/T (insulated) and 0/D" }] : []),
-    { field: "geometry.claddingInnerRadius", file: "system/blockMeshDict", note: "block 'cladding' inner radius" },
-    { field: "geometry.claddingOuterRadius", file: "system/blockMeshDict", note: "block 'cladding' outer radius" },
+    { field: "geometry.fuelRadius", file: "system/blockMeshDict", note: "block 'fuel' outer radius (mm), wedge " + WEDGE_ANGLE_DEG + " deg" + hotNote("fuelRadius", "fuel") },
+    ...(c.fuelInnerRadius > 0 ? [{ field: "geometry.fuelInnerRadius", file: "system/blockMeshDict", note: "block 'fuel' inner radius (central hole); patch fuelInner, zeroGradient in 0/T (insulated) and 0/D" + hotNote("fuelInnerRadius", "fuel") }] : []),
+    { field: "geometry.claddingInnerRadius", file: "system/blockMeshDict", note: "block 'cladding' inner radius" + hotNote("claddingInnerRadius", "cladding") },
+    { field: "geometry.claddingOuterRadius", file: "system/blockMeshDict", note: "block 'cladding' outer radius" + hotNote("claddingOuterRadius", "cladding") },
     { field: "mesh.fuelCells", file: "system/blockMeshDict" },
     { field: "mesh.claddingCells", file: "system/blockMeshDict" },
     ...(tr
