@@ -284,6 +284,30 @@ badK2("table-one-point", "E_OUT_OF_RANGE", "/materials/fuel/sets/thermal.conduct
 badK2("table-too-few-points-for-the-degree", "E_FIT", "/materials/fuel/sets/thermal.conductivity/fit/degree", tableFuel({ points: [[300, 2.8], [900, 3.9], [1500, 4.1]].map(([T, k]) => ({ temperature: { value: T, unit: "K" }, conductivity: { value: k, unit: "W/m/K" } })) }));
 badK2("table-fit-too-far", "E_FIT", "/materials/fuel/sets/thermal.conductivity/fit", tableFuel({ fit: { degree: 1, tolerance: { value: 1, unit: "%" } } }));
 
+// temperature limits as case inputs (docs/temperature-limits.md)
+const rule = (extra = {}) => ({ name: "Fuel limit", region: "fuel", maxTemperature: { value: 1150, unit: "degC" }, source: "synthetic: a limit chosen to exercise the rules", ...extra });
+const withLimits = (limits) => { const c = clone(); c.limits = limits; return c; };
+add("good", "limits-triga-fuel", withLimits([rule({ name: "Fuel limit, cladding at most 500 C", whileCladding: { atMost: { value: 500, unit: "degC" } } }), rule({ name: "Fuel limit, cladding above 500 C", maxTemperature: { value: 950, unit: "degC" }, whileCladding: { above: { value: 500, unit: "degC" } } })]), {});
+add("good", "limits-cladding-and-band", withLimits([rule({ name: "Cladding limit", region: "cladding", maxTemperature: { value: 600, unit: "K" } }), rule({ name: "Fuel band", whileCladding: { above: { value: 400, unit: "K" }, atMost: { value: 800, unit: "K" } } })]), {});
+const badL = (name, code, field, limits) => add("bad", name, withLimits(limits), { code, field });
+const dropL = (o, k) => { const x = JSON.parse(JSON.stringify(o)); delete x[k]; return x; };
+badL("limits-not-a-list", "E_SCHEMA_INVALID", "/limits", { name: "x" });
+badL("limits-empty-list", "E_SCHEMA_INVALID", "/limits", []);
+badL("limits-too-many", "E_SCHEMA_INVALID", "/limits", Array.from({ length: 11 }, (_, i) => rule({ name: "Limit " + i })));
+badL("limits-no-source", "E_PROP_MISSING", "/limits/0/source", [dropL(rule(), "source")]);
+badL("limits-blank-source", "E_PROP_MISSING", "/limits/0/source", [rule({ source: "   " })]);
+badL("limits-no-maximum", "E_PROP_MISSING", "/limits/0/maxTemperature", [dropL(rule(), "maxTemperature")]);
+badL("limits-no-name", "E_SCHEMA_INVALID", "/limits/0/name", [dropL(rule(), "name")]);
+badL("limits-duplicate-name", "E_SCHEMA_INVALID", "/limits/1/name", [rule(), rule()]);
+badL("limits-bad-region", "E_SCHEMA_INVALID", "/limits/0/region", [rule({ region: "gap" })]);
+badL("limits-maximum-zero", "E_OUT_OF_RANGE", "/limits/0/maxTemperature", [rule({ maxTemperature: { value: 0, unit: "K" } })]);
+badL("limits-maximum-too-hot", "E_OUT_OF_RANGE", "/limits/0/maxTemperature", [rule({ maxTemperature: { value: 20000, unit: "K" } })]);
+badL("limits-maximum-wrong-unit", "E_UNITS", "/limits/0/maxTemperature", [rule({ maxTemperature: { value: 1150, unit: "W/m" } })]);
+badL("limits-condition-on-cladding-rule", "E_SCHEMA_INVALID", "/limits/0/whileCladding", [rule({ region: "cladding", whileCladding: { atMost: { value: 500, unit: "degC" } } })]);
+badL("limits-condition-empty", "E_SCHEMA_INVALID", "/limits/0/whileCladding", [rule({ whileCladding: {} })]);
+badL("limits-condition-never-holds", "E_OUT_OF_RANGE", "/limits/0/whileCladding", [rule({ whileCladding: { above: { value: 800, unit: "K" }, atMost: { value: 700, unit: "K" } } })]);
+badL("limits-condition-zero", "E_OUT_OF_RANGE", "/limits/0/whileCladding/above", [rule({ whileCladding: { above: { value: 0, unit: "K" } } })]);
+
 bad("unsupported-contact-model", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "contact" }));
 bad("unsupported-gas-gap", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "gas-gap" }));
 bad("unsupported-mechanics", "E_UNSUPPORTED", "/assumptions/thermalOnly", (c) => (c.assumptions.thermalOnly = false));

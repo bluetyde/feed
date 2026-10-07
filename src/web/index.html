@@ -254,6 +254,7 @@ const ITEMS = [
   ["mesh", "Mesh", "Pin", ["/mesh"]],
   ["fuel", "Fuel", "Materials", ["/materials/fuel"]],
   ["cladding", "Cladding", "Materials", ["/materials/cladding"]],
+  ["limits", "Temperature limits", "Checks", ["/limits"]],
 ];
 const itemOf = (field) => { const f = (ITEMS.find((i) => i[3].some((p) => field === p || field.startsWith(p + "/"))) || [])[0]; return f || null; };
 
@@ -344,6 +345,8 @@ function renderProps() {
     p.append(sec("Gap model"), sField("Model", ["gap", "model"], [["constant-conductance", "Constant conductance"], ["gas-gap", "Gas gap (planned)"], ["contact", "Contact (needs mechanics)"]], () => {}));
     if (doc.gap.model === "constant-conductance") p.append(qField("h gap", ["gap", "conductance"], "htc"), tField("Source", ["gap", "source"]));
     p.append(note("V1 supports a constant gap conductance only. The solver's gas-gap model comes later."));
+  } else if (selected === "limits") {
+    limitsPanel(p);
   } else if (selected === "mesh") {
     p.append(sec("Cells per region"), iField("Fuel", ["mesh", "fuelCells"]), iField("Cladding", ["mesh", "claddingCells"]), note("Minimum: fuel 4, cladding 2. The solver run uses these counts; refinement studies come with F2."));
   } else {
@@ -384,6 +387,7 @@ function meta(id) {
     case "geometry": return fmt(doc.geometry.fuelRadius) + " fuel R";
     case "gap": return doc.gap.model === "constant-conductance" ? fmt(doc.gap.conductance) : doc.gap.model;
     case "mesh": return doc.mesh.fuelCells + " / " + doc.mesh.claddingCells;
+    case "limits": return Array.isArray(doc.limits) ? doc.limits.length + (doc.limits.length === 1 ? " rule" : " rules") : "none";
     default: { const k = getp(doc, ["materials", id, "sets", "thermal.conductivity"]); return k ? (k.model === "linear" ? "k(T)" : "k " + fmt(k.value)) : "no k"; }
   }
 }
@@ -547,7 +551,7 @@ function refreshErrors() {  /* update inline error text without rebuilding field
 function renderPropsKeepFocus() { const id = document.activeElement && document.activeElement.id; const pos = document.activeElement && document.activeElement.selectionStart; renderProps(); if (id) { const e = $(id); if (e) { e.focus(); try { if (pos != null) e.setSelectionRange(pos, pos); } catch (_) {} } } }
 function changed(rebuild) { if (study) { study = null; clearTimeout(studyTimer); } if (solverRes) { solverRes = null; runRec = null; logText += "Solver result cleared: the case changed.\n"; setChip(); } clearTimeout(timer); timer = setTimeout(() => runCheck(!!rebuild), rebuild ? 0 : 150); renderTreeMetaOnly(); }
 function renderTreeMetaOnly() { document.querySelectorAll("#tree .titem").forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(ITEMS[i][0]); }); }
-let lib = { pins: [], materials: [] }, menuEl = null;
+let lib = { pins: [], materials: [], limits: [] }, menuEl = null;
 function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
 function openMenu(btn, heading, groups) {
   const was = menuEl && menuEl.dataset.for === btn.id; closeMenu(); if (was) return;
@@ -651,6 +655,42 @@ function lawFields(kind, p, kp, k, region) {
     p.append(note("OFFBEAT has no tabulated " + S.what + ", so a table is run as the polynomial fitted to it. The case is refused if that polynomial is further from the table than the deviation accepted here: raise the degree (up to " + S.maxDegree + "), shorten the table to the range you need, or accept more."));
   } else p.append(qField(kind === "conductivity" ? "k" : "c", kp.concat("value"), S.valueDim), qField("at T", kp.concat("referenceTemperature"), "temperature"));
   p.append(tField("Source", kp.concat("source")));
+}
+/* temperature limits (docs/temperature-limits.md): rules the case states with their sources; FEED has none of its own */
+function limitsPanel(p) {
+  p.append(sec("Temperature limits"));
+  const rules = Array.isArray(doc.limits) ? doc.limits : [];
+  if (!rules.length) p.append(note("This case states no limits, so its results say nothing about any. A limit is an input with its source: FEED has none of its own. Pick a sourced set below, or add a rule."));
+  const bar = el("div", "prow note");
+  for (const set of lib.limits || []) {
+    const b = elt("button", "Use: " + set.name, { class: "tbtn", type: "button", title: set.description });
+    b.addEventListener("click", () => { doc.limits = JSON.parse(JSON.stringify(set.rules)); logText += "Limits set to " + set.name + String.fromCharCode(10); changed(true); renderProps(); });
+    bar.append(b);
+  }
+  const add = elt("button", "Add a rule", { class: "tbtn", type: "button" });
+  add.addEventListener("click", () => { if (!Array.isArray(doc.limits)) doc.limits = []; doc.limits.push({ name: "Limit " + (doc.limits.length + 1), region: "fuel", maxTemperature: { value: 1000, unit: "degC" }, source: "" }); changed(true); renderProps(); });
+  bar.append(add);
+  if (rules.length) { const rm = elt("button", "Remove all limits", { class: "tbtn", type: "button" }); rm.addEventListener("click", () => { delete doc.limits; changed(true); renderProps(); }); bar.append(rm); }
+  p.append(bar);
+  rules.forEach((r, i) => {
+    const base = ["limits", i];
+    p.append(sec("Rule " + (i + 1)), tField("Name", base.concat("name")), sField("Region", base.concat("region"), [["fuel", "Fuel"], ["cladding", "Cladding"]], (v) => { if (v !== "fuel") delete r.whileCladding; }), qField("Maximum", base.concat("maxTemperature"), "temperature"));
+    if (r.region === "fuel") {
+      if (r.whileCladding) {
+        p.append(qField("While cladding above", base.concat("whileCladding", "above"), "temperature"), qField("While cladding at most", base.concat("whileCladding", "atMost"), "temperature"));
+      } else {
+        const cb = elt("button", "Only while the cladding is hot or cool...", { class: "tbtn", type: "button" });
+        cb.addEventListener("click", () => { r.whileCladding = { atMost: { value: 500, unit: "degC" } }; changed(true); renderProps(); });
+        const row = el("div", "prow note"); row.append(cb); p.append(row);
+      }
+    }
+    p.append(tField("Source", base.concat("source")));
+    const del = elt("button", "Remove rule " + (i + 1), { class: "tbtn", type: "button" });
+    del.addEventListener("click", () => { doc.limits.splice(i, 1); if (!doc.limits.length) delete doc.limits; changed(true); renderProps(); });
+    const row = el("div", "prow note"); row.append(del); p.append(row);
+  });
+  const names = (lib.limits || []).map((s) => s.name);
+  p.append(note("Each rule becomes a check in the results: the smallest margin the run reaches (the limit minus the hottest cell, K), where, and from which basis. A fuel rule can apply only while the hottest cladding is above or at most a temperature (the TRIGA limit is 1150 &deg;C while the cladding is at most 500 &deg;C and 950 &deg;C above it). FEED computes no stress: staying below a limit is not an integrity assessment." + (names.length ? " Sourced sets: " + names.map((n) => n.replace(/</g, "&lt;")).join("; ") + "." : "")));
 }
 /* what the person has typed into the save-to-library fields, per region, so a re-render does not lose it */
 const libDraft = { fuel: {}, cladding: {} };

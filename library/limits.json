@@ -1,0 +1,25 @@
+[
+  {
+    "id": "triga-ss-uzrh-h16-fuel-temperature",
+    "name": "TRIGA stainless-clad U-ZrH (H/Zr 1.6): fuel temperature limits",
+    "label": "sourced",
+    "description": "The fuel temperature limit of TRIGA fuel with stainless steel cladding and U-ZrH at a hydrogen to zirconium ratio of about 1.6: 1150 C while the cladding is at most 500 C, and 950 C once the cladding is above 500 C (the cladding loses yield strength above 500 C, so the hydrogen pressure that fuel temperature makes would stress it). The limit comes from hydrogen outgassing and the clad stress it produces; FEED computes neither, it only compares the temperature. It does not cover aluminium cladding, a different hydrogen ratio, or any other failure mechanism. At exactly 500 C of cladding the 1150 C rule applies (at most 500).",
+    "citation": "Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004, section 3.5.1 (Fuel System) and section 4.7 (Safety Limit), citing NUREG-1282: 1150 C with clad < 500 C and 950 C with clad > 500 C for U-ZrH (H/Zr 1.65). University of Texas at Austin TRIGA II Safety Analysis Report (redacted), Ch. 4 section 4.2.1: the same two values from the hoop stress against the stainless-steel strength (Figures 4.3a, 4.3b), and pulsing of fuel with H/Zr of at least 1.65 to about 1150 C without damage to the cladding (General Atomics report GACD 6977). Files: research/VIRTUAL REACTOR/ (the two SAR PDFs).",
+    "rules": [
+      {
+        "name": "TRIGA fuel limit, cladding at most 500 C",
+        "region": "fuel",
+        "maxTemperature": { "value": 1150, "unit": "degC" },
+        "whileCladding": { "atMost": { "value": 500, "unit": "degC" } },
+        "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 1150 C fuel limit with cladding below 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+      },
+      {
+        "name": "TRIGA fuel limit, cladding above 500 C",
+        "region": "fuel",
+        "maxTemperature": { "value": 950, "unit": "degC" },
+        "whileCladding": { "above": { "value": 500, "unit": "degC" } },
+        "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 950 C fuel limit with cladding above 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+      }
+    ]
+  }
+]

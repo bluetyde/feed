@@ -681,6 +681,110 @@
     "field": "/materials/fuel/sets/thermal.conductivity/fit"
   },
   {
+    "file": "good/limits-triga-fuel.json",
+    "valid": true
+  },
+  {
+    "file": "good/limits-cladding-and-band.json",
+    "valid": true
+  },
+  {
+    "file": "bad/limits-not-a-list.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits"
+  },
+  {
+    "file": "bad/limits-empty-list.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits"
+  },
+  {
+    "file": "bad/limits-too-many.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits"
+  },
+  {
+    "file": "bad/limits-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/limits/0/source"
+  },
+  {
+    "file": "bad/limits-blank-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/limits/0/source"
+  },
+  {
+    "file": "bad/limits-no-maximum.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/limits/0/maxTemperature"
+  },
+  {
+    "file": "bad/limits-no-name.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits/0/name"
+  },
+  {
+    "file": "bad/limits-duplicate-name.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits/1/name"
+  },
+  {
+    "file": "bad/limits-bad-region.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits/0/region"
+  },
+  {
+    "file": "bad/limits-maximum-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/limits/0/maxTemperature"
+  },
+  {
+    "file": "bad/limits-maximum-too-hot.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/limits/0/maxTemperature"
+  },
+  {
+    "file": "bad/limits-maximum-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/limits/0/maxTemperature"
+  },
+  {
+    "file": "bad/limits-condition-on-cladding-rule.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits/0/whileCladding"
+  },
+  {
+    "file": "bad/limits-condition-empty.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits/0/whileCladding"
+  },
+  {
+    "file": "bad/limits-condition-never-holds.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/limits/0/whileCladding"
+  },
+  {
+    "file": "bad/limits-condition-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/limits/0/whileCladding/above"
+  },
+  {
     "file": "bad/unsupported-contact-model.json",
     "valid": false,
     "code": "E_UNSUPPORTED",

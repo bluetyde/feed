@@ -90,6 +90,10 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
+export function sourcedLimits(): any[] {
+  return JSON.parse(readFileSync(join(root, "library", "limits.json"), "utf8"));
+}
+
 function sourcedMaterials(): any[] {
   return JSON.parse(readFileSync(join(root, "library", "materials.json"), "utf8"));
 }
@@ -104,7 +108,7 @@ export function library() {
   const sourced = sourcedMaterials();
   const user = readUserEntries();
   const custom = latestEntries(user.entries).map((e) => ({ region: e.region, name: e.name, label: e.label, description: e.description, citation: e.citation, savedAt: e.savedAt, revisions: user.entries.filter((x) => x.material.materialId === e.material.materialId).length, material: e.material }));
-  return { pins, materials: [...sourced, ...custom], userLibrary: user.problem ? { problem: user.problem } : { entries: user.entries.length } };
+  return { pins, materials: [...sourced, ...custom], limits: sourcedLimits(), userLibrary: user.problem ? { problem: user.problem } : { entries: user.entries.length } };
 }
 
 /** Largest finest-level cell counts a study may request (the finest level is 4x the case's mesh). */

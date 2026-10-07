@@ -56,12 +56,15 @@ export function evaluateLimit(rule: LimitRule, states: readonly LimitState[]): L
   return { applied, margin, worst };
 }
 
+/** A temperature the way the SARs write it too: kelvin, with degrees Celsius beside it. */
+export const showT = (K: number): string => `${Number(K.toFixed(2))} K (${Number((K - 273.15).toFixed(2))} C)`;
+
 const condition = (rule: LimitRule): string => {
   const w = rule.whileCladding;
   if (!w) return "";
   const parts: string[] = [];
-  if (w.above !== undefined) parts.push(`above ${w.above} K`);
-  if (w.atMost !== undefined) parts.push(`at most ${w.atMost} K`);
+  if (w.above !== undefined) parts.push(`above ${showT(w.above)}`);
+  if (w.atMost !== undefined) parts.push(`at most ${showT(w.atMost)}`);
   return ` while the hottest cladding is ${parts.join(" and ")}`;
 };
 
@@ -75,14 +78,14 @@ export function limitChecks(rules: readonly LimitRule[], observed: readonly Limi
     const b = independent ? evaluateLimit(rule, independent) : null;
     const pick = b && b.margin !== null && (a.margin === null || b.margin < a.margin) ? { o: b, basis: "the independent solution (every step)" } : { o: a, basis: independent ? "the solver's outputs" : "the solver's result" };
     const o = pick.o;
-    const head = `${rule.name}: the hottest ${rule.region} stays at or below ${rule.maxTemperature} K${condition(rule)}. Source: ${rule.source}.`;
+    const head = `${rule.name}: the hottest ${rule.region} stays at or below ${showT(rule.maxTemperature)}${condition(rule)}. Source: ${rule.source}.`;
     const tail = " FEED computes no stress; staying below a limit is not an integrity assessment.";
     const id = `temperatureLimit${i + 1}`;
     const label = `Temperature limit: ${rule.name}`;
     if (o.margin === null || o.worst === null) {
       return { id, label, value: null, unit: "K", verdict: "pass" as const, note: head + " The cladding condition never held in this run, so the limit was not in force." + tail };
     }
-    const where = `${o.worst.temperature.toFixed(1)} K at ${o.worst.time === 0 && !independent ? "the result" : `t = ${o.worst.time} s`} (cladding ${o.worst.cladding.toFixed(1)} K)`;
+    const where = `${showT(o.worst.temperature)} at ${independent ? `t = ${Number(o.worst.time.toPrecision(6))} s` : "the result"} (cladding ${showT(o.worst.cladding)})`;
     return {
       id,
       label,
