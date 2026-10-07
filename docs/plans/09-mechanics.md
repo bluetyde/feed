@@ -32,6 +32,16 @@ Two warnings already known from the thermal work: an omitted or mistyped propert
 
 Each has a recommended answer; none is built until answered.
 
+### Answers (user, 2026-10-07)
+
+1. Scope: check whether the UT SAR figures 4.3a and 4.3b supply yield strength against temperature; if they do, include cladding plasticity, if not, thermo-elastic only (the recommendation).
+2. Optional `mechanics` section in the case; a case without it is unchanged.
+3. Each solid free axially, as M0 found (recommended).
+4. Internal pressure as a sourced input table against fuel temperature (recommended).
+5. Material data: as written (sourced, else user-entered custom, never invented).
+6. Stress limits: as written (the temperature-limit mechanism).
+7. Order: pause after M0; resume the more important projects first. M1 onwards waits until the user restarts it.
+
 1. **Scope of the first release.** Recommended: **thermo-elastic only** (plan 06 steps 1 and 2: expansion, gap closure, contact, stress output). Creep and plasticity wait. Alternative: include cladding plasticity for yield behaviour (needs yield-strength data vs temperature; the UT SAR figures 4.3a and 4.3b are a source).
 2. **Case structure.** Recommended: an **optional `mechanics` section** in the existing case (a model set, the plane condition, the contact and pressure conditions), with `assumptions.thermalOnly` false when present and a distinct result kind. A case without it is unchanged and every thermal oracle must stay byte-identical. Alternative: a separate case type (more duplication, cleaner separation).
 3. **Plane condition.** M0 found what `modifiedPlaneStrain on` does on FEED's mesh: **each solid takes its own axial strain, free of axial force** (the fuel and the cladding are separate blocks and are not tied axially). Recommended: keep that (it is what a short free slice of a rod does), with plane strain (axially fixed) as the stated alternative. A common axial strain for both solids is not available in this mesh; plane stress is wrong for a rod and not offered.
