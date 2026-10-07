@@ -7,7 +7,7 @@
 // (the scheme OFFBEAT uses) or Crank-Nicolson, Picard iteration for temperature-dependent conductivity and heat capacity.
 // Heat capacity c(T) = a + b T is handled through the enthalpy H(T) = a T + b T^2 / 2, so stored energy is conserved exactly.
 
-import { evaluate } from "./conductivity";
+import { evaluate, primitive } from "./conductivity";
 
 const TWO_PI = 2 * Math.PI;
 
@@ -33,6 +33,9 @@ export interface TransientPin {
   claddingLaw?: readonly number[];
   fuelC: Linear;
   claddingC: Linear;
+  /** When given, the volumetric heat capacity of each solid as coefficients c0 + c1 T + c2 T^2 (src/core/heatCapacity.ts), and fuelC / claddingC are not used. */
+  fuelCLaw?: readonly number[];
+  claddingCLaw?: readonly number[];
   boundary: { kind: "convective"; bulkTemperature: number; heatTransferCoefficient: number } | { kind: "surface-temperature"; surfaceTemperature: number };
   /** Linear heat rate in W/m at time t (s). */
   power: (t: number) => number;
@@ -120,6 +123,20 @@ export function conductivityOf(p: TransientPin, fuel: boolean, T: number): numbe
 
 export const enthalpy = (c: Linear, T: number) => c.a * T + 0.5 * c.b * T * T;
 
+/** The volumetric heat capacity of the fuel or the cladding at T: the law if the pin has one, else the linear a + b T. */
+export function capacityOf(p: TransientPin, fuel: boolean, T: number): number {
+  const law = fuel ? p.fuelCLaw : p.claddingCLaw;
+  if (law) return evaluate(law, T);
+  const l = fuel ? p.fuelC : p.claddingC;
+  return l.a + l.b * T;
+}
+
+/** The enthalpy per unit volume (the integral of c from 0 to T), for the same law. */
+export function enthalpyOf(p: TransientPin, fuel: boolean, T: number): number {
+  const law = fuel ? p.fuelCLaw : p.claddingCLaw;
+  return law ? primitive(law, T) : enthalpy(fuel ? p.fuelC : p.claddingC, T);
+}
+
 export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
   const nf = p.fuelCells;
   const nc = p.claddingCells;
@@ -139,7 +156,6 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
   for (let i = 0; i < nc; i++) vol.push(Math.PI * (cfaces[i + 1]! ** 2 - cfaces[i]! ** 2));
   const fuelArea = Math.PI * (p.fuelRadius ** 2 - p.fuelInnerRadius ** 2);
   const share: number[] = vol.map((v, i) => (i < nf ? v / fuelArea : 0));
-  const cap = (i: number): Linear => (i < nf ? p.fuelC : p.claddingC);
   const kOf = (i: number, T: number) => conductivityOf(p, i < nf, T);
 
   /** Conductances (W/K per unit length) between cell i and i+1 and to the outside, at temperatures T. */
@@ -208,11 +224,11 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
       const rhs = new Array<number>(n).fill(0);
       for (let i = 0; i < n; i++) {
         // enthalpy change over the step, linearised about the iterate: dH = H(Tn) - H(Told) + c(Tn) (Tnew - Tn)
-        const cc = cap(i);
-        const cTn = cc.a + cc.b * Tn[i]!;
+        const isFuel = i < nf;
+        const cTn = capacityOf(p, isFuel, Tn[i]!);
         const Cdt = (vol[i]! * cTn) / o.dt;
         diag[i] = Cdt;
-        rhs[i] = Cdt * Tn[i]! - (vol[i]! * (enthalpy(cc, Tn[i]!) - enthalpy(cc, Told[i]!))) / o.dt;
+        rhs[i] = Cdt * Tn[i]! - (vol[i]! * (enthalpyOf(p, isFuel, Tn[i]!) - enthalpyOf(p, isFuel, Told[i]!))) / o.dt;
         const srcNow = share[i]! * qs;
         rhs[i]! += theta * srcNow + (scheme === "crank-nicolson" ? 0.5 * share[i]! * q0 + 0.5 * old!.f[i]! : 0);
       }
@@ -268,8 +284,8 @@ export function storedEnergy(p: TransientPin, T: number[], initial: number | num
   const cfaces: number[] = [];
   for (let i = 0; i <= nc; i++) cfaces.push(p.claddingInnerRadius + ((p.claddingOuterRadius - p.claddingInnerRadius) * i) / nc);
   let e = 0;
-  for (let i = 0; i < nf; i++) e += Math.PI * (faces[i + 1]! ** 2 - faces[i]! ** 2) * (enthalpy(p.fuelC, T[i]!) - enthalpy(p.fuelC, T0(i)));
-  for (let i = 0; i < nc; i++) e += Math.PI * (cfaces[i + 1]! ** 2 - cfaces[i]! ** 2) * (enthalpy(p.claddingC, T[nf + i]!) - enthalpy(p.claddingC, T0(nf + i)));
+  for (let i = 0; i < nf; i++) e += Math.PI * (faces[i + 1]! ** 2 - faces[i]! ** 2) * (enthalpyOf(p, true, T[i]!) - enthalpyOf(p, true, T0(i)));
+  for (let i = 0; i < nc; i++) e += Math.PI * (cfaces[i + 1]! ** 2 - cfaces[i]! ** 2) * (enthalpyOf(p, false, T[nf + i]!) - enthalpyOf(p, false, T0(nf + i)));
   return e;
 }
 

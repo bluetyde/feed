@@ -2,7 +2,7 @@
 // conducting layer, and the polynomial fit of a table. Each is checked against something the code under test does not use: brute-force sampling, a
 // numerical quadrature, exact recovery of a known polynomial, a fit done another way.
 import { describe, expect, it } from "vitest";
-import { degree, evaluate, fitPolynomial, minimum, primitive, solveHot } from "../src/core/conductivity";
+import { degree, evaluate, fitPolynomial, lawOf, minimum, primitive, solveHot } from "../src/core/conductivity";
 
 const near = (a: number, b: number, rel = 1e-12) => expect(Math.abs(a - b)).toBeLessThanOrEqual(rel * Math.max(Math.abs(a), Math.abs(b), 1e-300));
 const CUBIC = [2.0, 0.003, -1.2e-6, 2e-10];
@@ -215,8 +215,7 @@ describe("edges the mutation run found", () => {
     expect(() => fitPolynomial(p, 1.5)).toThrow(/degree is 1, 2 or 3/);
   });
 
-  it("lawOf a constant is exactly [k]", async () => {
-    const { lawOf } = await import("../src/core/conductivity");
+  it("lawOf a constant is exactly [k]", () => {
     expect(lawOf({ kind: "constant", k: 3 } as never)).toEqual([3]);
   });
 });

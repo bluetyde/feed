@@ -7,6 +7,7 @@ import { join } from "path";
 import Ajv2020 from "ajv/dist/2020";
 import { steadyEndTime } from "./steadyState";
 import { Law, fitPolynomial, minimum } from "./conductivity";
+import { heatCapacityLaw } from "./heatCapacity";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
 import { Dimension, toSI } from "./units";
@@ -39,7 +40,9 @@ export type Conductivity =
 
 export type HeatCapacity =
   | { kind: "constant"; c: number; referenceTemperature: number }
-  | { kind: "linear"; a: number; b: number; range: [number, number] };
+  | { kind: "linear"; a: number; b: number; range: [number, number] }
+  /** c = a0 + a1 T + a2 T^2 (J/m3/K, T in K) over a range; `fit` is present when it came from a table. */
+  | { kind: "polynomial"; coefficients: number[]; range: [number, number]; fit?: TableFit };
 
 /** A thermal transient: the power history is an input, the step is fixed. All values in SI. */
 export interface NormalizedTransient {
@@ -259,7 +262,7 @@ export function validateCase(doc: unknown): ValidationResult {
       // the heat capacity laws must hold at a uniform starting temperature (a steady start is checked below, on its field), and the work must fit the budget
       const start = transient.initial.kind === "uniform" ? transient.initial.temperature : undefined;
       for (const [region, cp] of [["fuel", fuelCp], ["cladding", claddingCp]] as const) {
-        if (start !== undefined && cp && cp.kind === "linear" && (start < cp.range[0] || start > cp.range[1])) {
+        if (start !== undefined && cp && cp.kind !== "constant" && (start < cp.range[0] || start > cp.range[1])) {
           err("E_OUT_OF_RANGE", "/transient/initialTemperature", "the initial temperature " + start + " K is outside the stated range of the " + region + " heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", { unit: "K", range: cp.range });
           transient = undefined;
           break;
@@ -317,7 +320,7 @@ export function validateCase(doc: unknown): ValidationResult {
       if (field && n) {
         const nf = n.mesh.fuelCells;
         for (const [region, cp, from, to] of [["fuel", n.fuelHeatCapacity, 0, nf], ["cladding", n.claddingHeatCapacity, nf, field.T.length]] as const) {
-          if (!cp || cp.kind !== "linear") continue;
+          if (!cp || cp.kind === "constant") continue;
           const part = field.T.slice(from, to);
           const lo = Math.min(...part);
           const hi = Math.max(...part);
@@ -348,7 +351,7 @@ export function validateCase(doc: unknown): ValidationResult {
       }
       if (startTemperature !== undefined) {
         try {
-          const pulse = generatePulse(spec, { fuelArea: Math.PI * (normalized.fuelRadius ** 2 - normalized.fuelInnerRadius ** 2), fuelC: cp.kind === "constant" ? { a: cp.c, b: 0 } : { a: cp.a, b: cp.b }, startTemperature });
+          const pulse = generatePulse(spec, { fuelArea: Math.PI * (normalized.fuelRadius ** 2 - normalized.fuelInnerRadius ** 2), fuelC: cp.kind === "constant" ? { a: cp.c, b: 0 } : cp.kind === "linear" ? { a: cp.a, b: cp.b } : { a: cp.coefficients[0]!, b: cp.coefficients[1]! }, fuelLaw: heatCapacityLaw(cp), startTemperature });
           const fb = spec.feedback;
           const [lo, hi] = pulse.summary.temperatureRange;
           if (fb.kind === "linear" && (lo < fb.range[0] || hi > fb.range[1])) {
@@ -485,23 +488,70 @@ function conductivity(material: Record<string, any>, region: string, err: ErrFn,
   return undefined;
 }
 
-/** The conductivity must be positive over the whole of its range, exactly (the end points and the turning points of the cubic), not at samples. */
-function positiveOver(c: Law, lo: number, hi: number, base: string, region: string, err: ErrFn): boolean {
+/**
+ * What a temperature-dependent property is, for the rules that conductivity and volumetric heat capacity share (a polynomial over a range, or a table carried by
+ * a fitted polynomial): the words the messages use, the units, how many coefficients, and the values the property may take.
+ */
+interface LawSpec {
+  what: string;
+  /** The law as the message shows it. */
+  law: string;
+  unit: string;
+  valueDim: Dimension;
+  /** The coefficients' keys and dimensions, lowest power first. */
+  terms: readonly (readonly [string, Dimension])[];
+  /** The key of a table point's value. */
+  pointKey: string;
+  /** The highest fit degree: the polynomial's own degree. */
+  maxDegree: number;
+  /** The values the property may take over the range (the units check of a heat capacity); none for a conductivity. */
+  bounds?: readonly [number, number];
+}
+
+const CONDUCTIVITY_SPEC: LawSpec = {
+  what: "conductivity",
+  law: "k = a + b T + c T^2 + d T^3",
+  unit: "W/m/K",
+  valueDim: "conductivity",
+  terms: [["a", "conductivity"], ["b", "conductivityPerK"], ["c", "conductivityPerK2"], ["d", "conductivityPerK3"]],
+  pointKey: "conductivity",
+  maxDegree: 3,
+};
+
+const HEAT_CAPACITY_SPEC: LawSpec = {
+  what: "heat capacity",
+  law: "c = a + b T + c T^2",
+  unit: "J/m3/K",
+  valueDim: "volumetricHeatCapacity",
+  terms: [["a", "volumetricHeatCapacity"], ["b", "volumetricHeatCapacityPerK"], ["c", "volumetricHeatCapacityPerK2"]],
+  pointKey: "heatCapacity",
+  maxDegree: 2,
+  bounds: [HEAT_CAPACITY_MIN, HEAT_CAPACITY_MAX],
+};
+
+/** The property must be positive over the whole of its range, exactly (the end points and the turning points), not at samples; and inside its bounds if it has any. */
+function positiveOver(c: Law, lo: number, hi: number, base: string, region: string, err: ErrFn, spec: LawSpec = CONDUCTIVITY_SPEC): boolean {
   const m = minimum(c, lo, hi);
   if (!(m > 0)) {
-    err("E_OUT_OF_RANGE", base, "the " + region + " conductivity is not positive over its stated range " + lo + " to " + hi + " K (its lowest value there is " + m.toPrecision(4) + " W/m/K)", { unit: "W/m/K", range: [lo, hi] });
+    err("E_OUT_OF_RANGE", base, "the " + region + " " + spec.what + " is not positive over its stated range " + lo + " to " + hi + " K (its lowest value there is " + m.toPrecision(4) + " " + spec.unit + ")", { unit: spec.unit, range: [lo, hi] });
     return false;
+  }
+  if (spec.bounds) {
+    const top = -minimum(c.map((x) => -x), lo, hi);
+    if (m < spec.bounds[0] || top > spec.bounds[1]) {
+      err("E_OUT_OF_RANGE", base, "the " + region + " " + spec.what + " is outside " + spec.bounds[0] + " to " + spec.bounds[1] + " " + spec.unit + " somewhere in its stated range (" + m.toPrecision(4) + " to " + top.toPrecision(4) + "); check the units", { unit: spec.unit, range: [lo, hi] });
+      return false;
+    }
   }
   return true;
 }
 
-/** k = a + b T + c T^2 + d T^3 over a stated range. All four coefficients are given (a zero is written as a zero), with a source and the range. */
-function polynomialConductivity(set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn): Conductivity | undefined {
-  const dims = [["a", "conductivity"], ["b", "conductivityPerK"], ["c", "conductivityPerK2"], ["d", "conductivityPerK3"]] as const;
-  for (const [key] of dims) if (set[key] === undefined) err("E_PROP_MISSING", base + "/" + key, "the polynomial conductivity k = a + b T + c T^2 + d T^3 needs '" + key + "' (give 0 for a term that is not there)");
+/** A polynomial over a stated range. Every coefficient is given (a zero is written as a zero), with a source and the range. */
+function polynomialLaw(spec: LawSpec, set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn): { coefficients: number[]; range: [number, number] } | undefined {
+  for (const [key] of spec.terms) if (set[key] === undefined) err("E_PROP_MISSING", base + "/" + key, "the polynomial " + spec.what + " " + spec.law + " needs '" + key + "' (give 0 for a term that is not there)");
   const range = set.validRange;
-  if (!isObject(range) || range.min === undefined || range.max === undefined) err("E_PROP_MISSING", base + "/validRange", "a temperature-dependent conductivity needs the temperature range it applies to (min and max)");
-  const co = dims.map(([key, dim]) => (set[key] === undefined ? undefined : qty(set[key], dim, base + "/" + key)));
+  if (!isObject(range) || range.min === undefined || range.max === undefined) err("E_PROP_MISSING", base + "/validRange", "a temperature-dependent " + spec.what + " needs the temperature range it applies to (min and max)");
+  const co = spec.terms.map(([key, dim]) => (set[key] === undefined ? undefined : qty(set[key], dim, base + "/" + key)));
   const lo = isObject(range) && range.min !== undefined ? qty(range.min, "temperature", base + "/validRange/min") : undefined;
   const hi = isObject(range) && range.max !== undefined ? qty(range.max, "temperature", base + "/validRange/max") : undefined;
   if (co.some((x) => x === undefined) || lo === undefined || hi === undefined || sourceMissing) return undefined;
@@ -514,30 +564,37 @@ function polynomialConductivity(set: Record<string, any>, region: string, base: 
     return undefined;
   }
   const coefficients = co as number[];
-  if (!positiveOver(coefficients, lo, hi, base, region, err)) return undefined;
-  return { kind: "polynomial", coefficients, range: [lo, hi] };
+  if (!positiveOver(coefficients, lo, hi, base, region, err, spec)) return undefined;
+  return { coefficients, range: [lo, hi] };
 }
 
-/** The most points a table may have, and the tolerance a fit may be allowed (a fraction of k): beyond it the table is not being represented, it is being ignored. */
+const polynomialConductivity = (set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn): Conductivity | undefined => {
+  const law = polynomialLaw(CONDUCTIVITY_SPEC, set, region, base, sourceMissing, err, qty);
+  return law ? { kind: "polynomial", ...law } : undefined;
+};
+
+/** The most points a table may have, and the tolerance a fit may be allowed (a fraction of the value): beyond it the table is not being represented, it is being ignored. */
 export const MAX_TABLE_POINTS = 200;
 export const MAX_FIT_TOLERANCE = 0.5;
 
 /**
- * A table of (temperature, conductivity) points, carried by a polynomial FITTED to it: OFFBEAT has no tabulated conductivity (docs/spike/property-model-survey.md).
- * The case states the degree (1 to 3) and the largest deviation it accepts; a fit that is further from the table than that is refused (E_FIT), never smoothed
- * silently. The range is the table's own: a law fitted to 300 to 600 K says nothing about 900 K.
+ * A table of (temperature, value) points, carried by a polynomial FITTED to it: OFFBEAT has no tabulated conductivity or heat capacity (docs/spike/property-model-survey.md).
+ * The case states the degree (1 to the polynomial's own) and the largest deviation it accepts; a fit that is further from the table than that is refused (E_FIT),
+ * never smoothed silently. The range is the table's own: a law fitted to 300 to 600 K says nothing about 900 K.
  */
-function tableConductivity(set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn): Conductivity | undefined {
+function tableLaw(spec: LawSpec, set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn): { coefficients: number[]; range: [number, number]; fit: TableFit } | undefined {
   const pts = set.points;
   if (!Array.isArray(pts)) {
-    err("E_PROP_MISSING", base + "/points", "a conductivity table needs 'points': a list of {temperature, conductivity}");
+    err("E_PROP_MISSING", base + "/points", "a " + spec.what + " table needs 'points': a list of {temperature, " + spec.pointKey + "}");
     return undefined;
   }
   const fitSpec = set.fit;
-  if (!isObject(fitSpec) || fitSpec.degree === undefined || fitSpec.tolerance === undefined) err("E_PROP_MISSING", base + "/fit", "a conductivity table is carried by a fitted polynomial: give fit.degree (1, 2 or 3) and fit.tolerance (the largest deviation from the table you accept, as a fraction or in %)");
+  const degreeList = Array.from({ length: spec.maxDegree }, (_, i) => i + 1);
+  const degreeText = degreeList.slice(0, -1).join(", ") + " or " + spec.maxDegree;
+  if (!isObject(fitSpec) || fitSpec.degree === undefined || fitSpec.tolerance === undefined) err("E_PROP_MISSING", base + "/fit", "a " + spec.what + " table is carried by a fitted polynomial: give fit.degree (" + degreeText + ") and fit.tolerance (the largest deviation from the table you accept, as a fraction or in %)");
   let ok = !sourceMissing && isObject(fitSpec) && fitSpec.degree !== undefined && fitSpec.tolerance !== undefined;
   if (pts.length < 2 || pts.length > MAX_TABLE_POINTS) {
-    err("E_OUT_OF_RANGE", base + "/points", "a conductivity table has 2 to " + MAX_TABLE_POINTS + " points; this one has " + pts.length);
+    err("E_OUT_OF_RANGE", base + "/points", "a " + spec.what + " table has 2 to " + MAX_TABLE_POINTS + " points; this one has " + pts.length);
     ok = false;
   }
   const table: { temperature: number; conductivity: number }[] = [];
@@ -545,18 +602,18 @@ function tableConductivity(set: Record<string, any>, region: string, base: strin
     pts.forEach((p: unknown, i: number) => {
       const at = base + "/points/" + i;
       if (!isObject(p)) {
-        err("E_SCHEMA_INVALID", at, "each point is {temperature, conductivity}");
+        err("E_SCHEMA_INVALID", at, "each point is {temperature, " + spec.pointKey + "}");
         ok = false;
         return;
       }
       const T = qty(p.temperature, "temperature", at + "/temperature");
-      const k = qty(p.conductivity, "conductivity", at + "/conductivity");
+      const k = qty(p[spec.pointKey], spec.valueDim, at + "/" + spec.pointKey);
       if (T === undefined || k === undefined) {
         ok = false;
         return;
       }
       if (!(T > 0)) err("E_OUT_OF_RANGE", at + "/temperature", "a temperature above 0 K", { unit: "K" }), (ok = false);
-      else if (!(k > 0)) err("E_OUT_OF_RANGE", at + "/conductivity", "a conductivity above 0 W/m/K", { unit: "W/m/K" }), (ok = false);
+      else if (!(k > 0)) err("E_OUT_OF_RANGE", at + "/" + spec.pointKey, "a " + spec.what + " above 0 " + spec.unit, { unit: spec.unit }), (ok = false);
       else if (table.length > 0 && !(T > table[table.length - 1]!.temperature)) err("E_OUT_OF_RANGE", at + "/temperature", "the table's temperatures must increase strictly (point " + i + " is " + T + " K after " + table[table.length - 1]!.temperature + " K)", { unit: "K" }), (ok = false);
       else table.push({ temperature: T, conductivity: k });
     });
@@ -565,8 +622,8 @@ function tableConductivity(set: Record<string, any>, region: string, base: strin
   let tolerance: number | undefined;
   if (isObject(fitSpec)) {
     if (fitSpec.degree !== undefined) {
-      if (typeof fitSpec.degree !== "number" || !Number.isInteger(fitSpec.degree) || fitSpec.degree < 1 || fitSpec.degree > 3) {
-        err("E_OUT_OF_RANGE", base + "/fit/degree", "the fit degree is 1, 2 or 3");
+      if (typeof fitSpec.degree !== "number" || !Number.isInteger(fitSpec.degree) || fitSpec.degree < 1 || fitSpec.degree > spec.maxDegree) {
+        err("E_OUT_OF_RANGE", base + "/fit/degree", "the fit degree is " + degreeText);
         ok = false;
       } else degreeWanted = fitSpec.degree;
     }
@@ -574,7 +631,7 @@ function tableConductivity(set: Record<string, any>, region: string, base: strin
       tolerance = qty(fitSpec.tolerance, "fraction", base + "/fit/tolerance");
       if (tolerance === undefined) ok = false;
       else if (!(tolerance > 0 && tolerance <= MAX_FIT_TOLERANCE)) {
-        err("E_OUT_OF_RANGE", base + "/fit/tolerance", "the fit tolerance is above 0 and at most " + MAX_FIT_TOLERANCE * 100 + "% of the table's conductivity");
+        err("E_OUT_OF_RANGE", base + "/fit/tolerance", "the fit tolerance is above 0 and at most " + MAX_FIT_TOLERANCE * 100 + "% of the table's " + spec.what);
         ok = false;
       }
     }
@@ -597,8 +654,14 @@ function tableConductivity(set: Record<string, any>, region: string, base: strin
   }
   const lo = table[0]!.temperature;
   const hi = table[table.length - 1]!.temperature;
-  if (!positiveOver(fit.coefficients, lo, hi, base + "/fit", region, err)) return undefined;
-  return { kind: "polynomial", coefficients: fit.coefficients, range: [lo, hi], fit: { degree: degreeWanted, tolerance, maxRelativeDeviation: fit.maxRelativeDeviation, worstAt: fit.worstAt, points: table } };
+  const coefficients = fit.coefficients.slice(0, spec.terms.length);
+  if (!positiveOver(coefficients, lo, hi, base + "/fit", region, err, spec)) return undefined;
+  return { coefficients, range: [lo, hi], fit: { degree: degreeWanted, tolerance, maxRelativeDeviation: fit.maxRelativeDeviation, worstAt: fit.worstAt, points: table } };
+}
+
+function tableConductivity(set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn): Conductivity | undefined {
+  const t = tableLaw(CONDUCTIVITY_SPEC, set, region, base, sourceMissing, err, qty);
+  return t ? { kind: "polynomial", ...t } : undefined;
 }
 
 /** Volumetric heat capacity c (J/m3/K) of one solid: constant, or linear c = a + b T (T in K) over a stated range. Needed by transients only. */
@@ -659,7 +722,15 @@ function heatCapacity(material: Record<string, any>, region: string, err: ErrFn,
     }
     return { kind: "linear", a, b: bb, range: [lo, hi] };
   }
-  err("E_UNSUPPORTED", base + "/model", "unknown heat capacity model '" + String(set.model) + "'; supported: 'constant' and 'linear'");
+  if (set.model === "polynomial") {
+    const t = polynomialLaw(HEAT_CAPACITY_SPEC, set, region, base, sourceMissing, err, qty);
+    return t ? { kind: "polynomial", ...t } : undefined;
+  }
+  if (set.model === "table") {
+    const t = tableLaw(HEAT_CAPACITY_SPEC, set, region, base, sourceMissing, err, qty);
+    return t ? { kind: "polynomial", ...t } : undefined;
+  }
+  err("E_UNSUPPORTED", base + "/model", "unknown heat capacity model '" + String(set.model) + "'; supported: constant, linear, polynomial, table");
   return undefined;
 }
 

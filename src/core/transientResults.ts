@@ -7,6 +7,7 @@ import { GeneratedPulse } from "./pointKinetics";
 import { Check, DomainFinding, fitChecks, ResultsError, THERMAL_ONLY_TEXT, assertWholeFoamFile, parsePatchValue, parseScalarField, parseVectorField } from "./resultsParser";
 import { FvTransient, Linear, TransientPin, enthalpy, maxOf, minOf, solveTransientFv, steadyFv, storedEnergy } from "./transientFv";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
+import { heatCapacityLaw, heatCapacityRange } from "./heatCapacity";
 
 const bad = (message: string): never => {
   throw new ResultsError("E_OUTPUT_INCOMPLETE", message);
@@ -77,7 +78,7 @@ export const CROSS_CHECK_RISE_FRACTION = 0.005;
 
 /** A conductivity as the linear part the pin model keeps for callers that want {a, b}; the full law travels in fuelLaw / claddingLaw. */
 const lin = (k: Conductivity): Linear => (k.kind === "constant" ? { a: k.k, b: 0 } : k.kind === "linear" ? { a: k.a, b: k.b } : { a: k.coefficients[0]!, b: k.coefficients[1]! });
-const linC = (c: HeatCapacity): Linear => (c.kind === "constant" ? { a: c.c, b: 0 } : { a: c.a, b: c.b });
+const linC = (c: HeatCapacity): Linear => (c.kind === "constant" ? { a: c.c, b: 0 } : c.kind === "linear" ? { a: c.a, b: c.b } : { a: c.coefficients[0]!, b: c.coefficients[1]! });
 
 /** The independent model of a normalized transient case. */
 export function pinOf(c: NormalizedCase, cellFactor = 1): TransientPin {
@@ -104,6 +105,8 @@ export function pinOf(c: NormalizedCase, cellFactor = 1): TransientPin {
     claddingLaw: lawOf(c.claddingConductivity),
     fuelC: linC(c.fuelHeatCapacity),
     claddingC: linC(c.claddingHeatCapacity),
+    fuelCLaw: heatCapacityLaw(c.fuelHeatCapacity),
+    claddingCLaw: heatCapacityLaw(c.claddingHeatCapacity),
     boundary: c.boundary.kind === "convective" ? { kind: "convective", bulkTemperature: c.boundary.bulkTemperature, heatTransferCoefficient: c.boundary.heatTransferCoefficient } : { kind: "surface-temperature", surfaceTemperature: c.boundary.surfaceTemperature },
     power,
   };
@@ -401,11 +404,12 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const rangesOf = (kk: Conductivity, cc: HeatCapacity | undefined, region: "fuel" | "cladding", e: { lo: number; hi: number }) => {
     const kr = rangeOf(kk);
     if (kr) range(region, e.lo, e.hi, kr);
-    if (cc && cc.kind === "linear") range(region, e.lo, e.hi, cc.range);
+    const cr = cc && heatCapacityRange(cc);
+    if (cr) range(region, e.lo, e.hi, cr);
   };
   rangesOf(c.fuelConductivity, c.fuelHeatCapacity, "fuel", extremes(0, nf, fv.trace!.fuelMin, fv.trace!.fuelMax));
   rangesOf(c.claddingConductivity, c.claddingHeatCapacity, "cladding", extremes(nf, n, fv.trace!.claddingMin, fv.trace!.claddingMax));
-  const anyLinear = rangeOf(c.fuelConductivity) !== undefined || rangeOf(c.claddingConductivity) !== undefined || c.fuelHeatCapacity!.kind === "linear" || c.claddingHeatCapacity!.kind === "linear";
+  const anyLinear = rangeOf(c.fuelConductivity) !== undefined || rangeOf(c.claddingConductivity) !== undefined || c.fuelHeatCapacity!.kind !== "constant" || c.claddingHeatCapacity!.kind !== "constant";
   const domain = { verdict: (findings.length === 0 ? "in-domain" : "out-of-domain") as "in-domain" | "out-of-domain", findings };
   if (anyLinear) {
     checks.push({ id: "propertyRange", label: "Property laws within their stated ranges", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated ranges at every output and at every step of the independent solution" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". A law was extrapolated; this result is out-of-domain." });

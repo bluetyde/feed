@@ -15,6 +15,8 @@
 // Integration: Dormand-Prince 5(4) with error control, steps capped at endTime/5000. The solution is then thinned to a polyline of at
 // most MAX_POINTS points whose energy matches the integrated energy to ENERGY_TOLERANCE.
 
+import { degree, solveHot } from "./conductivity";
+
 export interface DelayedGroup {
   /** Delayed fraction beta_i (dimensionless). */
   beta: number;
@@ -48,6 +50,8 @@ export interface KineticsSpec {
 export interface KineticsContext {
   fuelArea: number;
   fuelC: { a: number; b: number };
+  /** The heat capacity as coefficients c0 + c1 T + c2 T^2 (src/core/heatCapacity.ts); when it has a quadratic term it is used instead of fuelC. */
+  fuelLaw?: readonly number[];
   startTemperature: number;
 }
 
@@ -104,6 +108,16 @@ export function temperatureRise(c: { a: number; b: number }, T0: number, e: numb
   return (2 * e) / (c0 + Math.sqrt(disc));
 }
 
+/** The same for any law of degree 2 or 3: the temperature above T0 at which the enthalpy has risen by e (a bracketed solve; the law must stay positive on the way). */
+export function temperatureRiseLaw(law: readonly number[], T0: number, e: number): number {
+  try {
+    return solveHot(law, T0, e) - T0;
+  } catch (err) {
+    if (err instanceof RangeError) throw new KineticsError("the fuel heat capacity law cannot take this much energy: " + err.message);
+    throw err;
+  }
+}
+
 /** Reactivity the temperature change from T0 to T brings: the integral of the differential coefficient. */
 export function feedbackReactivity(f: Feedback, T0: number, T: number): number {
   return f.kind === "constant" ? f.alpha * (T - T0) : f.a * (T - T0) + 0.5 * f.b * (T * T - T0 * T0);
@@ -128,7 +142,8 @@ export function integrate(spec: KineticsSpec, ctx: KineticsContext): KineticsTra
   const betaTotal = spec.groups.reduce((s, g) => s + g.beta, 0);
   const scale = (spec.peakingFactor / (spec.pins * spec.activeLength)) / ctx.fuelArea; // J/m3 of fuel per J of total energy
   const inserted = (t: number) => (spec.insertionTime > 0 ? spec.reactivity * Math.min(1, t / spec.insertionTime) : spec.reactivity);
-  const fuelTemperature = (E: number) => ctx.startTemperature + temperatureRise(ctx.fuelC, ctx.startTemperature, Math.max(0, E) * scale);
+  const curved = ctx.fuelLaw !== undefined && degree(ctx.fuelLaw) > 1;
+  const fuelTemperature = (E: number) => ctx.startTemperature + (curved ? temperatureRiseLaw(ctx.fuelLaw!, ctx.startTemperature, Math.max(0, E) * scale) : temperatureRise(ctx.fuelC, ctx.startTemperature, Math.max(0, E) * scale));
   const reactivityAt = (t: number, E: number) => inserted(t) + feedbackReactivity(spec.feedback, ctx.startTemperature, fuelTemperature(E));
 
   const rhs = (t: number, y: number[], out: number[]) => {

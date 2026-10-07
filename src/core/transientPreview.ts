@@ -2,6 +2,8 @@
 // (transientFv.ts) stands in. It is a preview, labelled as such; the solver result is what the run produces.
 
 import { adiabaticTemperature } from "./transientExact";
+import { degree, solveHot } from "./conductivity";
+import { heatCapacityLaw } from "./heatCapacity";
 import { maxOf } from "./transientFv";
 import { GeneratedPulse } from "./pointKinetics";
 import { FvTransient } from "./transientFv";
@@ -41,9 +43,9 @@ export function transientPreview(c: NormalizedCase, external?: { fv: FvTransient
   const energy = depositedEnergy(t.times, t.linearHeatRate, t.endTime);
   const perVolume = energy / (Math.PI * (c.fuelRadius ** 2 - c.fuelInnerRadius ** 2));
   const cp = c.fuelHeatCapacity!;
-  const a = cp.kind === "constant" ? cp.c : cp.a;
-  const b = cp.kind === "constant" ? 0 : cp.b;
-  const adiabaticPeak = adiabaticTemperature(a, b, initialState(c).fuelPeak, perVolume);
+  const law = heatCapacityLaw(cp);
+  const start = initialState(c).fuelPeak;
+  const adiabaticPeak = degree(law) > 1 ? solveHot(law, start, perVolume) : adiabaticTemperature(law[0]!, law[1] ?? 0, start, perVolume);
   let preview: TransientPreview["preview"] = null;
   let skipped: string | null = null;
   if (previewTooBig(c)) skipped = "the preview would take too long for this mesh and number of steps; run the solver instead";

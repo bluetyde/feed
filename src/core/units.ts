@@ -1,7 +1,7 @@
 // Quantity parsing: every physical input is {value, unit}; the unit must belong to the expected dimension.
 // SI is used inside the app (docs/ARCHITECTURE.md, Conventions).
 
-export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "conductivityPerK2" | "conductivityPerK3" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
+export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
 
 interface UnitDef {
   dim: Dimension;
@@ -34,6 +34,9 @@ const UNITS: Record<string, UnitDef> = {
   "J/m3/K2": { dim: "volumetricHeatCapacityPerK", scale: 1 },
   "J/cm3/K2": { dim: "volumetricHeatCapacityPerK", scale: 1e6 },
   "MJ/m3/K2": { dim: "volumetricHeatCapacityPerK", scale: 1e6 },
+  "J/m3/K3": { dim: "volumetricHeatCapacityPerK2", scale: 1 },
+  "J/cm3/K3": { dim: "volumetricHeatCapacityPerK2", scale: 1e6 },
+  "MJ/m3/K3": { dim: "volumetricHeatCapacityPerK2", scale: 1e6 },
   W: { dim: "power", scale: 1 },
   kW: { dim: "power", scale: 1e3 },
   MW: { dim: "power", scale: 1e6 },
@@ -61,6 +64,7 @@ export const SI_UNIT: Record<Dimension, string> = {
   time: "s",
   volumetricHeatCapacity: "J/m3/K",
   volumetricHeatCapacityPerK: "J/m3/K2",
+  volumetricHeatCapacityPerK2: "J/m3/K3",
   power: "W",
   reactivity: "dk/k",
   reactivityPerK: "dk/k/K",

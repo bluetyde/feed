@@ -134,6 +134,11 @@ function heatCapacityLines(cp: HeatCapacity | undefined): string {
   const cpLine = (v: number) => `        Cp          Cp    [0 2 -2 -1 0]  ${num(v)};\n`;
   if (cp === undefined) return cpLine(300);
   if (cp.kind === "constant") return cpLine(cp.c / WRITER_DENSITY);
+  if (cp.kind === "polynomial") {
+    // SiCSnead evaluates par1 + par2 T + par3 T^2 + par4 T^-2 (T in K); par4 = 0 leaves the quadratic. All four are written (an omitted one takes a default silently).
+    const [c0, c1, c2] = cp.coefficients as [number, number, number];
+    return cpLine(300) + `        heatCapacityModel SiCSnead;\n        heatCapacity { par1 ${num(c0 / WRITER_DENSITY)}; par2 ${num(c1 / WRITER_DENSITY)}; par3 ${num(c2 / WRITER_DENSITY)}; par4 0; }\n`;
+  }
   return cpLine(300) + `        heatCapacityModel steel1515TiBanerjee;\n        heatCapacity { par1 ${num(cp.a / WRITER_DENSITY)}; par2 ${num(cp.b / WRITER_DENSITY)}; par3 0; }\n`;
 }
 
@@ -413,7 +418,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
           steadyStart
             ? { field: "transient.initialSteadyLinearHeatRate", file: "0/T", note: "nonuniform internalField: the steady temperature of every cell at that heat rate, from FEED's independent finite-volume solution on this mesh (blockMesh order: fuel cells inner to outer, then cladding cells inner to outer); the patches start from a uniform value near them" }
             : { field: "transient.initialTemperature", file: "0/T", note: "uniform internalField" },
-          { field: "materials.* thermal.volumetricHeatCapacity", file: "constant/solverDict", note: "rho " + WRITER_DENSITY + " kg/m3 and Cp = c / rho (constant), or steel1515TiBanerjee with par1 = a / rho, par2 = b / rho, par3 = 0 (linear c(T)); the model name is a misnomer" },
+          { field: "materials.* thermal.volumetricHeatCapacity", file: "constant/solverDict", note: "rho " + WRITER_DENSITY + " kg/m3 and Cp = c / rho (constant), steel1515TiBanerjee with par1 = a / rho, par2 = b / rho, par3 = 0 (linear c(T); the model name is a misnomer), or SiCSnead with par1..par3 = a, b, c over rho and par4 = 0 (quadratic c(T), all four written)" },
         ]
       : [{ field: "power.linearHeatRate", file: "constant/solverDict", note: "heatSourceOptions.lhgr, flat profiles" }]),
     { field: "materials.fuel thermal.conductivity", file: "constant/solverDict", note: conductivityNote("fuel", kf) },

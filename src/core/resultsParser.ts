@@ -132,16 +132,22 @@ export interface ResultsRecord {
  */
 export function fitChecks(c: NormalizedCase): Check[] {
   const out: Check[] = [];
-  for (const [region, k] of [["fuel", c.fuelConductivity], ["cladding", c.claddingConductivity]] as const) {
-    if (k.kind !== "polynomial" || !k.fit) continue;
+  const regions = [
+    ["fuel", "conductivity", "conductivityFitFuel", c.fuelConductivity],
+    ["cladding", "conductivity", "conductivityFitCladding", c.claddingConductivity],
+    ["fuel", "heat capacity", "heatCapacityFitFuel", c.fuelHeatCapacity],
+    ["cladding", "heat capacity", "heatCapacityFitCladding", c.claddingHeatCapacity],
+  ] as const;
+  for (const [region, what, id, k] of regions) {
+    if (!k || k.kind !== "polynomial" || !k.fit) continue;
     const f = k.fit;
     out.push({
-      id: region === "fuel" ? "conductivityFitFuel" : "conductivityFitCladding",
-      label: `The ${region}'s tabulated conductivity vs the polynomial that was run (max deviation at the table's points)`,
+      id,
+      label: `The ${region}'s tabulated ${what} vs the polynomial that was run (max deviation at the table's points)`,
       value: f.maxRelativeDeviation,
       unit: "relative",
       verdict: f.maxRelativeDeviation <= f.tolerance ? "pass" : "fail",
-      note: `a degree ${f.degree} polynomial fitted by least squares to ${f.points.length} points from ${k.range[0]} to ${k.range[1]} K; the largest deviation is ${(f.maxRelativeDeviation * 100).toPrecision(3)}% at ${f.worstAt} K; tolerance ${(f.tolerance * 100).toPrecision(3)}%. OFFBEAT has no tabulated conductivity, so what ran is the polynomial, not the table`,
+      note: `a degree ${f.degree} polynomial fitted by least squares to ${f.points.length} points from ${k.range[0]} to ${k.range[1]} K; the largest deviation is ${(f.maxRelativeDeviation * 100).toPrecision(3)}% at ${f.worstAt} K; tolerance ${(f.tolerance * 100).toPrecision(3)}%. OFFBEAT has no tabulated ${what}, so what ran is the polynomial, not the table`,
     });
   }
   return out;

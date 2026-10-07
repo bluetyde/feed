@@ -82,6 +82,13 @@ add("good", "synthetic-pulse", pulse(), {});
   };
   add("good", "pulse-linear-heat-capacity", c, {});
 }
+// heat capacity as a quadratic or as a fitted table (docs/conductivity-models.md)
+const polyCp = (extra = {}) => ({ model: "polynomial", a: { value: 0.9, unit: "MJ/m3/K" }, b: { value: 0.00417, unit: "MJ/m3/K2" }, c: { value: -1e-6, unit: "MJ/m3/K3" }, validRange: { min: { value: 250, unit: "K" }, max: { value: 1500, unit: "K" } }, source: "synthetic: a quadratic chosen to exercise the polynomial model", ...extra });
+const tableCp = (rows, extra = {}) => ({ model: "table", points: (rows || [[250, 1.9], [500, 2.9], [800, 4.0], [1200, 5.0], [1500, 5.4]]).map(([T, c]) => ({ temperature: { value: T, unit: "K" }, heatCapacity: { value: c, unit: "MJ/m3/K" } })), fit: { degree: 2, tolerance: { value: 5, unit: "%" } }, source: "synthetic: a table chosen to exercise the table model", ...extra });
+const withFuelCp = (set) => { const c = pulse(); c.materials.fuel.sets["thermal.volumetricHeatCapacity"] = set; return c; };
+add("good", "pulse-quadratic-heat-capacity", withFuelCp(polyCp()), {});
+add("good", "pulse-quadratic-heat-capacity-zero-term", withFuelCp(polyCp({ c: { value: 0, unit: "MJ/m3/K3" } })), {});
+add("good", "pulse-table-heat-capacity", withFuelCp(tableCp()), {});
 
 // ---- bad: one break each
 const bad = (name, code, field, mutate) => {
@@ -130,6 +137,21 @@ badT("range-heat-capacity-implausible", "E_OUT_OF_RANGE", "/materials/fuel/sets/
 badT("range-initial-temperature-outside-heat-capacity-range", "E_OUT_OF_RANGE", "/transient/initialTemperature", (c) => {
   c.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: { value: 0.9, unit: "MJ/m3/K" }, b: { value: 0.00417, unit: "MJ/m3/K2" }, validRange: { min: { value: 400, unit: "K" }, max: { value: 1500, unit: "K" } }, source: "synthetic" };
 });
+const dropK = (o, k) => { const x = JSON.parse(JSON.stringify(o)); delete x[k]; return x; };
+const badCp = (name, code, field, set) => add("bad", name, withFuelCp(set), { code, field });
+const CP = "/materials/fuel/sets/thermal.volumetricHeatCapacity";
+badCp("cp-polynomial-missing-coefficient", "E_PROP_MISSING", CP + "/c", dropK(polyCp(), "c"));
+badCp("cp-polynomial-no-source", "E_PROP_MISSING", CP + "/source", dropK(polyCp(), "source"));
+badCp("cp-polynomial-no-range", "E_PROP_MISSING", CP + "/validRange", dropK(polyCp(), "validRange"));
+badCp("cp-polynomial-wrong-unit", "E_UNITS", CP + "/c", polyCp({ c: { value: -1e-6, unit: "MJ/m3/K2" } }));
+badCp("cp-polynomial-negative-inside-range", "E_OUT_OF_RANGE", CP, polyCp({ c: { value: -6e-6, unit: "MJ/m3/K3" } }));
+badCp("cp-polynomial-implausible-size", "E_OUT_OF_RANGE", CP, polyCp({ a: { value: 0.0000005, unit: "MJ/m3/K" }, b: { value: 0, unit: "MJ/m3/K2" }, c: { value: 0, unit: "MJ/m3/K3" } }));
+badCp("cp-table-degree-3", "E_OUT_OF_RANGE", CP + "/fit/degree", tableCp(null, { fit: { degree: 3, tolerance: { value: 5, unit: "%" } } }));
+badCp("cp-table-no-fit", "E_PROP_MISSING", CP + "/fit", dropK(tableCp(), "fit"));
+badCp("cp-table-too-few-points-for-the-degree", "E_FIT", CP + "/fit/degree", tableCp([[250, 1.9], [1500, 5.4]]));
+badCp("cp-table-fit-too-far", "E_FIT", CP + "/fit", tableCp(null, { fit: { degree: 1, tolerance: { value: 1, unit: "%" } } }));
+badCp("cp-table-point-wrong-key", "E_UNITS", CP + "/points/0/heatCapacity", tableCp(null, { points: [{ temperature: { value: 250, unit: "K" }, conductivity: { value: 1.9, unit: "MJ/m3/K" } }, { temperature: { value: 500, unit: "K" }, heatCapacity: { value: 2.9, unit: "MJ/m3/K" } }, { temperature: { value: 800, unit: "K" }, heatCapacity: { value: 4, unit: "MJ/m3/K" } }] }));
+badT("cp-initial-temperature-outside-polynomial-range", "E_OUT_OF_RANGE", "/transient/initialTemperature", (c) => { c.materials.fuel.sets["thermal.volumetricHeatCapacity"] = polyCp({ validRange: { min: { value: 400, unit: "K" }, max: { value: 1500, unit: "K" } } }); });
 badT("time-too-much-work", "E_TIME", "/transient/timeStep", (c) => {
   c.mesh = { fuelCells: 2000, claddingCells: 100 };
   c.transient.timeStep = { value: 0.05, unit: "ms" };
