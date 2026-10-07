@@ -2,7 +2,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { evaluate, minimum, primitive, solveHot } from "../src/core/conductivity";
 import { FileLike, importMaterial, MAX_MANIFEST_BYTES, ORIGIN_NAME_MAX, originProblem, PROJECT_ID_MAX, readProject, readProjectAsync, setsHash, THERMAL_SET_SCHEMA } from "../src/core/projectImport";
 import { saveUserMaterial, USER_LIBRARY_SCHEMA } from "../src/core/userLibrary";
@@ -248,5 +248,47 @@ describe("findings 5, 6 and 7: saving an imported material", () => {
     expect(originProblem({ ...m.origin, setsSha256: setsHash({}) + "0" }, m.materialId)).not.toBeNull();
     expect(originProblem({ ...m.origin, materialId: "other" }, m.materialId)).not.toBeNull();
     expect(originProblem(null, m.materialId)).not.toBeNull();
+  });
+});
+
+describe("edges the mutation run of the fixes found", () => {
+  it("2: a law that overflows only at the hot end (finite at the cold end) is refused, and one whose lowest value overflows to minus infinity says it cannot be evaluated, not that it is not positive", () => {
+    const hotEnd = validateMaterial("fuel", polyMaterial([1, 0, 1e308, 0], [0.001, 2000]));
+    expect(hotEnd.errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+    expect(hotEnd.errors[0]!.message).toMatch(/cannot be evaluated/);
+    const coldEnd = validateMaterial("fuel", polyMaterial([1, 0, -1e308, 0], [0.001, 2000]));
+    expect(coldEnd.errors[0]!.message).toMatch(/cannot be evaluated/);
+  });
+  it("4: a finished read leaves no deadline timer behind", async () => {
+    vi.useFakeTimers();
+    try {
+      const text = Buffer.from(JSON.stringify({ schema: "seed.project/0.1", projectId: "p", materials: [] }));
+      let given = 0;
+      const file = { stat: async () => ({ isFile: () => true, size: text.length }), read: async (buf: Buffer, off: number, len: number) => { const n = Math.min(len, text.length - given); text.copy(buf, off, given, given + n); given += n; return { bytesRead: n }; }, close: async () => undefined };
+      const r = await readProjectAsync("x/seed.project.json", { open: async () => file, isDirectory: async () => false });
+      expect(r.ok).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it("5: a library entry with the same origin but a revision below what that origin asks for (a hand-edited file) is not taken as unchanged", () => {
+    const k = { schema: THERMAL_SET_SCHEMA, model: "constant", value: q(3, "W/m/K"), referenceTemperature: q(300, "K"), source: { kind: "sourced", text: "x" } };
+    const man = { schema: "seed.project/0.1", projectId: "p", materials: [{ id: "mat-x1", revision: 8, name: "n", sets: { "thermal.conductivity": k } }] };
+    const r = importMaterial(man, { id: "mat-x1", region: "fuel" });
+    if (!r.ok) throw new Error("refused");
+    const saved = process.env.FEED_USER_LIBRARY;
+    const file = join(mkdtempSync(join(tmpdir(), "feed-lib-")), "materials.json");
+    process.env.FEED_USER_LIBRARY = file;
+    try {
+      const low = { ...r.material, revision: 2 };
+      writeFileSync(file, JSON.stringify({ schema: USER_LIBRARY_SCHEMA, entries: [{ region: "fuel", name: "Same", label: "custom", description: "", citation: "", savedAt: "2026-10-07T00:00:00Z", material: low }] }));
+      const out = saveUserMaterial({ region: "fuel", name: "Same", material: r.material }, new Set());
+      expect(out.ok && out.status).toBe("saved");
+      expect(out.ok && out.entry.material.revision).toBe(8);
+    } finally {
+      if (saved === undefined) delete process.env.FEED_USER_LIBRARY;
+      else process.env.FEED_USER_LIBRARY = saved;
+    }
   });
 });

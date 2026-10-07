@@ -81,11 +81,10 @@ export function solveHot(c: Law, tCold: number, integral: number): number {
   if (!(evaluate(c, tCold) > 0)) throw new RangeError("conductivity is not positive at the cold side");
   const base = primitive(c, tCold);
   let hi = tCold + 1;
-  let good = tCold; // the last bracket end with k > 0 all the way from tCold
   for (let i = 0; i < 60; i++) {
     if (!(minimum(c, tCold, hi) > 0)) {
       // k reaches zero before hi, which does not mean the integral does: find the last temperature with k > 0 all the way, and see whether the integral is reached by then
-      let lo = good;
+      let lo = tCold;
       let up = hi;
       for (let j = 0; j < 200; j++) {
         const mid = 0.5 * (lo + up);
@@ -96,7 +95,6 @@ export function solveHot(c: Law, tCold: number, integral: number): number {
       hi = lo;
       break;
     }
-    good = hi;
     if (primitive(c, hi) - base >= integral) break;
     hi = tCold + 2 * (hi - tCold);
     if (i === 59) throw new RangeError("no temperature below 1e18 K reaches the conductivity integral");

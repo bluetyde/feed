@@ -62,7 +62,7 @@ export const ORIGIN_NAME_MAX = 120;
 export const ORIGIN_RULE_TEXT = "origin records where an imported material came from: kind seed-project, the project id (1 to " + PROJECT_ID_MAX + " characters), the material's id and revision there (a whole number from 1 that adding one keeps exact), its name (at most " + ORIGIN_NAME_MAX + " characters), and the hash of its sets as imported";
 export function originProblem(origin: unknown, materialId: string): string | null {
   const o = origin as Record<string, unknown> | null;
-  const ok = typeof o === "object" && o !== null && o.kind === "seed-project" && typeof o.projectId === "string" && o.projectId.length >= 1 && o.projectId.length <= PROJECT_ID_MAX && o.materialId === materialId && typeof o.revision === "number" && Number.isSafeInteger(o.revision) && o.revision >= 1 && o.revision < Number.MAX_SAFE_INTEGER && typeof o.name === "string" && o.name.length <= ORIGIN_NAME_MAX && typeof o.setsSha256 === "string" && /^[0-9a-f]{64}$/.test(o.setsSha256);
+  const ok = typeof o === "object" && o !== null && o.kind === "seed-project" && typeof o.projectId === "string" && o.projectId.length >= 1 && o.projectId.length <= PROJECT_ID_MAX && o.materialId === materialId && typeof o.revision === "number" && Number.isInteger(o.revision) && o.revision >= 1 && o.revision < Number.MAX_SAFE_INTEGER && typeof o.name === "string" && o.name.length <= ORIGIN_NAME_MAX && typeof o.setsSha256 === "string" && /^[0-9a-f]{64}$/.test(o.setsSha256);
   return ok ? null : ORIGIN_RULE_TEXT;
 }
 
