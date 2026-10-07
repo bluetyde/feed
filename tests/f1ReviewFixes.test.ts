@@ -27,6 +27,10 @@ describe("a uniform transient start needs a positive conductivity there", () => 
     expect(r.errors[0]!.message).toMatch(/fuel conductivity at the initial temperature 300 K is -1\.333/);
     expect(r.normalized).toBeUndefined();
   });
+  it("a conductivity of exactly zero at the start is refused as well (zero is not positive)", () => {
+    const d = withFuelK(recip(-600, 2, 700, 2000), "examples/synthetic-pulse.json"); // k(300) = -600/300 + 2 = 0
+    expect(codes(d)).toEqual(["E_OUT_OF_RANGE /transient/initialTemperature"]);
+  });
   it("the same law with a start temperature inside its range is accepted, and so is a cladding law checked the same way", () => {
     const d = withFuelK(recip(-1000, 2, 600, 2000), "examples/synthetic-pulse.json");
     d.transient.initialTemperature = q(700, "K");
