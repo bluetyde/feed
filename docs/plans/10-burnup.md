@@ -23,7 +23,7 @@ Not in this plan: mechanics ([plan 09](09-mechanics.md), paused), fission-gas re
 | `UO2MATPRO` as coded: `k95 = 1 / (p1 + p2 T + p3 B + p4 Gd + (1 - p5 e^(-p6 B)) p7 B^p8 / (1 + p9 e^(-p10/T))) + p11 T^(-p12) e^(-p13/T)`, then `k = k95 x 1.0789 f / (1 + 0.5 (1 - f))` with `f` the density fraction, `B` the burnup in MWd/kgU computed as **`Bu / 1000 / 0.881`**. The swelling, densification and porosity terms apply only when those fields exist; on a thermal-only case they do not | `conductivityMatproUO2.C`, read |
 | **The factor in the model is 0.881; the Lassmann burnup model uses 0.8815.** A heavy-metal burnup written as `B_HM x 0.8815` would reach the model as 0.0006 too high a burnup. FEED must write `Bu = B_HM x 0.881` for this model, the constant the model divides by | the two source files, read; to be confirmed in M0 |
 | Whether `UO2MATPRO` runs at all on FEED's thermal-only case (the `UO2` material class, the fields it also looks for) is **not known**: the survey's only run stopped at the missing `densityFraction` | survey; this is M0's question |
-| A `depletion.json` reader exists, unmerged, on `claude/agy-depletion-reader` in another session's clone (parse, check, `burnupAt` by interpolation, never extrapolates, `toOxideBasis`); 7 tests pass and it merges cleanly. OpenMC Studio has a writer module on its `main` that nothing calls, no engine that runs a depletion, and no chain file | the FEED log; the Studio session's note |
+| A `depletion.json` reader exists, unmerged, on `claude/agy-depletion-reader` in another session's clone (parse, check, `burnupAt` by interpolation, never extrapolates, `toOxideBasis`); 7 tests pass and it merges cleanly. OpenMC Studio has a writer module on its `main` that nothing calls and no run that does a depletion yet; **a depletion chain file does exist** (`/root/nuclear_data/chains/chain_endfb80_pwr.xml`, ENDF/B-VIII.0 PWR chain, installed 2026-09-27; its source and licence are not recorded, which is Studio's to record). An earlier line here said there was none; that was wrong | the FEED log; Studio's [depletion plan](../../../OpenMC/docs/design/depletion-plan.md) (read 2026-10-07) |
 
 ## 3. The design
 
@@ -44,7 +44,7 @@ Each has a recommended answer; none is built until answered.
 4. **Zircaloy cladding.** An LWR pin needs a sourced Zircaloy conductivity (a cubic; FEED's `ZyRELAP` carrier already exists) and a gap conductance. Recommended: take both from the MATPRO report in the same pass as decision 3, and label the example "sourced" only if every number has a page.
 5. **What the gap does.** Recommended: **held at its stated cold value**, with the "frozen snapshot, no swelling, gap not closed" sentence on every burnup result. Alternative: let the user state a hot gap through the existing hot-dimensions section (it already exists); neither models swelling.
 6. **Order against other work.** Recommended: M0 and M1 first (they decide whether this is possible and sourced), the rest only if both pass. Roughly 8 to 10 sessions in total; M6 is not scheduled.
-7. **The depletion record reader.** Recommended: **merge it at M6**, not before: the OpenMC Studio session agrees (no caller, no engine, no chain file, the format unproven). Getting a depletion chain file for Studio is the user's call, outside this plan.
+7. **The depletion record reader.** Recommended: **merge it at M6**, not before: the OpenMC Studio session agrees (no caller yet, the format unproven). Studio now has a plan to build the real writer ([its depletion plan](../../../OpenMC/docs/design/depletion-plan.md): D0 a one-day measurement, D1 to D3 the run path, the writer and the view, D4 FEED reads the record); the chain file is not a blocker. What M6 then needs is Studio's D2 (a record a run wrote, with an **id**), D4, and the SEED agent's recipe.
 
 ## 5. Milestones
 
@@ -60,7 +60,7 @@ Each has a recommended answer; none is built until answered.
 
 **M5: SEED oracle entries.** FEED writes them (D3): the temperatures at two burnups from the closed form, tolerances fixed first, and the refusals; they go on a branch until the SEED agent updates its counts and asks.
 
-**M6: Depletion import (waits on others).** Needs a real `depletion.json` writer in Studio (a run that calls it), the chain file (the user's decision), and a SEED transfer recipe for a burnup (the SEED agent's side, a request to be logged, not made from here). Then the reader is merged and wired through the recipe's checks.
+**M6: Depletion import (waits on others).** Needs a real `depletion.json` writer in Studio (a run that calls it, its D2) that gives the record an **id** (the SHA-256 of its canonical JSON, which FEED's `burnup.source` would carry and the reader would recompute), the model's own conversion factor applied on FEED's side (0.881 for `UO2MATPRO`, from the fuel's `heavyMetalMassFraction`, never a constant baked into the reader), and a SEED transfer recipe for a burnup (the SEED agent's side, a request to be logged, not made from here). Then the reader is merged and wired through the recipe's checks.
 
 ## 6. Risks
 
