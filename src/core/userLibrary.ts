@@ -5,6 +5,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+import { Origin, setsHash } from "./projectImport";
 import { Issue, MATERIAL_ID, projectRoot, validateMaterial } from "./validate";
 
 export const USER_LIBRARY_SCHEMA = "feed.user-materials/0.1";
@@ -19,7 +20,7 @@ export interface UserEntry {
   description: string;
   citation: string;
   savedAt: string;
-  material: { materialId: string; revision: number; sets: Record<string, unknown> };
+  material: { materialId: string; revision: number; sets: Record<string, unknown>; origin?: Origin };
 }
 
 export function userLibraryFile(): string {
@@ -78,7 +79,9 @@ const refuse = (status: 400 | 409 | 500, code: string, field: string, message: s
 /**
  * Save a material. The properties must pass validateMaterial; the id must not belong to a sourced library material or to a material of the other region.
  * Identical to the latest revision: `unchanged`, nothing written. Otherwise the revision is the latest plus one (1 for a new id), whatever revision the
- * input carried.
+ * input carried. A material imported from a SEED project carries its `origin`: a NEW id then takes the project's revision when its sets are as imported and
+ * that revision plus one when they changed (adding a thermal set makes a new revision of the project's material); a later save is still the latest plus one,
+ * and never below that.
  */
 export function saveUserMaterial(input: SaveInput, sourcedIds: ReadonlySet<string>, now: Date = new Date()): SaveResult {
   const region = input.region;
@@ -96,6 +99,12 @@ export function saveUserMaterial(input: SaveInput, sourcedIds: ReadonlySet<strin
   const checked = validateMaterial(region, input.material);
   if (!checked.ok) return { ok: false, status: 400, errors: checked.errors };
   const incoming = input.material as UserEntry["material"];
+  const origin = incoming.origin;
+  if (origin !== undefined) {
+    const o = origin as unknown as Record<string, unknown>;
+    const okOrigin = typeof o === "object" && o !== null && o.kind === "seed-project" && typeof o.projectId === "string" && o.projectId.length >= 1 && o.projectId.length <= 200 && o.materialId === incoming.materialId && typeof o.revision === "number" && Number.isInteger(o.revision) && o.revision >= 1 && typeof o.name === "string" && o.name.length <= 120 && typeof o.setsSha256 === "string" && /^[0-9a-f]{64}$/.test(o.setsSha256);
+    if (!okOrigin) return refuse(400, "E_SCHEMA_INVALID", "/material/origin", "origin records where an imported material came from: kind seed-project, the project id, the material's id and revision there, its name, and the hash of its sets as imported");
+  }
 
   const read = readUserEntries();
   if (read.problem) return refuse(500, "E_LIBRARY_UNREADABLE", "/", read.problem + ". It was left as it is; fix or move it, then save again.");
@@ -107,7 +116,12 @@ export function saveUserMaterial(input: SaveInput, sourcedIds: ReadonlySet<strin
   const sets = JSON.parse(JSON.stringify(incoming.sets)) as Record<string, unknown>;
   if (latest && canonical(latest.material.sets) === canonical(sets) && latest.name === name && latest.description === description && latest.citation === citation) return { ok: true, status: "unchanged", entry: latest };
 
-  const entry: UserEntry = { region, name, label: "custom", description, citation, savedAt: now.toISOString(), material: { materialId: incoming.materialId, revision: (latest?.material.revision ?? 0) + 1, sets } };
+  let revision = (latest?.material.revision ?? 0) + 1;
+  if (origin) {
+    const fromProject = setsHash(sets) === origin.setsSha256 ? origin.revision : origin.revision + 1;
+    revision = latest ? Math.max(revision, fromProject) : fromProject;
+  }
+  const entry: UserEntry = { region, name, label: "custom", description, citation, savedAt: now.toISOString(), material: { materialId: incoming.materialId, revision, sets, ...(origin ? { origin: JSON.parse(JSON.stringify(origin)) as Origin } : {}) } };
   const text = JSON.stringify({ schema: USER_LIBRARY_SCHEMA, entries: [...read.entries, entry] }, null, 2) + "\n";
   if (Buffer.byteLength(text) > MAX_FILE_BYTES) return refuse(400, "E_OUT_OF_RANGE", "/", `the library file would pass ${MAX_FILE_BYTES} bytes`);
   const f = userLibraryFile();

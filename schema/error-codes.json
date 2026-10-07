@@ -9,6 +9,12 @@
   "E_TRANSIENT_INCOMPLETE": { "severity": "error", "meaning": "transient case without its transient section (or the reverse), a missing field in it, no initial state or two (initialTemperature and initialSteadyLinearHeatRate), or a steady power given with a power history" },
   "E_TIME": { "severity": "error", "meaning": "time grid or power history unusable: end time not a whole number of steps, too many steps or outputs, outputs not dividing the steps, history not starting at 0, not increasing, or ending before the end time" },
   "E_MESH": { "severity": "error", "meaning": "cell count below the minimum or above the maximum for its region" },
+  "E_IMPORT_PROJECT": { "severity": "error", "meaning": "the SEED project to import from cannot be read: not a seed.project/0.1 manifest, too large, not valid JSON, or not named seed.project.json" },
+  "E_IMPORT_NOT_FOUND": { "severity": "error", "meaning": "the project has no material with that id (materials are matched by id only)" },
+  "E_IMPORT_REVISION": { "severity": "error", "meaning": "the project holds that material at another revision than the one asked for; a revision is immutable and only the project's own can be read" },
+  "E_IMPORT_ID": { "severity": "error", "meaning": "the material's id is not one FEED can carry unchanged, and FEED does not rewrite ids" },
+  "E_IMPORT_SET": { "severity": "error", "meaning": "a property set of the material cannot be carried: an unusable name, not an object, or a thermal set without a usable source" },
+  "E_IMPORT_FOREIGN_SET": { "severity": "error", "meaning": "a set named thermal.* in the material is written to a schema FEED does not read, so the material is not imported (another app's set is not guessed at or overwritten)" },
   "E_FIT": { "severity": "error", "meaning": "a table cannot be carried by the polynomial asked for: the polynomial is further from the table than the stated tolerance, the degree needs more points than the table has, or the points do not determine it" },
   "E_KINETICS": { "severity": "error", "meaning": "the point-kinetics generator cannot produce a power history: the pulse does not happen inside the run, the integration fails or needs too many steps, or the history cannot be written within its point budget" },
   "W_POWER_RANGE": { "severity": "warning", "meaning": "linear heat rate above the sanity range; not clamped, not an error" }
