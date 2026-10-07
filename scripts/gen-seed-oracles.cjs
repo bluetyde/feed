@@ -216,6 +216,10 @@ const BAD = [
   { id: "feed-bad-heat-capacity-table-fit-too-far", file: "cp-table-fit-too-far", code: "E_FIT", what: "a heat capacity table that the polynomial asked for cannot follow within the stated tolerance" },
   { id: "feed-bad-initial-both", file: "transient-initial-both", code: "E_TRANSIENT_INCOMPLETE", what: "a start given both as a uniform temperature and as a steady operating state" },
   { id: "feed-bad-kinetics-pulse-not-in-window", file: "kinetics-pulse-not-in-window", code: "E_KINETICS", what: "a generated pulse that does not happen inside the run's window" },
+  { id: "feed-bad-limits-no-source", file: "limits-no-source", code: "E_PROP_MISSING", what: "a temperature limit with no source (FEED has no limits of its own, so a limit must say where it comes from)" },
+  { id: "feed-bad-limits-condition-never-holds", file: "limits-condition-never-holds", code: "E_OUT_OF_RANGE", what: "a fuel limit conditioned on a cladding band whose upper end is below its lower end, so it would never be in force" },
+  { id: "feed-bad-limits-duplicate-name", file: "limits-duplicate-name", code: "E_SCHEMA_INVALID", what: "two temperature limits with the same name, so a result could not say which one it is about" },
+  { id: "feed-bad-limits-maximum-wrong-unit", file: "limits-maximum-wrong-unit", code: "E_UNITS", what: "a temperature limit whose maximum is given in a unit that is not a temperature" },
   { id: "feed-bad-transient-no-section", file: "transient-missing-section", code: "E_TRANSIENT_INCOMPLETE", what: "a transient case (steadyState false) without its transient section" },
 ];
 for (const b of BAD) {

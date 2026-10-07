@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-limits-condition-never-holds",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-limits-condition-never-holds.case.json",
+      "sha256": "5ec9fd388f323810550a06ee4ad1b66194b5dc51ab8598ebb40d2afb3c6a3471"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_OUT_OF_RANGE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a fuel limit conditioned on a cladding band whose upper end is below its lower end, so it would never be in force. FEED must refuse it before any run; SEED reports E_OUT_OF_RANGE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/limits-condition-never-holds.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "e05860386a107c17b68ea7591afc5a14d460746119a0fd4fae416450bb1dc06e"
+}

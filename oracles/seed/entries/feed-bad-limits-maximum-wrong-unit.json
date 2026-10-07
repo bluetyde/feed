@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-limits-maximum-wrong-unit",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-limits-maximum-wrong-unit.case.json",
+      "sha256": "e5348a5c7537bcc69801c2717d8ff3b4c8b719d6e2f7131fbf627fe60d9f8077"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_UNITS"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a temperature limit whose maximum is given in a unit that is not a temperature. FEED must refuse it before any run; SEED reports E_UNITS.",
+    "check": "FEED's schema vectors (schema/vectors/bad/limits-maximum-wrong-unit.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "54262153a53740967a136b5408210f843d1584787e7a5795f46cefe62f84d8b7"
+}
