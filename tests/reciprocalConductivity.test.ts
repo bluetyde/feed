@@ -5,7 +5,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { writeOffbeatCase } from "../src/core/caseWriter";
-import { evaluate, lawOf, minimum, primitive, solveHot } from "../src/core/conductivity";
+import { degree, evaluate, lawOf, minimum, primitive, solveHot } from "../src/core/conductivity";
 import { quickLook, radialProfile } from "../src/core/quickLook";
 import { lowestConductivity, timeScale } from "../src/core/steadyState";
 import { independentSolution, pinOf } from "../src/core/transientResults";
@@ -61,6 +61,12 @@ describe("the law itself (src/core/conductivity.ts)", () => {
     }
     // with b = 0 the answer is Ts exp(I / a)
     expect(solveHot({ kind: "reciprocal", a: A, b: 0 }, 600, 5000)).toBeCloseTo(600 * Math.exp(5000 / A), 8);
+  });
+  it("a = 0 is the constant b: solveHot is the straight line (a constant needs no logarithm), and its degree is 0; with a > 0 it counts as curved", () => {
+    expect(solveHot({ kind: "reciprocal", a: 0, b: 4 }, 500, 2000)).toBeCloseTo(500 + 2000 / 4, 10);
+    expect(degree({ kind: "reciprocal", a: 0, b: 4 })).toBe(0);
+    expect(degree(law)).toBe(2);
+    expect(quickLook(normalized(recip(0, 4))).temperatures.centreT).toBeCloseTo(quickLook(normalized({ model: "constant", value: q(4, "W/m/K"), referenceTemperature: q(1000, "K"), source: "x" })).temperatures.centreT, 9);
   });
   it("refuses a conductivity that reaches zero before the integral does (negative b), and one that is not positive at the cold side", () => {
     expect(() => solveHot({ kind: "reciprocal", a: 1000, b: -2 }, 400, 1e9)).toThrow(RangeError);
