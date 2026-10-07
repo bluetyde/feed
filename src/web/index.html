@@ -241,7 +241,7 @@ input.bad,select.bad{border-color:var(--err)}
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
-const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"] };
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
 let doc = null, result = null, selected = "power", outTab = "problems", logText = "", showDegC = false, seq = 0, timer = null;
 
@@ -364,7 +364,7 @@ function renderProps() {
     p.append(sec("Thermal conductivity"));
     if (!k) { const r = el("div", "prow note"); const p2 = document.createElement("p"); p2.textContent = "This material has no thermal.conductivity set. Composition and density alone do not satisfy a thermal model."; r.append(p2); const b = elt("button", "Add constant conductivity", { class: "tbtn", type: "button" }); b.addEventListener("click", () => { setp(doc, kp, { model: "constant", value: { value: 3, unit: "W/m/K" }, referenceTemperature: { value: 1000, unit: "K" }, source: "" }); changed(true); }); r.append(b); p.append(r); const g = (result && result.errors || []).filter((i) => i.field === ptr(kp)); if (g.length) p.append(elt("div", g[0].message, { class: "ferr" })); }
     else {
-      conductivityFields(p, kp, k, selected);
+      lawFields("conductivity", p, kp, k, selected);
     }
     if (isTransient()) heatCapacityPanel(p, base.concat("sets", "thermal.volumetricHeatCapacity"), getp(doc, base.concat("sets", "thermal.volumetricHeatCapacity")));
     const others = Object.keys(m.sets || {}).filter((s) => s !== "thermal.conductivity" && !(isTransient() && s === "thermal.volumetricHeatCapacity"));
@@ -562,76 +562,93 @@ document.addEventListener("click", (e) => { if (menuEl && !menuEl.contains(e.tar
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
 async function loadLibrary() { try { lib = await (await fetch("/api/library")).json(); } catch (_) { logText += "Couldn't load the library.\n"; } }
 async function loadPin(id, name) { doc = await (await fetch("/api/pin/" + encodeURIComponent(id))).json(); selected = "power"; logText += "Loaded pin: " + name + ".\n"; await runCheck(true); renderAll(); }
-/* ---- conductivity: constant, linear, cubic polynomial, or a table carried by a fitted polynomial (docs/conductivity-models.md) */
-const LAW_UNITS_SI = (q, unit) => q && typeof q === "object" && q.unit === unit;
-/** Rewrite a region's conductivity set for a new model, keeping what carries over (its source, its range, its values) and saying when a table is made from a law. */
-function reshapeConductivity(region, before, model) {
+/* ---- temperature-dependent laws: constant, linear, polynomial, or a table carried by a fitted polynomial (docs/conductivity-models.md). Conductivity (cubic) and heat capacity (quadratic) share the editor. */
+const LAW = {
+  conductivity: { set: "thermal.conductivity", what: "conductivity", valueDim: "conductivity", dims: ["conductivity", "conductivityPerK", "conductivityPerK2", "conductivityPerK3"], units: ["W/m/K", "W/m/K2", "W/m/K3", "W/m/K4"], pointKey: "conductivity", maxDegree: 3, default: { value: 3, unit: "W/m/K" }, polyLabel: "Cubic: a + b T + c T² + d T³", formula: "k = a + b T + c T² + d T³ in W/m/K", written: "<code>ZyRELAP</code> with the T² term's sign turned round and all four parameters written", plotUnit: "W/m/K" },
+  heatCapacity: { set: "thermal.volumetricHeatCapacity", what: "heat capacity", valueDim: "volumetricHeatCapacity", dims: ["volumetricHeatCapacity", "volumetricHeatCapacityPerK", "volumetricHeatCapacityPerK2"], units: ["MJ/m3/K", "MJ/m3/K2", "MJ/m3/K3"], pointKey: "heatCapacity", maxDegree: 2, default: { value: 3, unit: "MJ/m3/K" }, polyLabel: "Quadratic: a + b T + c T²", formula: "c = a + b T + c T² in J/m³/K (per volume)", written: "<code>SiCSnead</code> with its T⁻² term set to zero and all four parameters written (divided by the writer's density)", plotUnit: "J/m3/K" },
+};
+/* the SI value of each unit the editor offers, so a table can be sampled from a law whatever units it is written in */
+const LAW_SCALE = { "W/m/K": 1, "W/m/K2": 1, "W/m/K3": 1, "W/m/K4": 1, "J/m3/K": 1, "J/cm3/K": 1e6, "MJ/m3/K": 1e6, "J/m3/K2": 1, "J/cm3/K2": 1e6, "MJ/m3/K2": 1e6, "J/m3/K3": 1, "J/cm3/K3": 1e6, "MJ/m3/K3": 1e6 };
+const TERM_KEYS = ["a", "b", "c", "d"];
+/** Rewrite a region's law for a new model, keeping what carries over (its source, its range, its values) and saying when a table is made from a law. */
+function reshapeLaw(kind, region, before, model) {
+  const S = LAW[kind];
   const old = before || {};
   const src = old.source || "";
-  const zero = (u) => ({ value: 0, unit: u });
   const range = old.validRange || (Array.isArray(old.points) && old.points.length ? { min: old.points[0].temperature, max: old.points[old.points.length - 1].temperature } : { min: { value: 300, unit: "K" }, max: { value: 2000, unit: "K" } });
   const a = old.model === "constant" ? old.value : old.a;
   const set = { model, source: src };
-  if (model === "constant") { set.value = a || { value: 3, unit: "W/m/K" }; set.referenceTemperature = old.referenceTemperature || { value: 300, unit: "K" }; }
-  else if (model === "linear") { set.a = a || { value: 3, unit: "W/m/K" }; set.b = old.b || zero("W/m/K2"); set.validRange = range; }
-  else if (model === "polynomial") { set.a = a || { value: 3, unit: "W/m/K" }; set.b = old.b || zero("W/m/K2"); set.c = old.c || zero("W/m/K3"); set.d = old.d || zero("W/m/K4"); set.validRange = range; }
-  else if (model === "table") {
-    set.fit = { degree: 3, tolerance: { value: 2, unit: "%" } };
-    const siLaw = LAW_UNITS_SI(a, "W/m/K") && (old.model === "constant" || (LAW_UNITS_SI(old.b, "W/m/K2") && (old.model === "linear" || (LAW_UNITS_SI(old.c, "W/m/K3") && LAW_UNITS_SI(old.d, "W/m/K4")))));
+  const nTerms = S.dims.length;
+  if (model === "constant") { set.value = a || S.default; set.referenceTemperature = old.referenceTemperature || { value: 300, unit: "K" }; }
+  else if (model === "linear" || model === "polynomial") {
+    const n = model === "linear" ? 2 : nTerms;
+    set.a = a || S.default;
+    for (let i = 1; i < n; i++) set[TERM_KEYS[i]] = old[TERM_KEYS[i]] || { value: 0, unit: S.units[i] };
+    set.validRange = range;
+  } else if (model === "table") {
+    set.fit = { degree: S.maxDegree, tolerance: { value: 2, unit: "%" } };
+    const terms = old.model === "constant" ? [old.value] : [old.a, old.b, old.c, old.d].slice(0, old.model === "linear" ? 2 : nTerms);
+    const known = terms.length > 0 && terms.every((q) => q && typeof q === "object" && LAW_SCALE[q.unit] !== undefined && typeof q.value === "number");
     const lo = range.min && range.min.unit === "K" ? range.min.value : null, hi = range.max && range.max.unit === "K" ? range.max.value : null;
-    if (siLaw && lo !== null && hi !== null && hi > lo) {
-      const c0 = a.value, c1 = old.b ? old.b.value : 0, c2 = old.c ? old.c.value : 0, c3 = old.d ? old.d.value : 0;
-      set.points = [0, 1, 2, 3, 4].map((i) => { const T = lo + ((hi - lo) * i) / 4; return { temperature: { value: Number(T.toPrecision(6)), unit: "K" }, conductivity: { value: Number((c0 + c1 * T + c2 * T * T + c3 * T * T * T).toPrecision(8)), unit: "W/m/K" } }; });
+    if (known && lo !== null && hi !== null && hi > lo) {
+      const si = terms.map((q) => q.value * LAW_SCALE[q.unit]);
+      const unit0 = terms[0].unit;
+      set.points = [0, 1, 2, 3, 4].map((i) => { const T = lo + ((hi - lo) * i) / 4; const v = si.reduce((acc, c, j) => acc + c * Math.pow(T, j), 0); const pt = { temperature: { value: Number(T.toPrecision(6)), unit: "K" } }; pt[S.pointKey] = { value: Number((v / LAW_SCALE[unit0]).toPrecision(8)), unit: unit0 }; return pt; });
       set.source = (src ? src + "; " : "") + "table sampled from the previous law at 5 temperatures: replace with the measured points";
     } else set.points = [];
   }
-  doc.materials[region].sets["thermal.conductivity"] = set;
+  doc.materials[region].sets[S.set] = set;
 }
 /** A small plot of a table's points and the polynomial that was fitted to it (the one OFFBEAT is given). */
 function fitPlot(fit, coefficients, range) {
+  const valueKey = "conductivity"; /* the fit record keeps its points as {temperature, conductivity} whatever the property is */
   const W = 300, H = 120, L = 34, B = 16, T0 = 6, R = 8;
   const pts = fit.points;
-  const ks = pts.map((p) => p.conductivity).concat(Array.from({ length: 41 }, (_, i) => polyAt(coefficients, range[0] + ((range[1] - range[0]) * i) / 40)));
+  const ks = pts.map((p) => p[valueKey]).concat(Array.from({ length: 41 }, (_, i) => polyAt(coefficients, range[0] + ((range[1] - range[0]) * i) / 40)));
   const lo = Math.min(...ks), hi = Math.max(...ks), pad = (hi - lo) * 0.08 || 1;
   const X = (T) => L + ((T - range[0]) / (range[1] - range[0])) * (W - L - R), Y = (k) => H - B - ((k - lo + pad) / (hi - lo + 2 * pad)) * (H - B - T0);
   const NS = "http://www.w3.org/2000/svg"; const svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "The table's points and the fitted polynomial"); svg.style.maxWidth = "100%";
   const add = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text) e.textContent = text; svg.append(e); return e; };
   add("path", { d: Array.from({ length: 41 }, (_, i) => { const T = range[0] + ((range[1] - range[0]) * i) / 40; return (i ? "L" : "M") + X(T).toFixed(1) + " " + Y(polyAt(coefficients, T)).toFixed(1); }).join(" "), fill: "none", stroke: "#6ea8d9", "stroke-width": "1.6" });
-  for (const p of pts) add("circle", { cx: X(p.temperature).toFixed(1), cy: Y(p.conductivity).toFixed(1), r: "3", fill: "#e6b455" });
+  for (const p of pts) add("circle", { cx: X(p.temperature).toFixed(1), cy: Y(p[valueKey]).toFixed(1), r: "3", fill: "#e6b455" });
   add("text", { x: 2, y: 12, fill: "#8c949e", "font-size": "9" }, hi.toPrecision(3)); add("text", { x: 2, y: H - B, fill: "#8c949e", "font-size": "9" }, lo.toPrecision(3));
   add("text", { x: L, y: H - 3, fill: "#8c949e", "font-size": "9" }, range[0] + " K"); add("text", { x: W - R - 34, y: H - 3, fill: "#8c949e", "font-size": "9" }, range[1] + " K");
   return svg;
 }
-const polyAt = (c, T) => c[0] + T * (c[1] + T * (c[2] + T * c[3]));
-function conductivityFields(p, kp, k, region) {
+const polyAt = (c, T) => c.reduceRight((acc, x) => acc * T + x, 0);
+/** The fields of a law (conductivity or heat capacity) at path kp: the model select and what each model needs. */
+function lawFields(kind, p, kp, k, region) {
+  const S = LAW[kind];
   const before = JSON.parse(JSON.stringify(k));
-  p.append(sField("Model", kp.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"], ["polynomial", "Cubic: a + b T + c T² + d T³"], ["table", "Table of points (fitted)"]], (m) => reshapeConductivity(region, before, m)));
-  if (k.model === "linear") p.append(qField("a", kp.concat("a"), "conductivity"), qField("b", kp.concat("b"), "conductivityPerK"), qField("T min", kp.concat("validRange", "min"), "temperature"), qField("T max", kp.concat("validRange", "max"), "temperature"));
+  const normKey = region + (kind === "conductivity" ? "Conductivity" : "HeatCapacity");
+  p.append(sField("Model", kp.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"], ["polynomial", S.polyLabel], ["table", "Table of points (fitted)"]], (m) => reshapeLaw(kind, region, before, m)));
+  const rangeFields = () => [qField("T min", kp.concat("validRange", "min"), "temperature"), qField("T max", kp.concat("validRange", "max"), "temperature")];
+  if (k.model === "linear") p.append(qField("a", kp.concat("a"), S.dims[0]), qField("b", kp.concat("b"), S.dims[1]), ...rangeFields());
   else if (k.model === "polynomial") {
-    p.append(qField("a", kp.concat("a"), "conductivity"), qField("b", kp.concat("b"), "conductivityPerK"), qField("c", kp.concat("c"), "conductivityPerK2"), qField("d", kp.concat("d"), "conductivityPerK3"), qField("T min", kp.concat("validRange", "min"), "temperature"), qField("T max", kp.concat("validRange", "max"), "temperature"));
-    p.append(note("k = a + b T + c T² + d T³ in W/m/K with T in kelvin; give 0 for a term that is not there. It must be positive over the whole range. The solver is given it as <code>ZyRELAP</code> with the T² term's sign turned round and all four parameters written."));
+    p.append(...S.dims.map((d, i) => qField(TERM_KEYS[i], kp.concat(TERM_KEYS[i]), d)), ...rangeFields());
+    p.append(note(S.formula + ", T in kelvin; give 0 for a term that is not there. It must be positive over the whole range. The solver is given it as " + S.written + "."));
   } else if (k.model === "table") {
     const pts = Array.isArray(k.points) ? k.points : [];
-    pts.forEach((_, i) => p.append(qField("T" + (i + 1), kp.concat("points", i, "temperature"), "temperature"), qField("k" + (i + 1), kp.concat("points", i, "conductivity"), "conductivity")));
+    pts.forEach((_, i) => p.append(qField("T" + (i + 1), kp.concat("points", i, "temperature"), "temperature"), qField((kind === "conductivity" ? "k" : "c") + (i + 1), kp.concat("points", i, S.pointKey), S.valueDim)));
     const bar = el("div", "prow note");
     const add = elt("button", "Add point", { class: "tbtn", type: "button" });
-    add.addEventListener("click", () => { const last = pts[pts.length - 1]; if (!Array.isArray(k.points)) k.points = []; k.points.push(last ? { temperature: { value: last.temperature.value + 100, unit: last.temperature.unit }, conductivity: { value: last.conductivity.value, unit: last.conductivity.unit } } : { temperature: { value: 300, unit: "K" }, conductivity: { value: 3, unit: "W/m/K" } }); changed(true); });
+    add.addEventListener("click", () => { const last = pts[pts.length - 1]; if (!Array.isArray(k.points)) k.points = []; const pt = last ? { temperature: { value: last.temperature.value + 100, unit: last.temperature.unit } } : { temperature: { value: 300, unit: "K" } }; pt[S.pointKey] = last ? { value: last[S.pointKey].value, unit: last[S.pointKey].unit } : { value: S.default.value, unit: S.default.unit }; k.points.push(pt); changed(true); });
     const rem = elt("button", "Remove last", { class: "tbtn", type: "button" });
     rem.addEventListener("click", () => { if (pts.length) { k.points.pop(); changed(true); } });
     bar.append(add, rem); p.append(bar);
-    const dr = el("div", "prow"); dr.append(elt("label", "Fit degree", { for: "fitdeg" }));
-    const ds = elt("select", "", { id: "fitdeg" }); for (const d of [1, 2, 3]) ds.append(elt("option", String(d), { value: String(d) }));
-    ds.value = String(k.fit && k.fit.degree !== undefined ? k.fit.degree : 3);
+    const dr = el("div", "prow"); dr.append(elt("label", "Fit degree", { for: "fitdeg_" + kind }));
+    const ds = elt("select", "", { id: "fitdeg_" + kind }); for (let d = 1; d <= S.maxDegree; d++) ds.append(elt("option", String(d), { value: String(d) }));
+    ds.value = String(k.fit && k.fit.degree !== undefined ? k.fit.degree : S.maxDegree);
     ds.addEventListener("change", () => { if (!k.fit) k.fit = { tolerance: { value: 2, unit: "%" } }; k.fit.degree = Number(ds.value); changed(true); });
     dr.append(ds); attachErr(dr, ptr(kp.concat("fit", "degree")), [ds]); p.append(dr);
     p.append(qField("Largest deviation accepted", kp.concat("fit", "tolerance"), "fraction"));
-    const own = result && result.normalized && result.normalized[region + "Conductivity"];
+    const own = result && result.normalized && result.normalized[normKey];
     if (own && own.kind === "polynomial" && own.fit) {
       p.append(note("Fitted: degree <code>" + own.fit.degree + "</code> through <code>" + own.fit.points.length + "</code> points, <b>largest deviation " + (own.fit.maxRelativeDeviation * 100).toPrecision(3) + " %</b> at " + own.fit.worstAt + " K (accepted " + (own.fit.tolerance * 100).toPrecision(3) + " %). Valid from " + own.range[0] + " to " + own.range[1] + " K, the table's own range. Coefficients <code>" + own.coefficients.map((c) => c.toPrecision(5)).join(", ") + "</code>."));
       const holder = el("div", "prow"); holder.append(fitPlot(own.fit, own.coefficients, own.range)); p.append(holder);
     }
-    p.append(note("OFFBEAT has no tabulated conductivity, so a table is run as the polynomial fitted to it. The case is refused if that polynomial is further from the table than the deviation accepted here: raise the degree, shorten the table to the range you need, or accept more."));
-  } else p.append(qField("k", kp.concat("value"), "conductivity"), qField("at T", kp.concat("referenceTemperature"), "temperature"));
+    p.append(note("OFFBEAT has no tabulated " + S.what + ", so a table is run as the polynomial fitted to it. The case is refused if that polynomial is further from the table than the deviation accepted here: raise the degree (up to " + S.maxDegree + "), shorten the table to the range you need, or accept more."));
+  } else p.append(qField(kind === "conductivity" ? "k" : "c", kp.concat("value"), S.valueDim), qField("at T", kp.concat("referenceTemperature"), "temperature"));
   p.append(tField("Source", kp.concat("source")));
 }
 /* what the person has typed into the save-to-library fields, per region, so a re-render does not lose it */
@@ -963,11 +980,8 @@ function heatCapacityPanel(p, base, k) {
     const g = (result && result.errors || []).filter((i) => i.field === ptr(base)); if (g.length) p.append(elt("div", g[0].message, { class: "ferr" }));
     return;
   }
-  p.append(sField("Model", base.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"]], () => {}));
-  if (k.model === "linear") p.append(qField("a", base.concat("a"), "volumetricHeatCapacity"), qField("b", base.concat("b"), "volumetricHeatCapacityPerK"), qField("T min", base.concat("validRange", "min"), "temperature"), qField("T max", base.concat("validRange", "max"), "temperature"));
-  else p.append(qField("c", base.concat("value"), "volumetricHeatCapacity"), qField("at T", base.concat("referenceTemperature"), "temperature"));
-  p.append(tField("Source", base.concat("source")));
-  p.append(note("c is per volume. A material quoted per mass needs its density to convert; T is in kelvin for a linear law."));
+  lawFields("heatCapacity", p, base, k, selected);
+  p.append(note("c is per volume. A material quoted per mass needs its density to convert; T is in kelvin for a temperature-dependent law."));
 }
 
 /* time plot: used on the Case tab (independent preview, then the solver) and on the Results tab */
