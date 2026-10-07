@@ -199,3 +199,42 @@ describe("the sourced TRIGA set and the example cases that use it", () => {
     }
   });
 });
+
+describe("edges the mutation run found", () => {
+  const withRules = (limits: unknown) => {
+    const d = read("examples/synthetic-pin.json");
+    d.limits = limits;
+    return validateCase(d);
+  };
+  const base = (extra: Record<string, unknown> = {}) => ({ name: "r", region: "fuel", maxTemperature: q(1000, "K"), source: "test", ...extra });
+
+  it("when the outputs and the independent steps tie, the solver's outputs are the basis", () => {
+    const [c] = limitChecks([rule()], [S(0, 900, 300)], [S(0, 900, 300)]);
+    expect(c!.note).toContain("from the solver's outputs");
+  });
+  it("exactly ten rules are accepted, and eleven are not", () => {
+    expect(withRules(Array.from({ length: 10 }, (_, i) => base({ name: "r" + i }))).errors).toEqual([]);
+    expect(withRules(Array.from({ length: 11 }, (_, i) => base({ name: "r" + i }))).errors.length).toBeGreaterThan(0);
+  });
+  it("10000 K is the largest limit and a band whose two ends are equal never holds", () => {
+    expect(withRules([base({ maxTemperature: q(10000, "K") })]).errors).toEqual([]);
+    expect(withRules([base({ maxTemperature: q(10000.01, "K") })]).errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+    expect(withRules([base({ whileCladding: { above: q(600, "K"), atMost: q(600, "K") } })]).errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+    expect(withRules([base({ whileCladding: { above: q(600, "K"), atMost: q(600.01, "K") } })]).errors).toEqual([]);
+    expect(withRules([base({ whileCladding: { atMost: q(10000, "K") } })]).errors).toEqual([]);
+    expect(withRules([base({ whileCladding: { atMost: q(10001, "K") } })]).errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+  });
+  it("a pulse's worst moment is reported in seconds of the run, not in step numbers", () => {
+    const goldenDir = join(root, "tests/golden/offbeat-pulse");
+    const d = read("examples/synthetic-pulse.json");
+    d.limits = [{ name: "fuel", region: "fuel", maxTemperature: q(700, "K"), source: "test" }];
+    const v = validateCase(d);
+    const res = buildTransientResults(v.normalized!, {
+      C: readFileSync(join(goldenDir, "C"), "utf8"),
+      fields: readdirSync(join(goldenDir, "times")).sort((a, b) => Number(a) - Number(b)).map((x) => ({ time: Number(x), T: readFileSync(join(goldenDir, "times", x, "T"), "utf8") })),
+    });
+    const t = Number(/t = ([0-9.e+-]+) s/.exec(res.checks.find((c) => c.id === "temperatureLimit1")!.note)![1]);
+    expect(t).toBeGreaterThan(0.005);
+    expect(t).toBeLessThanOrEqual(0.1);
+  });
+});
