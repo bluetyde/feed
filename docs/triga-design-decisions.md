@@ -1,6 +1,6 @@
 # TRIGA design decisions
 
-Four decisions from the TODO's fuel-library item, each with what FEED does now, why, and what would change it. They were not settled in chat; the **defaults below were chosen from the sourced SAR material in the repository and stand until the user says otherwise**. Date: 2026-10-07.
+Five decisions from the TODO's fuel-library item, each with what FEED does now, why, and what would change it. They were not settled in chat; the **defaults below were chosen from the sourced SAR material in the repository and stand until the user says otherwise**. Date: 2026-10-07.
 
 ## 1. Cladding: stainless steel first
 
@@ -26,3 +26,9 @@ Four decisions from the TODO's fuel-library item, each with what FEED does now, 
 **Now:** FEED is one radial slice at the hottest axial position (the "hot channel" of the K-State and UT cases): the axial power shape and the radial peaking are carried in that slice's linear heat rate. The graphite end reflectors of a TRIGA element, the axial zirconium rod and the plenum are not modelled; heat flow along the axis is ignored.
 **Why:** FEED's solver case is 1D radial. Ignoring axial conduction from the hot slice to its cooler neighbours makes the peak temperature higher than a full axial model would give, so for the peak and the limits the omission errs on the high side; it is not a statement about the reflectors' neutronics.
 **Would change:** a 2D axisymmetric case (a different mesh and case writer, and the pin design extended with axial layers). Not planned.
+
+## 5. Central zirconium rod: the hole is a hole, with an insulated surface
+
+**Now:** an annular fuel has a central hole whose surface is insulated (the series solution and OFFBEAT's mesh both treat it so, [closed forms](plans/04-verification.md)). The zirconium rod that sits in a TRIGA element's hole is not modelled.
+**Why:** a rod in contact with the hole surface would carry some heat to the end of the element and to the gas; with no sourced contact conductance or rod properties in the repository, an insulated hole is the stated simplification. It errs on the high side for the fuel temperature.
+**Would change:** a conducting inner boundary with a sourced rod and gap (a boundary-condition change in the writer and the closed forms).
