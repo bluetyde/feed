@@ -18,7 +18,7 @@ A material's panel has a **Save to library** section: a name, a source note (fil
 
 - `FEED_USER_LIBRARY` names another file (the tests use it; every test runs against a user library that does not exist, so what you have saved cannot change a test).
 - It is **not a way to make a number sourced**: a saved material is labelled `custom` and carries the source note you wrote; the sourced label is only for entries in the committed library with a citation.
-- **Not done:** deleting or renaming a saved material (the file is plain JSON and can be edited by hand; a revision is never edited in place by the app); import from OpenMC Studio by id and revision (a cross-app item, still open in the TODO); sharing a library between computers.
+- **Not done:** deleting or renaming a saved material (the file is plain JSON and can be edited by hand; a revision is never edited in place by the app); sharing a library between computers.
 
 ## The presets that ship
 

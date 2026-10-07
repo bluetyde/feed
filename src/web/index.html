@@ -368,6 +368,7 @@ function renderProps() {
     }
     if (isTransient()) heatCapacityPanel(p, base.concat("sets", "thermal.volumetricHeatCapacity"), getp(doc, base.concat("sets", "thermal.volumetricHeatCapacity")));
     const others = Object.keys(m.sets || {}).filter((s) => s !== "thermal.conductivity" && !(isTransient() && s === "thermal.volumetricHeatCapacity"));
+    importFromProjectPanel(p, selected);
     saveToLibraryPanel(p, selected);
     if (others.length) p.append(sec("Kept unchanged"), note(others.map((s) => "<code>" + s.replace(/</g, "&lt;") + "</code>").join(", ") + " belong to other apps and are saved as they are."));
   }
@@ -691,6 +692,59 @@ function designView(p) {
     designField("Cladding outer diameter", "claddingOuterDiameter", D && D.claddingOuterDiameter, u));
   p.append(note("Changing one keeps what a designer expects to keep: the <b>fuel diameter</b> moves the cladding with it (gap and wall stay); the <b>gap</b> moves the cladding outwards (wall stays); the <b>wall</b> and the <b>outer diameter</b> move only the outer surface; the <b>hole</b> moves nothing else. The case still stores the radii above."));
   if (D) p.append(note("Fuel cross-section <code>" + (D.fuelArea * 1e6).toFixed(3) + " mm²</code> (<code>" + (D.fuelArea * 1e6).toFixed(3) + " cm³/m</code> of pin), cladding <code>" + (D.claddingArea * 1e6).toFixed(3) + " mm²</code>. Wall over outer diameter <code>" + (D.wallToDiameter * 100).toFixed(2) + " %</code>; gap over fuel diameter <code>" + (D.gapToDiameter * 100).toFixed(2) + " %</code>." + (result.derived.volumetricPower ? " Volumetric power at the peak heat rate <code>" + (result.derived.volumetricPower / 1e6).toFixed(1) + " MW/m³</code>." : "")));
+}
+/* a material shared through a SEED project (docs/seed-material-import.md): FEED reads the project, never writes it */
+const importDraft = { fuel: { path: "", list: null, pick: "", msg: null }, cladding: { path: "", list: null, pick: "", msg: null } };
+function importFromProjectPanel(p, region) {
+  const d = importDraft[region];
+  p.append(sec("Import from a SEED project"));
+  const prow = el("div", "prow"); prow.append(elt("label", "Project folder", { for: "impath_" + region }));
+  const pin = elt("input", "", { type: "text", id: "impath_" + region, maxlength: "1000", value: d.path, placeholder: "folder with seed.project.json" });
+  pin.addEventListener("input", () => { d.path = pin.value; }); prow.append(pin); p.append(prow);
+  const bar = el("div", "prow note");
+  const list = elt("button", "List materials", { class: "tbtn", type: "button" });
+  const post = async (url, body) => { const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); return r.json(); };
+  list.addEventListener("click", async () => {
+    list.disabled = true;
+    try {
+      const j = await post("/api/import/project", { path: d.path });
+      if (j.ok) { d.list = j; d.pick = j.materials.length ? j.materials[0].id : ""; d.msg = { ok: true, lines: [j.materials.length + " material(s) in project " + j.projectId + (j.name ? " (" + j.name + ")" : "") + "."] }; }
+      else { d.list = null; d.msg = { ok: false, lines: (j.errors || [{ message: j.error || "refused" }]).map((e) => e.message) }; }
+    } catch (e) { d.msg = { ok: false, lines: ["Could not reach the server: " + e.message] }; }
+    renderProps();
+  });
+  bar.append(list);
+  if (d.list && d.list.materials.length) {
+    const sel = elt("select", "", { id: "impick_" + region, "aria-label": "Material to import" });
+    for (const m of d.list.materials) {
+      const t = m.thermal;
+      const state = (x) => (x === "ready" ? "ready" : x === "missing" ? "missing" : "other schema");
+      sel.append(elt("option", m.id + " rev " + m.revision + (m.name ? " - " + m.name : "") + " (conductivity " + state(t["thermal.conductivity"]) + ", heat capacity " + state(t["thermal.volumetricHeatCapacity"]) + ")", { value: m.id }));
+    }
+    sel.value = d.pick; sel.addEventListener("change", () => { d.pick = sel.value; });
+    const imp = elt("button", "Import into " + region, { class: "tbtn", type: "button" });
+    imp.addEventListener("click", async () => {
+      imp.disabled = true;
+      const picked = d.list.materials.find((m) => m.id === d.pick);
+      try {
+        const j = await post("/api/import/material", { path: d.path, id: d.pick, region, revision: picked ? picked.revision : undefined });
+        if (j.ok) {
+          doc.materials[region] = j.material;
+          const lines = ["Imported " + j.material.materialId + " revision " + j.material.revision + " from project " + j.material.origin.projectId + "; the project is not changed."];
+          for (const m of j.missing) lines.push("Missing: " + m.set.replace("thermal.volumetricHeatCapacity", "thermal.volumetric_heat_capacity") + " (needed for " + m.neededFor + "). Add it below; saving then makes revision " + (j.material.revision + 1) + ".");
+          for (const n of j.notes) lines.push(n);
+          d.msg = { ok: true, lines };
+          changed(true);
+        } else d.msg = { ok: false, lines: (j.errors || [{ message: j.error || "refused" }]).map((e) => e.message) };
+      } catch (e) { d.msg = { ok: false, lines: ["Could not reach the server: " + e.message] }; }
+      renderProps();
+    });
+    bar.append(sel, imp);
+  }
+  p.append(bar);
+  if (d.msg) { const r = el("div", "prow note"); for (const l of d.msg.lines) { const q = document.createElement("p"); q.textContent = l; if (!d.msg.ok) q.style.color = "var(--bad, #e06c6c)"; r.append(q); } p.append(r); }
+  const o = doc.materials[region] && doc.materials[region].origin;
+  if (o) p.append(note("This material came from project <code>" + String(o.projectId).replace(/</g, "&lt;") + "</code>, material <code>" + String(o.materialId).replace(/</g, "&lt;") + "</code> revision <code>" + o.revision + "</code>. Its other-app sets are kept exactly and saved as they are."));
 }
 function saveToLibraryPanel(p, region) {
   const m = doc.materials[region];
