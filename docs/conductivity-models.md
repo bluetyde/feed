@@ -1,6 +1,6 @@
-# Conductivity and heat capacity models: constant, linear, cubic or quadratic, table
+# Conductivity and heat capacity models: constant, linear, reciprocal, cubic or quadratic, table
 
-A material's `thermal.conductivity` set takes one of four models. Code: `src/core/conductivity.ts` (laws as arithmetic), `src/core/validate.ts` (the rules), `src/core/caseWriter.ts` (what OFFBEAT is given). Tests: `tests/conductivity.test.ts`, `tests/polynomialConductivity.test.ts`, `tests/conductivityEdges.test.ts`, `tests/fitChecks.test.ts`, `tests/polynomialHeatCapacity.test.ts`, and, with `FEED_SOLVER=1`, `tests/polynomialConductivitySolver.test.ts` and `tests/polynomialHeatCapacitySolver.test.ts`. Why these and not others: [the property-model survey](spike/property-model-survey.md).
+A material's `thermal.conductivity` set takes one of five models (a heat capacity takes four: it has no reciprocal). Code: `src/core/conductivity.ts` (laws as arithmetic), `src/core/validate.ts` (the rules), `src/core/caseWriter.ts` (what OFFBEAT is given). Tests: `tests/conductivity.test.ts`, `tests/polynomialConductivity.test.ts`, `tests/conductivityEdges.test.ts`, `tests/fitChecks.test.ts`, `tests/polynomialHeatCapacity.test.ts`, and, with `FEED_SOLVER=1`, `tests/polynomialConductivitySolver.test.ts` and `tests/polynomialHeatCapacitySolver.test.ts`. Why these and not others: [the property-model survey](spike/property-model-survey.md).
 
 ## The models
 
@@ -8,12 +8,17 @@ A material's `thermal.conductivity` set takes one of four models. Code: `src/cor
 |---|---|---|---|
 | `constant` | k | `value`, `referenceTemperature`, `source` | as before |
 | `linear` | a + b T | `a` (W/m/K), `b` (W/m/K²), `validRange`, `source` | as before; carried by `steel1515TiTobbe` |
+| `reciprocal` | a / T + b | `a` (W/m), `b` (W/m/K), `validRange`, `source` | the shape of a phonon-limited ceramic; both terms given (a zero is written as 0); T in kelvin; carried by OFFBEAT's `SiCPARFUME` (par1 = a, par2 = b). `a` is accepted in `W/m` (and `kW/m`, `W/cm`, `MW/m`: it is dimensionally a linear heat rate) |
 | `polynomial` | a + b T + c T² + d T³ | `a` W/m/K, `b` W/m/K², `c` W/m/K³, `d` W/m/K⁴, `validRange`, `source` | all four are given (a zero is written as 0); T in kelvin |
 | `table` | fitted polynomial | `points`, `fit {degree 1–3, tolerance}`, `source` | the range is the table's own |
 
-The conductivity must be **positive over the whole stated range**, checked exactly (end points and the turning points of the cubic), not at samples; a law that touches zero is refused (`E_OUT_OF_RANGE`).
+The conductivity must be **positive over the whole stated range**, checked exactly (end points and the turning points of the cubic; the end points for the reciprocal law, which is monotone), not at samples; a law that touches zero is refused (`E_OUT_OF_RANGE`).
+
+A law that is positive over its range can still reach zero **outside** it, where the pin may run. The validator now refuses such a case with the reason (`E_OUT_OF_RANGE` at `/materials`: "the temperatures of this pin cannot be found ..."); until 2026-10-07 it threw an exception out of `validateCase` for a linear or cubic law (found while testing the reciprocal law, which is the shape that does it most easily: `a/T + b` with a negative `b` is zero at `a / -b`).
 
 ## What OFFBEAT is given
+
+A reciprocal law is written as `SiCPARFUME` (`k = par1 / T + par2`, T in K) with **both** parameters written: an omitted one takes the silicon-carbide default (17885 and 2) without a word. A gated test (`tests/reciprocalConductivitySolver.test.ts`) fails when `b = 0` is left to that default.
 
 A polynomial is written as OFFBEAT's `ZyRELAP` model, which evaluates `k = par1 + par2 T − par3 T² + par4 T³` (T in K). So **par3 is minus c**, and **all four parameters are always written**: an omitted or mistyped parameter takes a Zircaloy default without a word. The case's mapping record says so. A polynomial that is a straight line gives the same temperatures as the linear model to 1e-4 K (tested through the solver).
 

@@ -56,6 +56,6 @@ Documented pins are labelled `synthetic` or `sourced`. A sourced example carries
 
 ## Open
 
-- Which conductivity correlations and gap models the first release exposes: F0's survey is done ([property-model-survey.md](../spike/property-model-survey.md)): the gap model stays the constant effective conductance (the only one without mechanics); the conductivity carriers are constant, linear (today), quadratic, cubic (`ZyRELAP`, par3 = -a2), a/T + b; a tabulated law would be a fitted polynomial with its deviation stated. Done 2026-10-06: constant, linear, cubic and fitted table are exposed ([conductivity-models.md](../conductivity-models.md)); a/T + b and the heat-capacity polynomials are not.
+- Which conductivity correlations and gap models the first release exposes: F0's survey is done ([property-model-survey.md](../spike/property-model-survey.md)): the gap model stays the constant effective conductance (the only one without mechanics); the conductivity carriers are constant, linear (today), quadratic, cubic (`ZyRELAP`, par3 = -a2), a/T + b; a tabulated law would be a fitted polynomial with its deviation stated. Done 2026-10-06: constant, linear, cubic and fitted table are exposed ([conductivity-models.md](../conductivity-models.md)); the heat-capacity polynomials were done afterwards, and a/T + b on 2026-10-07 (the reciprocal model).
 - Whether radial power shape beyond `uniform` (for example a depression near the pellet edge) is a later option.
 - Representation of an axial layout (several slices) for the transfer in plan 05.
