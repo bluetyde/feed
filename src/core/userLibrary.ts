@@ -5,7 +5,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
-import { Origin, setsHash } from "./projectImport";
+import { canonicalJson, Origin, originProblem, setsHash } from "./projectImport";
 import { Issue, MATERIAL_ID, projectRoot, validateMaterial } from "./validate";
 
 export const USER_LIBRARY_SCHEMA = "feed.user-materials/0.1";
@@ -101,9 +101,8 @@ export function saveUserMaterial(input: SaveInput, sourcedIds: ReadonlySet<strin
   const incoming = input.material as UserEntry["material"];
   const origin = incoming.origin;
   if (origin !== undefined) {
-    const o = origin as unknown as Record<string, unknown>;
-    const okOrigin = typeof o === "object" && o !== null && o.kind === "seed-project" && typeof o.projectId === "string" && o.projectId.length >= 1 && o.projectId.length <= 200 && o.materialId === incoming.materialId && typeof o.revision === "number" && Number.isInteger(o.revision) && o.revision >= 1 && typeof o.name === "string" && o.name.length <= 120 && typeof o.setsSha256 === "string" && /^[0-9a-f]{64}$/.test(o.setsSha256);
-    if (!okOrigin) return refuse(400, "E_SCHEMA_INVALID", "/material/origin", "origin records where an imported material came from: kind seed-project, the project id, the material's id and revision there, its name, and the hash of its sets as imported");
+    const problem = originProblem(origin, incoming.materialId);
+    if (problem) return refuse(400, "E_SCHEMA_INVALID", "/material/origin", problem);
   }
 
   const read = readUserEntries();
@@ -114,13 +113,15 @@ export function saveUserMaterial(input: SaveInput, sourcedIds: ReadonlySet<strin
 
   const latest = same.reduce<UserEntry | undefined>((a, e) => (!a || e.material.revision > a.material.revision ? e : a), undefined);
   const sets = JSON.parse(JSON.stringify(incoming.sets)) as Record<string, unknown>;
-  if (latest && canonical(latest.material.sets) === canonical(sets) && latest.name === name && latest.description === description && latest.citation === citation) return { ok: true, status: "unchanged", entry: latest };
+  // An imported material is saved at the project's revision (+1 when its sets changed since the import); the library's own latest + 1 is the floor of any save.
+  const fromProject = origin ? (setsHash(sets) === origin.setsSha256 ? origin.revision : origin.revision + 1) : 0;
+  // Unchanged means the same sets, the same words, and for an imported material the same provenance with the revision it asks for already reached: a later project
+  // revision with identical sets is a new entry, so that the origin and the revision floor are not lost.
+  const sameProvenance = !origin || (latest?.material.origin !== undefined && canonicalJson(latest.material.origin) === canonicalJson(origin) && latest.material.revision >= fromProject);
+  if (latest && canonical(latest.material.sets) === canonical(sets) && latest.name === name && latest.description === description && latest.citation === citation && sameProvenance) return { ok: true, status: "unchanged", entry: latest };
 
-  let revision = (latest?.material.revision ?? 0) + 1;
-  if (origin) {
-    const fromProject = setsHash(sets) === origin.setsSha256 ? origin.revision : origin.revision + 1;
-    revision = latest ? Math.max(revision, fromProject) : fromProject;
-  }
+  const revision = Math.max((latest?.material.revision ?? 0) + 1, fromProject);
+  if (!Number.isSafeInteger(revision)) return refuse(400, "E_OUT_OF_RANGE", "/material/revision", "the next revision would not be an exact whole number");
   const entry: UserEntry = { region, name, label: "custom", description, citation, savedAt: now.toISOString(), material: { materialId: incoming.materialId, revision, sets, ...(origin ? { origin: JSON.parse(JSON.stringify(origin)) as Origin } : {}) } };
   const text = JSON.stringify({ schema: USER_LIBRARY_SCHEMA, entries: [...read.entries, entry] }, null, 2) + "\n";
   if (Buffer.byteLength(text) > MAX_FILE_BYTES) return refuse(400, "E_OUT_OF_RANGE", "/", `the library file would pass ${MAX_FILE_BYTES} bytes`);

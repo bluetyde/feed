@@ -16,7 +16,7 @@ import { IndependentRunner } from "../core/independentRunner";
 import { previewTooBig, transientPreview } from "../core/transientPreview";
 import { FvTransient } from "../core/transientFv";
 import { latestEntries, readUserEntries, saveUserMaterial } from "../core/userLibrary";
-import { importMaterial, listMaterials, readProject } from "../core/projectImport";
+import { importMaterial, listMaterials, readProjectAsync } from "../core/projectImport";
 import { NormalizedCase } from "../core/validate";
 import { refinementStudy, studyCases } from "../core/refinement";
 import { solverAvailable, WslBackend } from "../core/wslBackend";
@@ -248,7 +248,7 @@ export const server = createServer(async (req, res) => {
       } catch {
         return json(res, 400, { error: "body is not valid JSON" });
       }
-      const project = readProject(input?.path);
+      const project = await readProjectAsync(input?.path);
       if (!project.ok) return json(res, 400, { ok: false, errors: project.errors });
       if (url === "/api/import/project") return json(res, 200, { ok: true, projectId: project.manifest.projectId, name: project.manifest.name ?? "", file: project.file, materials: listMaterials(project.manifest) });
       const r = importMaterial(project.manifest, { id: input?.id, region: input?.region, revision: input?.revision });

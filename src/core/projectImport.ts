@@ -8,7 +8,7 @@
 // another app's: FEED does not guess at it and refuses the import (SEED's rule: another app's set is not overwritten, and not evaluated).
 
 import { createHash } from "crypto";
-import { existsSync, readFileSync, statSync } from "fs";
+import { closeSync, existsSync, fstatSync, openSync, promises as fsp, readSync, statSync } from "fs";
 import { basename, join } from "path";
 import { Issue, MATERIAL_ID, validateMaterial } from "./validate";
 
@@ -56,33 +56,145 @@ export interface Manifest {
 }
 export type ReadResult = { ok: true; manifest: Manifest; file: string } | { ok: false; errors: Issue[] };
 
-/** Read a project: the folder, or the seed.project.json inside it. Nothing else is read, and only a file of that name. */
-export function readProject(path: unknown): ReadResult {
-  if (typeof path !== "string" || path.trim() === "" || path.length > 1000 || /[\u0000-\u001f]/.test(path)) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/path", "give the path of a SEED project folder (or of its seed.project.json)")] };
-  let file = path.trim();
-  try {
-    if (existsSync(file) && statSync(file).isDirectory()) file = join(file, PROJECT_MANIFEST_FILE);
-  } catch {
-    return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/path", "the path cannot be read")] };
-  }
-  if (basename(file) !== PROJECT_MANIFEST_FILE) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/path", `FEED reads only a file named ${PROJECT_MANIFEST_FILE}; give the project folder or that file`)] };
-  if (!existsSync(file)) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/path", `no ${PROJECT_MANIFEST_FILE} at ${file}`)] };
-  let text: string;
-  try {
-    if (statSync(file).size > MAX_MANIFEST_BYTES) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/path", `${PROJECT_MANIFEST_FILE} is larger than ${MAX_MANIFEST_BYTES} bytes`)] };
-    text = readFileSync(file, "utf8");
-  } catch (e) {
-    return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/path", "the file cannot be read: " + (e as Error).message)] };
-  }
+/** The origin a material carries: one contract, checked when a project is imported and again when the material is saved. */
+export const PROJECT_ID_MAX = 200;
+export const ORIGIN_NAME_MAX = 120;
+export const ORIGIN_RULE_TEXT = "origin records where an imported material came from: kind seed-project, the project id (1 to " + PROJECT_ID_MAX + " characters), the material's id and revision there (a whole number from 1 that adding one keeps exact), its name (at most " + ORIGIN_NAME_MAX + " characters), and the hash of its sets as imported";
+export function originProblem(origin: unknown, materialId: string): string | null {
+  const o = origin as Record<string, unknown> | null;
+  const ok = typeof o === "object" && o !== null && o.kind === "seed-project" && typeof o.projectId === "string" && o.projectId.length >= 1 && o.projectId.length <= PROJECT_ID_MAX && o.materialId === materialId && typeof o.revision === "number" && Number.isSafeInteger(o.revision) && o.revision >= 1 && o.revision < Number.MAX_SAFE_INTEGER && typeof o.name === "string" && o.name.length <= ORIGIN_NAME_MAX && typeof o.setsSha256 === "string" && /^[0-9a-f]{64}$/.test(o.setsSha256);
+  return ok ? null : ORIGIN_RULE_TEXT;
+}
+
+/** The deadline for reading a project from the server: a folder on a share that does not answer must not hold the server. */
+export const READ_DEADLINE_MS = 5000;
+
+const projectError = (message: string, field = "/path"): ReadResult => ({ ok: false, errors: [issue("E_IMPORT_PROJECT", field, message)] });
+class ReadFailure extends Error {}
+const TOO_LARGE = `${PROJECT_MANIFEST_FILE} is larger than ${MAX_MANIFEST_BYTES} bytes`;
+
+/** The path as given, checked without touching the disk: text of a sane size. */
+function pathProblem(path: unknown): ReadResult | null {
+  if (typeof path !== "string" || path.trim() === "" || path.length > 1000 || /[\u0000-\u001f]/.test(path)) return projectError("give the path of a SEED project folder (or of its seed.project.json)");
+  return null;
+}
+const wrongName = (file: string): ReadResult | null => (basename(file) !== PROJECT_MANIFEST_FILE ? projectError(`FEED reads only a file named ${PROJECT_MANIFEST_FILE}; give the project folder or that file`) : null);
+const readFailure = (e: unknown, file: string): ReadResult => {
+  if (e instanceof ReadFailure) return projectError(e.message);
+  const code = (e as NodeJS.ErrnoException | undefined)?.code;
+  if (code === "ENOENT") return projectError(`no ${PROJECT_MANIFEST_FILE} at ${file}`);
+  return projectError("the file cannot be read: " + (e as Error).message);
+};
+
+/** The manifest's text parsed and checked for what FEED needs of it (SEED's own validation is SEED's). */
+function parseManifest(text: string, file: string): ReadResult {
   let doc: unknown;
   try {
     doc = JSON.parse(text);
   } catch {
-    return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/path", `${PROJECT_MANIFEST_FILE} is not valid JSON`)] };
+    return projectError(`${PROJECT_MANIFEST_FILE} is not valid JSON`);
   }
-  if (!isObject(doc) || doc.schema !== PROJECT_SCHEMA) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/schema", `not a ${PROJECT_SCHEMA} project (schema is ${isObject(doc) ? JSON.stringify(doc.schema) : "missing"}); FEED reads that version only`)] };
-  if (typeof doc.projectId !== "string" || !Array.isArray(doc.materials)) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/", "the project has no projectId or no materials list")] };
+  if (!isObject(doc) || doc.schema !== PROJECT_SCHEMA) return projectError(`not a ${PROJECT_SCHEMA} project (schema is ${isObject(doc) ? JSON.stringify(doc.schema) : "missing"}); FEED reads that version only`, "/schema");
+  if (typeof doc.projectId !== "string" || doc.projectId.length < 1 || doc.projectId.length > PROJECT_ID_MAX || !Array.isArray(doc.materials)) return projectError(`the project has no projectId (1 to ${PROJECT_ID_MAX} characters) or no materials list`, "/");
   return { ok: true, manifest: doc as unknown as Manifest, file };
+}
+
+/** The bytes of an open file, at most MAX_MANIFEST_BYTES of them: it must be a regular file, and a file that grows while it is read is refused, not cut. */
+function readOpenSync(fd: number): string {
+  const st = fstatSync(fd);
+  if (!st.isFile()) throw new ReadFailure(`${PROJECT_MANIFEST_FILE} is not a regular file`);
+  if (st.size > MAX_MANIFEST_BYTES) throw new ReadFailure(TOO_LARGE);
+  const buf = Buffer.allocUnsafe(MAX_MANIFEST_BYTES + 1);
+  let n = 0;
+  while (n < buf.length) {
+    const got = readSync(fd, buf, n, buf.length - n, null);
+    if (got === 0) break;
+    n += got;
+  }
+  if (n > MAX_MANIFEST_BYTES) throw new ReadFailure(TOO_LARGE);
+  return buf.toString("utf8", 0, n);
+}
+
+/** Read a project: the folder, or the seed.project.json inside it. Nothing else is read, and only a file of that name. The server uses readProjectAsync. */
+export function readProject(path: unknown): ReadResult {
+  const bad = pathProblem(path);
+  if (bad) return bad;
+  let file = (path as string).trim();
+  try {
+    if (existsSync(file) && statSync(file).isDirectory()) file = join(file, PROJECT_MANIFEST_FILE);
+  } catch {
+    return projectError("the path cannot be read");
+  }
+  const name = wrongName(file);
+  if (name) return name;
+  let fd: number | undefined;
+  try {
+    fd = openSync(file, "r");
+    return parseManifest(readOpenSync(fd), file);
+  } catch (e) {
+    return readFailure(e, file);
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
+}
+
+/** What the async read needs of a file and of the disk, so a test can stand in for a share that does not answer. */
+export interface FileLike {
+  stat(): Promise<{ isFile(): boolean; size: number }>;
+  read(buf: Buffer, offset: number, length: number, position: number | null): Promise<{ bytesRead: number }>;
+  close(): Promise<void>;
+}
+export interface ReadIo {
+  open?: (file: string) => Promise<FileLike>;
+  isDirectory?: (path: string) => Promise<boolean>;
+  timeoutMs?: number;
+}
+
+/**
+ * The same read for the server: on the thread pool, not on the server's thread, with a deadline (READ_DEADLINE_MS). A read that does not finish by then is
+ * answered with E_IMPORT_PROJECT; what it was doing is closed when it does finish.
+ */
+export async function readProjectAsync(path: unknown, io: ReadIo = {}): Promise<ReadResult> {
+  const bad = pathProblem(path);
+  if (bad) return bad;
+  const timeoutMs = io.timeoutMs ?? READ_DEADLINE_MS;
+  const open = io.open ?? ((f: string) => fsp.open(f, "r") as unknown as Promise<FileLike>);
+  const isDirectory = io.isDirectory ?? (async (p: string) => (await fsp.stat(p).catch(() => null))?.isDirectory() === true);
+  const work = async (): Promise<ReadResult> => {
+    let file = (path as string).trim();
+    if (await isDirectory(file)) file = join(file, PROJECT_MANIFEST_FILE);
+    const name = wrongName(file);
+    if (name) return name;
+    let handle: FileLike | undefined;
+    try {
+      handle = await open(file);
+      const st = await handle.stat();
+      if (!st.isFile()) throw new ReadFailure(`${PROJECT_MANIFEST_FILE} is not a regular file`);
+      if (st.size > MAX_MANIFEST_BYTES) throw new ReadFailure(TOO_LARGE);
+      const buf = Buffer.allocUnsafe(MAX_MANIFEST_BYTES + 1);
+      let n = 0;
+      while (n < buf.length) {
+        const got = (await handle.read(buf, n, buf.length - n, null)).bytesRead;
+        if (got === 0) break;
+        n += got;
+      }
+      if (n > MAX_MANIFEST_BYTES) throw new ReadFailure(TOO_LARGE);
+      return parseManifest(buf.toString("utf8", 0, n), file);
+    } catch (e) {
+      return readFailure(e, file);
+    } finally {
+      await handle?.close().catch(() => undefined);
+    }
+  };
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<ReadResult>((resolve) => {
+    timer = setTimeout(() => resolve(projectError(`reading the project took longer than ${timeoutMs} ms; the folder may be on a share that is not answering`)), timeoutMs);
+  });
+  try {
+    return await Promise.race([work(), late]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export type ThermalState = "ready" | "missing" | "foreign";
@@ -159,9 +271,11 @@ export function importMaterial(manifest: Manifest, input: ImportInput): ImportRe
   if (typeof input.id !== "string" || input.id === "") return { ok: false, errors: [issue("E_SCHEMA_INVALID", "/id", "give the id of the material to import")] };
   const found = materialsOf(manifest).find((m) => m.id === input.id);
   if (!found) return { ok: false, errors: [issue("E_IMPORT_NOT_FOUND", "/id", `the project has no material with id '${input.id}' (ids are matched exactly; a name is not an id)`)] };
-  if (typeof found.revision !== "number" || !Number.isInteger(found.revision) || found.revision < 1) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/revision", `material '${input.id}' has no valid revision in the project`)] };
+  if (typeof found.revision !== "number" || !Number.isSafeInteger(found.revision) || found.revision < 1 || found.revision >= Number.MAX_SAFE_INTEGER) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/revision", `material '${input.id}' has no valid revision in the project`)] };
   if (input.revision !== undefined && input.revision !== found.revision) return { ok: false, errors: [issue("E_IMPORT_REVISION", "/revision", `the project has '${input.id}' at revision ${found.revision}, not ${String(input.revision)}; a revision is immutable and FEED can only read the one the project holds`)] };
   if (!MATERIAL_ID.test(input.id)) return { ok: false, errors: [issue("E_IMPORT_ID", "/id", `'${input.id}' is not an id FEED can carry (3 to 64 characters: lower case letters, digits and hyphens, not starting or ending with a hyphen); FEED does not rewrite ids`)] };
+  if (typeof manifest.projectId !== "string" || manifest.projectId.length < 1 || manifest.projectId.length > PROJECT_ID_MAX) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/projectId", `the project's id is 1 to ${PROJECT_ID_MAX} characters`)] };
+  if (found.name !== undefined && (typeof found.name !== "string" || found.name.length > ORIGIN_NAME_MAX)) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/name", `material '${input.id}' has a name over ${ORIGIN_NAME_MAX} characters (SEED's contract allows 1 to 120); FEED does not cut it`)] };
   if (!isObject(found.sets)) return { ok: false, errors: [issue("E_IMPORT_PROJECT", "/sets", `material '${input.id}' has no sets`)] };
 
   const notes: string[] = [];
