@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-limits-duplicate-name",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-limits-duplicate-name.case.json",
+      "sha256": "075eebf27a28abcf4a3ccf987e22e5ddea46a2d87e58f875afe1bd8e738aac46"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_SCHEMA_INVALID"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: two temperature limits with the same name, so a result could not say which one it is about. FEED must refuse it before any run; SEED reports E_SCHEMA_INVALID.",
+    "check": "FEED's schema vectors (schema/vectors/bad/limits-duplicate-name.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "72007821e991e512f894281ba619245fca393e28d49071e5b067f3ac1aac935b"
+}
