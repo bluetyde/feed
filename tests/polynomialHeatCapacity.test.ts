@@ -1,6 +1,6 @@
 // Quadratic and tabulated heat capacity (src/core/heatCapacity.ts and what uses it). The expected values come from routes the code under test does not use:
 // Simpson quadrature of c(T) and a bisection on it, an hand-computed writer line, the table's own points.
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { writeOffbeatCase } from "../src/core/caseWriter";
@@ -10,7 +10,7 @@ import { fitChecks } from "../src/core/resultsParser";
 import { generatePulse, KineticsError, KineticsSpec, temperatureRiseLaw } from "../src/core/pointKinetics";
 import { solveTransientFv, storedEnergy, TransientPin } from "../src/core/transientFv";
 import { transientPreview } from "../src/core/transientPreview";
-import { pinOf } from "../src/core/transientResults";
+import { buildTransientResults, pinOf } from "../src/core/transientResults";
 import { validateCase } from "../src/core/validate";
 
 const root = join(__dirname, "..");
@@ -225,3 +225,77 @@ describe("a quadratic heat capacity in the pulse generator and the preview", () 
 function near(a: number, b: number, rel: number) {
   expect(Math.abs(a - b)).toBeLessThanOrEqual(rel * Math.max(Math.abs(a), Math.abs(b)));
 }
+
+describe("edges the mutation run found (heat capacity)", () => {
+  const golden = join(root, "tests/golden/offbeat-pulse");
+  const goldenInput = () => ({
+    C: readFileSync(join(golden, "C"), "utf8"),
+    fields: readdirSync(join(golden, "times")).sort((a, b) => Number(a) - Number(b)).map((d) => ({ time: Number(d), T: readFileSync(join(golden, "times", d, "T"), "utf8") })),
+  });
+
+  it("a heat capacity of exactly 1e3 or 1e8 J/m3/K at the edge of the range is accepted, one beyond is refused", () => {
+    const flat = (c: number) => cpSet([c, 0, 0], [250, 1500]);
+    expect(validateCase(pulseWith(flat(1e3))).errors).toEqual([]);
+    expect(validateCase(pulseWith(flat(1e8))).errors).toEqual([]);
+    expect(validateCase(pulseWith(flat(999))).errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+    expect(validateCase(pulseWith(flat(1e8 + 1))).errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+  });
+
+  it("the refusals of a heat capacity speak in J/m3/K, not in W/m/K", () => {
+    const negative = validateCase(pulseWith(cpSet([4.9e6 + 1500, -14000, 10], [300, 1100])));
+    expect(negative.errors).toEqual([]);
+    const v = validateCase(pulseWith(cpSet([-1e6, 0, 0], [300, 1100])));
+    expect(v.errors[0]!.message).toMatch(/heat capacity is not positive over its stated range 300 to 1100 K \(its lowest value there is -1\.000e\+6 J\/m3\/K\)/);
+    expect(v.errors[0]!.unit).toBe("J/m3/K");
+    const big = validateCase(pulseWith(cpSet([2e8, 0, 0], [300, 1100])));
+    expect(big.errors[0]!.message).toMatch(/outside 1000 to 100000000 J\/m3\/K/);
+  });
+
+  it("a steady operating start that puts a solid outside the stated range of its heat capacity polynomial is refused", () => {
+    const d = pulseWith(cpSet(CP, [250, 400]));
+    delete d.transient.initialTemperature;
+    d.transient.initialSteadyLinearHeatRate = q(10, "kW/m");
+    const v = validateCase(d);
+    expect(v.errors.map((e) => e.code + " " + e.field)).toEqual(["E_OUT_OF_RANGE /transient/initialSteadyLinearHeatRate"]);
+    expect(v.errors[0]!.message).toMatch(/outside the stated range of its heat capacity law \(250 to 400 K\)/);
+  });
+
+  it("a quadratic with a zero quadratic term is the linear law: the same generated pulse as the linear model", () => {
+    const lin = read("examples/synthetic-pulse-kinetics.json");
+    lin.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: q(0.9e6, "J/m3/K"), b: q(4170, "J/m3/K2"), validRange: { min: q(250, "K"), max: q(2500, "K") }, source: "test" };
+    const poly = read("examples/synthetic-pulse-kinetics.json");
+    poly.materials.fuel.sets["thermal.volumetricHeatCapacity"] = cpSet([0.9e6, 4170, 0], [250, 2500]);
+    const a = normalized(lin).transient!;
+    const b = normalized(poly).transient!;
+    expect(b.linearHeatRate).toEqual(a.linearHeatRate);
+    expect(b.times).toEqual(a.times);
+  });
+
+  it("the pulse a case generates is the pulse of the generator given the law (not the line through the first two coefficients)", () => {
+    const d = read("examples/synthetic-pulse-kinetics.json");
+    d.materials.fuel.sets["thermal.volumetricHeatCapacity"] = cpSet(CP, [250, 3000]);
+    const n = normalized(d);
+    const direct = generatePulse(n.transient!.kinetics!, { fuelArea: Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2), fuelC: { a: CP[0]!, b: CP[1]! }, fuelLaw: CP, startTemperature: n.transient!.initial.kind === "uniform" ? n.transient!.initial.temperature : NaN });
+    expect(n.transient!.linearHeatRate).toEqual(direct.linearHeatRate);
+  });
+
+  it("the property-range check is in the results of a pin whose only temperature-dependent law is a heat capacity polynomial, and fails when the pulse leaves its range", () => {
+    const wide = buildTransientResults(normalized(pulseWith(cpSet([3e6, 0, 0], [250, 2500]))), goldenInput());
+    expect(wide.checks.find((c) => c.id === "propertyRange")!.verdict).toBe("pass");
+    expect(wide.domain.verdict).toBe("in-domain");
+    const narrow = buildTransientResults(normalized(pulseWith(cpSet([3e6, 0, 0], [250, 400]))), goldenInput());
+    expect(narrow.checks.find((c) => c.id === "propertyRange")!.verdict).toBe("fail");
+    expect(narrow.domain.verdict).toBe("out-of-domain");
+    expect(narrow.domain.findings[0]).toMatchObject({ region: "fuel", validRange: [250, 400] });
+  });
+
+  it("the cladding's table check is the cladding's: id, label and region agree", () => {
+    const d = read("examples/synthetic-pulse.json");
+    d.materials.cladding.sets["thermal.volumetricHeatCapacity"] = tableSet();
+    const c = fitChecks(normalized(d))[0]!;
+    expect(c.id).toBe("heatCapacityFitCladding");
+    expect(c.label).toMatch(/^The cladding's tabulated heat capacity/);
+    const f = fitChecks(normalized(pulseWith(tableSet())))[0]!;
+    expect(f.label).toMatch(/^The fuel's tabulated heat capacity/);
+  });
+});
