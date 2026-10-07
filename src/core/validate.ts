@@ -414,7 +414,7 @@ export function validateMaterial(region: "fuel" | "cladding", material: unknown)
     return finish(issues);
   }
   if (typeof material.materialId !== "string" || !MATERIAL_ID.test(material.materialId)) err("E_SCHEMA_INVALID", base + "/materialId", "the material id is 3 to 64 characters: lower case letters, digits and hyphens, not starting or ending with a hyphen");
-  if (typeof material.revision !== "number" || !Number.isInteger(material.revision) || material.revision < 1) err("E_SCHEMA_INVALID", base + "/revision", "the revision is a whole number from 1");
+  if (typeof material.revision !== "number" || !Number.isSafeInteger(material.revision) || material.revision < 1) err("E_SCHEMA_INVALID", base + "/revision", "the revision is a whole number from 1");
   if (!isObject(material.sets)) {
     err("E_SCHEMA_INVALID", base + "/sets", "sets is an object of named property sets");
     return finish(issues);
@@ -538,12 +538,16 @@ const HEAT_CAPACITY_SPEC: LawSpec = {
 /** The property must be positive over the whole of its range, exactly (the end points and the turning points), not at samples; and inside its bounds if it has any. */
 function positiveOver(c: Law, lo: number, hi: number, base: string, region: string, err: ErrFn, spec: LawSpec = CONDUCTIVITY_SPEC): boolean {
   const m = minimum(c, lo, hi);
+  const top = -minimum(c.map((x) => -x), lo, hi);
+  if (!Number.isFinite(m) || !Number.isFinite(top)) {
+    err("E_OUT_OF_RANGE", base, "the " + region + " " + spec.what + " cannot be evaluated over its stated range " + lo + " to " + hi + " K: it overflows; check the coefficients and their units", { unit: spec.unit, range: [lo, hi] });
+    return false;
+  }
   if (!(m > 0)) {
     err("E_OUT_OF_RANGE", base, "the " + region + " " + spec.what + " is not positive over its stated range " + lo + " to " + hi + " K (its lowest value there is " + m.toPrecision(4) + " " + spec.unit + ")", { unit: spec.unit, range: [lo, hi] });
     return false;
   }
   if (spec.bounds) {
-    const top = -minimum(c.map((x) => -x), lo, hi);
     if (m < spec.bounds[0] || top > spec.bounds[1]) {
       err("E_OUT_OF_RANGE", base, "the " + region + " " + spec.what + " is outside " + spec.bounds[0] + " to " + spec.bounds[1] + " " + spec.unit + " somewhere in its stated range (" + m.toPrecision(4) + " to " + top.toPrecision(4) + "); check the units", { unit: spec.unit, range: [lo, hi] });
       return false;

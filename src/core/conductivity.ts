@@ -49,8 +49,12 @@ export function minimum(c: Law, lo: number, hi: number): number {
   if (d !== 0) {
     const disc = 4 * cc * cc - 12 * d * b;
     if (disc >= 0) {
-      const s = Math.sqrt(disc);
-      candidates.push((-2 * cc + s) / (6 * d), (-2 * cc - s) / (6 * d));
+      // The roots of A T^2 + B T + C (A = 3 d, B = 2 cc, C = b) the stable way: q = -(B + sign(B) sqrt(disc)) / 2, roots q / A and C / q. The textbook
+      // (-B +- sqrt(disc)) / 2A loses the small root to cancellation when A is tiny, and with it an interior minimum.
+      const B = 2 * cc;
+      const q = -(B + (B < 0 ? -1 : 1) * Math.sqrt(disc)) / 2;
+      if (q === 0) candidates.push(0); // B = 0 and disc = 0 mean C = 0: a double root at 0
+      else candidates.push(q / (3 * d), b / q);
     }
   } else if (cc !== 0) candidates.push(-b / (2 * cc));
   let m = Infinity;
@@ -77,8 +81,22 @@ export function solveHot(c: Law, tCold: number, integral: number): number {
   if (!(evaluate(c, tCold) > 0)) throw new RangeError("conductivity is not positive at the cold side");
   const base = primitive(c, tCold);
   let hi = tCold + 1;
+  let good = tCold; // the last bracket end with k > 0 all the way from tCold
   for (let i = 0; i < 60; i++) {
-    if (!(minimum(c, tCold, hi) > 0)) throw new RangeError("conductivity reaches zero before the conductivity integral does: there is no solution");
+    if (!(minimum(c, tCold, hi) > 0)) {
+      // k reaches zero before hi, which does not mean the integral does: find the last temperature with k > 0 all the way, and see whether the integral is reached by then
+      let lo = good;
+      let up = hi;
+      for (let j = 0; j < 200; j++) {
+        const mid = 0.5 * (lo + up);
+        if (minimum(c, tCold, mid) > 0) lo = mid;
+        else up = mid;
+      }
+      if (!(primitive(c, lo) - base >= integral)) throw new RangeError("conductivity reaches zero before the conductivity integral does: there is no solution");
+      hi = lo;
+      break;
+    }
+    good = hi;
     if (primitive(c, hi) - base >= integral) break;
     hi = tCold + 2 * (hi - tCold);
     if (i === 59) throw new RangeError("no temperature below 1e18 K reaches the conductivity integral");
