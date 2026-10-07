@@ -100,8 +100,8 @@ Synthetic and illustrative until F1 fixes and re-derives them. Full table in [pl
 
 ## Open questions
 
-- Exact OFFBEAT and OpenFOAM version pair, supported first case, and how a one-dimensional pin is represented in the solver (wedge, 2D axisymmetric or other).
-- Property dataset and redistribution terms; installation footprint; packaging.
-- Which gap-conductance model the thermal-only case uses (constant, or the solver's gas-gap model) and how to teach the difference.
-- Whether to offer a closed-form-only "quick look" mode with no solver, clearly labelled as a limited calculation.
-- Stack, distribution license and repo name.
+- Exact OFFBEAT and OpenFOAM version pair, supported first case, and how a one-dimensional pin is represented in the solver (wedge, 2D axisymmetric or other). **Answered 2026-10-06:** OFFBEAT `80e84450` with OpenFOAM 9 ([solver/PINS.md](solver/PINS.md)); one radial slice as a wedge, which also handles contact ([docs/spike/mechanics-probe.md](docs/spike/mechanics-probe.md)).
+- Property dataset and redistribution terms; installation footprint; packaging. **Answered:** sourced properties are in `library/` with their citations; the solver is never bundled and is built by a script ([decision 0004](docs/decisions/0004-scope-and-release-decisions.md), [docs/licences](docs/licences)); the footprint is about 5.8 GB for the distro.
+- Which gap-conductance model the thermal-only case uses (constant, or the solver's gas-gap model) and how to teach the difference. **Answered:** the constant effective conductance, the only one without mechanics ([property-model-survey.md](docs/spike/property-model-survey.md)); a gas-gap model waits for the mechanics. How to teach the difference is still open.
+- Whether to offer a closed-form-only "quick look" mode with no solver, clearly labelled as a limited calculation. **Answered:** yes, built (`src/core/quickLook.ts`, the Quick look button).
+- Stack, distribution license and repo name. **Stack:** TypeScript, Node, vitest, ajv, in use and provisional ([decision 0001](docs/decisions/0001-provisional-stack.md)). **Distribution and licence:** source only, MIT ([decision 0004](docs/decisions/0004-scope-and-release-decisions.md)). **Repo name:** `bluetyde/feed`, to be confirmed before the repo is made public.
