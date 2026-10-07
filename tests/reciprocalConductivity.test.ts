@@ -8,6 +8,7 @@ import { writeOffbeatCase } from "../src/core/caseWriter";
 import { evaluate, lawOf, minimum, primitive, solveHot } from "../src/core/conductivity";
 import { quickLook, radialProfile } from "../src/core/quickLook";
 import { lowestConductivity, timeScale } from "../src/core/steadyState";
+import { independentSolution, pinOf } from "../src/core/transientResults";
 import { solveTransientFv, steadyFv, TransientPin } from "../src/core/transientFv";
 import { validateCase, validateMaterial } from "../src/core/validate";
 
@@ -213,5 +214,32 @@ describe("the time scale and the lowest conductivity", () => {
     const hi = timeScale(normalized(recip(A, B, 300, 1500))).tauBound;
     const lo = timeScale(normalized(recip(A / 10, B / 10, 300, 1500))).tauBound;
     expect(lo).toBeGreaterThan(hi);
+  });
+});
+
+describe("a transient with a reciprocal fuel", () => {
+  const pulse = (set: unknown) => {
+    const d = read("examples/synthetic-pulse.json");
+    d.materials.fuel.sets["thermal.conductivity"] = set;
+    const v = validateCase(d);
+    expect(v.errors).toEqual([]);
+    return v.normalized!;
+  };
+  it("the independent model carries the law itself, and its linear stand-in is the chord of the law over its range", () => {
+    const n = pulse(recip(6000, 3, 300, 2000));
+    const pin = pinOf(n);
+    expect(pin.fuelLaw).toEqual({ kind: "reciprocal", a: 6000, b: 3 });
+    const chord = (T: number) => pin.fuelK.a + pin.fuelK.b * T;
+    expect(chord(300)).toBeCloseTo(6000 / 300 + 3, 9);
+    expect(chord(2000)).toBeCloseTo(6000 / 2000 + 3, 9);
+  });
+  it("with a = 0 the law is the constant b: the whole transient equals the constant-k run, and with a > 0 it does not", () => {
+    const asConstant = independentSolution(pulse({ model: "constant", value: q(3, "W/m/K"), referenceTemperature: q(1000, "K"), source: "synthetic" }));
+    const flat = independentSolution(pulse(recip(0, 3, 300, 2000)));
+    const bent = independentSolution(pulse(recip(3000, 0, 300, 2000)));
+    // a pulse is nearly adiabatic, so the law shows only in how the heat spreads: compare every cell of every saved state
+    const gap = (x: typeof flat, y: typeof flat) => Math.max(...x.states.flatMap((s, i) => s.T.map((t, j) => Math.abs(t - y.states[i]!.T[j]!))));
+    expect(gap(flat, asConstant)).toBeLessThan(1e-9);
+    expect(gap(bent, asConstant)).toBeGreaterThan(1e-5);
   });
 });

@@ -397,7 +397,7 @@ function meta(id) {
     case "mesh": return doc.mesh.fuelCells + " / " + doc.mesh.claddingCells;
     case "hot": return doc.hotDimensions ? (result && result.ok && result.normalized && result.normalized.hot ? "gap " + (result.normalized.hot.hotGap * 1e6).toFixed(1) + " µm hot" : "on") : "off";
     case "limits": return Array.isArray(doc.limits) ? doc.limits.length + (doc.limits.length === 1 ? " rule" : " rules") : "none";
-    default: { const k = getp(doc, ["materials", id, "sets", "thermal.conductivity"]); return k ? (k.model === "linear" ? "k(T)" : "k " + fmt(k.value)) : "no k"; }
+    default: { const k = getp(doc, ["materials", id, "sets", "thermal.conductivity"]); return k ? (k.model === "constant" ? "k " + fmt(k.value) : "k(T)") : "no k"; }
   }
 }
 function renderTree() {
@@ -630,15 +630,21 @@ function reshapeLaw(kind, region, before, model) {
     set.a = a || S.default;
     for (let i = 1; i < n; i++) set[TERM_KEYS[i]] = old[TERM_KEYS[i]] || { value: 0, unit: S.units[i] };
     set.validRange = range;
+  } else if (model === "reciprocal") {
+    set.a = { value: 0, unit: "W/m" };
+    set.b = (old.model === "constant" ? old.value : old.b !== undefined && old.model === "reciprocal" ? old.b : old.a) || S.default;
+    if (old.model === "reciprocal") set.a = old.a;
+    set.validRange = range;
   } else if (model === "table") {
     set.fit = { degree: S.maxDegree, tolerance: { value: 2, unit: "%" } };
-    const terms = old.model === "constant" ? [old.value] : [old.a, old.b, old.c, old.d].slice(0, old.model === "linear" ? 2 : nTerms);
-    const known = terms.length > 0 && terms.every((q) => q && typeof q === "object" && LAW_SCALE[q.unit] !== undefined && typeof q.value === "number");
+    const recipOld = old.model === "reciprocal" && old.a && old.b && old.a.unit === "W/m" && old.b.unit === "W/m/K" && typeof old.a.value === "number" && typeof old.b.value === "number";
+    const terms = old.model === "reciprocal" ? [] : old.model === "constant" ? [old.value] : [old.a, old.b, old.c, old.d].slice(0, old.model === "linear" ? 2 : nTerms);
+    const known = recipOld || terms.length > 0 && terms.every((q) => q && typeof q === "object" && LAW_SCALE[q.unit] !== undefined && typeof q.value === "number");
     const lo = range.min && range.min.unit === "K" ? range.min.value : null, hi = range.max && range.max.unit === "K" ? range.max.value : null;
     if (known && lo !== null && hi !== null && hi > lo) {
-      const si = terms.map((q) => q.value * LAW_SCALE[q.unit]);
-      const unit0 = terms[0].unit;
-      set.points = [0, 1, 2, 3, 4].map((i) => { const T = lo + ((hi - lo) * i) / 4; const v = si.reduce((acc, c, j) => acc + c * Math.pow(T, j), 0); const pt = { temperature: { value: Number(T.toPrecision(6)), unit: "K" } }; pt[S.pointKey] = { value: Number((v / LAW_SCALE[unit0]).toPrecision(8)), unit: unit0 }; return pt; });
+      const si = recipOld ? [] : terms.map((q) => q.value * LAW_SCALE[q.unit]);
+      const unit0 = recipOld ? "W/m/K" : terms[0].unit;
+      set.points = [0, 1, 2, 3, 4].map((i) => { const T = lo + ((hi - lo) * i) / 4; const v = recipOld ? old.a.value / T + old.b.value : si.reduce((acc, c, j) => acc + c * Math.pow(T, j), 0); const pt = { temperature: { value: Number(T.toPrecision(6)), unit: "K" } }; pt[S.pointKey] = { value: Number((v / LAW_SCALE[unit0]).toPrecision(8)), unit: unit0 }; return pt; });
       set.source = (src ? src + "; " : "") + "table sampled from the previous law at 5 temperatures: replace with the measured points";
     } else set.points = [];
   }
@@ -666,9 +672,13 @@ function lawFields(kind, p, kp, k, region) {
   const S = LAW[kind];
   const before = JSON.parse(JSON.stringify(k));
   const normKey = region + (kind === "conductivity" ? "Conductivity" : "HeatCapacity");
-  p.append(sField("Model", kp.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"], ["polynomial", S.polyLabel], ["table", "Table of points (fitted)"]], (m) => reshapeLaw(kind, region, before, m)));
+  p.append(sField("Model", kp.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"]].concat(kind === "conductivity" ? [["reciprocal", "Reciprocal: a / T + b"]] : [], [["polynomial", S.polyLabel], ["table", "Table of points (fitted)"]]), (m) => reshapeLaw(kind, region, before, m)));
   const rangeFields = () => [qField("T min", kp.concat("validRange", "min"), "temperature"), qField("T max", kp.concat("validRange", "max"), "temperature")];
   if (k.model === "linear") p.append(qField("a", kp.concat("a"), S.dims[0]), qField("b", kp.concat("b"), S.dims[1]), ...rangeFields());
+  else if (k.model === "reciprocal") {
+    p.append(qField("a", kp.concat("a"), "linearPower"), qField("b", kp.concat("b"), "conductivity"), ...rangeFields());
+    p.append(note("k = a / T + b, T in kelvin: a in W/m (the unit of a linear heat rate, which it equals dimensionally) and b in W/m/K; give 0 for a term that is not there. It must be positive over the whole range. The solver is given it as OFFBEAT's SiCPARFUME model (the name is a misnomer here), both terms written."));
+  }
   else if (k.model === "polynomial") {
     p.append(...S.dims.map((d, i) => qField(TERM_KEYS[i], kp.concat(TERM_KEYS[i]), d)), ...rangeFields());
     p.append(note(S.formula + ", T in kelvin; give 0 for a term that is not there. It must be positive over the whole range. The solver is given it as " + S.written + "."));
