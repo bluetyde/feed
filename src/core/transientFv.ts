@@ -71,6 +71,9 @@ export interface FvState {
 export interface FvTrace {
   /** Hottest cell at step 0, 1, ..., steps. */
   peakByStep: number[];
+  /** Hottest fuel cell and hottest cladding cell at each step, the same indices (for limits that depend on both). */
+  fuelByStep: number[];
+  claddingByStep: number[];
   fuelMin: number;
   fuelMax: number;
   claddingMin: number;
@@ -202,7 +205,7 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
   if (o.initialField !== undefined && (o.initialField.length !== n || !o.initialField.every((x) => Number.isFinite(x) && x > 0))) throw new Error("initialField needs " + n + " positive finite temperatures");
   let T = o.initialField !== undefined ? o.initialField.slice() : new Array<number>(n).fill(o.initialTemperature!);
   const states: FvState[] = [{ time: 0, T: T.slice(), deposited: 0, rejected: 0, wall: wallOf(T) }];
-  const trace: FvTrace | undefined = o.trace ? { peakByStep: [maxOf(T)], fuelMin: minOf(T.slice(0, nf)), fuelMax: maxOf(T.slice(0, nf)), claddingMin: minOf(T.slice(nf)), claddingMax: maxOf(T.slice(nf)) } : undefined;
+  const trace: FvTrace | undefined = o.trace ? { peakByStep: [maxOf(T)], fuelByStep: [maxOf(T.slice(0, nf))], claddingByStep: [maxOf(T.slice(nf))], fuelMin: minOf(T.slice(0, nf)), fuelMax: maxOf(T.slice(0, nf)), claddingMin: minOf(T.slice(nf)), claddingMax: maxOf(T.slice(nf)) } : undefined;
   let deposited = 0;
   let rejected = 0;
   for (let step = 1; step <= o.steps; step++) {
@@ -256,18 +259,24 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
     T = Tn;
     if (trace) {
       let peak = -Infinity;
+      let fuelHot = -Infinity;
+      let cladHot = -Infinity;
       for (let i = 0; i < n; i++) {
         const x = T[i]!;
         if (x > peak) peak = x;
         if (i < nf) {
           if (x < trace.fuelMin) trace.fuelMin = x;
           if (x > trace.fuelMax) trace.fuelMax = x;
+          if (x > fuelHot) fuelHot = x;
         } else {
           if (x < trace.claddingMin) trace.claddingMin = x;
           if (x > trace.claddingMax) trace.claddingMax = x;
+          if (x > cladHot) cladHot = x;
         }
       }
       trace.peakByStep.push(peak);
+      trace.fuelByStep.push(fuelHot);
+      trace.claddingByStep.push(cladHot);
     }
     if (step % o.outputEvery === 0) states.push({ time: t1, T: T.slice(), deposited, rejected, wall: wallOf(T) });
   }

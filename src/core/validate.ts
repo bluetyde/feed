@@ -8,6 +8,7 @@ import Ajv2020 from "ajv/dist/2020";
 import { steadyEndTime } from "./steadyState";
 import { Law, fitPolynomial, minimum } from "./conductivity";
 import { heatCapacityLaw } from "./heatCapacity";
+import type { LimitRule } from "./limits";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
 import { Dimension, toSI } from "./units";
@@ -92,6 +93,8 @@ export interface NormalizedCase {
   transient?: NormalizedTransient;
   fuelHeatCapacity?: HeatCapacity;
   claddingHeatCapacity?: HeatCapacity;
+  /** Temperature limits the case states, with their sources (src/core/limits.ts). */
+  limits?: LimitRule[];
 }
 
 export interface ValidationResult {
@@ -249,6 +252,8 @@ export function validateCase(doc: unknown): ValidationResult {
   const fuelK = conductivity(c.materials.fuel, "fuel", err, qty);
   const claddingK = conductivity(c.materials.cladding, "cladding", err, qty);
 
+  const limits = c.limits === undefined ? undefined : parseLimits(c.limits, err, qty);
+
   // Transient: heat capacities of both solids and the time section.
   let fuelCp: HeatCapacity | undefined;
   let claddingCp: HeatCapacity | undefined;
@@ -301,6 +306,7 @@ export function validateCase(doc: unknown): ValidationResult {
       claddingConductivity: claddingK,
       mesh: { fuelCells: mesh.fuelCells, claddingCells: mesh.claddingCells },
       ...(isTransient ? { transient, fuelHeatCapacity: fuelCp, claddingHeatCapacity: claddingCp } : {}),
+      ...(limits ? { limits } : {}),
     };
     // A transient that starts from a steady operating state needs that state to exist and to lie where the heat capacity laws hold (the uniform start is checked above).
     const normalized = result.normalized!;
@@ -732,6 +738,65 @@ function heatCapacity(material: Record<string, any>, region: string, err: ErrFn,
   }
   err("E_UNSUPPORTED", base + "/model", "unknown heat capacity model '" + String(set.model) + "'; supported: constant, linear, polynomial, table");
   return undefined;
+}
+
+export const MAX_LIMITS = 10;
+export const MAX_LIMIT_TEMPERATURE = 10000;
+
+/**
+ * The limits a case states: each with a name, a region, a maximum temperature and the source it comes from; a fuel limit may apply only while the hottest cladding
+ * is at most / above a temperature. Nothing is defaulted and FEED has no limit of its own (docs/temperature-limits.md).
+ */
+function parseLimits(raw: unknown, err: ErrFn, qty: QtyFn): LimitRule[] | undefined {
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > MAX_LIMITS) {
+    err("E_SCHEMA_INVALID", "/limits", "limits is a list of 1 to " + MAX_LIMITS + " rules");
+    return undefined;
+  }
+  const out: LimitRule[] = [];
+  let ok = true;
+  const names = new Set<string>();
+  raw.forEach((r: unknown, i: number) => {
+    const base = "/limits/" + i;
+    const bad = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+      ok = false;
+      err(code, field, message, extra);
+    };
+    if (!isObject(r)) return bad("E_SCHEMA_INVALID", base, "a limit is an object with a name, a region, a maximum temperature and a source");
+    const name = typeof r.name === "string" ? r.name.trim() : "";
+    if (name === "" || name.length > 80 || /[\u0000-\u001f]/.test(name)) bad("E_SCHEMA_INVALID", base + "/name", "a limit needs a name of 1 to 80 characters");
+    else if (names.has(name)) bad("E_SCHEMA_INVALID", base + "/name", "two limits are named '" + name + "'; a name says which limit a result is about");
+    names.add(name);
+    if (r.region !== "fuel" && r.region !== "cladding") bad("E_SCHEMA_INVALID", base + "/region", "region is fuel or cladding");
+    if (typeof r.source !== "string" || r.source.trim() === "") bad("E_PROP_MISSING", base + "/source", "a limit needs the source it comes from: FEED has no limits of its own");
+    let max: number | undefined;
+    if (r.maxTemperature === undefined) bad("E_PROP_MISSING", base + "/maxTemperature", "a limit needs its maximum temperature");
+    else {
+      max = qty(r.maxTemperature, "temperature", base + "/maxTemperature");
+      if (max === undefined) ok = false;
+      else if (!(max > 0 && max <= MAX_LIMIT_TEMPERATURE)) {
+        bad("E_OUT_OF_RANGE", base + "/maxTemperature", "a limit temperature is above 0 K and at most " + MAX_LIMIT_TEMPERATURE + " K", { unit: "K" });
+        max = undefined;
+      }
+    }
+    let while_: { atMost?: number; above?: number } | undefined;
+    if (r.whileCladding !== undefined) {
+      if (r.region !== "fuel") bad("E_SCHEMA_INVALID", base + "/whileCladding", "whileCladding conditions a fuel limit on the cladding; a cladding limit has none");
+      else if (!isObject(r.whileCladding) || (r.whileCladding.atMost === undefined && r.whileCladding.above === undefined)) bad("E_SCHEMA_INVALID", base + "/whileCladding", "whileCladding gives atMost and/or above, each a temperature");
+      else {
+        while_ = {};
+        for (const key of ["atMost", "above"] as const) {
+          if (r.whileCladding[key] === undefined) continue;
+          const t = qty(r.whileCladding[key], "temperature", base + "/whileCladding/" + key);
+          if (t === undefined) ok = false;
+          else if (!(t > 0 && t <= MAX_LIMIT_TEMPERATURE)) bad("E_OUT_OF_RANGE", base + "/whileCladding/" + key, "a cladding temperature is above 0 K and at most " + MAX_LIMIT_TEMPERATURE + " K", { unit: "K" });
+          else while_[key] = t;
+        }
+        if (while_.atMost !== undefined && while_.above !== undefined && !(while_.atMost > while_.above)) bad("E_OUT_OF_RANGE", base + "/whileCladding", "atMost must be above 'above', or the condition never holds", { unit: "K" });
+      }
+    }
+    if (ok && max !== undefined && (r.region === "fuel" || r.region === "cladding") && typeof r.source === "string" && name !== "") out.push({ name, region: r.region, maxTemperature: max, ...(while_ ? { whileCladding: while_ } : {}), source: r.source.trim() });
+  });
+  return ok && out.length === raw.length ? out : undefined;
 }
 
 /** The transient section: power history, time grid, outputs and initial temperature. Every problem is named; nothing is defaulted. */

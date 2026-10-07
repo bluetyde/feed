@@ -2,6 +2,7 @@
 // against an independent finite-volume solution (transientFv.ts) and against energy conservation. The record schema is
 // feed.results/0.2; the steady record (feed.results/0.1) is unchanged.
 
+import { limitChecks } from "./limits";
 import { lawOf, primitive, rangeOf } from "./conductivity";
 import { GeneratedPulse } from "./pointKinetics";
 import { Check, DomainFinding, fitChecks, ResultsError, THERMAL_ONLY_TEXT, assertWholeFoamFile, parsePatchValue, parseScalarField, parseVectorField } from "./resultsParser";
@@ -416,6 +417,13 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   }
 
   checks.push(...fitChecks(c));
+  if (c.limits) {
+    const hottest = (p: number[], from: number, to: number) => p.slice(from, to).reduce((m, x) => (x > m ? x : m), -Infinity);
+    const observed = profiles.map((p, j) => ({ time: times[j]!, fuelMax: hottest(p, 0, nf), claddingMax: hottest(p, nf, p.length) }));
+    const tr = fv.trace!;
+    const independent = tr.fuelByStep.map((f, j) => ({ time: j * t.timeStep, fuelMax: f, claddingMax: tr.claddingByStep[j]! }));
+    checks.push(...limitChecks(c.limits, observed, independent));
+  }
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value})`);
   const jMax = series.peakT.indexOf(maxOf(series.peakT));
   return {

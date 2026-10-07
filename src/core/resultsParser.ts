@@ -2,6 +2,7 @@
 // Incomplete, non-finite or inconsistent output is REFUSED with a typed error; it never becomes a partial result.
 // Pure functions on text: no solver, no files. Tested on real saved output (tests/golden/offbeat-syn/).
 
+import { limitChecks } from "./limits";
 import { closedForm, fuelTemperatureLaw } from "./closedForm";
 import { lawOf, primitive, rangeOf, solveHot } from "./conductivity";
 import { remainingChangeBound, STEADY_TOLERANCE } from "./steadyState";
@@ -264,6 +265,10 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   }
 
   checks.push(...fitChecks(c));
+  if (c.limits) {
+    const hot = (region: "fuel" | "cladding") => radial.filter((p) => p.region === region).reduce((m, p) => (p.T > m ? p.T : m), -Infinity);
+    checks.push(...limitChecks(c.limits, [{ time: 0, fuelMax: hot("fuel"), claddingMax: hot("cladding") }]));
+  }
 
   if (input.drift !== undefined) {
     // Steady-state gate (src/core/steadyState.ts): after an implicit step the deviation still to go is K^-1 C (dT/dt), so its largest
