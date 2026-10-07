@@ -56,6 +56,9 @@ button,input,select{font:inherit;color:inherit}
 .propspanel{border-left:1px solid var(--line)}
 
 .tgroup{padding:2px 0}
+.sronly{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--panel);color:var(--text,inherit);padding:6px 10px;border:1px solid var(--line)}
+.skip:focus{left:6px;top:6px}
 .tghead{display:flex;align-items:center;gap:6px;padding:4px 8px;font-weight:500}
 .tghead .caret{width:10px;color:var(--faint)}
 .count{color:var(--faint);font:11px var(--mono)}
@@ -154,10 +157,12 @@ input.bad,select.bad{border-color:var(--err)}
 </head>
 <body>
 <div class="app"><div class="win">
+  <a class="skip" href="#center">Skip to the editor</a>
   <header class="titlebar">
-    <div class="brand"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="9" r="3.2" fill="currentColor"/><circle cx="9" cy="9" r="5.2"/><circle cx="9" cy="9" r="7.5"/></svg>Fuel Performance Studio</div>
+    <div class="brand" role="heading" aria-level="1"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="9" r="3.2" fill="currentColor"/><circle cx="9" cy="9" r="5.2"/><circle cx="9" cy="9" r="7.5"/></svg>Fuel Performance Studio</div>
     <span class="proj" id="projName"></span>
     <span class="spacer"></span>
+    <span class="sronly" id="announce" role="status" aria-live="polite"></span>
     <span class="chip" id="runChip" role="status" aria-live="polite">no solver installed · closed-form quick look</span>
     <button class="runbtn" id="runBtn" type="button"><svg width="12" height="12" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 3l10 6-10 6z" fill="currentColor"/></svg>Run</button>
   </header>
@@ -167,38 +172,38 @@ input.bad,select.bad{border-color:var(--err)}
     <div class="rtabs" role="tablist"><button class="rtab" role="tab" data-mode="case" aria-selected="true" type="button">Case</button><button class="rtab" role="tab" data-mode="results" aria-selected="false" type="button">Results</button><button class="rtab" role="tab" data-mode="compare" aria-selected="false" type="button">Compare</button></div>
     <div class="rbody" id="rbCase">
       <div class="rgroup"><div class="rbtns">
-        <button class="rbtn" id="bExample" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3"/></svg>Example</button>
-        <button class="rbtn" id="bOpen" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5h5l1.5 1.5H16V14H2z"/></svg>Open…</button>
-        <button class="rbtn" id="bSave" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>Save</button>
+        <button class="rbtn" id="bExample" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3"/></svg>Example</button>
+        <button class="rbtn" id="bOpen" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2 5h5l1.5 1.5H16V14H2z"/></svg>Open…</button>
+        <button class="rbtn" id="bSave" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>Save</button>
       </div><div class="rlabel">File</div></div>
       <div class="rgroup"><div class="rbtns">
-        <button class="rbtn" id="bPins" type="button" aria-haspopup="menu"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="9" cy="9" r="6.5"/><circle cx="9" cy="9" r="4"/><circle cx="9" cy="9" r="1.5"/></svg>Pins</button>
-        <button class="rbtn" id="bMats" type="button" aria-haspopup="menu"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="12" height="12" rx="1.5"/><path d="M3 7.5h12M7.5 7.5V15"/></svg>Materials</button>
+        <button class="rbtn" id="bPins" type="button" aria-haspopup="menu"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><circle cx="9" cy="9" r="4"/><circle cx="9" cy="9" r="1.5"/></svg>Pins</button>
+        <button class="rbtn" id="bMats" type="button" aria-haspopup="menu"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="3" y="3" width="12" height="12" rx="1.5"/><path d="M3 7.5h12M7.5 7.5V15"/></svg>Materials</button>
       </div><div class="rlabel">Library</div></div>
       <div class="rgroup"><div class="rbtns">
-        <button class="rbtn" id="bCheck" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 9.5l4 4 8-9"/></svg>Validate</button>
-        <button class="rbtn" id="bStudy" type="button" title="Run this case on three meshes and measure the order of convergence"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 3h14M2 8h14M2 13h14M6 1v16M12 1v16"/></svg>Refinement</button>
-        <button class="rbtn" id="bQuick" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 2L4 10h4l-1 6 7-9H10z"/></svg>Quick look</button>
+        <button class="rbtn" id="bCheck" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 9.5l4 4 8-9"/></svg>Validate</button>
+        <button class="rbtn" id="bStudy" type="button" title="Run this case on three meshes and measure the order of convergence"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2 3h14M2 8h14M2 13h14M6 1v16M12 1v16"/></svg>Refinement</button>
+        <button class="rbtn" id="bQuick" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M10 2L4 10h4l-1 6 7-9H10z"/></svg>Quick look</button>
       </div><div class="rlabel">Check</div></div>
       <div class="rgroup"><div class="rbtns">
-        <button class="rbtn" id="bTemp" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span id="bTempLbl">Kelvin</span></button>
+        <button class="rbtn" id="bTemp" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span id="bTempLbl">Kelvin</span></button>
       </div><div class="rlabel">Units</div></div>
     </div>
-    <div class="rbody" id="rbResults" hidden><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bRefresh" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M15 9a6 6 0 11-2-4.5M15 2.5V5h-2.5"/></svg>Refresh</button><button class="rbtn" id="bOpenRunCase" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5h5l1.5 1.5H16V14H2z"/></svg>Open case</button></div><div class="rlabel">Runs</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bCsv" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>CSV</button><button class="rbtn" id="bJson" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>JSON</button></div><div class="rlabel">Export</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bTempR" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span>Kelvin</span></button></div><div class="rlabel">Units</div></div></div>
-    <div class="rbody" id="rbCompare" hidden><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bRefresh2" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M15 9a6 6 0 11-2-4.5M15 2.5V5h-2.5"/></svg>Refresh</button><button class="rbtn" id="bSwap" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6h11M11 3l3 3-3 3M15 12H4M7 9l-3 3 3 3"/></svg>Swap A/B</button></div><div class="rlabel">Runs</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bCmpJson" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>JSON</button></div><div class="rlabel">Export</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bTempC" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span>Kelvin</span></button></div><div class="rlabel">Units</div></div></div>
+    <div class="rbody" id="rbResults" hidden><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bRefresh" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M15 9a6 6 0 11-2-4.5M15 2.5V5h-2.5"/></svg>Refresh</button><button class="rbtn" id="bOpenRunCase" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2 5h5l1.5 1.5H16V14H2z"/></svg>Open case</button></div><div class="rlabel">Runs</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bCsv" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>CSV</button><button class="rbtn" id="bJson" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>JSON</button></div><div class="rlabel">Export</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bTempR" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span>Kelvin</span></button></div><div class="rlabel">Units</div></div></div>
+    <div class="rbody" id="rbCompare" hidden><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bRefresh2" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M15 9a6 6 0 11-2-4.5M15 2.5V5h-2.5"/></svg>Refresh</button><button class="rbtn" id="bSwap" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 6h11M11 3l3 3-3 3M15 12H4M7 9l-3 3 3 3"/></svg>Swap A/B</button></div><div class="rlabel">Runs</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bCmpJson" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9 2.5v9M5.5 8L9 11.5 12.5 8M3 14.5h12"/></svg>JSON</button></div><div class="rlabel">Export</div></div><div class="rgroup"><div class="rbtns"><button class="rbtn" id="bTempC" type="button"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M7 10V3.5a2 2 0 014 0V10a3.5 3.5 0 11-4 0z"/></svg><span>Kelvin</span></button></div><div class="rlabel">Units</div></div></div>
   </nav>
   <input type="file" id="fileIn" accept=".json,application/json" hidden>
 
   <div class="main">
-    <aside class="panel explorer" aria-label="Explorer"><div class="phead" id="exHead">Case</div><div class="pscroll" id="tree"></div><div class="pscroll" id="runs" hidden></div></aside>
+    <aside class="panel explorer" aria-label="Explorer"><div class="phead" id="exHead" role="heading" aria-level="2">Case</div><div class="pscroll" id="tree"></div><div class="pscroll" id="runs" hidden></div></aside>
 
-    <section class="center" id="center" aria-label="Editor">
+    <main class="center" id="center" aria-label="Editor" tabindex="-1">
       <div class="dtabs" role="tablist">
-        <button class="dtab" role="tab" id="tabView" aria-selected="true" type="button">Pin and profile</button>
-        <button class="dtab" role="tab" id="tabJson" aria-selected="false" type="button">case.json</button>
-        <button class="dtab" role="tab" id="tabResults" aria-selected="true" type="button" hidden>Run result</button><button class="dtab" role="tab" id="tabCompare" aria-selected="true" type="button" hidden>Compare runs</button>
+        <button class="dtab" role="tab" id="tabView" aria-controls="docView" aria-selected="true" type="button">Pin and profile</button>
+        <button class="dtab" role="tab" id="tabJson" aria-controls="docJson" aria-selected="false" type="button">case.json</button>
+        <button class="dtab" role="tab" id="tabResults" aria-controls="docResults" aria-selected="false" type="button" hidden>Run result</button><button class="dtab" role="tab" id="tabCompare" aria-controls="docCompare" aria-selected="false" type="button" hidden>Compare runs</button>
       </div>
-      <div class="doc" id="docView">
+      <div class="doc" id="docView" role="tabpanel" aria-labelledby="tabView">
         <div class="toolbar">
           <div class="seg" role="group" aria-label="Plot"><button type="button" id="pCol" aria-pressed="true">Colour fuel by T</button><button type="button" id="pCf" aria-pressed="true">Closed-form line</button></div>
           <span class="readout" id="readout">Hover the profile for r and T</span>
@@ -208,14 +213,14 @@ input.bad,select.bad{border-color:var(--err)}
           <div class="cell"><canvas id="prof" aria-label="Radial temperature profile"></canvas><div class="nodata" id="noData" hidden>Fix the problems to see the profile</div></div>
         </div>
       </div>
-      <div class="doc" id="docJson" hidden><pre class="json" id="jsonView"></pre></div>
-      <div class="doc" id="docResults" hidden>
+      <div class="doc" id="docJson" role="tabpanel" aria-labelledby="tabJson" hidden><pre class="json" id="jsonView"></pre></div>
+      <div class="doc" id="docResults" role="tabpanel" aria-labelledby="tabResults" hidden>
         <div class="banner" id="rBanner"></div>
         <div class="toolbar"><span id="rTitle" style="color:var(--text)">No run selected</span><div class="seg" role="group" aria-label="Plot"><button type="button" id="rCf" aria-pressed="true">Closed-form line</button></div><span class="readout" id="rReadout">Hover the profile</span></div>
         <div class="metrics" id="metrics"></div>
         <div class="vpwrap1"><canvas id="rprof" aria-label="Radial temperature profile of the selected run"></canvas></div>
       </div>
-      <div class="doc" id="docCompare" hidden>
+      <div class="doc" id="docCompare" role="tabpanel" aria-labelledby="tabCompare" hidden>
         <div class="banner" id="cBanner" hidden></div>
         <div class="toolbar"><label style="color:#52b8ff">A <select id="cmpA" aria-label="Run A"></select></label><label style="color:#f0a35e">B <select id="cmpB" aria-label="Run B"></select></label><span class="readout" id="cReadout">Hover the profile</span></div>
         <div class="cgrid"><div class="ccell"><canvas id="cprof" aria-label="Radial temperature profiles of runs A and B"></canvas></div><div class="ccell"><canvas id="cdiff" aria-label="Temperature difference B minus A"></canvas></div><div class="ctables" id="cmpTables"></div></div>
@@ -227,11 +232,11 @@ input.bad,select.bad{border-color:var(--err)}
           <button class="otab" role="tab" data-o="checks" aria-selected="false" type="button">Checks</button>
           <button class="otab" role="tab" data-o="log" aria-selected="false" type="button">Log</button>
         </div>
-        <div class="obody" id="obody"></div>
+        <div class="obody" id="obody" role="tabpanel" aria-label="Output"></div>
       </div>
-    </section>
+    </main>
 
-    <aside class="panel propspanel" aria-label="Properties"><div class="phead">Properties <span class="sub" id="propSub"></span></div><div class="pscroll" id="props"></div></aside>
+    <aside class="panel propspanel" aria-label="Properties"><div class="phead" role="heading" aria-level="2">Properties <span class="sub" id="propSub"></span></div><div class="pscroll" id="props"></div></aside>
   </div>
 </div></div>
 
@@ -308,7 +313,7 @@ function attachErr(row, field, inputs) {
   row.append(elt("div", e.map((x) => x.message).join(" "), { class: "ferr" }));
 }
 function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
-function elt(tag, text, attrs) { const e = document.createElement(tag); if (text) e.textContent = text; for (const k in attrs || {}) { if (k === "class") e.className = attrs[k]; else e.setAttribute(k, attrs[k]); } return e; }
+function elt(tag, text, attrs) { const e = document.createElement(tag); if (text) e.textContent = text; for (const k in attrs || {}) { if (k === "class") e.className = attrs[k]; else e.setAttribute(k, attrs[k]); } if (/(^| )psec( |$)/.test(e.className)) { e.setAttribute("role", "heading"); e.setAttribute("aria-level", "3"); } return e; }
 const sec = (t) => elt("div", t, { class: "psec" });
 const note = (html) => { const r = el("div", "prow note"); const p = document.createElement("p"); p.innerHTML = html; r.append(p); return r; };
 
@@ -396,7 +401,7 @@ function renderTree() {
   const issues = (result && result.errors || []).concat(result && result.warnings || []);
   let last = null, g = null;
   for (const [id, label, group] of ITEMS) {
-    if (group !== last) { g = el("div", "tgroup"); const h = el("div", "tghead"); h.append(elt("span", group)); g.append(h); t.append(g); last = group; }
+    if (group !== last) { g = el("div", "tgroup"); const h = el("div", "tghead"); h.setAttribute("role", "heading"); h.setAttribute("aria-level", "3"); h.append(elt("span", group)); g.append(h); t.append(g); last = group; }
     const mine = issues.filter((i) => itemOf(i.field) === id);
     const st = mine.some((i) => i.severity === "error") ? "err" : mine.length ? "warn" : result ? "ok" : "";
     const b = el("button", "titem" + (id === selected ? " is-sel" : "")); b.type = "button";
@@ -408,10 +413,16 @@ function renderTree() {
 
 /* ---- output panel */
 const K = (T) => (showDegC ? (T - 273.15).toFixed(1) + " °C" : T.toFixed(1) + " K");
+let lastAnnounced = "";
 function renderOutput() {
   const o = $("obody"); o.replaceChildren();
   const issues = result ? result.errors.concat(result.warnings) : [];
   $("nProb").textContent = String(issues.length);
+  { /* announced to a screen reader when the validation outcome changes (not on every redraw) */
+    const nE = result ? result.errors.length : 0, nW = result ? result.warnings.length : 0;
+    const msg = !result ? "" : nE ? nE + (nE === 1 ? " error: " : " errors, first: ") + (result.errors[0].message || result.errors[0].code || "") : nW ? "Valid, with " + nW + (nW === 1 ? " warning" : " warnings") : "Valid, no problems";
+    if (msg !== lastAnnounced) { lastAnnounced = msg; $("announce").textContent = msg; }
+  }
   document.querySelectorAll(".otab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.o === outTab)));
   if (outTab === "problems") {
     if (!result) o.textContent = "Checking…";
@@ -430,7 +441,7 @@ function renderOutput() {
     row("Fuel centre-to-surface", t.fuelDeltaT.toFixed(1) + " K", "", "q′ / (4π k) for constant k");
     row("Gap drop", t.gapDeltaT.toFixed(1) + " K"); row("Cladding drop", t.claddingDeltaT.toFixed(1) + " K"); row("Film drop", t.filmDeltaT.toFixed(1) + " K");
     row("Property range", q.verdict === "in-domain" ? "in range" : "OUT OF RANGE", q.verdict === "in-domain" ? "pass" : "fail", q.findings.map((f) => f.region + " " + f.temperatureRange.map((x) => x.toFixed(0)).join("–") + " K vs valid " + f.validRange.join("–") + " K").join("; "));
-    const head = (t) => { const h = el("div", "psec"); h.style.padding = "8px 0 2px"; h.textContent = t; o.append(h); };
+    const head = (t) => { const h = el("div", "psec"); h.setAttribute("role", "heading"); h.setAttribute("aria-level", "3"); h.style.padding = "8px 0 2px"; h.textContent = t; o.append(h); };
     if (solverRes) {
       head("Solver result (OFFBEAT, thermal only)");
       const s = solverRes.summary;
@@ -462,6 +473,29 @@ function renderOutput() {
 }
 
 /* ---- drawing */
+/* A canvas plot has no text of its own: this writes the plotted values as a table next to it (read by a screen reader, hidden from the eye) and points the canvas at its caption.
+   series: [{label, x: [..], y: [..]}] with y in the shown unit; at most PLOT_ROWS rows are written (evenly spaced, first and last kept): the exports hold every point. */
+const PLOT_ROWS = 24;
+function plotText(canvas, xName, yName, series) {
+  const id = canvas.id + "-values"; let t = document.getElementById(id);
+  const rows = series.filter((q) => q.x.length);
+  if (!rows.length) { if (t) t.remove(); canvas.removeAttribute("aria-describedby"); return; }
+  if (!t) { t = document.createElement("table"); t.id = id; t.className = "sronly"; canvas.parentElement.append(t); }
+  t.replaceChildren();
+  const cap = document.createElement("caption"); cap.id = id + "-cap";
+  const lo = Math.min(...rows.flatMap((q) => q.y)), hi = Math.max(...rows.flatMap((q) => q.y));
+  cap.textContent = (canvas.getAttribute("aria-label") || "Plot") + ": " + rows.map((q) => q.label + ", " + q.x.length + " points").join("; ") + ". " + yName + " from " + lo.toPrecision(5) + " to " + hi.toPrecision(5) + ". The table shows up to " + PLOT_ROWS + " evenly spaced points of each series; the exports hold all of them.";
+  t.append(cap);
+  const head = document.createElement("tr"); [ "Series", xName, yName ].forEach((h) => { const c = document.createElement("th"); c.scope = "col"; c.textContent = h; head.append(c); }); t.append(head);
+  for (const q of rows) {
+    const n = q.x.length, k = Math.min(n, PLOT_ROWS), seen = new Set();
+    for (let i = 0; i < k; i++) {
+      const j = k === 1 ? 0 : Math.round((i * (n - 1)) / (k - 1)); if (seen.has(j)) continue; seen.add(j);
+      const r = document.createElement("tr"); [q.label, Number(q.x[j]).toPrecision(5), Number(q.y[j]).toPrecision(5)].forEach((v) => { const c = document.createElement("td"); c.textContent = v; r.append(c); }); t.append(r);
+    }
+  }
+  canvas.setAttribute("role", "img"); canvas.setAttribute("aria-describedby", cap.id);
+}
 function sizeCanvas(c) { const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; c.width = Math.max(1, Math.round(r.width * d)); c.height = Math.max(1, Math.round(r.height * d)); const x = c.getContext("2d"); x.setTransform(d, 0, 0, d, 0, 0); return [x, r.width, r.height]; }
 function heat(f) { f = Math.min(1, Math.max(0, f)); const s = [[0, [40, 70, 160]], [0.35, [60, 160, 180]], [0.6, [230, 190, 80]], [1, [235, 80, 60]]]; for (let i = 1; i < s.length; i++) if (f <= s[i][0]) { const a = s[i - 1], b = s[i], u = (f - a[0]) / (b[0] - a[0]); return "rgb(" + a[1].map((v, j) => Math.round(v + (b[1][j] - v) * u)).join(",") + ")"; } return "rgb(235,80,60)"; }
 const showT = (T) => (showDegC ? T - 273.15 : T);
@@ -469,6 +503,7 @@ const showT = (T) => (showDegC ? T - 273.15 : T);
 function drawPin() {
   const [x, w, h] = sizeCanvas($("pin")); x.clearRect(0, 0, w, h);
   const n = result && result.ok ? result.normalized : null;
+  $("pin").setAttribute("aria-label", n ? "Pin cross-section, to scale: fuel" + (n.fuelInnerRadius > 0 ? " from radius " + (n.fuelInnerRadius * 1e3).toFixed(3) + " to " : " of radius ") + (n.fuelRadius * 1e3).toFixed(3) + " mm, gap to " + (n.claddingInnerRadius * 1e3).toFixed(3) + " mm, cladding to " + (n.claddingOuterRadius * 1e3).toFixed(3) + " mm" : "Pin cross-section, not shown until the radii are valid");
   if (!n) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Pin cross-section appears when the radii are valid", 14, h / 2); return; }
   const cx = Math.min(w * 0.22, h * 0.55) + 14, cy = h / 2, R = Math.min(h * 0.46, w * 0.2), s = R / n.claddingOuterRadius;
   let prof, Tc, Ts, colour = $("pCol").getAttribute("aria-pressed") === "true";
@@ -493,7 +528,7 @@ function drawPin() {
 let plot = null;
 function drawProfile() {
   const c = $("prof"), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); plot = null; c._plot = null;
-  const ok = result && result.ok; $("noData").hidden = !!ok; if (!ok) return;
+  const ok = result && result.ok; $("noData").hidden = !!ok; if (!ok) { plotText(c, "", "", []); return; }
   if (result.transient) { drawTimeSeries(c, transientSpecCase()); return; }
   const n = result.normalized, pts = result.profile, L = 62, Rr = 16, Tp = 14, Bt = 30;
   const ts = pts.map((p) => showT(p.T)).concat([showT(result.quick.temperatures.claddingOuterT)]);
@@ -509,6 +544,7 @@ function drawProfile() {
   band(n.fuelInnerRadius || 0, n.fuelRadius, "rgba(201,164,92,.07)"); if (n.fuelInnerRadius > 0) band(0, n.fuelInnerRadius, "rgba(14,16,19,.55)"); band(n.fuelRadius, n.claddingInnerRadius, "rgba(240,117,117,.18)"); band(n.claddingInnerRadius, n.claddingOuterRadius, "rgba(140,148,158,.12)");
   const line = (arr, col, dash) => { x.strokeStyle = col; x.lineWidth = 2; x.setLineDash(dash || []); x.beginPath(); arr.forEach((p, i) => { const px = X(p.r * 1e3), py = Y(showT(p.T)); if (i) x.lineTo(px, py); else x.moveTo(px, py); }); x.stroke(); x.setLineDash([]); };
   const f = pts.filter((p) => p.region === "fuel"), cl = pts.filter((p) => p.region === "cladding");
+  plotText(c, "r (mm)", showDegC ? "T (°C)" : "T (K)", [{ label: "fuel", x: f.map((p) => p.r * 1e3), y: f.map((p) => showT(p.T)) }, { label: "cladding", x: cl.map((p) => p.r * 1e3), y: cl.map((p) => showT(p.T)) }]);
   line(f, "#52b8ff"); line(cl, "#52b8ff");
   if (solverRes) {
     x.fillStyle = "#c89df2";
@@ -552,7 +588,7 @@ function renderPropsKeepFocus() { const id = document.activeElement && document.
 function changed(rebuild) { if (study) { study = null; clearTimeout(studyTimer); } if (solverRes) { solverRes = null; runRec = null; logText += "Solver result cleared: the case changed.\n"; setChip(); } clearTimeout(timer); timer = setTimeout(() => runCheck(!!rebuild), rebuild ? 0 : 150); renderTreeMetaOnly(); }
 function renderTreeMetaOnly() { document.querySelectorAll("#tree .titem").forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(ITEMS[i][0]); }); }
 let lib = { pins: [], materials: [], limits: [] }, menuEl = null;
-function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+function closeMenu() { if (menuEl) { const had = menuEl.contains(document.activeElement), opener = menuEl.dataset.for && document.getElementById(menuEl.dataset.for); menuEl.remove(); menuEl = null; if (had && opener) opener.focus(); /* focus goes back to the button that opened it */ } }
 function openMenu(btn, heading, groups) {
   const was = menuEl && menuEl.dataset.for === btn.id; closeMenu(); if (was) return;
   const m = el("div", "menu"); m.setAttribute("role", "menu"); m.dataset.for = btn.id;
@@ -1081,13 +1117,14 @@ function heatCapacityPanel(p, base, k) {
 /* time plot: used on the Case tab (independent preview, then the solver) and on the Results tab */
 function drawTimeSeries(canvas, spec) {
   const [x, w, h] = sizeCanvas(canvas); x.clearRect(0, 0, w, h); canvas._plot = null;
-  if (!spec || !spec.series.length) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show", 14, h / 2); return; }
+  if (!spec || !spec.series.length) { plotText(canvas, "", "", []); x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show", 14, h / 2); return; }
   const L = 62, Rr = 16, Tp = 14, Bt = 26, pw = Math.round((h - Tp - Bt) * 0.22);
   const tmax = Math.max(...spec.series.map((s) => s.t[s.t.length - 1]));
   const vals = []; spec.series.forEach((s) => s.v.forEach((v) => vals.push(showT(v))));
   let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
   const X = (t) => L + (t / tmax) * (w - L - Rr), Y = (T) => h - Bt - pw - 4 - ((T - lo) / (hi - lo)) * (h - Bt - Tp - pw - 4);
   canvas._plot = { spec: { time: true, series: spec.series, power: spec.power }, X, Y, L, Rr, tmax, w };
+  plotText(canvas, "t (s)", showDegC ? "T (°C)" : "T (K)", spec.series.map((q) => ({ label: q.label, x: q.t, y: q.v.map(showT) })));
   x.font = "11px ui-monospace,Consolas,monospace"; x.lineWidth = 1;
   for (let i = 0; i <= 4; i++) { const T = lo + ((hi - lo) * i) / 4, y = Y(T); x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, y); x.lineTo(w - Rr, y); x.stroke(); x.fillStyle = "#8c949e"; x.fillText(T.toFixed(0), 8, y + 4); }
   const unitMs = tmax < 1;
@@ -1140,7 +1177,7 @@ $("prof").addEventListener("click", (e) => {
 
 function transientChecks(o, row) {
   const info = result.transient;
-  const head = (t) => { const h2 = el("div", "psec"); h2.style.padding = "8px 0 2px"; h2.textContent = t; o.append(h2); };
+  const head = (t) => { const h2 = el("div", "psec"); h2.setAttribute("role", "heading"); h2.setAttribute("aria-level", "3"); h2.style.padding = "8px 0 2px"; h2.textContent = t; o.append(h2); };
   head("Before the run (no solver)");
   row("Steps", String(info.steps), "", info.outputs + " outputs");
   row("Energy deposited", (info.depositedEnergy / 1e3).toFixed(2) + " kJ/m", "", "exact integral of the power history");
@@ -1188,6 +1225,7 @@ function setMode(m) {
   $("exHead").textContent = m === "case" ? "Case" : "Runs";
   $("tabView").hidden = $("tabJson").hidden = m !== "case";
   $("tabResults").hidden = m !== "results"; $("tabCompare").hidden = m !== "compare";
+  $("tabResults").setAttribute("aria-selected", String(m === "results")); $("tabCompare").setAttribute("aria-selected", String(m === "compare"));
   $("center").classList.toggle("nooutput", m !== "case");
   const caseView = m === "case" && $("tabView").getAttribute("aria-selected") === "true";
   $("docView").hidden = !caseView; $("docJson").hidden = m !== "case" || caseView;
@@ -1224,12 +1262,13 @@ function renderRuns() {
 /* ---- generic profile plot ---- */
 function drawGeneric(canvas, spec) {
   const [x, w, h] = sizeCanvas(canvas); x.clearRect(0, 0, w, h); canvas._plot = null;
-  if (!spec) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show", 14, h / 2); return; }
+  if (!spec) { plotText(canvas, "", "", []); x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show", 14, h / 2); return; }
   const g = spec.geom, L = 62, Rr = 16, Tp = 14, Bt = 26;
   const vals = []; spec.series.forEach((s) => s.pts.forEach((p) => vals.push(showT(p[1])))); if (spec.bulk != null) vals.push(showT(spec.bulk));
   let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
   const rmax = Math.max(g.cladOut, ...(spec.extraRmax || [])) * 1e3, X = (r) => L + (r / rmax) * (w - L - Rr), Y = (T) => h - Bt - ((T - lo) / (hi - lo)) * (h - Bt - Tp);
   canvas._plot = { spec, X, Y, L, Rr, rmax, w, lo, hi };
+  plotText(canvas, "r (mm)", showDegC ? "T (°C)" : "T (K)", spec.series.map((q) => ({ label: q.label, x: q.pts.map((p) => p[0] * 1e3), y: q.pts.map((p) => showT(p[1])) })));
   x.font = "11px ui-monospace,Consolas,monospace"; x.lineWidth = 1;
   for (let i = 0; i <= 4; i++) { const T = lo + ((hi - lo) * i) / 4, y = Y(T); x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, y); x.lineTo(w - Rr, y); x.stroke(); x.fillStyle = "#8c949e"; x.fillText(T.toFixed(0), 8, y + 4); }
   for (let i = 0; i <= 5; i++) { const r = (rmax * i) / 5; x.fillStyle = "#8c949e"; x.fillText(r.toFixed(1), X(r) - 8, h - Bt + 14); }
@@ -1367,8 +1406,10 @@ function renderCompare() {
 function drawDelta(profile) {
   const c = $("cdiff"), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h);
   x.font = "11px ui-monospace,Consolas,monospace"; x.fillStyle = "#8c949e";
+  plotText(c, "", "", []);
   if (!profile || profile.reason) { x.fillText(profile ? "No point-by-point difference: the runs' cells do not line up." : "", 14, h / 2); return; }
   if (Math.max(...profile.dT.map(Math.abs)) === 0) { x.fillText("B − A is exactly 0 K at every cell", 14, h / 2); return; }
+  plotText(c, "r (mm)", "B − A (K)", [{ label: "B − A", x: profile.r.map((r) => r * 1e3), y: profile.dT }]);
   const L = 62, Rr = 16, Tp = 8, Bt = 18, m = Math.max(...profile.dT.map(Math.abs), 1e-9), rmax = Math.max(...profile.r) * 1.0;
   const X = (r) => L + (r / rmax) * (w - L - Rr), Y = (v) => Tp + (h - Tp - Bt) / 2 - (v / m) * ((h - Tp - Bt) / 2);
   x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, Y(0)); x.lineTo(w - Rr, Y(0)); x.stroke();
