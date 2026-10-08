@@ -56,6 +56,12 @@ export function primitive(c: Law, T: number): number {
   return K * T;
 }
 
+/** The integral of k from a to b. For the NFI law it is integrated directly over [a, b] (its cost grows with the width, not with the distance from 300 K); for the others it is the difference of the primitive. */
+export function integrate(c: Law, a: number, b: number): number {
+  if (isTagged(c) && c.kind === "uo2-nfi") return nfiIntegral(a, b, c);
+  return primitive(c, b) - primitive(c, a);
+}
+
 /** The degree of a law: the highest coefficient that is not zero (0 for a constant). */
 export function degree(c: Law): number {
   if (isTagged(c)) return c.kind === "reciprocal" && c.a === 0 ? 0 : 2; // not a polynomial: counted as curved, never as the linear case with a closed form
@@ -121,21 +127,25 @@ export function solveHot(c: Law, tCold: number, integral: number): number {
         if (minimum(c, tCold, mid) > 0) lo = mid;
         else up = mid;
       }
-      if (!(primitive(c, lo) - base >= integral)) throw new RangeError("conductivity reaches zero before the conductivity integral does: there is no solution");
+      if (!(integrate(c, tCold, lo) >= integral)) throw new RangeError("conductivity reaches zero before the conductivity integral does: there is no solution");
       hi = lo;
       break;
     }
-    const reached = primitive(c, hi);
+    const reached = integrate(c, tCold, hi);
     if (!Number.isFinite(reached)) throw new RangeError("the conductivity integral overflows before it reaches the requested value");
-    if (reached - base >= integral) break;
+    if (reached >= integral) break;
     hi = tCold + 2 * (hi - tCold);
     if (i === 59) throw new RangeError("no temperature below 1e18 K reaches the conductivity integral");
   }
   let lo = tCold;
+  // The NFI integral costs a quadrature per step, so it stops when the interval is below 1e-13 of the temperature (about 45 steps); the exact laws run the 200 steps they always did
+  // (their zero integral must come out as exactly the cold temperature).
+  const early = isTagged(c) && c.kind === "uo2-nfi";
   for (let i = 0; i < 200; i++) {
     const mid = 0.5 * (lo + hi);
-    if (primitive(c, mid) - base < integral) lo = mid;
+    if (integrate(c, tCold, mid) < integral) lo = mid;
     else hi = mid;
+    if (early && hi - lo <= 1e-13 * hi) break;
   }
   return 0.5 * (lo + hi);
 }

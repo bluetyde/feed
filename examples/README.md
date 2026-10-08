@@ -6,6 +6,7 @@ Each case carries a `label` (synthetic or sourced), units on every number, and i
 |---|---|
 | `synthetic-pin.json` | Illustrative pin with closed-form answers (the oracle pin). Synthetic. |
 | `annular-synthetic-pin.json` | The same with a 1 mm central hole (insulated). Synthetic. |
+| `lwr-uo2-burnup.json` | A typical PWR pin at 20 kW/m with UO2 fuel at 40 MWd/kgHM (FRAPCON-3.4's modified NFI conductivity) and Zircaloy cladding (MATPRO's conductivity): the two laws are sourced, everything else is chosen. A frozen-burnup snapshot. Synthetic. |
 | `synthetic-pin-hot.json` | The oracle pin with hot dimensions on (free linear expansion from 20 °C, typical coefficients that are not sourced). Synthetic. |
 | `ksu-triga-hot-element.json` | K-State TRIGA hottest element, 1.25 MW, prescribed wall temperature; reproduces SAR Table 4.8. Sourced. |
 | `ksu-triga-1p25mw-film.json` | The same with the SAR's film coefficient (eq. 7); reproduces eq. 9. The SAR's eq. 7 and Table 4.8 disagree by 8 K; see the case. Sourced. |

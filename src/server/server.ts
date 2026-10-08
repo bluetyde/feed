@@ -11,6 +11,7 @@ import { projectRoot, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
 import { resultsToCsv, transientResultsToCsv } from "../core/exportResults";
+import { burnupSweep } from "../core/burnupSweep";
 import { applyDesign, designOf } from "../core/design";
 import { IndependentRunner } from "../core/independentRunner";
 import { previewTooBig, transientPreview } from "../core/transientPreview";
@@ -343,6 +344,17 @@ export const server = createServer(async (req, res) => {
         return json(res, 400, { error: "body is not valid JSON" });
       }
       return json(res, 200, await checkAsync(doc));
+    }
+    if (req.method === "POST" && url === "/api/burnup-sweep") {
+      if (!(req.headers["content-type"] ?? "").startsWith("application/json")) return json(res, 415, { error: "send application/json" });
+      let doc: unknown;
+      try {
+        doc = JSON.parse(await readBody(req));
+      } catch {
+        return json(res, 400, { error: "body is not valid JSON" });
+      }
+      const r = burnupSweep(doc);
+      return json(res, r.ok ? 200 : 400, r.ok ? r.sweep : { error: r.reason });
     }
     json(res, 404, { error: "not found" });
   } catch (e) {

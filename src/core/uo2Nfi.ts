@@ -90,7 +90,7 @@ export function nfiIntegral(lo: number, hi: number, s: NfiState): number {
 
 /** The lowest k over [lo, hi]: the law is smooth but not monotone (the electronic term makes it rise at high temperature), so a scan, then a golden-section refinement of the best bracket. */
 export function nfiMinimum(lo: number, hi: number, s: NfiState): number {
-  const n = 256;
+  const n = Math.min(256, Math.max(8, Math.ceil((hi - lo) / 4))); // a point every 4 K or so; the callers' brackets start a kelvin wide
   let best = Infinity;
   let at = lo;
   const step = (hi - lo) / n;

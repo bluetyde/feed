@@ -31,6 +31,8 @@ describe("library", () => {
     it("material " + m.material.materialId + " works in the " + m.region + " slot", () => {
       const doc = JSON.parse(JSON.stringify(pin));
       doc.materials[m.region] = m.material;
+      // a fuel whose conductivity depends on burnup needs the case to state one: fresh fuel, 0
+      if (m.material.sets["thermal.conductivity"].model === "uo2-nfi") doc.burnup = { value: { value: 0, unit: "MWd/kgHM" }, basis: "heavy-metal", source: "the library test: fresh fuel" };
       const r = validateCase(doc);
       expect(r.errors).toEqual([]);
       expect(["synthetic", "sourced"]).toContain(m.label);
@@ -93,7 +95,7 @@ describe("library", () => {
   });
 
   it("sourced entries cite their source", () => {
-    for (const m of lib.materials.filter((x: any) => x.label === "sourced")) expect((m as any).citation, m.material.materialId).toMatch(/SAR/);
+    for (const m of lib.materials.filter((x: any) => x.label === "sourced")) expect((m as any).citation, m.material.materialId).toMatch(/SAR|NUREG\/CR/);
   });
 
   it("the K-State hot-element pin reproduces the SAR's Table 4.8 temperatures", () => {

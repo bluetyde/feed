@@ -327,5 +327,69 @@
         }
       }
     }
+  },
+  {
+    "region": "fuel",
+    "name": "UO2 at 95 % TD, conductivity with burnup (FRAPCON-3.4 modified NFI)",
+    "label": "sourced",
+    "description": "UO2 fuel whose conductivity depends on temperature, burnup, gadolinia and as-fabricated density: the modified NFI model of FRAPCON-3.4 (Ohira and Itagaki 1997, modified by Lanning 2005, with the gadolinia term of Massih 1992 and the porosity correction of Lucuta 1996). The density fraction 0.95 is the model's reference density (K95); change it in the editor (0.92 to 0.97). The burnup is not the material's: it is the case's, and the case must state it (0 for fresh fuel). Valid for 300 to 3000 K, rod-average burnup 0 to 62 MWd/kgHM, density 92 to 97 % TD and gadolinia 0 to 10 wt%. Frozen burnup only: no swelling, densification or fission-gas release. OFFBEAT runs it as UO2MATPRO, a misleading name (the model is not MATPRO).",
+    "citation": "W. G. Luscher and K. J. Geelhood, Material Property Correlations: Comparisons between FRAPCON-3.4, FRAPTRAN 1.4, and MATPRO, NUREG/CR-7024 (PNNL-19417), August 2010: Eq. 2.3-10 (page 2.11), Eq. 2.3-11 (page 2.12), range of applicability in section 2.3.2 (page 2.20). File: research/fuel-performance/NUREG-CR-7024 PNNL-19417 Material Property Correlations FRAPCON-3.4 FRAPTRAN-1.4 MATPRO (2010).pdf. The check against OFFBEAT: docs/spike/burnup-sourcing.md.",
+    "material": {
+      "materialId": "uo2-nfi-95td",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "uo2-nfi",
+          "densityFraction": {
+            "value": 0.95,
+            "unit": "1"
+          },
+          "source": "NUREG/CR-7024 (PNNL-19417) Eq. 2.3-10 and 2.3-11: FRAPCON-3.4 modified NFI model, pages 2.11 and 2.12; range of applicability section 2.3.2, page 2.20"
+        }
+      }
+    }
+  },
+  {
+    "region": "cladding",
+    "name": "Zircaloy, thermal conductivity (MATPRO CTHCON)",
+    "label": "sourced",
+    "description": "The conductivity of Zircaloy-2, Zircaloy-4, ZIRLO and M5 from MATPRO subcode CTHCON, the same correlation in MATPRO, FRAPCON-3.4 and FRAPTRAN 1.4: k = 7.51 + 2.09e-2 T - 1.45e-5 T^2 + 7.67e-9 T^3 W/m/K with T in kelvin, below 2098 K; standard deviation of the data about it 1.01 W/m/K. The report says it predicts k very well from room temperature to the data limit of about 1800 K and may be extrapolated with some confidence to the melting point; the range here is 300 to 2098 K, the range of the equation. Conductivity only: this entry has no heat capacity, so it is for steady cases.",
+    "citation": "W. G. Luscher and K. J. Geelhood, NUREG/CR-7024 (PNNL-19417), 2010, Eq. 3.2-1 and 3.2-2 (section 3.2.1, page 3.4); MATPRO-Version 11, NUREG/CR-0497 (TREE-1280), 1979, Eq. B-2.3 (cladding thermal conductivity, subcode CTHCON). Files: research/fuel-performance/.",
+    "material": {
+      "materialId": "zircaloy-matpro-cthcon",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "polynomial",
+          "a": {
+            "value": 7.51,
+            "unit": "W/m/K"
+          },
+          "b": {
+            "value": 0.0209,
+            "unit": "W/m/K2"
+          },
+          "c": {
+            "value": -0.0000145,
+            "unit": "W/m/K3"
+          },
+          "d": {
+            "value": 7.67e-9,
+            "unit": "W/m/K4"
+          },
+          "validRange": {
+            "min": {
+              "value": 300,
+              "unit": "K"
+            },
+            "max": {
+              "value": 2098,
+              "unit": "K"
+            }
+          },
+          "source": "MATPRO CTHCON, NUREG/CR-7024 Eq. 3.2-1 (page 3.4) and MATPRO-Version 11 Eq. B-2.3: k = 7.51 + 2.09e-2 T - 1.45e-5 T^2 + 7.67e-9 T^3 W/m/K, T in K, below 2098 K"
+        }
+      }
+    }
   }
 ]
