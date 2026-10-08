@@ -70,6 +70,6 @@ describe("the burnup item of the editor (docs/plans/10-burnup.md M4)", () => {
     const i = html.indexOf("function burnupPanel(");
     const panel = html.slice(i, html.indexOf("function drawBurnupSweep(", i));
     expect(panel).toContain("setTimeout(() => drawBurnupSweep(");
-    expect(panel).not.toMatch(/requestAnimationFrame(/);
+    expect(panel).not.toMatch(/requestAnimationFrame\(/);
   });
 });
