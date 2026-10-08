@@ -162,7 +162,8 @@ export function compareRuns(ida: string, idb: string) {
     inputDiff,
     ...compareResults(a.results, b.results),
     profile: profileDifference(a.normalized, b.normalized, a.results, b.results),
-    thermalOnly: a.results.thermalOnly,
+    // each run's own statement: a burnup run adds the frozen-burnup sentence, and a comparison of a burnt pin with a fresh one must carry it
+    thermalOnly: a.results.thermalOnly === b.results.thermalOnly ? a.results.thermalOnly : "Run A: " + a.results.thermalOnly + " Run B: " + b.results.thermalOnly,
   };
 }
 
