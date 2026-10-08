@@ -4,6 +4,7 @@
 // Pinned against OpenFOAM Foundation 9 + OFFBEAT 80e84450 (solver/PINS.md).
 
 import { MIN_STEADY_END_TIME, steadyEndTime } from "./steadyState";
+import { NFI_OXIDE_TO_HEAVY_METAL, NFI_PARAMETERS } from "./uo2Nfi";
 import { initialState } from "./transientResults";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
@@ -119,6 +120,12 @@ mergePatchPairs
  */
 function conductivityLines(c: Conductivity): string {
   if (c.kind === "constant") return `        k           k     [1 1 -3 -1 0]  ${num(c.k)};\n`;
+  if (c.kind === "uo2-nfi") {
+    // OFFBEAT's UO2MATPRO model is FRAPCON-3.4's modified NFI conductivity (its name is a misnomer: docs/spike/burnup-sourcing.md). All 13 parameters are written, with the
+    // report's value 16361 for the last (OFFBEAT's default is 16360), and so are densityFraction and GdContent: an omitted one takes a default silently (docs/spike/burnup-probe.md).
+    const par = NFI_PARAMETERS.map((v, i) => "par" + (i + 1) + " " + num(v) + ";").join(" ");
+    return `        conductivityModel UO2MATPRO;\n        densityFraction ${num(c.densityFraction)};\n        GdContent ${num(c.gadolinia)};\n        conductivity { ${par} }\n`;
+  }
   if (c.kind === "reciprocal") {
     // SiCPARFUME evaluates par1 / T + par2 (T in K). Both are written: an omitted one takes a silicon-carbide default (17885, 2) without a word.
     return `        conductivityModel SiCPARFUME;\n        conductivity { par1 ${num(c.a)}; par2 ${num(c.b)}; }\n`;
@@ -150,6 +157,7 @@ function heatCapacityLines(cp: HeatCapacity | undefined): string {
 function conductivityNote(region: string, k: Conductivity): string {
   if (k.kind === "constant") return `materials.${region}.k (constant)`;
   if (k.kind === "linear") return `materials.${region}: steel1515TiTobbe with par1 = a + 273.15 b, par2 = b (linear k(T))`;
+  if (k.kind === "uo2-nfi") return `materials.${region}: UO2MATPRO, which is FRAPCON-3.4's modified NFI model (NUREG/CR-7024 Eq. 2.3-10 and 2.3-11; the name is a misnomer) with densityFraction ${k.densityFraction}, GdContent ${k.gadolinia} and all 13 parameters written (par13 = 16361, the report's, not OFFBEAT's default 16360); the burnup is read from 0/Bu`;
   if (k.kind === "reciprocal") return `materials.${region}: SiCPARFUME (k = par1 / T + par2, T in K; the model's name is a misnomer) with par1 = a, par2 = b, both written`;
   return `materials.${region}: ZyRELAP (k = par1 + par2 T - par3 T^2 + par4 T^3, T in K) with par1 = a, par2 = b, par3 = -c, par4 = d, all four written` + (k.fit ? `; fitted to a table of ${k.fit.points.length} points, degree ${k.fit.degree}, largest deviation ${(k.fit.maxRelativeDeviation * 100).toPrecision(3)}% at ${k.fit.worstAt} K (tolerance ${(k.fit.tolerance * 100).toPrecision(3)}%)` : "");
 }
@@ -170,6 +178,27 @@ ${heatCapacityLines(cp)}${conductivityLines(k)}        emissivity  emissivity [0
 `;
 }
 
+/**
+ * The `Bu` file that `burnup constant` reads (constantBurnup.H): one value per cell, fuel cells first, in MWd per tonne of OXIDE, which is how OFFBEAT's field is defined
+ * (docs/spike/burnup-probe.md, tests/burnupBasis.test.ts). The UO2MATPRO conductivity divides it by 0.881 to get GWd/tU, so a burnup on a heavy-metal basis is written as
+ * B x 1000 x 0.881 whatever the fuel (the model's own constant, not OFFBEAT's 0.8815 of its Lassmann model). The cladding cells are 0.
+ */
+function burnupField(c: NormalizedCase, burnupMWdPerKgHM: number): string {
+  const value = burnupMWdPerKgHM * 1000 * NFI_OXIDE_TO_HEAVY_METAL;
+  const cells = [...Array.from({ length: c.mesh.fuelCells }, () => num(value)), ...Array.from({ length: c.mesh.claddingCells }, () => "0")];
+  const zg = (n: string) => `    ${n}${NL}    {${NL}        type            zeroGradient;${NL}    }${NL}`;
+  const other = (n: string, t: string) => `    ${n}${NL}    {${NL}        type            ${t};${NL}    }${NL}`;
+  return `${FOAM_HEADER("volScalarField", "Bu", "0")}
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   nonuniform List<scalar>${NL}${cells.length}${NL}(${NL}${cells.join(NL)}${NL})${NL};
+
+boundaryField
+{
+${other("fuelBottom", "empty")}${other("fuelTop", "empty")}${c.fuelInnerRadius > 0 ? zg("fuelInner") : ""}${zg("fuelOuter")}${other("fuelFront", "wedge")}${other("fuelBack", "wedge")}${other("cladBottom", "empty")}${other("cladTop", "empty")}${zg("cladInner")}${zg("cladOuter")}${other("cladFront", "wedge")}${other("cladBack", "wedge")}${other("defaultFaces", "empty")}}
+`;
+}
+
 function solverDict(c: NormalizedCase, kf: Conductivity, kc: Conductivity): string {
   return `${FOAM_HEADER("dictionary", "solverDict", "constant")}
 thermalSolver           solidConduction;
@@ -181,7 +210,7 @@ materialProperties      byZone;
 rheology                byMaterial;
 
 heatSource              ${c.transient ? "timeDependentLhgr" : "constantLhgr"};
-burnup                  none;
+burnup                  ${c.burnup ? "constant" : "none"};
 fastFlux                none;
 corrosion               fromLatestTime;
 gapGas                  none;
@@ -406,6 +435,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     "constant/solverDict": solverDict(c, kf, kc),
     "0/T": temperatureField(c, start),
     "0/D": displacementField(c),
+    ...(c.burnup ? { "0/Bu": burnupField(c, c.burnup.value) } : {}),
     // marks a transient for the run script (it then keeps the field at every write time); OpenFOAM ignores the file
     ...(tr ? { "feed-transient.json": JSON.stringify({ outputs: tr.outputs, steps: tr.steps, timeStep: tr.timeStep, endTime: tr.endTime }) + "\n" } : {}),
   };
@@ -432,6 +462,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     { field: "materials.fuel thermal.conductivity", file: "constant/solverDict", note: conductivityNote("fuel", kf) },
     { field: "materials.cladding thermal.conductivity", file: "constant/solverDict", note: conductivityNote("cladding", kc) },
     { field: "gap.conductance", file: "0/T", note: "resistiveGap alpha on fuelOuter and cladInner" },
+    ...(c.burnup ? [{ field: "burnup", file: "0/Bu", note: "burnup constant; Bu = " + c.burnup.value + " MWd/kgHM x 1000 x 0.881 = " + num(c.burnup.value * 1000 * NFI_OXIDE_TO_HEAVY_METAL) + " MWd/t of oxide in every fuel cell, 0 in the cladding (the model divides by its own 0.881); source: " + c.burnup.source }] : []),
     { field: "boundary", file: "0/T", note: c.boundary.kind === "convective" ? "cladOuter convectiveHTC (T0, h)" : "cladOuter fixedValue" },
   ];
   const placeholders: WrittenCase["placeholders"] = [

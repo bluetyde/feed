@@ -1,7 +1,7 @@
 // Quantity parsing: every physical input is {value, unit}; the unit must belong to the expected dimension.
 // SI is used inside the app (docs/ARCHITECTURE.md, Conventions).
 
-export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "expansion" | "expansionPerK" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
+export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "expansion" | "expansionPerK" | "burnup" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
 
 interface UnitDef {
   dim: Dimension;
@@ -28,6 +28,10 @@ const UNITS: Record<string, UnitDef> = {
   "1e-6/K": { dim: "expansion", scale: 1e-6 },
   "ppm/K": { dim: "expansion", scale: 1e-6 },
   "1/K2": { dim: "expansionPerK", scale: 1 },
+  // burnup per tonne (or kg) of HEAVY METAL; 1 MWd/kgHM is 1 GWd/tHM. The oxide basis is a different thing and is not accepted (docs/plans/10-burnup.md).
+  "MWd/kgHM": { dim: "burnup", scale: 1 },
+  "GWd/tHM": { dim: "burnup", scale: 1 },
+  "MWd/tHM": { dim: "burnup", scale: 1e-3 },
   "1e-9/K2": { dim: "expansionPerK", scale: 1e-9 },
   "W/m2/K": { dim: "htc", scale: 1 },
   "kW/m2/K": { dim: "htc", scale: 1e3 },
@@ -68,6 +72,7 @@ export const SI_UNIT: Record<Dimension, string> = {
   conductivityPerK3: "W/m/K4",
   expansion: "1/K",
   expansionPerK: "1/K2",
+  burnup: "MWd/kgHM",
   htc: "W/m2/K",
   time: "s",
   volumetricHeatCapacity: "J/m3/K",

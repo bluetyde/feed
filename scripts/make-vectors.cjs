@@ -63,6 +63,16 @@ add("good", "synthetic-pin", clone(), {});
 }
 {
   const c = clone();
+  c.materials.fuel.sets["thermal.conductivity"] = {
+    model: "uo2-nfi",
+    densityFraction: { value: 95, unit: "%" },
+    source: "NUREG/CR-7024 Eq. 2.3-10 and 2.3-11 (FRAPCON-3.4 modified NFI)",
+  };
+  c.burnup = { value: { value: 40, unit: "MWd/kgHM" }, basis: "heavy-metal", source: "chosen for the study" };
+  add("good", "uo2-nfi-burnup", c, {});
+}
+{
+  const c = clone();
   c.materials.fuel.sets["openmc.composition"] = { nuclides: { U235: 0.02, U238: 0.98 } };
   c.futureField = { kept: true };
   add("good", "unknown-fields-kept", c, {});

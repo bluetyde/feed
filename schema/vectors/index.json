@@ -30,6 +30,10 @@
     ]
   },
   {
+    "file": "good/uo2-nfi-burnup.json",
+    "valid": true
+  },
+  {
     "file": "good/unknown-fields-kept.json",
     "valid": true
   },

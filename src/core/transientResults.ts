@@ -3,7 +3,7 @@
 // feed.results/0.2; the steady record (feed.results/0.1) is unchanged.
 
 import { limitChecks } from "./limits";
-import { lawOf, primitive, rangeOf } from "./conductivity";
+import { evaluate, lawOf, primitive, rangeOf } from "./conductivity";
 import { GeneratedPulse } from "./pointKinetics";
 import { Check, DomainFinding, fitChecks, ResultsError, THERMAL_ONLY_TEXT, assertWholeFoamFile, parsePatchValue, parseScalarField, parseVectorField } from "./resultsParser";
 import { FvTransient, Linear, TransientPin, enthalpy, maxOf, minOf, solveTransientFv, steadyFv, storedEnergy } from "./transientFv";
@@ -81,6 +81,12 @@ export const CROSS_CHECK_RISE_FRACTION = 0.005;
 const lin = (k: Conductivity): Linear => {
   if (k.kind === "constant") return { a: k.k, b: 0 };
   if (k.kind === "linear") return { a: k.a, b: k.b };
+  if (k.kind === "uo2-nfi") {
+    // not a line either: the chord between the ends of its range, as for the reciprocal law; the law itself travels in fuelLaw
+    const klo = evaluate(lawOf(k), k.range[0]), khi = evaluate(lawOf(k), k.range[1]);
+    const slope = (khi - klo) / (k.range[1] - k.range[0]);
+    return { a: klo - slope * k.range[0], b: slope };
+  }
   if (k.kind === "reciprocal") {
     // not a line: the chord between the ends of its range, for a caller that wants {a, b}; the law itself travels in fuelLaw / claddingLaw
     const klo = k.a / k.range[0] + k.b, khi = k.a / k.range[1] + k.b;

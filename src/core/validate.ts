@@ -7,6 +7,7 @@ import { join } from "path";
 import Ajv2020 from "ajv/dist/2020";
 import { steadyEndTime } from "./steadyState";
 import { Law, evaluate, fitPolynomial, lawOf, minimum } from "./conductivity";
+import { NFI_RANGE, nfiConductivity } from "./uo2Nfi";
 import { heatCapacityLaw } from "./heatCapacity";
 import type { LimitRule } from "./limits";
 import { alphaAt, ExpansionLaw, hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
@@ -39,6 +40,8 @@ export type Conductivity =
   | { kind: "linear"; a: number; b: number; range: [number, number] }
   /** k = a / T + b (a in W/m, b in W/m/K, T in K) over a range. */
   | { kind: "reciprocal"; a: number; b: number; range: [number, number] }
+  /** UO2 fuel, FRAPCON-3.4's modified NFI model at the case's burnup (src/core/uo2Nfi.ts): burnup in MWd/kgHM, density as a fraction of theoretical, gadolinia as a weight fraction. */
+  | { kind: "uo2-nfi"; burnup: number; densityFraction: number; gadolinia: number; range: [number, number] }
   /** k = a0 + a1 T + a2 T^2 + a3 T^3 (W/m/K, T in K) over a range; `fit` is present when it came from a table. */
   | { kind: "polynomial"; coefficients: number[]; range: [number, number]; fit?: TableFit };
 
@@ -104,6 +107,8 @@ export interface NormalizedCase {
   claddingHeatCapacity?: HeatCapacity;
   /** Temperature limits the case states, with their sources (src/core/limits.ts). */
   limits?: LimitRule[];
+  /** The burnup the fuel's conductivity was evaluated at (MWd/kgHM, heavy-metal basis) and where it comes from; present exactly when the fuel's conductivity is the burnup-dependent law. */
+  burnup?: { value: number; source: string };
   /** Present when the case asks for hot dimensions: the radii above are then the hot ones and this holds the cold ones, the mean temperatures and the factors (src/core/hotDimensions.ts). */
   hot?: HotRecord;
 }
@@ -265,7 +270,12 @@ export function validateCase(doc: unknown): ValidationResult {
   }
 
   // Materials: a thermal model needs a thermal conductivity set. Composition and density do not satisfy it.
-  const fuelK = conductivity(c.materials.fuel, "fuel", err, qty);
+  const burnupSpec = c.burnup === undefined ? undefined : parseBurnup(c.burnup, err, qty);
+  const fuelK = conductivity(c.materials.fuel, "fuel", err, qty, burnupSpec ? burnupSpec.value : 0);
+  // The burnup and the fuel's conductivity go together: a fuel that depends on burnup needs one (0 for fresh fuel), and a burnup that changes nothing is refused.
+  if (fuelK && fuelK.kind === "uo2-nfi" && c.burnup === undefined) err("E_PROP_MISSING", "/burnup", "the fuel's conductivity (uo2-nfi) depends on burnup and the case states none; give 0 for fresh fuel");
+  if (fuelK && fuelK.kind !== "uo2-nfi" && c.burnup !== undefined) err("E_UNSUPPORTED", "/burnup", "the fuel's conductivity model '" + fuelK.kind + "' does not depend on burnup, so a burnup would change nothing; use the uo2-nfi model or remove the burnup");
+  if (c.burnup !== undefined && isTransient) err("E_UNSUPPORTED", "/burnup", "a burnup is for steady cases in this release: the conductivity would be frozen over the transient");
   const claddingK = conductivity(c.materials.cladding, "cladding", err, qty);
 
   const limits = c.limits === undefined ? undefined : parseLimits(c.limits, err, qty);
@@ -333,6 +343,7 @@ export function validateCase(doc: unknown): ValidationResult {
       mesh: { fuelCells: mesh.fuelCells, claddingCells: mesh.claddingCells },
       ...(isTransient ? { transient, fuelHeatCapacity: fuelCp, claddingHeatCapacity: claddingCp } : {}),
       ...(limits ? { limits } : {}),
+      ...(fuelK.kind === "uo2-nfi" && burnupSpec ? { burnup: burnupSpec } : {}),
     };
     // Hot dimensions: the radii above are cold; replace them with the radii each solid has at its own mean temperature (the temperatures and the radii are iterated together).
     if (hotSpec && !isTransient) {
@@ -499,7 +510,7 @@ function finish(issues: Issue[]): ValidationResult {
 type ErrFn = (code: string, field: string, message: string, extra?: Partial<Issue>) => void;
 type QtyFn = (value: unknown, dim: Dimension, field: string) => number | undefined;
 
-function conductivity(material: Record<string, any>, region: string, err: ErrFn, qty: QtyFn): Conductivity | undefined {
+function conductivity(material: Record<string, any>, region: string, err: ErrFn, qty: QtyFn, burnup = 0): Conductivity | undefined {
   const base = "/materials/" + region + "/sets/thermal.conductivity";
   const set = isObject(material.sets) ? material.sets["thermal.conductivity"] : undefined;
   if (!isObject(set)) {
@@ -564,10 +575,11 @@ function conductivity(material: Record<string, any>, region: string, err: ErrFn,
     }
     return { kind: "linear", a, b: bb, range: [lo, hi] };
   }
+  if (set.model === "uo2-nfi") return uo2NfiConductivity(set, region, base, sourceMissing, err, qty, burnup);
   if (set.model === "reciprocal") return reciprocalConductivity(set, region, base, sourceMissing, err, qty);
   if (set.model === "polynomial") return polynomialConductivity(set, region, base, sourceMissing, err, qty);
   if (set.model === "table") return tableConductivity(set, region, base, sourceMissing, err, qty);
-  err("E_UNSUPPORTED", base + "/model", "unknown conductivity model '" + String(set.model) + "'; supported: 'constant', 'linear', 'reciprocal', 'polynomial' and 'table'");
+  err("E_UNSUPPORTED", base + "/model", "unknown conductivity model '" + String(set.model) + "'; supported: 'constant', 'linear', 'reciprocal', 'polynomial', 'table' and (fuel only) 'uo2-nfi'");
   return undefined;
 }
 
@@ -654,6 +666,102 @@ function polynomialLaw(spec: LawSpec, set: Record<string, any>, region: string, 
   const coefficients = co as number[];
   if (!positiveOver(coefficients, lo, hi, base, region, err, spec)) return undefined;
   return { coefficients, range: [lo, hi] };
+}
+
+/**
+ * UO2 fuel with burnup: FRAPCON-3.4's modified NFI model (src/core/uo2Nfi.ts, docs/spike/burnup-sourcing.md). The material states the as-fabricated density as a fraction of
+ * theoretical (0.92 to 0.97), optionally the gadolinia content (0 to 0.1 as a weight fraction), optionally the temperature range (inside 300 to 3000 K, the model's own),
+ * and a source. The constants are the model's and are not the material's to change. The burnup is the case's.
+ */
+function uo2NfiConductivity(set: Record<string, any>, region: string, base: string, sourceMissing: boolean, err: ErrFn, qty: QtyFn, burnup: number): Conductivity | undefined {
+  let ok = !sourceMissing;
+  if (region !== "fuel") {
+    err("E_UNSUPPORTED", base + "/model", "uo2-nfi is a fuel model (UO2); the " + region + " cannot use it");
+    return undefined;
+  }
+  for (const k of Object.keys(set)) {
+    if (!["model", "densityFraction", "gadolinia", "validRange", "source"].includes(k)) {
+      err("E_SCHEMA_INVALID", base + "/" + k, "unknown key '" + k + "' (uo2-nfi has model, densityFraction, gadolinia, validRange and source: its constants are the model's)");
+      ok = false;
+    }
+  }
+  let d: number | undefined;
+  if (set.densityFraction === undefined) {
+    err("E_PROP_MISSING", base + "/densityFraction", "uo2-nfi needs the as-fabricated density as a fraction of theoretical (" + NFI_RANGE.densityFraction[0] + " to " + NFI_RANGE.densityFraction[1] + ")");
+    ok = false;
+  } else {
+    d = qty(set.densityFraction, "fraction", base + "/densityFraction");
+    if (d === undefined) ok = false;
+    else if (!(d >= NFI_RANGE.densityFraction[0] && d <= NFI_RANGE.densityFraction[1])) {
+      err("E_OUT_OF_RANGE", base + "/densityFraction", "the density fraction " + d + " is outside " + NFI_RANGE.densityFraction[0] + " to " + NFI_RANGE.densityFraction[1] + ", the range the model is stated for (NUREG/CR-7024 section 2.3.2)", { unit: "1" });
+      ok = false;
+    }
+  }
+  let gad = 0;
+  if (set.gadolinia !== undefined) {
+    const g = qty(set.gadolinia, "fraction", base + "/gadolinia");
+    if (g === undefined) ok = false;
+    else if (!(g >= NFI_RANGE.gadolinia[0] && g <= NFI_RANGE.gadolinia[1])) {
+      err("E_OUT_OF_RANGE", base + "/gadolinia", "the gadolinia weight fraction " + g + " is outside " + NFI_RANGE.gadolinia[0] + " to " + NFI_RANGE.gadolinia[1] + " (0 to 10 wt%)", { unit: "1" });
+      ok = false;
+    } else gad = g;
+  }
+  let range: [number, number] = [NFI_RANGE.temperature[0], NFI_RANGE.temperature[1]];
+  if (set.validRange !== undefined) {
+    const r = set.validRange;
+    const lo = isObject(r) && r.min !== undefined ? qty(r.min, "temperature", base + "/validRange/min") : undefined;
+    const hi = isObject(r) && r.max !== undefined ? qty(r.max, "temperature", base + "/validRange/max") : undefined;
+    if (!isObject(r) || lo === undefined || hi === undefined) {
+      if (!isObject(r) || r.min === undefined || r.max === undefined) err("E_SCHEMA_INVALID", base + "/validRange", "validRange is {min, max}, each a temperature");
+      ok = false;
+    } else if (!(hi > lo && lo >= NFI_RANGE.temperature[0] && hi <= NFI_RANGE.temperature[1])) {
+      err("E_OUT_OF_RANGE", base + "/validRange", "the range must be increasing and inside " + NFI_RANGE.temperature[0] + " to " + NFI_RANGE.temperature[1] + " K, the range of the model", { unit: "K", range: [lo, hi] });
+      ok = false;
+    } else range = [lo, hi];
+  }
+  if (!ok || d === undefined) return undefined;
+  const state = { burnup, densityFraction: d, gadolinia: gad };
+  for (const T of [range[0], range[1]]) {
+    const k = nfiConductivity(T, state);
+    if (!(Number.isFinite(k) && k >= CONDUCTIVITY_MIN && k <= CONDUCTIVITY_MAX)) {
+      err("E_OUT_OF_RANGE", base, "the uo2-nfi conductivity is " + k + " W/m/K at " + T + " K: outside " + CONDUCTIVITY_MIN + " to " + CONDUCTIVITY_MAX, { unit: "W/m/K" });
+      return undefined;
+    }
+  }
+  // 95 % read as 95 x 0.01 is 0.9500000000000001; the law and the files get the number that was meant
+  const tidy = (x: number) => Number(x.toPrecision(12));
+  return { kind: "uo2-nfi", burnup, densityFraction: tidy(d), gadolinia: tidy(gad), range };
+}
+
+/**
+ * The case's burnup: one value for the slice, on a HEAVY-METAL basis (MWd/kgHM, MWd/tHM or GWd/tHM; an oxide basis is not accepted), and where it comes from. A frozen
+ * state of the fuel, not a history (docs/plans/10-burnup.md). Nothing is defaulted: a burnup of 0 is stated as 0.
+ */
+function parseBurnup(raw: unknown, err: ErrFn, qty: QtyFn): { value: number; source: string } | undefined {
+  if (!isObject(raw)) {
+    err("E_SCHEMA_INVALID", "/burnup", "burnup is an object with value, basis and source");
+    return undefined;
+  }
+  let ok = true;
+  const bad = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+    ok = false;
+    err(code, field, message, extra);
+  };
+  for (const k of Object.keys(raw)) if (!["value", "basis", "source"].includes(k)) bad("E_SCHEMA_INVALID", "/burnup/" + k, "unknown key '" + k + "' (burnup has value, basis and source)");
+  let value: number | undefined;
+  if (raw.value === undefined) bad("E_PROP_MISSING", "/burnup/value", "the burnup needs its value (0 for fresh fuel)");
+  else {
+    value = qty(raw.value, "burnup", "/burnup/value");
+    if (value === undefined) ok = false;
+    else if (!(value >= NFI_RANGE.burnup[0] && value <= NFI_RANGE.burnup[1])) {
+      bad("E_OUT_OF_RANGE", "/burnup/value", "the burnup " + value + " MWd/kgHM is outside " + NFI_RANGE.burnup[0] + " to " + NFI_RANGE.burnup[1] + ", the range the fuel conductivity model is stated for (rod-average, NUREG/CR-7024 section 2.3.2)", { unit: "MWd/kgHM" });
+      value = undefined;
+    }
+  }
+  if (raw.basis === undefined) bad("E_PROP_MISSING", "/burnup/basis", "the burnup needs its basis: \"heavy-metal\"");
+  else if (raw.basis !== "heavy-metal") bad("E_UNSUPPORTED", "/burnup/basis", "only a heavy-metal basis is accepted (MWd per kg or tonne of initial heavy metal, as OpenMC reports it); got " + JSON.stringify(raw.basis));
+  if (typeof raw.source !== "string" || raw.source.trim() === "") bad("E_PROP_MISSING", "/burnup/source", "the burnup needs the source it comes from (a study's choice, or a depletion record's id)");
+  return ok && value !== undefined ? { value, source: (raw.source as string).trim() } : undefined;
 }
 
 /**
