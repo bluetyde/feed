@@ -73,6 +73,10 @@ describe("the burnup checks fail what is wrong, and a result without the evidenc
   it("the cladding's k is not judged against the fuel law (only the fuel cells are)", () => {
     expect(check(build({ k: mapCells(k, (v, i) => (i >= 20 ? v * 2 : v)) }), "burnupConductivity").verdict).toBe("pass");
   });
+  it("the Bu tolerance is 1e-5: half of it passes, twice it fails", () => {
+    expect(check(build({ Bu: mapCells(Bu, (v, i) => (i < 20 ? v * (1 + 0.5 * BURNUP_BU_TOLERANCE) : v)) }), "burnupWritten").verdict).toBe("pass");
+    expect(check(build({ Bu: mapCells(Bu, (v, i) => (i < 20 ? v * (1 + 2 * BURNUP_BU_TOLERANCE) : v)) }), "burnupWritten").verdict).toBe("fail");
+  });
   it("a Bu written on the wrong basis (0.8815 for 0.881, the Lassmann constant) fails the burnup check", () => {
     const wrong = build({ Bu: mapCells(Bu, (v, i) => (i < 20 ? (v * 0.8815) / 0.881 : v)) });
     expect(check(wrong, "burnupWritten").verdict).toBe("fail");
@@ -94,6 +98,13 @@ describe("the burnup checks fail what is wrong, and a result without the evidenc
   it("a field that is not finite, or has the wrong number of cells, is refused as an incomplete output", () => {
     expect(() => build({ k: mapCells(k, (v, i) => (i === 3 ? NaN : v)) })).toThrow(ResultsError);
     expect(() => build({ k: k.replace(/\n26\n\(/, "\n25\n(") })).toThrow(ResultsError);
+  });
+  it("a field that is consistent in itself but has another number of cells than the case is refused", () => {
+    const lines = k.split("\n");
+    const start = lines.findIndex((l) => l.trim() === "(");
+    lines.splice(start + 26, 1); // one cell fewer, and the header says so
+    const short = lines.join("\n").replace(/\n26\n\(/, "\n25\n(");
+    expect(() => build({ k: short })).toThrow(/has 25 cells, the case has 26/);
   });
   it("a Bu that OFFBEAT wrote compactly as `uniform 0` is read as 0 in every cell: right for a fresh fuel, wrong for 40 MWd/kgHM", () => {
     const uniform0 = Bu.replace(/internalField\s+nonuniform List<scalar>\s*\n\d+\s*\n\([\s\S]*?\n\)\s*\n;/, "internalField   uniform 0;");
