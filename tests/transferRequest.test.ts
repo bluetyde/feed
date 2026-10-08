@@ -375,7 +375,7 @@ describe("Codex review of the transfer command: each finding as a test", () => {
 
 describe("describe.transfers", () => {
   it("names the field FEED offers and the dimensions it accepts, as the SEED adapter schema allows", () => {
-    expect(DESCRIBE_TRANSFERS.map((t) => t.field)).toEqual(["heating-to-pin", "coolant-boundary"]);
+    expect(DESCRIBE_TRANSFERS.map((t) => t.field)).toEqual(["heating-to-pin", "coolant-boundary", "burnup"]);
     const t = DESCRIBE_TRANSFERS[0]!;
     expect(t.field).toMatch(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
     expect(t.accepts.map((a) => `${a.dimension}/${a.normalization}`)).toEqual(["energy/per-source-particle", "power/none", "power-per-length/none", "power-per-volume/none"]);

@@ -9,7 +9,7 @@ describe("a record written by OpenMC Studio", () => {
   it("is read by the reader", () => {
     const r = parseDepletionRecord(text);
     expect(r.regions).toHaveLength(1);
-    expect(r.regions[0].burnup_mwd_per_tu[1]).toBeCloseTo(190, 6);
+    expect(r.regions[0]!.burnup_mwd_per_tu[1]).toBeCloseTo(190, 6);
   });
   it("is accepted with its id, which Studio computed in Python (floats as printed: 1.0, not 1)", () => {
     expect(JSON.parse(text).id).toMatch(/^[0-9a-f]{64}$/);
@@ -36,9 +36,9 @@ describe("a record written by OpenMC Studio", () => {
   });
   it("gives the burnup at the end of each step, MWd/tU, heavy-metal basis", () => {
     const r = parseDepletionRecord(text);
-    const name = r.regions[0].name;
+    const name = r.regions[0]!.name;
     const ends = r.time_steps_days.reduce<number[]>((a, d) => [...a, (a[a.length - 1] ?? 0) + d], []);
-    expect(burnupAt(r, name, ends[0])).toBeCloseTo(38, 6);
-    expect(burnupAt(r, name, ends[1])).toBeCloseTo(190, 6);
+    expect(burnupAt(r, name, ends[0]!)).toBeCloseTo(38, 6);
+    expect(burnupAt(r, name, ends[1]!)).toBeCloseTo(190, 6);
   });
 });

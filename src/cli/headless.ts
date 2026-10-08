@@ -4,7 +4,7 @@
 //   node dist/cli/headless.js validate <case.json>
 //   node dist/cli/headless.js run <case.json> --out <absDir> [--run-id feed] [--timeout-seconds 300]
 //   node dist/cli/headless.js cancel --out <absDir>
-//   node dist/cli/headless.js transfer            (a seed.transfer-request/0.2 on stdin; exit 0 for every answer)
+//   node dist/cli/headless.js transfer            (a seed.transfer-request/0.2, or /0.3 for the burnup, on stdin; exit 0 for every answer)
 //
 // Exit codes: 0 a reply was produced (a run that ended failed is exit 0 with status "failed" and a reason), 2 the case was
 // refused (ok:false with typed errors), 1 the runner itself failed (ok:false). `run` writes <out>/<run-id>/ with
@@ -128,7 +128,7 @@ async function run(args: string[]) {
 }
 
 /**
- * `transfer`: SEED's request (seed.transfer-request/0.2) on stdin, one reply on stdout. Every answer, accepted or refused, is
+ * `transfer`: SEED's request (seed.transfer-request/0.2, or /0.3 for the burnup) on stdin, one reply on stdout. Every answer, accepted or refused, is
  * exit 0 (SEED turns a non-zero exit or no JSON into E_APP_FAILED). SEED has already checked the approval and the revisions.
  */
 function transfer() {

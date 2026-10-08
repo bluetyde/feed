@@ -10,12 +10,13 @@
 
 import { Failed, TransferIssue, firstOverlap } from "./transfer";
 import { BOUNDARY_DESCRIPTION, BOUNDARY_FIELD, BoundaryReply as BoundaryReplyType, transferBoundary } from "./transferBoundary";
+import { BURNUP_DESCRIPTION, BURNUP_FIELD, BurnupReply, transferBurnup } from "./transferBurnup";
 import { validateCase } from "./validate";
 
 export const REQUEST_SCHEMA = "seed.transfer-request/0.2";
 export const RECIPE_SCHEMA = "seed.transfer-recipe/0.2";
 /** The transfers FEED accepts; `describe` reports these to SEED. */
-export const TRANSFER_FIELDS = ["heating-to-pin", BOUNDARY_FIELD] as const;
+export const TRANSFER_FIELDS = ["heating-to-pin", BOUNDARY_FIELD, BURNUP_FIELD] as const;
 
 export const DESCRIBE_TRANSFERS = [
   {
@@ -34,6 +35,7 @@ export const DESCRIBE_TRANSFERS = [
     },
   },
   BOUNDARY_DESCRIPTION,
+  BURNUP_DESCRIPTION,
 ];
 
 const REL_Z = 1e-9;
@@ -397,7 +399,8 @@ export function transferHeating(requestIn: unknown): TransferReply {
 }
 
 /** The `transfer` command: route SEED's request to the transfer its recipe names. */
-export function transfer(requestIn: unknown): TransferReply | BoundaryReplyType {
+export function transfer(requestIn: unknown): TransferReply | BoundaryReplyType | BurnupReply {
   const field = isObj(requestIn) && isObj(requestIn.recipe) && isObj(requestIn.recipe.target) ? requestIn.recipe.target.field : undefined;
+  if (field === BURNUP_FIELD) return transferBurnup(requestIn);
   return field === BOUNDARY_FIELD ? transferBoundary(requestIn) : transferHeating(requestIn);
 }
