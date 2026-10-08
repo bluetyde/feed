@@ -1,6 +1,8 @@
 // Depletion record reader: parse, validate, interpolate, and convert the depletion hand-off record (docs/ARCHITECTURE.md).
 // FEED only reads this hand-off record from an upstream depletion calculation to obtain burnup per region over time.
 
+import { createHash } from "node:crypto";
+
 export class DepletionRecordError extends Error {
   readonly path: string;
 
@@ -23,6 +25,8 @@ export interface DepletionRegion {
 
 export interface DepletionRecord {
   schema: "studio.depletion/0.1";
+  /** SHA-256 of the canonical JSON without this key (Studio's `record_id`); checked when present. Records from older writers have none. */
+  id?: string;
   time_steps_days: number[];
   regions: DepletionRegion[];
   k?: [number, number][];
@@ -30,8 +34,63 @@ export interface DepletionRecord {
   provenance: Record<string, unknown>;
 }
 
-const TOP_LEVEL_KEYS = new Set(["schema", "time_steps_days", "regions", "k", "isotopics", "provenance"]);
+const TOP_LEVEL_KEYS = new Set(["schema", "id", "time_steps_days", "regions", "k", "isotopics", "provenance"]);
 const REGION_KEYS = new Set(["name", "cell_ids", "heavy_metal_mass_kg", "power_w", "burnup_mwd_per_tu"]);
+
+/**
+ * Studio's canonical form: sorted keys, no spaces, the top-level `id` left out, number and string tokens exactly as the writer printed them
+ * (Python's repr of a float, ASCII escapes). Working on the tokens of the text, not on parsed values, keeps `190.0` and `1e-05` as written.
+ */
+export function canonicalRecordText(text: string): string {
+  let i = 0;
+  const ws = () => { while (i < text.length && " \t\n\r".includes(text[i]!)) i++; };
+  const str = (): string => {
+    const start = i;
+    i++;
+    while (text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+    i++;
+    return text.slice(start, i);
+  };
+  const value = (top: boolean): string => {
+    ws();
+    const c = text[i];
+    if (c === "{") {
+      i++;
+      const members: [string, string][] = [];
+      ws();
+      if (text[i] === "}") { i++; return "{}"; }
+      for (;;) {
+        ws();
+        const k = str();
+        ws();
+        i++; // the colon
+        const v = value(false);
+        if (!(top && JSON.parse(k) === "id")) members.push([k, v]);
+        ws();
+        if (text[i++] === "}") break;
+      }
+      members.sort((a, b) => { const x = JSON.parse(a[0]) as string, y = JSON.parse(b[0]) as string; return x < y ? -1 : x > y ? 1 : 0; });
+      return "{" + members.map(([k, v]) => k + ":" + v).join(",") + "}";
+    }
+    if (c === "[") {
+      i++;
+      const items: string[] = [];
+      ws();
+      if (text[i] === "]") { i++; return "[]"; }
+      for (;;) {
+        items.push(value(false));
+        ws();
+        if (text[i++] === "]") break;
+      }
+      return "[" + items.join(",") + "]";
+    }
+    if (c === '"') return str();
+    const start = i;
+    while (i < text.length && !",]} \t\n\r".includes(text[i]!)) i++;
+    return text.slice(start, i);
+  };
+  return value(true);
+}
 
 export function parseDepletionRecord(text: string): DepletionRecord {
   let raw: unknown;
@@ -54,6 +113,17 @@ export function parseDepletionRecord(text: string): DepletionRecord {
   for (const key of Object.keys(doc)) {
     if (!TOP_LEVEL_KEYS.has(key)) {
       throw new DepletionRecordError(key, `unknown top-level key '${key}'`);
+    }
+  }
+
+  // id: the SHA-256 of the canonical text; a record that was edited after it was written no longer matches
+  if ("id" in doc) {
+    if (typeof doc.id !== "string" || !/^[0-9a-f]{64}$/.test(doc.id)) {
+      throw new DepletionRecordError("id", "expected 64 lowercase hex digits");
+    }
+    const actual = createHash("sha256").update(canonicalRecordText(text), "utf8").digest("hex");
+    if (actual !== doc.id) {
+      throw new DepletionRecordError("id", "does not match the record's content (it was changed after it was written)");
     }
   }
 
@@ -288,6 +358,7 @@ export function parseDepletionRecord(text: string): DepletionRecord {
 
   const result: DepletionRecord = {
     schema: "studio.depletion/0.1",
+    ...(typeof doc.id === "string" ? { id: doc.id } : {}),
     time_steps_days: timeStepsDays.slice(),
     regions,
     provenance: { ...(doc.provenance as Record<string, unknown>) },
