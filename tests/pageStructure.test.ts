@@ -59,6 +59,7 @@ describe("the burnup item of the editor (docs/plans/10-burnup.md M4)", () => {
     expect(html).toMatch(/burnup: \["MWd\/kgHM", "GWd\/tHM", "MWd\/tHM"\]/);
     expect(body).toMatch(/id="burnupBanner"[^>]*hidden/);
     expect(html).toMatch(/\$\("burnupBanner"\)\.textContent = \(result && result\.burnupNote\)/);
+    expect(html).toContain('$("burnupBanner").hidden = !(result && result.burnupNote);');
     expect(html).toContain('["uo2-nfi", "UO2 with burnup (modified NFI)"]');
   });
   it("a fuel that is not the burnup model has no burnup, and one that is gets a burnup to fill in (a burnup that changes nothing is refused)", () => {

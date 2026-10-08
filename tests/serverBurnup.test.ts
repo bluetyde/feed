@@ -70,6 +70,15 @@ describe("a burnup run through the server", () => {
   });
 });
 
+describe("the check endpoint", () => {
+  it("returns the frozen-burnup sentence for a case with a burnup and none for a fresh one", async () => {
+    const burnt: any = await (await post("/api/check", pin(true))).json();
+    expect(burnt.burnupNote).toMatch(/^Frozen-burnup snapshot: .*40 MWd per kg of heavy metal/);
+    const fresh: any = await (await post("/api/check", pin(false))).json();
+    expect(fresh.burnupNote).toBeUndefined();
+  });
+});
+
 describe("the burnup sweep endpoint", () => {
   it("returns the sweep of a case with a burnup", async () => {
     const r = await post("/api/burnup-sweep", pin(true));
