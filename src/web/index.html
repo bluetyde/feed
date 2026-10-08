@@ -167,6 +167,7 @@ input.bad,select.bad{border-color:var(--err)}
     <button class="runbtn" id="runBtn" type="button"><svg width="12" height="12" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 3l10 6-10 6z" fill="currentColor"/></svg>Run</button>
   </header>
   <div class="banner">Thermal-only result. It says nothing about stress, failure or fuel integrity.</div>
+  <div class="banner" id="burnupBanner" hidden></div>
 
   <nav class="ribbon" aria-label="Commands">
     <div class="rtabs" role="tablist"><button class="rtab" role="tab" data-mode="case" aria-selected="true" type="button">Case</button><button class="rtab" role="tab" data-mode="results" aria-selected="false" type="button">Results</button><button class="rtab" role="tab" data-mode="compare" aria-selected="false" type="button">Compare</button></div>
@@ -246,8 +247,9 @@ input.bad,select.bad{border-color:var(--err)}
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
-const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"] };
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"], burnup: ["MWd/kgHM", "GWd/tHM", "MWd/tHM"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
+let sweepData = null, sweepFor = "", sweepMsg = "";
 let doc = null, result = null, selected = "power", outTab = "problems", logText = "", showDegC = false, seq = 0, timer = null;
 
 /* Explorer items: id, label, group, JSON pointer prefixes that belong to it. */
@@ -260,6 +262,7 @@ const ITEMS = [
   ["hot", "Hot dimensions", "Pin", ["/hotDimensions"]],
   ["fuel", "Fuel", "Materials", ["/materials/fuel"]],
   ["cladding", "Cladding", "Materials", ["/materials/cladding"]],
+  ["burnup", "Burnup", "Materials", ["/burnup"]],
   ["limits", "Temperature limits", "Checks", ["/limits"]],
 ];
 const itemOf = (field) => { const f = (ITEMS.find((i) => i[3].some((p) => field === p || field.startsWith(p + "/"))) || [])[0]; return f || null; };
@@ -351,6 +354,8 @@ function renderProps() {
     p.append(sec("Gap model"), sField("Model", ["gap", "model"], [["constant-conductance", "Constant conductance"], ["gas-gap", "Gas gap (planned)"], ["contact", "Contact (needs mechanics)"]], () => {}));
     if (doc.gap.model === "constant-conductance") p.append(qField("h gap", ["gap", "conductance"], "htc"), tField("Source", ["gap", "source"]));
     p.append(note("V1 supports a constant gap conductance only. The solver's gas-gap model comes later."));
+  } else if (selected === "burnup") {
+    burnupPanel(p);
   } else if (selected === "hot") {
     hotPanel(p);
   } else if (selected === "limits") {
@@ -396,6 +401,7 @@ function meta(id) {
     case "gap": return doc.gap.model === "constant-conductance" ? fmt(doc.gap.conductance) : doc.gap.model;
     case "mesh": return doc.mesh.fuelCells + " / " + doc.mesh.claddingCells;
     case "hot": return doc.hotDimensions ? (result && result.ok && result.normalized && result.normalized.hot ? "gap " + (result.normalized.hot.hotGap * 1e6).toFixed(1) + " µm hot" : "on") : "off";
+    case "burnup": return doc.burnup && doc.burnup.value ? fmt(doc.burnup.value) : "none";
     case "limits": return Array.isArray(doc.limits) ? doc.limits.length + (doc.limits.length === 1 ? " rule" : " rules") : "none";
     default: { const k = getp(doc, ["materials", id, "sets", "thermal.conductivity"]); return k ? (k.model === "constant" ? "k " + fmt(k.value) : "k(T)") : "no k"; }
   }
@@ -578,6 +584,8 @@ async function runCheck(rebuildProps) {
     const j = await r.json(); if (my !== seq) return; result = j;
   } catch (e) { result = { ok: false, errors: [{ code: "E_SERVER", severity: "error", field: "/", message: "Couldn't reach the server. Restart the app." }], warnings: [] }; }
   const active = document.activeElement; const keep = active && $("props").contains(active) && !rebuildProps ? active.id : null;
+  $("burnupBanner").textContent = (result && result.burnupNote) || ""; $("burnupBanner").hidden = !(result && result.burnupNote);
+  if (sweepFor !== "" && sweepFor !== JSON.stringify(doc)) { sweepData = null; sweepFor = ""; }
   $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderOutput(); draw();
   if (rebuildProps || !keep) renderProps(); else refreshErrors();
 }
@@ -635,6 +643,8 @@ function reshapeLaw(kind, region, before, model) {
     set.b = (old.model === "constant" ? old.value : old.b !== undefined && old.model === "reciprocal" ? old.b : old.a) || S.default;
     if (old.model === "reciprocal") set.a = old.a;
     set.validRange = range;
+  } else if (model === "uo2-nfi") {
+    set.densityFraction = { value: 0.95, unit: "1" };
   } else if (model === "table") {
     set.fit = { degree: S.maxDegree, tolerance: { value: 2, unit: "%" } };
     const recipOld = old.model === "reciprocal" && old.a && old.b && old.a.unit === "W/m" && old.b.unit === "W/m/K" && typeof old.a.value === "number" && typeof old.b.value === "number";
@@ -649,6 +659,11 @@ function reshapeLaw(kind, region, before, model) {
     } else set.points = [];
   }
   doc.materials[region].sets[S.set] = set;
+  /* the burnup belongs to a fuel that depends on it, and only to that one: a burnup that changes nothing is refused by the validator */
+  if (kind === "conductivity" && region === "fuel") {
+    if (model === "uo2-nfi" && !doc.burnup) doc.burnup = { value: { value: 0, unit: "MWd/kgHM" }, basis: "heavy-metal", source: "" };
+    if (model !== "uo2-nfi") delete doc.burnup;
+  }
 }
 /** A small plot of a table's points and the polynomial that was fitted to it (the one OFFBEAT is given). */
 function fitPlot(fit, coefficients, range) {
@@ -672,10 +687,25 @@ function lawFields(kind, p, kp, k, region) {
   const S = LAW[kind];
   const before = JSON.parse(JSON.stringify(k));
   const normKey = region + (kind === "conductivity" ? "Conductivity" : "HeatCapacity");
-  p.append(sField("Model", kp.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"]].concat(kind === "conductivity" ? [["reciprocal", "Reciprocal: a / T + b"]] : [], [["polynomial", S.polyLabel], ["table", "Table of points (fitted)"]]), (m) => reshapeLaw(kind, region, before, m)));
+  p.append(sField("Model", kp.concat("model"), [["constant", "Constant"], ["linear", "Linear in T: a + b T"]].concat(kind === "conductivity" ? [["reciprocal", "Reciprocal: a / T + b"]] : [], [["polynomial", S.polyLabel], ["table", "Table of points (fitted)"]], kind === "conductivity" && region === "fuel" ? [["uo2-nfi", "UO2 with burnup (modified NFI)"]] : []), (m) => reshapeLaw(kind, region, before, m)));
   const rangeFields = () => [qField("T min", kp.concat("validRange", "min"), "temperature"), qField("T max", kp.concat("validRange", "max"), "temperature")];
   if (k.model === "linear") p.append(qField("a", kp.concat("a"), S.dims[0]), qField("b", kp.concat("b"), S.dims[1]), ...rangeFields());
-  else if (k.model === "reciprocal") {
+  else if (k.model === "uo2-nfi") {
+    p.append(qField("Density (fraction of theoretical)", kp.concat("densityFraction"), "fraction"));
+    const gb = el("div", "prow note");
+    if (k.gadolinia !== undefined) {
+      p.append(qField("Gadolinia (weight fraction)", kp.concat("gadolinia"), "fraction"));
+      const rm = elt("button", "Remove gadolinia", { class: "tbtn", type: "button" });
+      rm.addEventListener("click", () => { delete k.gadolinia; changed(true); renderProps(); });
+      gb.append(rm);
+    } else {
+      const add = elt("button", "Add gadolinia", { class: "tbtn", type: "button" });
+      add.addEventListener("click", () => { k.gadolinia = { value: 0, unit: "%" }; changed(true); renderProps(); });
+      gb.append(add);
+    }
+    p.append(gb);
+    p.append(note("FRAPCON-3.4's modified NFI model (NUREG/CR-7024 Eq. 2.3-10 and 2.3-11): valid for 300 to 3000 K, rod-average burnup 0 to 62 MWd/kgHM, density 92 to 97 % of theoretical and gadolinia 0 to 10 wt%. Its 13 constants are the model's, not the material's. The <b>burnup is the case's</b>: set it in the Burnup item. OFFBEAT runs it as UO2MATPRO (a misleading name: it is not MATPRO). Frozen burnup: no swelling, densification or fission-gas release."));
+  } else if (k.model === "reciprocal") {
     p.append(qField("a", kp.concat("a"), "linearPower"), qField("b", kp.concat("b"), "conductivity"), ...rangeFields());
     p.append(note("k = a / T + b, T in kelvin: a in W/m (the unit of a linear heat rate, which it equals dimensionally) and b in W/m/K; give 0 for a term that is not there. It must be positive over the whole range. The solver is given it as OFFBEAT's SiCPARFUME model (the name is a misnomer here), both terms written."));
   }
@@ -707,6 +737,62 @@ function lawFields(kind, p, kp, k, region) {
   p.append(tField("Source", kp.concat("source")));
 }
 /* temperature limits (docs/temperature-limits.md): rules the case states with their sources; FEED has none of its own */
+/* the burnup (docs/plans/10-burnup.md): one value for the slice, heavy-metal basis, and the sweep that shows what it costs */
+function burnupPanel(p) {
+  p.append(sec("Burnup"));
+  const fuel = getp(doc, ["materials", "fuel", "sets", "thermal.conductivity"]);
+  if (!(fuel && fuel.model === "uo2-nfi")) {
+    p.append(note("The fuel's conductivity does not depend on burnup. Choose <b>UO2 with burnup (modified NFI)</b> as the model of the fuel's conductivity (Fuel item) to state a burnup; a burnup that would change nothing is refused. TRIGA's U-ZrH has no burnup model here."));
+    return;
+  }
+  p.append(qField("Burnup", ["burnup", "value"], "burnup"));
+  p.append(note("Heavy-metal basis (MWd per kg, GWd per tonne or MWd per tonne of initial heavy metal, as OpenMC reports it); 0 to 62 MWd/kgHM, the range of the model; 0 is fresh fuel. A frozen snapshot: nothing evolves, so there is no swelling, densification or fission-gas release, and the gap is the one stated."));
+  p.append(tField("Source", ["burnup", "source"]));
+  p.append(sec("What burnup costs on this pin"));
+  const bar = el("div", "prow note");
+  const go = elt("button", "Show the cost of burnup", { class: "tbtn", type: "button" });
+  go.addEventListener("click", async () => {
+    sweepMsg = "";
+    try {
+      const r = await fetch("/api/burnup-sweep", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
+      const j = await r.json();
+      if (r.ok) { sweepData = j; sweepFor = JSON.stringify(doc); } else { sweepData = null; sweepFor = ""; sweepMsg = j.error || "the sweep failed"; }
+    } catch (e) { sweepData = null; sweepFor = ""; sweepMsg = "Could not reach the server: " + e.message; }
+    renderProps();
+  });
+  bar.append(go); p.append(bar);
+  if (sweepMsg) p.append(note(sweepMsg));
+  if (sweepData) {
+    const holder = el("div"); holder.style.padding = "6px 0"; const cv = elt("canvas", "", { id: "burnupPlot", "aria-label": "Centre and surface temperature of the fuel against burnup (a closed-form estimate)" });
+    cv.style.width = "100%"; cv.style.height = "190px"; holder.append(cv); p.append(holder);
+    const pts = sweepData.points.filter((q) => q.centreT !== undefined);
+    const st = sweepData.points.find((q) => q.burnup === sweepData.stated);
+    const fresh = sweepData.points[0];
+    p.append(note("Centre temperature of the fuel: " + (fresh && fresh.centreT !== undefined ? K(fresh.centreT) + " fresh" : "") + (st && st.centreT !== undefined && fresh && fresh.centreT !== undefined ? ", " + K(st.centreT) + " at " + sweepData.stated + " MWd/kgHM (" + (showDegC ? "+" : "+") + (st.centreT - fresh.centreT).toFixed(0) + " K)" : "") + ". " + sweepData.note));
+    const bad = sweepData.points.filter((q) => q.problem);
+    if (bad.length) p.append(note("Refused at " + bad.map((q) => q.burnup).join(", ") + " MWd/kgHM: " + bad[0].problem));
+    setTimeout(() => drawBurnupSweep(cv, sweepData, pts), 0); /* after the panel is in the page, so the canvas has its size (not requestAnimationFrame: it pauses in a hidden pane) */
+  }
+}
+function drawBurnupSweep(canvas, sweep, pts) {
+  const [x, w, h] = sizeCanvas(canvas); x.clearRect(0, 0, w, h);
+  if (!pts.length) { plotText(canvas, "", "", []); x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show", 14, h / 2); return; }
+  const L = 62, Rr = 16, Tp = 14, Bt = 28;
+  const bmax = Math.max(...pts.map((q) => q.burnup));
+  const vals = pts.flatMap((q) => [showT(q.centreT), showT(q.fuelSurfaceT)]);
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+  const X = (b) => L + (b / bmax) * (w - L - Rr), Y = (T) => h - Bt - ((T - lo) / (hi - lo)) * (h - Bt - Tp);
+  x.font = "11px ui-monospace,Consolas,monospace"; x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const T = lo + ((hi - lo) * i) / 4, y = Y(T); x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, y); x.lineTo(w - Rr, y); x.stroke(); x.fillStyle = "#8c949e"; x.fillText(T.toFixed(0), 8, y + 4); }
+  for (let i = 0; i <= 5; i++) { const b = (bmax * i) / 5; x.fillStyle = "#8c949e"; x.fillText(b.toFixed(0), X(b) - 8, h - Bt + 14); }
+  x.fillStyle = "#8c949e"; x.fillText("burnup (MWd/kgHM)", w - 140, h - 5); x.fillText(showDegC ? "°C" : "K", 8, Tp - 2);
+  const line = (key, col, dash) => { x.strokeStyle = col; x.lineWidth = 2; x.setLineDash(dash || []); x.beginPath(); pts.forEach((q, i) => { const px = X(q.burnup), py = Y(showT(q[key])); if (i) x.lineTo(px, py); else x.moveTo(px, py); }); x.stroke(); x.setLineDash([]); };
+  line("centreT", "#52b8ff"); line("fuelSurfaceT", "#52b8ff", [5, 4]);
+  const st = pts.find((q) => q.burnup === sweep.stated);
+  if (st) { x.fillStyle = "#e6b455"; x.beginPath(); x.arc(X(st.burnup), Y(showT(st.centreT)), 4, 0, 7); x.fill(); x.fillText("the case", X(st.burnup) + 7, Y(showT(st.centreT)) - 6); }
+  x.fillStyle = "#52b8ff"; x.fillText("centre (closed form, an estimate)", L + 6, Tp + 10);
+  plotText(canvas, "burnup (MWd/kgHM)", showDegC ? "T (°C)" : "T (K)", [{ label: "fuel centre", x: pts.map((q) => q.burnup), y: pts.map((q) => showT(q.centreT)) }, { label: "fuel surface", x: pts.map((q) => q.burnup), y: pts.map((q) => showT(q.fuelSurfaceT)) }]);
+}
 function hotPanel(p) {
   p.append(sec("Hot dimensions"));
   const h = doc.hotDimensions;
@@ -924,7 +1010,10 @@ function saveToLibraryPanel(p, region) {
   if (msg) p.append(elt("div", msg.text, { class: msg.ok ? "ok-note" : "ferr" }));
   p.append(note("Saved to <code>library/custom</code> on this computer, apart from the sourced library. The properties are checked as a case checks them (a conductivity needs its source, a temperature-dependent law its range). A changed material is a new revision; earlier ones stay. Sets that belong to other apps are saved as they are."));
 }
-function applyMaterial(region, entry) { doc.materials[region] = JSON.parse(JSON.stringify(entry.material)); logText += "Set " + region + " to " + entry.name + " (" + entry.label + ").\n"; changed(true); }
+function applyMaterial(region, entry) {
+  doc.materials[region] = JSON.parse(JSON.stringify(entry.material));
+  /* a fuel that depends on burnup needs the case to state one (0 is fresh fuel, to be given a source); any other fuel must not have one */
+  if (region === "fuel") { const km = entry.material.sets["thermal.conductivity"]; if (km && km.model === "uo2-nfi") { if (!doc.burnup) doc.burnup = { value: { value: 0, unit: "MWd/kgHM" }, basis: "heavy-metal", source: "" }; } else delete doc.burnup; } logText += "Set " + region + " to " + entry.name + " (" + entry.label + ").\n"; changed(true); }
 $("bPins").onclick = (e) => openMenu(e.currentTarget, "Pins", [["Pin presets", lib.pins.map((p) => ({ name: p.name, label: p.label, description: p.description, pick: () => loadPin(p.id, p.name) }))]]);
 $("bMats").onclick = (e) => openMenu(e.currentTarget, "Materials", [["Fuel", lib.materials.filter((x) => x.region === "fuel").map((x) => ({ ...x, pick: () => applyMaterial("fuel", x) }))], ["Cladding", lib.materials.filter((x) => x.region === "cladding").map((x) => ({ ...x, pick: () => applyMaterial("cladding", x) }))]]);
 async function loadExample() { doc = await (await fetch("/api/example")).json(); logText += "Loaded the synthetic example pin.\n"; await runCheck(true); renderAll(); }

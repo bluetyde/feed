@@ -35,7 +35,7 @@ describe("the page's static accessible structure", () => {
 
   it("writes a values table beside every plot, announces the validation outcome, and makes section titles headings", () => {
     expect(html).toMatch(/function plotText\(/);
-    for (const draw of ["drawProfile", "drawTimeSeries", "drawGeneric", "drawDelta"]) {
+    for (const draw of ["drawProfile", "drawTimeSeries", "drawGeneric", "drawDelta", "drawBurnupSweep"]) {
       const start = html.indexOf(`function ${draw}(`);
       expect(start, draw).toBeGreaterThan(0);
       const next = html.indexOf("\nfunction ", start + 10);
@@ -49,5 +49,27 @@ describe("the page's static accessible structure", () => {
     expect(body).toMatch(/id="announce"[^>]*aria-live="polite"|aria-live="polite"[^>]*id="announce"/);
     expect(html).toMatch(/function elt\([^\r\n]*psec[^\r\n]*setAttribute\("role", "heading"\)/); // the helper that builds most section titles
     expect(html.match(/el\("div", "psec"\); h2?\.setAttribute\("role", "heading"\)/g)?.length).toBe(2); // the two built by hand
+  });
+});
+
+describe("the burnup item of the editor (docs/plans/10-burnup.md M4)", () => {
+  it("has its item and panel, a unit list for burnup, the banner line that the check fills, and the fuel model that asks for a burnup", () => {
+    expect(html).toContain('["burnup", "Burnup", "Materials", ["/burnup"]]');
+    expect(html).toMatch(/function burnupPanel\(/);
+    expect(html).toMatch(/burnup: \["MWd\/kgHM", "GWd\/tHM", "MWd\/tHM"\]/);
+    expect(body).toMatch(/id="burnupBanner"[^>]*hidden/);
+    expect(html).toMatch(/\$\("burnupBanner"\)\.textContent = \(result && result\.burnupNote\)/);
+    expect(html).toContain('["uo2-nfi", "UO2 with burnup (modified NFI)"]');
+  });
+  it("a fuel that is not the burnup model has no burnup, and one that is gets a burnup to fill in (a burnup that changes nothing is refused)", () => {
+    expect(html).toMatch(/if \(model === "uo2-nfi" && !doc\.burnup\) doc\.burnup = /);
+    expect(html).toMatch(/if \(model !== "uo2-nfi"\) delete doc\.burnup;/);
+    expect(html).toMatch(/km\.model === "uo2-nfi"\) \{ if \(!doc\.burnup\) doc\.burnup = /);
+  });
+  it("the sweep's plot is drawn after the panel is in the page, by a timer (requestAnimationFrame pauses in a hidden pane)", () => {
+    const i = html.indexOf("function burnupPanel(");
+    const panel = html.slice(i, html.indexOf("function drawBurnupSweep(", i));
+    expect(panel).toContain("setTimeout(() => drawBurnupSweep(");
+    expect(panel).not.toMatch(/requestAnimationFrame(/);
   });
 });

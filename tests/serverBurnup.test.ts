@@ -69,3 +69,30 @@ describe("a burnup run through the server", () => {
     expect(same.thermalOnly).toBe("Thermal-only result. It says nothing about stress, failure or fuel integrity.");
   });
 });
+
+describe("the burnup sweep endpoint", () => {
+  it("returns the sweep of a case with a burnup", async () => {
+    const r = await post("/api/burnup-sweep", pin(true));
+    expect(r.status).toBe(200);
+    const j: any = await r.json();
+    expect(j.stated).toBe(40);
+    expect(j.points.length).toBe(14);
+    expect(j.points[0].burnup).toBe(0);
+    expect(j.points.find((p: any) => p.burnup === 40).centreT).toBeGreaterThan(j.points[0].centreT);
+    expect(j.note).toMatch(/no solver run/);
+  });
+  it("says why when the case has no burnup, is not JSON, or is sent with another content type", async () => {
+    const none = await post("/api/burnup-sweep", pin(false));
+    expect(none.status).toBe(400);
+    expect(((await none.json()) as any).error).toMatch(/has no burnup/);
+    const bad = await fetch(base + "/api/burnup-sweep", { method: "POST", headers: { "content-type": "application/json", "x-feed-client": "1" }, body: "{nope" });
+    expect(bad.status).toBe(400);
+    const type = await fetch(base + "/api/burnup-sweep", { method: "POST", headers: { "content-type": "text/plain", "x-feed-client": "1" }, body: "{}" });
+    expect(type.status).toBe(415);
+  });
+  it("refuses a request without the client header, like every state-changing request", async () => {
+    const r = await fetch(base + "/api/burnup-sweep", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(pin(true)) });
+    expect(r.status).toBeGreaterThanOrEqual(400);
+    expect(r.status).toBeLessThan(500);
+  });
+});

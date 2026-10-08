@@ -12,6 +12,7 @@ import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
 import { resultsToCsv, transientResultsToCsv } from "../core/exportResults";
 import { burnupSweep } from "../core/burnupSweep";
+import { burnupText } from "../core/resultsParser";
 import { applyDesign, designOf } from "../core/design";
 import { IndependentRunner } from "../core/independentRunner";
 import { previewTooBig, transientPreview } from "../core/transientPreview";
@@ -216,6 +217,8 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
     errors: v.errors,
     warnings: v.warnings,
     normalized: n,
+    // what a burnup result is and is not, for the banner while the case is edited (the same words as in every result)
+    ...(n.burnup ? { burnupNote: burnupText(n.burnup.value) } : {}),
     quick: look,
     profile: radialProfile(n, look),
     derived: {
