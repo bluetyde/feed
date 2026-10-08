@@ -37,4 +37,4 @@ The fuel's conductivity model list offers **UO2 with burnup (modified NFI)**; ch
 
 ## Not done
 
-Swelling, densification, relocation and fission-gas release; the closing of the gap; a radial burnup profile (the rim); a burnup history; MOX and the Halden correlation (NUREG/CR-7024 Eq. 2.3-12 and 2.3-13, each needing its own sourcing); gas-gap mechanics for gas-cooled reactors (kept in notes in plan 10); importing a burnup from a depletion record (plan 10 M6: it needs OpenMC Studio's writer, and the reader waits on its own branch); SEED oracle entries (plan 10 M5).
+Swelling, densification, relocation and fission-gas release; the closing of the gap; a radial burnup profile (the rim); a burnup history; MOX and the Halden correlation (NUREG/CR-7024 Eq. 2.3-12 and 2.3-13, each needing its own sourcing); gas-gap mechanics for gas-cooled reactors (kept in notes in plan 10); importing a burnup from a depletion record is done as a SEED transfer ([transfer-burnup.md](transfer-burnup.md)); regions finer than one per burnable material (axial slices) wait on OpenMC Studio.
