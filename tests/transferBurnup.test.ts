@@ -125,6 +125,15 @@ describe("what the burnup transfer refuses", () => {
     expect(codes(transfer(request(5, { recipe: { target: { app: "nodal", field: "burnup" } } })))).toEqual(["E_RECIPE_INVALID /recipe/target/app"]);
     expect(codes(transfer(request(5, { recipe: { source: { kind: "run" } } })))).toEqual(["E_RECIPE_INVALID /recipe/source"]);
   });
+  it("each recipe fault alone is refused: the factor, the basis, the schema, a source that is not a depletion record", () => {
+    const units = { field: "burnup_mwd_per_tu", from: "MWd/tU", to: "MWd/kgHM", factor: 0.001, basis: "heavy-metal" };
+    expect(codes(transfer(request(5, { recipe: { units: { ...units, factor: 0.0008815 } } })))).toEqual(["E_UNITS /recipe/units"]);
+    expect(codes(transfer(request(5, { recipe: { units: { ...units, basis: "oxide" } } })))).toEqual(["E_UNITS /recipe/units"]);
+    expect(codes(transfer(request(5, { recipe: { schema: "seed.transfer-recipe/0.2" } })))).toEqual(["E_RECIPE_INVALID /recipe"]);
+    const rs = (over: Record<string, unknown>) => ({ kind: "record", record: "depletion-record/1", recordId: ID, region: "UO2 3.5%", time: 5, ...over });
+    expect(codes(transfer(request(5, { recipe: { source: rs({ kind: "run" }) } })))).toEqual(["E_RECIPE_INVALID /recipe/source"]);
+    expect(codes(transfer(request(5, { recipe: { source: rs({ record: "other-record/1" }) } })))).toEqual(["E_RECIPE_INVALID /recipe/source"]);
+  });
   it("a request that is not the approved recipe: another region, time or record id", () => {
     expect(codes(transfer(request(5, { recipeSource: { region: "other" } })))).toEqual(["E_RECIPE_INVALID /source/region"]);
     expect(codes(transfer(request(5, { recipeSource: { time: 4 } })))).toEqual(["E_RECIPE_INVALID /source/time"]);
