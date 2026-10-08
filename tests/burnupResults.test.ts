@@ -67,15 +67,15 @@ describe("the burnup checks fail what is wrong, and a result without the evidenc
     const bad = build({ k: mapCells(k, (v, i) => (i === 7 ? v * 1.01 : v)) });
     expect(check(bad, "burnupConductivity").verdict).toBe("fail");
     expect(check(bad, "burnupConductivity").note).toMatch(/at fuel cell 7/);
-    expect(check(build({ k: mapCells(k, (v, i) => (i < 20 ? v * (1 + 0.5 * BURNUP_K_TOLERANCE) : v)) }), "burnupConductivity").verdict).toBe("pass");
-    expect(check(build({ k: mapCells(k, (v, i) => (i < 20 ? v * (1 + 2 * BURNUP_K_TOLERANCE) : v)) }), "burnupConductivity").verdict).toBe("fail");
+    expect(check(build({ k: mapCells(k, (v, i) => (i < 20 ? v * (1 + 0.5e-4) : v)) }), "burnupConductivity").verdict).toBe("pass");
+    expect(check(build({ k: mapCells(k, (v, i) => (i < 20 ? v * (1 + 2e-4) : v)) }), "burnupConductivity").verdict).toBe("fail");
   });
   it("the cladding's k is not judged against the fuel law (only the fuel cells are)", () => {
     expect(check(build({ k: mapCells(k, (v, i) => (i >= 20 ? v * 2 : v)) }), "burnupConductivity").verdict).toBe("pass");
   });
-  it("the Bu tolerance is 1e-5: half of it passes, twice it fails", () => {
-    expect(check(build({ Bu: mapCells(Bu, (v, i) => (i < 20 ? v * (1 + 0.5 * BURNUP_BU_TOLERANCE) : v)) }), "burnupWritten").verdict).toBe("pass");
-    expect(check(build({ Bu: mapCells(Bu, (v, i) => (i < 20 ? v * (1 + 2 * BURNUP_BU_TOLERANCE) : v)) }), "burnupWritten").verdict).toBe("fail");
+  it("the Bu tolerance is 1e-5 (written here, not read from the module): half of it passes, twice it fails", () => {
+    expect(check(build({ Bu: mapCells(Bu, (v, i) => (i < 20 ? v * (1 + 0.5e-5) : v)) }), "burnupWritten").verdict).toBe("pass");
+    expect(check(build({ Bu: mapCells(Bu, (v, i) => (i < 20 ? v * (1 + 2e-5) : v)) }), "burnupWritten").verdict).toBe("fail");
   });
   it("a Bu written on the wrong basis (0.8815 for 0.881, the Lassmann constant) fails the burnup check", () => {
     const wrong = build({ Bu: mapCells(Bu, (v, i) => (i < 20 ? (v * 0.8815) / 0.881 : v)) });
