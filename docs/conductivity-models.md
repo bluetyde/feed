@@ -1,6 +1,6 @@
 # Conductivity and heat capacity models: constant, linear, reciprocal, cubic or quadratic, table
 
-A material's `thermal.conductivity` set takes one of five models (a heat capacity takes four: it has no reciprocal). Code: `src/core/conductivity.ts` (laws as arithmetic), `src/core/validate.ts` (the rules), `src/core/caseWriter.ts` (what OFFBEAT is given). Tests: `tests/conductivity.test.ts`, `tests/polynomialConductivity.test.ts`, `tests/conductivityEdges.test.ts`, `tests/fitChecks.test.ts`, `tests/polynomialHeatCapacity.test.ts`, and, with `FEED_SOLVER=1`, `tests/polynomialConductivitySolver.test.ts` and `tests/polynomialHeatCapacitySolver.test.ts`. Why these and not others: [the property-model survey](spike/property-model-survey.md).
+A material's `thermal.conductivity` set takes one of six models (a heat capacity takes four: it has no reciprocal). Code: `src/core/conductivity.ts` (laws as arithmetic), `src/core/validate.ts` (the rules), `src/core/caseWriter.ts` (what OFFBEAT is given). Tests: `tests/conductivity.test.ts`, `tests/polynomialConductivity.test.ts`, `tests/conductivityEdges.test.ts`, `tests/fitChecks.test.ts`, `tests/polynomialHeatCapacity.test.ts`, and, with `FEED_SOLVER=1`, `tests/polynomialConductivitySolver.test.ts` and `tests/polynomialHeatCapacitySolver.test.ts`. Why these and not others: [the property-model survey](spike/property-model-survey.md).
 
 ## The models
 
@@ -9,6 +9,7 @@ A material's `thermal.conductivity` set takes one of five models (a heat capacit
 | `constant` | k | `value`, `referenceTemperature`, `source` | as before |
 | `linear` | a + b T | `a` (W/m/K), `b` (W/m/K²), `validRange`, `source` | as before; carried by `steel1515TiTobbe` |
 | `reciprocal` | a / T + b | `a` (W/m), `b` (W/m/K), `validRange`, `source` | the shape of a phonon-limited ceramic; both terms given (a zero is written as 0); T in kelvin; carried by OFFBEAT's `SiCPARFUME` (par1 = a, par2 = b). `a` is accepted in `W/m` (and `kW/m`, `W/cm`, `MW/m`: it is dimensionally a linear heat rate) |
+| `uo2-nfi` | UO2 fuel with burnup: FRAPCON-3.4's modified NFI model, NUREG/CR-7024 Eq. 2.3-10 and 2.3-11 | `densityFraction` (0.92 to 0.97), optional `gadolinia` (0 to 0.1), optional `validRange` (inside 300 to 3000 K), `source`; **the burnup is the case's** (`burnup`, 0 to 62 MWd/kgHM, heavy-metal basis) | fuel only; the 13 constants are the model's and are not a material's to change; carried by OFFBEAT's `UO2MATPRO` (its name is a misnomer: [burnup-sourcing.md](spike/burnup-sourcing.md)) with `burnup constant` and a `0/Bu` file; steady cases only; see [plan 10](plans/10-burnup.md) |
 | `polynomial` | a + b T + c T² + d T³ | `a` W/m/K, `b` W/m/K², `c` W/m/K³, `d` W/m/K⁴, `validRange`, `source` | all four are given (a zero is written as 0); T in kelvin |
 | `table` | fitted polynomial | `points`, `fit {degree 1–3, tolerance}`, `source` | the range is the table's own |
 
