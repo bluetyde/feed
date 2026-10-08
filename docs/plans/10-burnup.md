@@ -36,7 +36,18 @@ Not in this plan: mechanics ([plan 09](09-mechanics.md), paused), fission-gas re
 
 ## 4. Decisions for the user
 
-Each has a recommended answer; none is built until answered.
+Each had a recommended answer. **Answered by the user on 2026-10-08** (the answers are on the lines below, and the decisions that follow them are the plan's):
+
+| # | Answer |
+|---|---|
+| 1 | **A for now**: UO2 with Zircaloy, the modified NFI model, gadolinia as an optional input. MOX (Duriez/NFI, Eq. 2.3-12 of NUREG/CR-7024) and the Halden option (Eq. 2.3-13) stay available to add later, each with its own sourcing. |
+| 2 | **A for now**: one burnup value for the slice, MWd/kgHM (MWd/tHM and GWd/tHM accepted). |
+| 3 (the gap) | **A for now**: held at its stated cold value, every result says so. **Kept in notes for later:** if gas-gap mechanics are ever developed for gas-cooled reactors, a gas-gap and burnup-driven gap model belongs with that work (see "Later" below). |
+| 4 (the order) | **A**: M2 to M5 now, with a mutation run at each stage. |
+| 5 (the reader) | **A or B, depending on OpenMC Studio's readiness** (not FEED's call): the reader is merged at M6 or earlier, once Studio has a real `depletion.json` writer that something calls. Re-check Studio's state at M6. |
+| 6 (packages) | **A**: FEED tells the SEED agent "not yet"; nothing to declare until the installer exists. |
+
+(The numbering of the original list below is the plan's; the user's answers followed the order of the options given: first fuel, burnup typing, gap, order, reader, packages.)
 
 1. **The first fuel.** Recommended: **UO2 with Zircaloy cladding** (the LWR pin OFFBEAT's own tutorial uses), with `UO2MATPRO`. Alternative: also NFIR (a later, better fit at high burnup, but a longer sourcing job).
 2. **How burnup is typed.** Recommended: **one value for the slice**, in MWd/kgHM (the unit OpenMC reports), with MWd/tHM accepted. A radial profile (the rim) waits for a model that needs it.
@@ -45,6 +56,12 @@ Each has a recommended answer; none is built until answered.
 5. **What the gap does.** Recommended: **held at its stated cold value**, with the "frozen snapshot, no swelling, gap not closed" sentence on every burnup result. Alternative: let the user state a hot gap through the existing hot-dimensions section (it already exists); neither models swelling.
 6. **Order against other work.** Recommended: M0 and M1 first (they decide whether this is possible and sourced), the rest only if both pass. Roughly 8 to 10 sessions in total; M6 is not scheduled.
 7. **The depletion record reader.** Recommended: **merge it at M6**, not before: the OpenMC Studio session agrees (no caller yet, the format unproven). Studio now has a plan to build the real writer ([its depletion plan](../../../OpenMC/docs/design/depletion-plan.md): D0 a one-day measurement, D1 to D3 the run path, the writer and the view, D4 FEED reads the record); the chain file is not a blocker. What M6 then needs is Studio's D2 (a record a run wrote, with an **id**), D4, and the SEED agent's recipe.
+
+## 4a. Later (kept in notes, not planned)
+
+- **Gas-cooled reactors:** a gas-gap model with burnup-driven closure (OFFBEAT has `gapGas FRAPCON` and the TRISO tutorial's models) only if FEED ever gets gas mechanics for gas-cooled fuel. It is mechanics work ([plan 09](09-mechanics.md)) as much as burnup work.
+- **MOX and the Halden correlation** (Eq. 2.3-12 and 2.3-13 of NUREG/CR-7024): each needs its own sourcing and tests.
+- **A radial burnup profile** (the high-burnup rim): needs a per-cell law and a model that asks for it.
 
 ## 5. Milestones
 
