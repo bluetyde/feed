@@ -119,6 +119,10 @@ describe("the law (src/core/uo2Nfi.ts)", () => {
     expect(at).toBeLessThan(3000);
     expect(rel(nfiMinimum(300, 3000, s), scan)).toBeLessThan(1e-9);
     expect(nfiMinimum(300, 3000, s)).toBeLessThan(Math.min(nfiConductivity(300, s), nfiConductivity(3000, s)));
+    // through the law union that the closed forms use: over the whole range the minimum is inside it, below both ends
+    const wide = lawOf(normalized(nfiSet(), burnup(0)).fuelConductivity);
+    expect(minimum(wide, 300, 3000)).toBeLessThan(Math.min(evaluate(wide, 300), evaluate(wide, 3000)));
+    expect(rel(minimum(wide, 300, 3000), scan)).toBeLessThan(1e-9);
     expect(minimum(lawOf(normalized().fuelConductivity), 300, 1500)).toBeCloseTo(nfiConductivity(1500, { burnup: 40, densityFraction: 0.95, gadolinia: 0 }), 9); // on a range that stops before the rise, the hot end
   });
   it("solveHot returns the temperature whose conductivity integral is the given one (checked by Simpson's rule), for fresh and burnt fuel", () => {
@@ -170,6 +174,7 @@ describe("a case with the burnup-dependent fuel", () => {
     expect(codes(caseWith(nfiSet({ densityFraction: q(0.99, "1") })))).toEqual(["E_OUT_OF_RANGE " + base + "/densityFraction"]);
     expect(codes(caseWith(nfiSet({ densityFraction: q(0.9, "1") })))).toEqual(["E_OUT_OF_RANGE " + base + "/densityFraction"]);
     expect(codes(caseWith(nfiSet({ gadolinia: q(0.11, "1") })))).toEqual(["E_OUT_OF_RANGE " + base + "/gadolinia"]);
+    expect(codes(caseWith(nfiSet({ gadolinia: q(-0.01, "1") })))).toEqual(["E_OUT_OF_RANGE " + base + "/gadolinia"]);
     expect(codes(caseWith(nfiSet({ validRange: { min: q(200, "K"), max: q(2000, "K") } })))).toEqual(["E_OUT_OF_RANGE " + base + "/validRange"]);
     expect(codes(caseWith(nfiSet({ validRange: { min: q(500, "K"), max: q(3500, "K") } })))).toEqual(["E_OUT_OF_RANGE " + base + "/validRange"]);
     expect(codes(caseWith(nfiSet({ validRange: { min: q(1500, "K"), max: q(1000, "K") } })))).toEqual(["E_OUT_OF_RANGE " + base + "/validRange"]);
