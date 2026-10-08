@@ -1,0 +1,115 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "lwr-uo2-burnup-from-record",
+  "name": "LWR UO2 pin with the burnup taken from a depletion record (expected output of the burnup transfer recipe)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.18,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 20,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 573,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "uo2-nfi-95td",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "uo2-nfi",
+          "densityFraction": {
+            "value": 0.95,
+            "unit": "1"
+          },
+          "source": "NUREG/CR-7024 (PNNL-19417) Eq. 2.3-10 and 2.3-11: FRAPCON-3.4 modified NFI model, pages 2.11 and 2.12; range of applicability section 2.3.2, page 2.20"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "zircaloy-matpro-cthcon",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "polynomial",
+          "a": {
+            "value": 7.51,
+            "unit": "W/m/K"
+          },
+          "b": {
+            "value": 0.0209,
+            "unit": "W/m/K2"
+          },
+          "c": {
+            "value": -1.45e-05,
+            "unit": "W/m/K3"
+          },
+          "d": {
+            "value": 7.67e-09,
+            "unit": "W/m/K4"
+          },
+          "validRange": {
+            "min": {
+              "value": 300,
+              "unit": "K"
+            },
+            "max": {
+              "value": 2098,
+              "unit": "K"
+            }
+          },
+          "source": "MATPRO CTHCON, NUREG/CR-7024 Eq. 3.2-1 (page 3.4) and MATPRO-Version 11 Eq. B-2.3: k = 7.51 + 2.09e-2 T - 1.45e-5 T^2 + 7.67e-9 T^3 W/m/K, T in K, below 2098 K"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 6
+  },
+  "description": "A typical PWR pin at 20 kW/m: UO2 fuel at 95 % of theoretical density with FRAPCON-3.4's modified NFI conductivity at a stated burnup (40 MWd/kgHM), Zircaloy cladding with MATPRO's conductivity. The two conductivity laws are sourced (NUREG/CR-7024, pages in the library entries); the dimensions, the power, the coolant and the gap conductance are chosen for the example, not taken from a design, so the case is labelled synthetic. A frozen-burnup snapshot: change the burnup in the Burnup item, and see the burnup plot for the cost of burnup on this pin. Nothing evolves: no swelling, densification or fission-gas release, and the gap is held at its stated value.",
+  "burnup": {
+    "value": {
+      "value": 0.19,
+      "unit": "MWd/kgHM"
+    },
+    "basis": "heavy-metal",
+    "source": "depletion-record/1 id adde6fb296433975e5944e27ad317d92cfeab2623e7f44526aaabbcec6c80a21, region \"UO2 3.5%\", t = 5 d"
+  }
+}
