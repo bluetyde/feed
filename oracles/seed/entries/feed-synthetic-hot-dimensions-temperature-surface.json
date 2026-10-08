@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-hot-dimensions-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-hot-dimensions.case.json",
+      "sha256": "c03bf6eac775526010449672adc3f209800561a1d96a10bab4745a8f701c0f67"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 595.2674,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form outer cladding wall temperature: bulk temperature plus the film drop q'/(2 pi Rco h), or the prescribed surface temperature.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "synthetic pin with hot dimensions: constant expansion 12 ppm/K (fuel) and 10 ppm/K (cladding) from 20 C, constant conductivities, convective boundary (radii at operating temperature, gap conductance as stated)"
+  },
+  "toleranceHash": "e4f7eaf7c1b74f7b96cfda1f7287b3cd77bb44c160f50d50a7b0ece5a415fea9"
+}

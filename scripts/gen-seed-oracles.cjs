@@ -83,9 +83,53 @@ function hotSideLaw(co, Tc, I) {
   }
   return 0.5 * (lo + hi);
 }
-const hotSideK = (k, Tc, I) => (k.coef ? hotSideLaw(k.coef, Tc, I) : hotSide(k.a, k.b, Tc, I));
-function conductivity(set) {
+/** Bisection on any integral F(Tc, T) of the conductivity (plain arithmetic): the T above Tc with F = I. */
+function hotSideIntegral(F, Tc, I) {
+  let lo = Tc;
+  let hi = Tc + 1;
+  while (F(Tc, hi) < I) hi = Tc + 2 * (hi - Tc);
+  for (let i = 0; i < 200; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (F(Tc, mid) < I) lo = mid;
+    else hi = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+/** Composite Simpson of f over [x0, x1] with about one panel per kelvin (an even count). */
+function simpson(f, x0, x1, perUnit = 1) {
+  const n = 2 * Math.max(8, Math.ceil(((x1 - x0) * perUnit) / 2));
+  const h = (x1 - x0) / n;
+  let sum = f(x0) + f(x1);
+  for (let i = 1; i < n; i++) sum += f(x0 + i * h) * (i % 2 ? 4 : 2);
+  return (sum * h) / 3;
+}
+/**
+ * FRAPCON-3.4 modified NFI (NUREG/CR-7024 Eq. 2.3-10 and 2.3-11), typed here again from the report: T in K, Bu in GWd/tU (= MWd/kgHM), gad a weight fraction,
+ * d the density fraction. The same equation as src/core/uo2Nfi.ts: what is independent is the integration and the solve (Simpson and bisection here).
+ */
+function nfiK(T, Bu, d, gad) {
+  const h = 1 / (1 + 396 * Math.exp(-6380 / T));
+  const k95 = 1 / (0.0452 + 1.1599 * gad + 0.000246 * T + 0.00187 * Bu + (1 - 0.9 * Math.exp(-0.04 * Bu)) * 0.038 * Bu ** 0.28 * h) + (3.5e9 / (T * T)) * Math.exp(-16361 / T);
+  return (1.0789 * k95 * d) / (1 + 0.5 * (1 - d));
+}
+const hotSideK = (k, Tc, I) => {
+  if (k.recip) {
+    // k = a / T + b: the integral from Tc is a ln(T / Tc) + b (T - Tc)
+    const [a, b] = k.recip;
+    return hotSideIntegral((T0, T) => a * Math.log(T / T0) + b * (T - T0), Tc, I);
+  }
+  if (k.nfi) return hotSideIntegral((T0, T) => simpson((x) => nfiK(x, k.nfi.Bu, k.nfi.d, k.nfi.gad), T0, T), Tc, I);
+  return k.coef ? hotSideLaw(k.coef, Tc, I) : hotSide(k.a, k.b, Tc, I);
+};
+function conductivity(set, doc) {
   const m = set["thermal.conductivity"];
+  if (m.model === "reciprocal") return { recip: [si(m.a), si(m.b)] };
+  if (m.model === "uo2-nfi") {
+    const bu = doc.burnup.value;
+    const Bu = bu.unit === "MWd/tHM" ? bu.value * 1e-3 : bu.value; // MWd/kgHM and GWd/tHM are the same number
+    const d = m.densityFraction.unit === "%" ? m.densityFraction.value / 100 : m.densityFraction.value;
+    return { nfi: { Bu, d, gad: m.gadolinia ? m.gadolinia.value : 0 } };
+  }
   if (m.model === "constant") return { a: si(m.value), b: 0 };
   if (m.model === "linear") return { a: si(m.a), b: si(m.b) };
   if (m.model === "polynomial") return { coef: [si(m.a), si(m.b), si(m.c), si(m.d)] };
@@ -93,26 +137,71 @@ function conductivity(set) {
   throw new Error("conductivity model not handled: " + m.model);
 }
 
-/** Series solution for one case document, per unit length. */
-function analytic(doc) {
+/** Series solution for one case document, per unit length, on the given radii (the cold ones of the case unless a hot set is passed). */
+function series(doc, radii) {
   const q = si(doc.power.linearHeatRate);
-  const Rf = si(doc.geometry.fuelRadius);
-  const Rci = si(doc.geometry.claddingInnerRadius);
-  const Rco = si(doc.geometry.claddingOuterRadius);
+  const { Rf, Rci, Rco, ri } = radii;
   const hGap = si(doc.gap.conductance);
-  const fk = conductivity(doc.materials.fuel.sets);
-  const ck = conductivity(doc.materials.cladding.sets);
+  const fk = conductivity(doc.materials.fuel.sets, doc);
+  const ck = conductivity(doc.materials.cladding.sets, doc);
   let wall;
   if (doc.boundary.surfaceTemperature) wall = si(doc.boundary.surfaceTemperature);
   else wall = si(doc.boundary.bulkTemperature) + q / (2 * Math.PI * Rco * si(doc.boundary.heatTransferCoefficient));
   const cladInner = hotSideK(ck, wall, (q * Math.log(Rco / Rci)) / (2 * Math.PI));
   const fuelSurface = cladInner + q / (2 * Math.PI * Rf * hGap);
   // Central hole with an insulated surface: the rise to the hole surface is the solid rise times 1 - 2 a^2 ln(1/a) / (1 - a^2).
-  const ri = doc.geometry.fuelInnerRadius ? si(doc.geometry.fuelInnerRadius) : 0;
   const a2 = (ri / Rf) ** 2;
   const holeFactor = ri === 0 ? 1 : 1 - (2 * a2 * Math.log(Rf / ri)) / (1 - a2);
   const centre = hotSideK(fk, fuelSurface, (q / (4 * Math.PI)) * holeFactor);
   return { q, Rco, wall, cladInner, fuelSurface, centre, fuelRise: centre - fuelSurface };
+}
+
+const ALPHA_UNIT = { "1/K": 1, "1e-6/K": 1e-6, "ppm/K": 1e-6 };
+const ALPHA_B_UNIT = { "1/K2": 1, "1e-9/K2": 1e-9 };
+/** Thermal strain at T (kelvin) from the reference temperature: alpha (T - Tref), or a (T - Tref) + b (T^2 - Tref^2) / 2 for alpha = a + b T. */
+function strain(le, Tref, T) {
+  if (le.model === "linear") {
+    const a = le.a.value * ALPHA_UNIT[le.a.unit];
+    const b = le.b.value * ALPHA_B_UNIT[le.b.unit];
+    return a * (T - Tref) + (b * (T * T - Tref * Tref)) / 2;
+  }
+  return le.value * ALPHA_UNIT[le.unit] * (T - Tref);
+}
+/** The area-weighted mean over r in [r0, r1] of g(r) (Simpson on r dr). */
+const areaMean = (g, r0, r1) => simpson((r) => g(r) * r, r0, r1, 4000 / (r1 - r0)) / ((r1 * r1 - r0 * r0) / 2);
+
+/**
+ * The radii at operating temperature (docs/hot-dimensions.md): each solid's radii times 1 + the area-weighted mean thermal strain on the closed-form profile,
+ * iterated to a fixed point. Constant conductivities only (the profiles below are the constant-k ones), solid fuel. Plain arithmetic, no code of src/core.
+ */
+function hotRadii(doc) {
+  const hd = doc.hotDimensions;
+  const Tref = si(hd.referenceTemperature);
+  const cold = { Rf: si(doc.geometry.fuelRadius), Rci: si(doc.geometry.claddingInnerRadius), Rco: si(doc.geometry.claddingOuterRadius), ri: doc.geometry.fuelInnerRadius ? si(doc.geometry.fuelInnerRadius) : 0 };
+  if (cold.ri !== 0) throw new Error("the generator's hot-dimension profiles are for solid fuel");
+  const kf = conductivity(doc.materials.fuel.sets, doc);
+  const kc = conductivity(doc.materials.cladding.sets, doc);
+  if (kf.b !== 0 || kc.b !== 0 || !("a" in kf) || !("a" in kc) || kf.coef || kc.coef) throw new Error("the generator's hot-dimension profiles are for constant conductivities");
+  const q = si(doc.power.linearHeatRate);
+  let r = { ...cold };
+  for (let it = 0; it < 200; it++) {
+    const t = series(doc, r);
+    const fuelT = (x) => t.fuelSurface + (q / (4 * Math.PI * kf.a)) * (1 - (x * x) / (r.Rf * r.Rf));
+    const cladT = (x) => t.wall + (q / (2 * Math.PI * kc.a)) * Math.log(r.Rco / x);
+    const sf = areaMean((x) => strain(hd.fuel.linearExpansion, Tref, fuelT(x)), 0, r.Rf);
+    const sc = areaMean((x) => strain(hd.cladding.linearExpansion, Tref, cladT(x)), r.Rci, r.Rco);
+    const next = { Rf: cold.Rf * (1 + sf), Rci: cold.Rci * (1 + sc), Rco: cold.Rco * (1 + sc), ri: 0 };
+    const moved = Math.max(Math.abs(next.Rf - r.Rf), Math.abs(next.Rci - r.Rci), Math.abs(next.Rco - r.Rco));
+    r = next;
+    if (moved < 1e-15) break;
+  }
+  if (!(r.Rci > r.Rf)) throw new Error("the hot gap is closed in the generator's case");
+  return r;
+}
+
+function analytic(doc) {
+  const cold = { Rf: si(doc.geometry.fuelRadius), Rci: si(doc.geometry.claddingInnerRadius), Rco: si(doc.geometry.claddingOuterRadius), ri: doc.geometry.fuelInnerRadius ? si(doc.geometry.fuelInnerRadius) : 0 };
+  return series(doc, doc.hotDimensions ? hotRadii(doc) : cold);
 }
 
 /** Peak tolerance: 5 * rise / N^2 rounded up to 0.05 K, at least 0.05 K. Fixed before any run. */
@@ -165,6 +254,35 @@ const GOOD = [
   { name: "synthetic-closed-gap", from: "schema/vectors/good/closed-gap-effective-conductance.json", domain: "synthetic pin, no physical gap (equal radii), effective gap conductance" },
   { name: "ksu-triga-1p25mw-film", from: "examples/ksu-triga-1p25mw-film.json", domain: "K-State TRIGA hottest element at 1.25 MW with the SAR film coefficient (eq. 7), pool 20 C (illustrative, not a safety case)", sarEq9: true },
   { name: "ksu-triga-hot-element", from: "examples/ksu-triga-hot-element.json", domain: "K-State TRIGA hot element, sourced properties, prescribed surface temperature (illustrative, not a safety case)" },
+  // ---- the reciprocal conductivity k = a / T + b, hot dimensions and burnup (plan 10 M5; the values are written with the tolerances before any run)
+  {
+    name: "synthetic-reciprocal-fuel-k",
+    from: "examples/synthetic-pin.json",
+    edit: (d) => {
+      d.materials.fuel.sets["thermal.conductivity"] = { model: "reciprocal", a: { value: 2400, unit: "W/m" }, b: { value: 0.5, unit: "W/m/K" }, validRange: { min: { value: 400, unit: "K" }, max: { value: 2500, unit: "K" } }, source: "synthetic: chosen for the conductivity-integral oracle" };
+    },
+    domain: "synthetic pin, fuel k = 2400 / T + 0.5 on 400-2500 K (the shape of a phonon-limited ceramic, carried by OFFBEAT's SiCPARFUME), convective boundary",
+  },
+  {
+    name: "synthetic-reciprocal-clad-k",
+    from: "examples/synthetic-pin.json",
+    edit: (d) => {
+      d.materials.cladding.sets["thermal.conductivity"] = { model: "reciprocal", a: { value: 6000, unit: "W/m" }, b: { value: 3, unit: "W/m/K" }, validRange: { min: { value: 300, unit: "K" }, max: { value: 1000, unit: "K" } }, source: "synthetic: chosen for the conductivity-integral oracle" };
+    },
+    domain: "synthetic pin, cladding k = 6000 / T + 3 on 300-1000 K, convective boundary",
+  },
+  { name: "synthetic-hot-dimensions", from: "schema/vectors/good/hot-dimensions.json", hot: true, domain: "synthetic pin with hot dimensions: constant expansion 12 ppm/K (fuel) and 10 ppm/K (cladding) from 20 C, constant conductivities, convective boundary (radii at operating temperature, gap conductance as stated)" },
+  {
+    name: "synthetic-hot-dimensions-linear-alpha",
+    from: "schema/vectors/good/hot-dimensions.json",
+    hot: true,
+    edit: (d) => {
+      d.hotDimensions.fuel.linearExpansion = { model: "linear", a: { value: 5, unit: "ppm/K" }, b: { value: 12, unit: "1e-9/K2" }, validRange: { min: { value: 290, unit: "K" }, max: { value: 1600, unit: "K" } } };
+    },
+    domain: "synthetic pin with hot dimensions: fuel expansion alpha = 5e-6 + 12e-9 T (T in K, valid 290-1600 K), cladding 10 ppm/K, reference 20 C, constant conductivities, convective boundary",
+  },
+  { name: "lwr-uo2-burnup-0", from: "examples/lwr-uo2-burnup.json", edit: (d) => (d.burnup.value = { value: 0, unit: "MWd/kgHM" }), domain: "LWR UO2 pin at 20 kW/m, fuel conductivity by the modified NFI model (NUREG/CR-7024) at 0 MWd/kgHM (fresh), 95 % TD, Zircaloy cladding by MATPRO CTHCON, frozen-burnup snapshot" },
+  { name: "lwr-uo2-burnup-40", from: "examples/lwr-uo2-burnup.json", domain: "LWR UO2 pin at 20 kW/m, fuel conductivity by the modified NFI model (NUREG/CR-7024) at 40 MWd/kgHM, 95 % TD, Zircaloy cladding by MATPRO CTHCON, frozen-burnup snapshot" },
 ];
 
 let good = 0;
@@ -176,6 +294,12 @@ for (const g of GOOD) {
   if (g.refCentre !== undefined) {
     // Independent second method: numerical integration in oracles/annulus-reference.py (not the closed form used here).
     if (Math.abs(a.centre - g.refCentre) > 0.001) throw new Error("closed form and numerical reference disagree: " + a.centre + " vs " + g.refCentre);
+  }
+  if (g.hot) {
+    const cold = JSON.parse(JSON.stringify(doc));
+    delete cold.hotDimensions;
+    const shift = Math.abs(analytic(cold).centre - a.centre);
+    if (shift < 1) throw new Error(g.name + ": the hot dimensions move the peak by only " + shift + " K; the entry would not test them");
   }
   if (g.sarEq9) {
     // Independent second method: the SAR's own eq. 9 (P = 1.25 MW; h from eq. 7 with P in watts), not our series code.
@@ -220,6 +344,13 @@ const BAD = [
   { id: "feed-bad-limits-condition-never-holds", file: "limits-condition-never-holds", code: "E_OUT_OF_RANGE", what: "a fuel limit conditioned on a cladding band whose upper end is below its lower end, so it would never be in force" },
   { id: "feed-bad-limits-duplicate-name", file: "limits-duplicate-name", code: "E_SCHEMA_INVALID", what: "two temperature limits with the same name, so a result could not say which one it is about" },
   { id: "feed-bad-limits-maximum-wrong-unit", file: "limits-maximum-wrong-unit", code: "E_UNITS", what: "a temperature limit whose maximum is given in a unit that is not a temperature" },
+  { id: "feed-bad-burnup-model-without-burnup", file: "burnup-model-without-burnup", code: "E_PROP_MISSING", what: "a fuel with the burnup conductivity model and no burnup stated (0 is stated, not assumed)" },
+  { id: "feed-bad-burnup-without-model", file: "burnup-without-model", code: "E_UNSUPPORTED", what: "a burnup stated for a fuel whose conductivity does not depend on it (it would change nothing)" },
+  { id: "feed-bad-burnup-oxide-basis", file: "burnup-oxide-basis", code: "E_UNSUPPORTED", what: "a burnup on an oxide basis (the record and the model are on heavy metal; a silent factor would be 12 % off)" },
+  { id: "feed-bad-burnup-above-range", file: "burnup-above-range", code: "E_OUT_OF_RANGE", what: "a burnup of 63 MWd/kgHM, above the 62 the conductivity model is valid for" },
+  { id: "feed-bad-hot-dimensions-closes-gap", file: "hot-dimensions-closes-gap", code: "E_GEOMETRY", what: "a fuel expansion so large that the hot fuel touches the hot cladding (contact needs mechanics, which FEED does not have)" },
+  { id: "feed-bad-hot-dimensions-no-source", file: "hot-dimensions-no-source", code: "E_PROP_MISSING", what: "an expansion coefficient with no source" },
+  { id: "feed-bad-hot-dimensions-transient", file: "hot-dimensions-transient", code: "E_UNSUPPORTED", what: "hot dimensions on a transient case (the temperatures, and so the radii, change with time)" },
   { id: "feed-bad-transient-no-section", file: "transient-missing-section", code: "E_TRANSIENT_INCOMPLETE", what: "a transient case (steadyState false) without its transient section" },
 ];
 for (const b of BAD) {

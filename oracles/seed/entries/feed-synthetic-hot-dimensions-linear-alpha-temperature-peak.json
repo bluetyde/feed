@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-hot-dimensions-linear-alpha-temperature-peak",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-hot-dimensions-linear-alpha.case.json",
+      "sha256": "54ad1997bb2f57c742e592914237ec415174681b16566d03c0d99de560e7802b"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak",
+    "value": 1306.6659,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.3,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form centre temperature of the series solution (film, cladding wall, gap, fuel), mesh 100/20. The observed value is the first fuel cell centre; the tolerance is 5 * rise / N^2 rounded up.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak"
+    ],
+    "domain": "synthetic pin with hot dimensions: fuel expansion alpha = 5e-6 + 12e-9 T (T in K, valid 290-1600 K), cladding 10 ppm/K, reference 20 C, constant conductivities, convective boundary"
+  },
+  "toleranceHash": "4f11e648d7c12e4473606dabed4f2015c638ee54de28db2836d026eacae03944"
+}

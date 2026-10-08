@@ -852,5 +852,47 @@
     "valid": false,
     "code": "E_MESH",
     "field": "/mesh/claddingCells"
+  },
+  {
+    "file": "bad/burnup-model-without-burnup.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/burnup"
+  },
+  {
+    "file": "bad/burnup-without-model.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/burnup"
+  },
+  {
+    "file": "bad/burnup-oxide-basis.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/burnup/basis"
+  },
+  {
+    "file": "bad/burnup-above-range.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/burnup/value"
+  },
+  {
+    "file": "bad/hot-dimensions-closes-gap.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/hotDimensions"
+  },
+  {
+    "file": "bad/hot-dimensions-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/hotDimensions/fuel/source"
+  },
+  {
+    "file": "bad/hot-dimensions-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/hotDimensions"
   }
 ]

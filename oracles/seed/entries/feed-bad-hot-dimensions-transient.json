@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-hot-dimensions-transient",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-hot-dimensions-transient.case.json",
+      "sha256": "eb1428348c6c898b5f3472823ec87752a608db74010bde3f23cc5ea82f464b71"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_UNSUPPORTED"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: hot dimensions on a transient case (the temperatures, and so the radii, change with time). FEED must refuse it before any run; SEED reports E_UNSUPPORTED.",
+    "check": "FEED's schema vectors (schema/vectors/bad/hot-dimensions-transient.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "be0cd25da730942e7f9784bcfc09d2f79454f857d7c497d9037ce42ff2ab7c7e"
+}

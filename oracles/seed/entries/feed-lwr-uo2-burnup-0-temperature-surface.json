@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-lwr-uo2-burnup-0-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/lwr-uo2-burnup-0.case.json",
+      "sha256": "bb95aae7768352e1f9198a7da09ad985b7b5e3d5cb842860c0c30fee735557fb"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 595.3375,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form outer cladding wall temperature: bulk temperature plus the film drop q'/(2 pi Rco h), or the prescribed surface temperature.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "LWR UO2 pin at 20 kW/m, fuel conductivity by the modified NFI model (NUREG/CR-7024) at 0 MWd/kgHM (fresh), 95 % TD, Zircaloy cladding by MATPRO CTHCON, frozen-burnup snapshot"
+  },
+  "toleranceHash": "f20635c01487373b512738b6ae9634c814c304d0d1f1c9d62bf7e10d2916681e"
+}

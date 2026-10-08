@@ -346,5 +346,25 @@ bad("mesh-cladding-low", "E_MESH", "/mesh/claddingCells", (c) => (c.mesh.claddin
 bad("mesh-fuel-high", "E_MESH", "/mesh/fuelCells", (c) => (c.mesh.fuelCells = 1000000000));
 bad("mesh-cladding-high", "E_MESH", "/mesh/claddingCells", (c) => (c.mesh.claddingCells = 20001));
 
+// ---- burnup and hot dimensions (plans 10 and 07): one fault each
+const nfi = (c) => (c.materials.fuel.sets["thermal.conductivity"] = { model: "uo2-nfi", densityFraction: { value: 95, unit: "%" }, source: "NUREG/CR-7024 Eq. 2.3-10 and 2.3-11 (FRAPCON-3.4 modified NFI)" });
+const burnup = (c, over = {}) => (c.burnup = { value: { value: 40, unit: "MWd/kgHM" }, basis: "heavy-metal", source: "chosen for the study", ...over });
+const hotSet = (c, fuelAlpha) => (c.hotDimensions = {
+  referenceTemperature: { value: 20, unit: "degC" },
+  fuel: { linearExpansion: fuelAlpha, source: "synthetic: a typical order of magnitude" },
+  cladding: { linearExpansion: { value: 10, unit: "ppm/K" }, source: "synthetic: a typical order of magnitude" },
+});
+bad("burnup-model-without-burnup", "E_PROP_MISSING", "/burnup", (c) => nfi(c));
+bad("burnup-without-model", "E_UNSUPPORTED", "/burnup", (c) => burnup(c));
+bad("burnup-oxide-basis", "E_UNSUPPORTED", "/burnup/basis", (c) => (nfi(c), burnup(c, { basis: "oxide" })));
+bad("burnup-above-range", "E_OUT_OF_RANGE", "/burnup/value", (c) => (nfi(c), burnup(c, { value: { value: 63, unit: "MWd/kgHM" } })));
+bad("hot-dimensions-closes-gap", "E_GEOMETRY", "/hotDimensions", (c) => hotSet(c, { value: 9e-4, unit: "1/K" }));
+bad("hot-dimensions-no-source", "E_PROP_MISSING", "/hotDimensions/fuel/source", (c) => (hotSet(c, { value: 12, unit: "ppm/K" }), delete c.hotDimensions.fuel.source));
+{
+  const c = pulse();
+  hotSet(c, { value: 12, unit: "ppm/K" });
+  add("bad", "hot-dimensions-transient", c, { code: "E_UNSUPPORTED", field: "/hotDimensions" });
+}
+
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 console.log(index.length + " vectors written");

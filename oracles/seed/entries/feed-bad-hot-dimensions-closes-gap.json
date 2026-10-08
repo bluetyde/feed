@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-hot-dimensions-closes-gap",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-hot-dimensions-closes-gap.case.json",
+      "sha256": "6ab67c590646fb868cb931bcad0afb89a29f239f1bdab749f52e443b6e314158"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_GEOMETRY"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a fuel expansion so large that the hot fuel touches the hot cladding (contact needs mechanics, which FEED does not have). FEED must refuse it before any run; SEED reports E_GEOMETRY.",
+    "check": "FEED's schema vectors (schema/vectors/bad/hot-dimensions-closes-gap.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "2ac4c8ee578adcb9c21465b31553721c112a1715886b44f70d6e577d12363c83"
+}

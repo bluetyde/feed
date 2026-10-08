@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-burnup-model-without-burnup",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-burnup-model-without-burnup.case.json",
+      "sha256": "20cc5dbf3ffe8aff86d5d690bbb5108992c3b2897ab1f155a08fb0892c1643cb"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_PROP_MISSING"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a fuel with the burnup conductivity model and no burnup stated (0 is stated, not assumed). FEED must refuse it before any run; SEED reports E_PROP_MISSING.",
+    "check": "FEED's schema vectors (schema/vectors/bad/burnup-model-without-burnup.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "127d1e0fe66ba8635a27c05df81c4883cc47920ccbb50ef00cf04a1919ee2d6f"
+}

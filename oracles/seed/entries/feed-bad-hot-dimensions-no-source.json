@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-hot-dimensions-no-source",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-hot-dimensions-no-source.case.json",
+      "sha256": "304d5673c03c799185f4cafb36abcca4d2b0346641c7fea88bbeb6866b2e0381"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_PROP_MISSING"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: an expansion coefficient with no source. FEED must refuse it before any run; SEED reports E_PROP_MISSING.",
+    "check": "FEED's schema vectors (schema/vectors/bad/hot-dimensions-no-source.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "127d1e0fe66ba8635a27c05df81c4883cc47920ccbb50ef00cf04a1919ee2d6f"
+}

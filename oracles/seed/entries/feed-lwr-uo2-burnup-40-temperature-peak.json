@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-lwr-uo2-burnup-40-temperature-peak",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/lwr-uo2-burnup-40.case.json",
+      "sha256": "c4b13cd23a44651c9ff9a80733668eb28013a73fe8a1e5d5c60a9408f956efd5"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak",
+    "value": 1466.3952,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.35,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form centre temperature of the series solution (film, cladding wall, gap, fuel), mesh 100/20. The observed value is the first fuel cell centre; the tolerance is 5 * rise / N^2 rounded up.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak"
+    ],
+    "domain": "LWR UO2 pin at 20 kW/m, fuel conductivity by the modified NFI model (NUREG/CR-7024) at 40 MWd/kgHM, 95 % TD, Zircaloy cladding by MATPRO CTHCON, frozen-burnup snapshot"
+  },
+  "toleranceHash": "8b5606704280786a6a618d3c780632f4e64c30036228c28546054651c321c195"
+}

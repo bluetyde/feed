@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-reciprocal-fuel-k-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-reciprocal-fuel-k.case.json",
+      "sha256": "02953a872534198019eeea2c0be44969cdbff56a1d17864b6dccae80609d0485"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 595.3375,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form outer cladding wall temperature: bulk temperature plus the film drop q'/(2 pi Rco h), or the prescribed surface temperature.",
+    "check": "Second method: the same series solved in Python for the table in oracles/closed-form-table.json, and the solver's own closedForm checks in FEED's test suite (tests/solverEndToEnd.test.ts) reproduce it within the refinement bound."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "synthetic pin, fuel k = 2400 / T + 0.5 on 400-2500 K (the shape of a phonon-limited ceramic, carried by OFFBEAT's SiCPARFUME), convective boundary"
+  },
+  "toleranceHash": "f20635c01487373b512738b6ae9634c814c304d0d1f1c9d62bf7e10d2916681e"
+}
