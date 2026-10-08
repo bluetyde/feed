@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ksu-triga-1p25mw-film-limits-temperature-limit-margin",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ksu-triga-1p25mw-film-limits.case.json",
+      "sha256": "84e19607a37c5a2b7b473377ffdff53163555dc84dada3a844e77e6aaea3304a"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_limit_margin",
+    "value": 638.8624,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.15,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The limit minus the closed-form centre temperature: 1150 C = 1423.15 K minus 784.2876 K. The cladding runs at 318.7 K, below 500 C, so the 1150 C rule is the one in force and the 950 C rule has no margin. A margin is not an integrity assessment: FEED computes no stress.",
+    "check": "Second method: the same peak entry's cross-checks (the SAR's own equation 9 for the steady case; oracles/transient-case-reference.py for the pulse); the margin is that peak subtracted from the limit, and FEED's limit check reports the same number through the real solver (docs/temperature-limits.md)."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_limit_margin"
+    ],
+    "domain": "K-State TRIGA hottest element at 1.25 MW with the SAR film coefficient and the SAR fuel temperature limits (illustrative, not a safety case)"
+  },
+  "toleranceHash": "c3aea48da8d1460617fe015bfe480b9c6a99c076764d6fe706fe46be9af8d6b2"
+}

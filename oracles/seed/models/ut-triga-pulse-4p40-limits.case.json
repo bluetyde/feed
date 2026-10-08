@@ -1,0 +1,1397 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "ut-triga-pulse-4p40-limits",
+  "name": "TRIGA $4.40 pulse, hot channel, built from UT-Austin SAR numbers (illustrative) (with the SAR's fuel temperature limits as checks)",
+  "label": "synthetic",
+  "citation": "Properties and geometry from the University of Texas TRIGA II SAR, Chapter 4 (8/2023): fuel k 0.18 W/cm/K and heat capacity 2.04 + 0.00417 T[C] J/cm3/K (Table 4.1; the K-State SAR Table 13.3 gives the same law as 340.1 + 0.6952 T[C] J/kg/K at 5996 kg/m3), diameters and the 38.1 cm fuel length (Table 4.1), the 6.35 mm zirconium fill rod (Figure 4.30), element axial peaking 1.017 (Table 4.17). Cladding heat capacity 7900 kg/m3 x 477 J/kg/K at 300 K from the K-State SAR Table 13.3. Pulse numbers: peak hot-channel power about 8.9e4 kW at $4.40 (Figure 4.32, READ FROM THE FIGURE) and maximum fuel temperature 824 C (section 4.6). Gap conductance 4096 W/m2/K and the SAR's TRACE wall temperature are not used; the gap value is read from Figure 4.30 (see ut-triga-hot-channel-annular).",
+  "description": "ILLUSTRATIVE, not a reproduction of the SAR. The SAR gives the peak power and the peak temperature of a $4.40 pulse but not the power-versus-time curve, so the curve here is ASSUMED to be sech^2 (the exact shape of an adiabatic Nordheim-Fuchs excursion) with the width chosen so that the energy deposited takes the fuel from 20 C to 824 C if no heat leaves: 3.069 MJ/m, 237.6 MW/m at the peak (8.9e4 kW over 0.381 m x 1.017), FWHM 11.4 ms. A pulse width of about 10 ms is what a $4 TRIGA pulse looks like, so the SAR's three numbers are consistent; that is a plausibility check, not a validation. The peak temperature is 824 C by construction (the interior is adiabatic over a pulse this short). What the case shows is the effect of the temperature-dependent heat capacity (the fuel's heat capacity roughly doubles over the pulse) and the cool-down after it. The film coefficient is an assumed 10 kW/m2/K. Thermal only: the power history is an input, FEED does not compute the pulse.",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": false,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "fuelInnerRadius": {
+      "value": 3.175,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 18.669,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 20,
+      "unit": "degC"
+    },
+    "heatTransferCoefficient": {
+      "value": 10,
+      "unit": "kW/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "triga-uzrh-pulse",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 18,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "UT-Austin SAR Table 4.1 (0.18 W/cm/K); K-State SAR Table 13.3 (18 W/m/K, all temperatures)"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "linear",
+          "a": {
+            "value": 900965,
+            "unit": "J/m3/K"
+          },
+          "b": {
+            "value": 4170,
+            "unit": "J/m3/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 273.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1273.15,
+              "unit": "K"
+            }
+          },
+          "source": "UT-Austin SAR Table 4.1: 2.04 + 0.00417 T[C] J/cm3/K, rewritten in kelvin (a = 2.04e6 - 4170 x 273.15). The SAR states no validity range; 0 to 1000 C is assumed to cover the pulse"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "ss304-pulse",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 16.6,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 400,
+            "unit": "K"
+          },
+          "source": "K-State SAR Table 13.3 (16.6 W/m/K at 400 K)"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3768300,
+            "unit": "J/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "K-State SAR Table 13.3: 7900 kg/m3 x 477 J/kg/K at 300 K (515 J/kg/K at 400 K: the value rises 8% over 100 K, which matters little for a pulse this short)"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 4096,
+      "unit": "W/m2/K"
+    },
+    "source": "READ from UT-Austin SAR Figure 4.30 (TRACE): fuel surface heat flux over the 139 K gap drop at the 24.34 kW hot channel; the pulse gap may differ"
+  },
+  "transient": {
+    "powerHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.0877638,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 0.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.102458,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 1,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.119611,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 1.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.139635,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 2,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.16301,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 2.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.190297,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 3,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.22215,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 3.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.259331,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 4,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.302731,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 4.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.353388,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.412516,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 5.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.481526,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 6,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.562067,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 6.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.656061,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 7,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.765748,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 7.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.893739,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 8,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.04308,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 8.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.2173,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 9,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.42054,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 9.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.65759,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 10,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.93404,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 10.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 2.25638,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 11,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 2.63214,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 11.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 3.07006,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 12,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 3.58028,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 12.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 4.17455,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 13,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 4.86643,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 13.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 5.67158,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 14,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 6.60806,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 14.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 7.69659,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 15,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 8.96094,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 15.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 10.4283,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 16,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 12.1295,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 16.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 14.0996,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 17,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 16.378,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 17.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 19.0088,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 18,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 22.041,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 18.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 25.5285,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 19,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 29.5297,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 19.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 34.1071,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 20,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 39.3262,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 20.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 45.254,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 21,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 51.9563,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 21.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 59.495,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 22,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 67.923,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 22.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 77.2794,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 23,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 87.5822,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 23.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 98.8207,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 24,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 110.946,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 24.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 123.864,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 25,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 137.425,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 25.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 151.416,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 26,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 165.562,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 26.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 179.524,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 27,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 192.909,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 27.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 205.286,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 28,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 216.207,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 28.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 225.242,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 29,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 232.005,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 29.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 236.193,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 30,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 237.611,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 30.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 236.193,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 31,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 232.005,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 31.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 225.242,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 32,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 216.207,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 32.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 205.286,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 33,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 192.909,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 33.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 179.524,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 34,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 165.562,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 34.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 151.416,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 35,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 137.425,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 35.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 123.864,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 36,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 110.946,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 36.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 98.8207,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 37,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 87.5822,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 37.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 77.2794,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 38,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 67.923,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 38.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 59.495,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 39,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 51.9563,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 39.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 45.254,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 40,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 39.3262,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 40.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 34.1071,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 41,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 29.5297,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 41.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 25.5285,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 42,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 22.041,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 42.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 19.0088,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 43,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 16.378,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 43.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 14.0996,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 44,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 12.1295,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 44.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 10.4283,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 45,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 8.96094,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 45.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 7.69659,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 46,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 6.60806,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 46.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 5.67158,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 47,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 4.86643,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 47.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 4.17455,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 48,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 3.58028,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 48.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 3.07006,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 49,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 2.63214,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 49.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 2.25638,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 50,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.93404,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 50.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.65759,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 51,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.42054,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 51.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.2173,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 52,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 1.04308,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 52.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.893739,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 53,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.765748,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 53.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.656061,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 54,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.562067,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 54.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.481526,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 55,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.412516,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 55.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.353388,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 56,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.302731,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 56.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.259331,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 57,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.22215,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 57.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.190297,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 58,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.16301,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 58.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.139635,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 59,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.119611,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 59.5,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.102458,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 60,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0.0877638,
+          "unit": "MW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 100,
+          "unit": "ms"
+        },
+        "linearHeatRate": {
+          "value": 0,
+          "unit": "W/m"
+        }
+      }
+    ],
+    "endTime": {
+      "value": 100,
+      "unit": "ms"
+    },
+    "timeStep": {
+      "value": 0.05,
+      "unit": "ms"
+    },
+    "outputs": 40,
+    "initialTemperature": {
+      "value": 20,
+      "unit": "degC"
+    }
+  },
+  "mesh": {
+    "fuelCells": 60,
+    "claddingCells": 8
+  },
+  "limits": [
+    {
+      "name": "TRIGA fuel limit, cladding at most 500 C",
+      "region": "fuel",
+      "maxTemperature": {
+        "value": 1150,
+        "unit": "degC"
+      },
+      "whileCladding": {
+        "atMost": {
+          "value": 500,
+          "unit": "degC"
+        }
+      },
+      "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 1150 C fuel limit with cladding below 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+    },
+    {
+      "name": "TRIGA fuel limit, cladding above 500 C",
+      "region": "fuel",
+      "maxTemperature": {
+        "value": 950,
+        "unit": "degC"
+      },
+      "whileCladding": {
+        "above": {
+          "value": 500,
+          "unit": "degC"
+        }
+      },
+      "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 950 C fuel limit with cladding above 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+    }
+  ]
+}

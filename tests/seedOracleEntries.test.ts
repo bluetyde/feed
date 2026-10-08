@@ -21,19 +21,20 @@ const entries = readdirSync(join(dir, "entries")).map((f) => JSON.parse(readFile
 const caseOf = (e: any) => JSON.parse(readFileSync(join(dir, e.inputs[0].path), "utf8"));
 
 /** The entries of plan 10 M5 that are steady good entries on the new content. */
+const MARGIN = /^feed-(ksu-triga-1p25mw-film-limits|ut-triga-pulse-4p40-limits)-temperature-limit-margin$/;
 const NEW = /^feed-(synthetic-reciprocal-fuel-k|synthetic-reciprocal-clad-k|synthetic-hot-dimensions|synthetic-hot-dimensions-linear-alpha|lwr-uo2-burnup-0|lwr-uo2-burnup-40)-temperature-(peak|surface)$/;
 
 describe("the SEED oracle entries", () => {
   it("each entry pins its case by hash and its expected value and tolerance by hash", () => {
-    expect(entries.length).toBe(72);
+    expect(entries.length).toBe(74);
     for (const e of entries) {
       expect(e.inputs[0].sha256, e.oracleId).toBe(sha(readFileSync(join(dir, e.inputs[0].path))));
       expect(e.toleranceHash, e.oracleId).toBe(sha(canonical({ expected: e.expected, tolerance: e.tolerance === undefined ? null : e.tolerance })));
     }
   });
-  it("the set is 46 good, 24 bad-input and 2 known-limit entries", () => {
+  it("the set is 48 good, 24 bad-input and 2 known-limit entries", () => {
     const n = (t: string) => entries.filter((e) => e.tag === t).length;
-    expect([n("good"), n("bad-input"), n("known-limit")]).toEqual([46, 24, 2]);
+    expect([n("good"), n("bad-input"), n("known-limit")]).toEqual([48, 24, 2]);
   });
   it("every bad-input entry is refused by the validator with the code it names, and it is the first error", () => {
     for (const e of entries.filter((x) => x.tag === "bad-input")) {
@@ -53,6 +54,13 @@ describe("the SEED oracle entries", () => {
       expect(Math.abs(mine - e.expected.value), e.oracleId).toBeLessThan(1e-3);
     }
   });
+  it("the steady limit-margin entry is the limit minus FEED's closed-form centre temperature, to 1e-3 K; the pulse entry is the limit minus the independent peak", () => {
+    const k = entries.find((e) => e.oracleId === "feed-ksu-triga-1p25mw-film-limits-temperature-limit-margin")!;
+    const t = quickLook(validateCase(caseOf(k)).normalized!).temperatures;
+    expect(Math.abs(1150 + 273.15 - t.centreT - k.expected.value)).toBeLessThan(1e-3);
+    const u = entries.find((e) => e.oracleId === "feed-ut-triga-pulse-4p40-limits-temperature-limit-margin")!;
+    expect(Math.abs(1150 + 273.15 - 1097.469086 - u.expected.value)).toBeLessThan(1e-3);
+  });
   it("the hot-dimension and burnup entries are not the cold or fresh answer (the entry would not test the feature)", () => {
     const peak = (id: string) => entries.find((e) => e.oracleId === id)!.expected.value;
     const cold = quickLook(validateCase((() => { const d = caseOf(entries.find((e) => e.oracleId === "feed-synthetic-hot-dimensions-temperature-peak")); delete d.hotDimensions; return d; })()).normalized!).temperatures.centreT;
@@ -71,10 +79,11 @@ const solverOn = (() => {
 })();
 
 describe.skipIf(!solverOn)("the new entries against the real solver (needs FEED_SOLVER=1)", () => {
-  const cases = [...new Set(entries.filter((e) => NEW.test(e.oracleId)).map((e) => e.inputs[0].path))];
+  const wanted = (e: any) => NEW.test(e.oracleId) || MARGIN.test(e.oracleId);
+  const cases = [...new Set(entries.filter(wanted).map((e) => e.inputs[0].path))];
   for (const path of cases) {
     it(path + ": every check passes and the solver's peak and wall temperature are inside the entries' tolerances", async () => {
-      const mine = entries.filter((e) => NEW.test(e.oracleId) && e.inputs[0].path === path);
+      const mine = entries.filter((e) => wanted(e) && e.inputs[0].path === path);
       const mgr = new RunManager({ runsRoot: mkdtempSync(join(tmpdir(), "feed-seedoracle-")), backend: new WslBackend(), timeoutMs: 280_000 });
       const s = mgr.start(caseOf(mine[0]));
       if (!s.ok) throw new Error("start refused: " + JSON.stringify(s));
@@ -83,7 +92,8 @@ describe.skipIf(!solverOn)("the new entries against the real solver (needs FEED_
       expect(rec.state).toBe("completed");
       expect(res.checks.filter((c) => c.verdict !== "pass").map((c) => c.id)).toEqual([]);
       for (const e of mine) {
-        const got = e.expected.quantity === "temperature_peak" ? res.summary.maxT : res.summary.claddingOuterWallT!;
+        const q = e.expected.quantity;
+        const got = q === "temperature_limit_margin" ? res.checks.find((c) => c.id === "temperatureLimit1")!.value! : q === "temperature_peak" ? res.summary.maxT : res.summary.claddingOuterWallT!;
         expect(Math.abs(got - e.expected.value), e.oracleId + " solver " + got + " expected " + e.expected.value).toBeLessThanOrEqual(e.tolerance.abs);
       }
     }, 300_000);

@@ -1,0 +1,126 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "ksu-triga-1p25mw-film-limits",
+  "name": "K-State TRIGA Mark III hot element, 1.25 MW, 20 C pool, SAR film coefficient (eq. 7) (with the SAR's fuel temperature limits as checks)",
+  "label": "sourced",
+  "citation": "As the K-State hot-element case (radii Table 4.6, k Tables 13.3 and 4.6, gap conductance Appendix A, q' from eq. 9 at 1.25 MW), except the boundary: pool water at 20 C (Table 4.8) and the convective coefficient h = 0.0326 P + 16985 W/m2/K with P the reactor power in watts (SAR section 4.5.3, eq. 7 and Figure 4.10, a linear fit of values the SAR calculated between 500 and 1900 kW) = 57735 W/m2/K at 1.25 MW. Read from the page image: the printed trendline in Figure 4.10 is y = 0.0326x + 16985 and the plotted points (about 33000 W/m2/K at 500 kW to about 78000 at 1900 kW) fit it only with P in watts.",
+  "description": "The K-State 1.25 MW hottest-element analysis with the SAR's own film coefficient instead of a prescribed wall temperature. Valid for the K-State reference core between 500 and 1900 kW only (the fit range); do not use it for another reactor or power. Source inconsistency: with eq. 7 the film drop is about 9 K and the centreline about 511 C, whereas SAR Table 4.8 implies a film drop of only 1.2 K (wall 21.2 C) and 503.2 C; the SAR does not reconcile them, so this case is checked against the SAR's eq. 9 and not against Table 4.8. A conservative analysis point, not a measured normal operating state. Solid-cylinder model with the zirconium rod ignored, one axial slice at the maximum heat flux. Thermal only.",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 18.669,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 62.021,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 20,
+      "unit": "degC"
+    },
+    "heatTransferCoefficient": {
+      "value": 57735,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "triga-uzrh-h16",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 18,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "K-State SAR 2004 Table 13.3 (18 W/m/K, all temperatures); UT-Austin SAR 2023 Table 4.1 (0.18 W/cm/K)"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "ss304-k166",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 16.6,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 400,
+            "unit": "K"
+          },
+          "source": "K-State SAR 2004 Table 13.3 and Table 4.6 (16.6 W/m/K at 400 K)"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 2840,
+      "unit": "W/m2/K"
+    },
+    "source": "K-State SAR 2004 section 4.5.3 and Appendix A: effective gap resistance 500 Btu/h/ft2/F = 2840 W/m2/K"
+  },
+  "mesh": {
+    "fuelCells": 100,
+    "claddingCells": 20
+  },
+  "limits": [
+    {
+      "name": "TRIGA fuel limit, cladding at most 500 C",
+      "region": "fuel",
+      "maxTemperature": {
+        "value": 1150,
+        "unit": "degC"
+      },
+      "whileCladding": {
+        "atMost": {
+          "value": 500,
+          "unit": "degC"
+        }
+      },
+      "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 1150 C fuel limit with cladding below 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+    },
+    {
+      "name": "TRIGA fuel limit, cladding above 500 C",
+      "region": "fuel",
+      "maxTemperature": {
+        "value": 950,
+        "unit": "degC"
+      },
+      "whileCladding": {
+        "above": {
+          "value": 500,
+          "unit": "degC"
+        }
+      },
+      "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 950 C fuel limit with cladding above 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+    }
+  ]
+}

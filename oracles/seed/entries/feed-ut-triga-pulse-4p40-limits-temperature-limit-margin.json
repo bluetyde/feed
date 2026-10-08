@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ut-triga-pulse-4p40-limits-temperature-limit-margin",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ut-triga-pulse-4p40-limits.case.json",
+      "sha256": "015445727022c3416c4658d81b57b71ceb27b84e231bb92642db0d7ef815c9cb"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_limit_margin",
+    "value": 325.6809,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 1.61,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The limit minus the adiabatic peak: 1150 C = 1423.15 K minus 1097.4691 K. The pulse is a few milliseconds from 20 C, so the cladding stays far below 500 C and only the 1150 C rule is in force. A margin is not an integrity assessment: FEED computes no stress.",
+    "check": "Second method: the same peak entry's cross-checks (the SAR's own equation 9 for the steady case; oracles/transient-case-reference.py for the pulse); the margin is that peak subtracted from the limit, and FEED's limit check reports the same number through the real solver (docs/temperature-limits.md)."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_limit_margin"
+    ],
+    "domain": "TRIGA hot channel, sech^2 pulse built from UT-Austin SAR numbers (illustrative), with the SAR fuel temperature limits"
+  },
+  "toleranceHash": "d455af3e8cb8358c2fb81918d9081c9697722d15980de74ec8189f943987387f"
+}
