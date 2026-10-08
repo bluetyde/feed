@@ -414,7 +414,9 @@ export class RunManager {
         if (exit.offbeatExit !== 0) r.notes.push(`The solver exited with code ${exit.offbeatExit}${SIGNALS[exit.offbeatExit] ? " (" + SIGNALS[exit.offbeatExit] + ")" : ""} after writing a complete output. This is a known OFFBEAT shutdown crash; the result was accepted because the output is complete and finite.`);
         return;
       }
-      const results = buildResults(normalized, { T, C, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
+      // a burnup case is checked against OFFBEAT's own conductivity and burnup fields, which the run script copies out beside T and C
+      const extra = normalized.burnup ? { k: read(join(nativeDir, "final", "k")), Bu: read(join(nativeDir, "final", "Bu")) } : {};
+      const results = buildResults(normalized, { T, C, ...extra, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
       atomicWrite(join(dir, "results.json"), JSON.stringify(results, null, 2) + "\n");
       r.headline = { centreCellT: results.summary.centreCellT, claddingOuterWallT: results.summary.claddingOuterWallT };
     } catch (e) {

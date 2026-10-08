@@ -48,6 +48,10 @@ describe.skipIf(!solverOn)("the burnup-dependent fuel conductivity through the r
       expect(res.checks.every((c) => c.verdict === "pass"), JSON.stringify(res.checks.filter((c) => c.verdict !== "pass"))).toBe(true);
       expect(res.domain.verdict).toBe("in-domain");
       expect(res.checks.find((c) => c.id === "closedFormFuel")!.value!).toBeLessThan(1.5);
+      // the run script copies OFFBEAT's k and Bu out, so the two burnup checks are in the result and pass (a result without the fields would fail them)
+      expect(res.checks.map((c) => c.id)).toEqual(expect.arrayContaining(["burnupConductivity", "burnupWritten"]));
+      expect(res.checks.find((c) => c.id === "burnupConductivity")!.value!).toBeLessThan(1e-5);
+      expect(res.thermalOnly).toMatch(/Frozen-burnup snapshot/);
     }, 300_000);
   }
 

@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { BackendOutcome, RunBackend } from "../../src/core/runManager";
 
-export type Script = "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "unconverged" | "drifting" | "no-rate-record" | "exit-1-complete" | "fatal-in-log" | "no-iteration-records" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
+export type Script = "burnup-good" | "burnup-no-k" | "burnup-wrong-basis" | "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "unconverged" | "drifting" | "no-rate-record" | "exit-1-complete" | "fatal-in-log" | "no-iteration-records" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
 
 const golden = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-syn", f), "utf8");
 /** Real OFFBEAT logs from the non-convergence probe: one step that converged (6 outer iterations), one that hit its cap unconverged. */
@@ -106,6 +106,22 @@ export class FakeBackend implements RunBackend {
         const m = JSON.parse(readFileSync(mf, "utf8"));
         m.choices = {};
         writeFileSync(mf, JSON.stringify(m));
+        return { cancelled: false };
+      }
+      // FEED's burnup case (40 MWd/kgHM) as the real OFFBEAT wrote it: the fields T C k Bu of the last time; with k missing, or with Bu on the wrong basis (0.8815 for 0.881)
+      case "burnup-good":
+      case "burnup-no-k":
+      case "burnup-wrong-basis": {
+        const b = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-burnup", f), "utf8");
+        writeFileSync(join(nativeDir, "final", "T"), b("T"));
+        writeFileSync(join(nativeDir, "final", "C"), b("C"));
+        if (script !== "burnup-no-k") writeFileSync(join(nativeDir, "final", "k"), b("k"));
+        const lines = b("Bu").split("\n");
+        const start = lines.findIndex((l) => l.trim() === "(");
+        const bu = script === "burnup-wrong-basis" ? lines.map((l, i) => (i > start && i <= start + 20 ? String((Number(l) * 0.8815) / 0.881) : l)).join("\n") : b("Bu");
+        writeFileSync(join(nativeDir, "final", "Bu"), bu);
+        writeFileSync(join(nativeDir, "log.offbeat"), steadyLog());
+        exit(0, 139, 50000000);
         return { cancelled: false };
       }
       case "good":

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run one FEED case inside the feed-solver distro (user "feed"). Called by the run manager with an explicit argument list.
 # usage: run-feed.sh <inputsDir> <nativeDir> <runId> <timeoutSeconds>      (paths as seen from the distro, /mnt/c/...)
-# Writes <nativeDir>/{log.blockMesh,log.offbeat,exit.json,final/T,final/C}. Exit 0 means the SCRIPT got through; the solver's
+# Writes <nativeDir>/{log.blockMesh,log.offbeat,exit.json,final/T,final/C} and, when OFFBEAT wrote them, final/k and final/Bu. Exit 0 means the SCRIPT got through; the solver's
 # own exit code is in exit.json (OFFBEAT exits 139 after a complete run, so the manager classifies by output).
 #
 # The whole script is one process group (its own session) whose leader's pid is in <run dir>/run.pid, so cancel-feed.sh can stop
@@ -60,6 +60,8 @@ if [ "$final" != "0" ]; then
   timeout --foreground "$TMO" postProcess -func writeCellCentres -latestTime > log.cellCentres 2>&1
   cancelled && stop_cancelled
   cp "$final/T" "$final/C" "$OUT/final/" 2>/dev/null
+  # a burnup case is checked against OFFBEAT's own conductivity (k) and burnup (Bu) fields (src/core/resultsParser.ts); other cases have no use for them
+  cp "$final/k" "$final/Bu" "$OUT/final/" 2>/dev/null
   # a transient (marked by feed-transient.json) keeps the temperature field at every write time; the cell centres are the same throughout
   if [ -e "$RUN/feed-transient.json" ]; then
     for d in $(ls -d [0-9]* 2>/dev/null | sort -g); do

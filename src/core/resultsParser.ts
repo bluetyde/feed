@@ -4,7 +4,8 @@
 
 import { limitChecks } from "./limits";
 import { closedForm, fuelTemperatureLaw } from "./closedForm";
-import { lawOf, primitive, rangeOf, solveHot } from "./conductivity";
+import { evaluate, lawOf, primitive, rangeOf, solveHot } from "./conductivity";
+import { NFI_OXIDE_TO_HEAVY_METAL } from "./uo2Nfi";
 import { remainingChangeBound, STEADY_TOLERANCE } from "./steadyState";
 import { Conductivity, NormalizedCase } from "./validate";
 
@@ -123,8 +124,10 @@ export interface ResultsRecord {
   checks: Check[];
   /** 'out-of-domain' when a region's temperatures leave its conductivity law's stated range. Such a result is not valid. */
   domain: { verdict: "in-domain" | "out-of-domain"; findings: DomainFinding[] };
-  /** Thermal-only banner text; every results view and export carries it. */
+  /** Thermal-only banner text; every results view and export carries it. For a burnup case it also says that the result is a frozen-burnup snapshot. */
   thermalOnly: string;
+  /** Present when the fuel's conductivity is the burnup law: the burnup it was evaluated at (MWd/kgHM, heavy-metal basis) and where that came from. */
+  burnup?: { value: number; source: string };
 }
 
 /**
@@ -156,6 +159,15 @@ export function fitChecks(c: NormalizedCase): Check[] {
 
 export const THERMAL_ONLY_TEXT = "Thermal-only result. It says nothing about stress, failure or fuel integrity.";
 
+/** What a burnup result is and is not (docs/plans/10-burnup.md section 1): appended to the thermal-only text of every result, export and comparison of a burnup case. */
+export const burnupText = (MWdPerKgHM: number): string =>
+  `Frozen-burnup snapshot: the fuel's conductivity is that of fuel with ${Number(MWdPerKgHM.toPrecision(6))} MWd per kg of heavy metal, everything else as stated. Nothing evolves: there is no swelling, densification, relocation or fission-gas release, and the gap is the stated one, not the closed gap of burnt fuel. It is not a fuel-performance prediction.`;
+
+/** The largest relative difference between OFFBEAT's own conductivity field and FEED's burnup law at OFFBEAT's own temperatures that a result accepts. The field holds 7 digits. */
+export const BURNUP_K_TOLERANCE = 1e-4;
+/** The same for the Bu field against what was written (7 digits again). */
+export const BURNUP_BU_TOLERANCE = 1e-5;
+
 /** Energy-balance diagnostic threshold (relative). A diagnostic from two cladding cell values, not a gate. */
 export const BALANCE_TOLERANCE = 0.01;
 
@@ -165,6 +177,9 @@ export interface ParseInput {
   /** Text of <finalTime>/C (cell centres) */
   C: string;
   time: number;
+  /** Text of <finalTime>/k, OFFBEAT's conductivity field, and of <finalTime>/Bu. Read for a burnup case, whose results check them; absent for others. */
+  k?: string;
+  Bu?: string;
   /**
    * What OFFBEAT printed for the last time step: max |dT/dt| / T over the cells (1/s). Present for runs read from a solver log; when
    * given, the steady-state check is made, and an absent or non-finite rate fails it (a run that cannot show it settled is not
@@ -283,6 +298,7 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
     }
   }
 
+  if (c.burnup && c.fuelConductivity.kind === "uo2-nfi") checks.push(...burnupChecks(c, T, input));
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value}); the cell geometry is inconsistent`);
   const temps = radial.map((p) => p.T);
   return {
@@ -300,6 +316,75 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
     },
     checks,
     domain,
-    thermalOnly: THERMAL_ONLY_TEXT,
+    thermalOnly: c.burnup ? THERMAL_ONLY_TEXT + " " + burnupText(c.burnup.value) : THERMAL_ONLY_TEXT,
+    ...(c.burnup ? { burnup: c.burnup } : {}),
   };
+}
+
+/** A scalar field that may be written compactly as `uniform X` (OFFBEAT does that when every cell is equal): expanded to n values. */
+function cellValues(text: string, name: string, n: number): number[] {
+  const u = /internalField\s+uniform\s+([^;\s]+)\s*;/.exec(text);
+  if (u) {
+    const v = Number(u[1]);
+    if (!Number.isFinite(v)) bad(`field ${name}: the uniform value is not finite (${u[1]})`);
+    return Array.from({ length: n }, () => v);
+  }
+  const v = parseScalarField(text, name);
+  if (v.length !== n) bad(`field ${name} has ${v.length} cells, the case has ${n}`);
+  return v;
+}
+
+/**
+ * The checks of a burnup case: OFFBEAT's own conductivity field `k` against FEED's burnup law at OFFBEAT's own cell temperatures (the model's arithmetic, cell by cell,
+ * apart from the temperature solution), and the `Bu` field against what the writer wrote (B x 1000 x 0.881 in the fuel cells, 0 in the cladding): a wrong basis would show
+ * here. A result without those fields fails them; it is not passed for want of evidence.
+ */
+function burnupChecks(c: NormalizedCase, T: number[], input: ParseInput): Check[] {
+  const nf = c.mesh.fuelCells;
+  const law = lawOf(c.fuelConductivity);
+  const B = c.burnup!.value;
+  const out: Check[] = [];
+  const missing = (id: string, label: string, what: string): Check => ({ id, label, value: null, unit: "relative", verdict: "fail", note: `OFFBEAT wrote no ${what} field (or it was not collected), so ${label.toLowerCase()} cannot be checked.` });
+  if (input.k === undefined) out.push(missing("burnupConductivity", "Burnup conductivity (OFFBEAT's k against the law)", "conductivity (k)"));
+  else {
+    const k = cellValues(input.k, "k", T.length);
+    let worst = 0;
+    let at = 0;
+    for (let i = 0; i < nf; i++) {
+      const want = evaluate(law, T[i]!);
+      const d = Math.abs(k[i]! / want - 1);
+      if (!(d <= worst)) {
+        worst = d;
+        at = i;
+      }
+    }
+    out.push({
+      id: "burnupConductivity",
+      label: "Burnup conductivity (OFFBEAT's k against the law)",
+      value: worst,
+      unit: "relative",
+      verdict: worst <= BURNUP_K_TOLERANCE ? "pass" : "fail",
+      note: `The conductivity OFFBEAT used in each of the ${nf} fuel cells, against FEED's law (UO2, modified NFI, NUREG/CR-7024 Eq. 2.3-10 and 2.3-11) at ${B} MWd/kgHM, evaluated at OFFBEAT's own cell temperature. Largest relative difference ${worst.toExponential(2)} at fuel cell ${at} (accepted: ${BURNUP_K_TOLERANCE}); the field holds 7 digits.`,
+    });
+  }
+  if (input.Bu === undefined) out.push(missing("burnupWritten", "Burnup given to OFFBEAT", "burnup (Bu)"));
+  else {
+    const bu = cellValues(input.Bu, "Bu", T.length);
+    const want = B * 1000 * NFI_OXIDE_TO_HEAVY_METAL;
+    let worst = 0;
+    for (let i = 0; i < T.length; i++) {
+      const w = i < nf ? want : 0;
+      const d = w === 0 ? Math.abs(bu[i]!) : Math.abs(bu[i]! / w - 1);
+      if (!(d <= worst)) worst = d;
+    }
+    out.push({
+      id: "burnupWritten",
+      label: "Burnup given to OFFBEAT",
+      value: worst,
+      unit: "relative",
+      verdict: worst <= BURNUP_BU_TOLERANCE ? "pass" : "fail",
+      note: `The Bu field of the result against what was written: ${B} MWd/kgHM x 1000 x 0.881 = ${Number(want.toPrecision(8))} MWd/t of oxide in each fuel cell and 0 in the cladding (the model divides by its own 0.881, docs/spike/burnup-probe.md). Largest difference ${worst.toExponential(2)} (accepted: ${BURNUP_BU_TOLERANCE}).`,
+    });
+  }
+  return out;
 }
