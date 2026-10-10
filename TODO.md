@@ -168,7 +168,7 @@ Where fuel comes from (decided with the user 2026-10-05): presets, shared materi
 
 ## Decisions waiting (the user's)
 
-- [ ] Approve the F0 solver install (disk and build cost) and its isolated environment. The `feed-solver` distro exists and has been in use since 2026-10-06; an explicit approval is not recorded in the log, so the user is asked to confirm it.
+- [x] The F0 solver install (about 6.8 GB of disk: OpenFOAM 9 and the pinned OFFBEAT in the isolated `feed-solver` WSL distro, which does not touch other environments) is approved by the user, 2026-10-10. The distro has been in use since 2026-10-06; the approval had not been recorded until now.
 - [x] Stack (match SEED/NODAL or choose per the editor needs): TypeScript, Node, vitest and ajv are in use since 2026-10-05 ([decision 0001](docs/decisions/0001-provisional-stack.md), provisional); no change has been asked for, and the user has not recorded a confirmation. Confirmed by the user 2026-10-10: fine with the stack.
 - [x] Distribution model and license: see decision 0004 (2026-10-07).
 - [x] Repo created as `bluetyde/feed` (private), 2026-10-05. Confirm the name is final before making it public.
