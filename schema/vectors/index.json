@@ -952,6 +952,13 @@
     "valid": true
   },
   {
+    "file": "good/mechanics-elasticity-range-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_ELASTICITY_RANGE"
+    ]
+  },
+  {
     "file": "bad/mechanics-reference-temperature-missing.json",
     "valid": false,
     "code": "E_PROP_MISSING",
