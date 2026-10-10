@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { writeOffbeatCase } from "./caseWriter";
-import { judgeConvergence, readCriterion } from "./convergence";
+import { judgeConvergence, judgeMechanicsConvergence, readCriterion, readMechanicsCriterion } from "./convergence";
 import { lastRelativeRate } from "./steadyState";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
 import { IndependentHandle, IndependentRunner } from "./independentRunner";
@@ -365,7 +365,9 @@ export class RunManager {
       return fail({ code: "E_APP_FAILED", message: `The solver stopped before writing any result (exit ${exit.offbeatExit}${sig ? ", " + sig : ""}).`, native });
     }
     // a transient's last write time is the sum of many steps, so it can sit a few ulps below the intended end (1e-9 relative)
-    const isTransient = !!JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8")).transient;
+    const normalizedHead = JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8"));
+    const isTransient = !!normalizedHead.transient;
+    const hasMechanics = !!normalizedHead.mechanics;
     if (exit.finalTime < (isTransient ? expectedEnd * (1 - 1e-9) : expectedEnd)) return fail({ code: "E_OUTPUT_INCOMPLETE", message: `The solver stopped at ${exit.finalTime} s, before the intended ${expectedEnd} s (exit ${exit.offbeatExit}). The partial output is not a result.`, native });
 
     // Only exit 0 and the demonstrated shutdown crash (139, SIGSEGV after the last write; docs/spike/F0-note.md) are accepted. Any
@@ -386,6 +388,17 @@ export class RunManager {
     if (!convergence.ok) {
       const evidence = log.split(/\r?\n/).filter((l) => /^(Time = |OuterIteration|relResidualT|absErrT)|Solving for T/.test(l)).slice(-16).join("\n");
       return fail({ code: convergence.code, message: convergence.message, native: evidence || native });
+    }
+
+    // A mechanics run must also have converged in its displacement (the same silent acceptance at maxOuterIter), by OFFBEAT's own displacement criterion.
+    if (hasMechanics) {
+      const mc = readMechanicsCriterion(fvSolution!);
+      if (!mc.ok) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "Convergence of the displacement cannot be judged: " + mc.message + ". The run is not accepted as a result.", native });
+      const mv = judgeMechanicsConvergence(log, mc.criterion);
+      if (!mv.ok) {
+        const evidence = log.split(/\r?\n/).filter((l) => /^(Time = |OuterIteration|relResidualD|absErrD)|Solving for D/.test(l)).slice(-16).join("\n");
+        return fail({ code: mv.code, message: mv.message, native: evidence || native });
+      }
     }
 
     try {
@@ -416,7 +429,11 @@ export class RunManager {
       }
       // a burnup case is checked against OFFBEAT's own conductivity and burnup fields, which the run script copies out beside T and C
       const extra = normalized.burnup ? { k: read(join(nativeDir, "final", "k")), Bu: read(join(nativeDir, "final", "Bu")) } : {};
-      const results = buildResults(normalized, { T, C, ...extra, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
+      // a mechanics case is read back from OFFBEAT's displacement and stress fields, which the run script copies out beside T and C
+      const mechanics = normalized.mechanics
+        ? { mechanics: { D: read(join(nativeDir, "final", "D")), sigma: read(join(nativeDir, "final", "sigma")), sigmaCyl: read(join(nativeDir, "final", "sigmaCyl")), gapWidth: read(join(nativeDir, "final", "gapWidth")), interfaceP: read(join(nativeDir, "final", "interfaceP")) } }
+        : {};
+      const results = buildResults(normalized, { T, C, ...extra, ...mechanics, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
       atomicWrite(join(dir, "results.json"), JSON.stringify(results, null, 2) + "\n");
       r.headline = { centreCellT: results.summary.centreCellT, claddingOuterWallT: results.summary.claddingOuterWallT };
     } catch (e) {

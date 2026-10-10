@@ -7,6 +7,8 @@ import { closedForm, fuelTemperatureLaw } from "./closedForm";
 import { evaluate, lawOf, primitive, rangeOf, solveHot } from "./conductivity";
 import { NFI_OXIDE_TO_HEAVY_METAL } from "./uo2Nfi";
 import { remainingChangeBound, STEADY_TOLERANCE } from "./steadyState";
+import { effectiveMechanics } from "./mechanicalEval";
+import { MECHANICS_TEXT, MechanicsInput, MechanicsRecord, buildMechanics } from "./mechanicsResults";
 import { Conductivity, NormalizedCase } from "./validate";
 
 export class ResultsError extends Error {
@@ -128,6 +130,8 @@ export interface ResultsRecord {
   thermalOnly: string;
   /** Present when the fuel's conductivity is the burnup law: the burnup it was evaluated at (MWd/kgHM, heavy-metal basis) and where that came from. */
   burnup?: { value: number; source: string };
+  /** Present for a case that asks for mechanics: the displacement and the stress of each cell, the contact, and what the result is and is not (src/core/mechanicsResults.ts). */
+  mechanics?: MechanicsRecord;
 }
 
 /**
@@ -180,6 +184,8 @@ export interface ParseInput {
   /** Text of <finalTime>/k, OFFBEAT's conductivity field, and of <finalTime>/Bu. Read for a burnup case, whose results check them; absent for others. */
   k?: string;
   Bu?: string;
+  /** The text of the last time's displacement, stress, gap width and interface pressure fields, for a case that asks for mechanics. */
+  mechanics?: MechanicsInput;
   /**
    * What OFFBEAT printed for the last time step: max |dT/dt| / T over the cells (1/s). Present for runs read from a solver log; when
    * given, the steady-state check is made, and an absent or non-finite rate fails it (a run that cannot show it settled is not
@@ -301,6 +307,17 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   }
 
   if (c.burnup && c.fuelConductivity.kind === "uo2-nfi") checks.push(...burnupChecks(c, T, input));
+  // mechanics: read the displacement and the stress back in the order of the cells, then in the order of the record's points (fuel, then cladding, each by radius)
+  let mechanics: MechanicsRecord | undefined;
+  if (c.mechanics) {
+    const eff = effectiveMechanics(c)!;
+    const built = buildMechanics(c.mechanics, eff, radial.map((p) => ({ region: p.region, r: p.r })), input.mechanics ?? {});
+    checks.push(...built.checks);
+    if (built.record) {
+      const order = [...fuel, ...clad].map((p) => radial.indexOf(p));
+      mechanics = { ...built.record, points: order.map((i) => built.record!.points[i]!) };
+    }
+  }
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value}); the cell geometry is inconsistent`);
   const temps = radial.map((p) => p.T);
   return {
@@ -318,8 +335,9 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
     },
     checks,
     domain,
-    thermalOnly: c.burnup ? THERMAL_ONLY_TEXT + " " + burnupText(c.burnup.value) : THERMAL_ONLY_TEXT,
+    thermalOnly: c.mechanics ? MECHANICS_TEXT : c.burnup ? THERMAL_ONLY_TEXT + " " + burnupText(c.burnup.value) : THERMAL_ONLY_TEXT,
     ...(c.burnup ? { burnup: c.burnup } : {}),
+    ...(mechanics ? { mechanics } : {}),
   };
 }
 

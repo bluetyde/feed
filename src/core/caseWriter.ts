@@ -436,7 +436,12 @@ fluxRequired
 }
 `;
 
-const fvSolution = `${FOAM_HEADER("dictionary", "fvSolution", "system")}
+/**
+ * The solution settings. With mechanics the displacement is under-relaxed by 0.5 instead of 0.8: with a contact (the gap closed, a penalty condition on the two surfaces) the
+ * default settings oscillate and never reach OFFBEAT's convergence criterion in its 1000 outer iterations, which OFFBEAT then accepts silently; with 0.5 the same case converges
+ * in 2 and gives the contact pressure to 1 % (docs/spike/mechanics-probe.md, the M2 section). A thermal-only case keeps its settings byte for byte.
+ */
+const fvSolutionText = (mechanics: boolean) => `${FOAM_HEADER("dictionary", "fvSolution", "system")}
 solvers
 {
     D { solver PCG; preconditioner FDIC; tolerance 1e-10; relTol 0.1; }
@@ -459,7 +464,7 @@ stressAnalysis
 
 relaxationFactors
 {
-    fields { D 0.8; }
+    fields { D ${mechanics ? "0.5" : "0.8"}; }
 }
 `;
 
@@ -486,7 +491,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     "system/blockMeshDict": blockMeshDict(c),
     "system/controlDict": tr ? controlDict(tr.endTime, { timeStep: tr.timeStep, writeEvery: tr.steps / tr.outputs }) : controlDict(steadyEnd),
     "system/fvSchemes": fvSchemes,
-    "system/fvSolution": fvSolution,
+    "system/fvSolution": fvSolutionText(c.mechanics !== undefined),
     "constant/solverDict": solverDict(c, kf, kc),
     "0/T": temperatureField(c, start),
     "0/D": displacementField(c),

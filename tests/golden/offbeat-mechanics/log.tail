@@ -1,0 +1,122 @@
+Time = 48830080 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 0.99691681, 0.99691681, 0.99691681
+AMI: Patch target sum(weights) min/max/average = 0.98201883, 0.98201883, 0.98201883
+FDICPCG:  Solving for T, Initial residual = 9.7737315e-11, Final residual = 9.7737315e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+FDICPCG:  Solving for Dx, Initial residual = 3.3022245e-07, Final residual = 4.0859823e-23, No Iterations 1
+relResidualD is 1
+absErrD is 2.2084254e-12
+Domain average displacement: (2.0858499e-05 0 0.008143733)
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 0.99691681, 0.99691681, 0.99691681
+AMI: Patch target sum(weights) min/max/average = 0.98201883, 0.98201883, 0.98201883
+FDICPCG:  Solving for T, Initial residual = 9.7871314e-11, Final residual = 9.7871314e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+FDICPCG:  Solving for Dx, Initial residual = 3.2790348e-07, Final residual = 1.0030458e-23, No Iterations 1
+relResidualD is 0.49824361
+absErrD is 2.1929643e-12
+Domain average displacement: (2.0858499e-05 0 0.008143733)
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.6344252e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5035996e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 49415040 seconds
+Execution Time = 0.34 s  Clock Time = 0 s  Total Iterations = 370  Total Timesteps = 82
+
+Time = 49415040 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 0.99691681, 0.99691681, 0.99691681
+AMI: Patch target sum(weights) min/max/average = 0.98201883, 0.98201883, 0.98201883
+FDICPCG:  Solving for T, Initial residual = 9.8004566e-11, Final residual = 9.8004566e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+FDICPCG:  Solving for Dx, Initial residual = 3.2560079e-07, Final residual = 7.1051351e-24, No Iterations 1
+relResidualD is 1
+absErrD is 2.1775632e-12
+Domain average displacement: (2.0858499e-05 0 0.008143733)
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 0.99691681, 0.99691681, 0.99691681
+AMI: Patch target sum(weights) min/max/average = 0.98201883, 0.98201883, 0.98201883
+FDICPCG:  Solving for T, Initial residual = 9.8136139e-11, Final residual = 9.8136139e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+FDICPCG:  Solving for Dx, Initial residual = 3.2331427e-07, Final residual = 5.4331651e-24, No Iterations 1
+relResidualD is 0.49823392
+absErrD is 2.1622343e-12
+Domain average displacement: (2.0858499e-05 0 0.008143733)
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.6344252e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5035996e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 50000000 seconds
+Execution Time = 0.34 s  Clock Time = 0 s  Total Iterations = 372  Total Timesteps = 83
+
+Time = 50000000 seconds
+
+OuterIteration n. 0
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 0.99691681, 0.99691681, 0.99691681
+AMI: Patch target sum(weights) min/max/average = 0.98201883, 0.98201883, 0.98201883
+FDICPCG:  Solving for T, Initial residual = 9.8267346e-11, Final residual = 9.8267346e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+FDICPCG:  Solving for Dx, Initial residual = 3.2104381e-07, Final residual = 7.5920625e-23, No Iterations 1
+relResidualD is 1
+absErrD is 2.1470884e-12
+Domain average displacement: (2.0858499e-05 0 0.008143733)
+
+OuterIteration n. 1
+
+update AMI addressing
+AMI: Creating addressing and weights between 1 source faces and 1 target faces
+AMI: Patch source sum(weights) min/max/average = 0.99691681, 0.99691681, 0.99691681
+AMI: Patch target sum(weights) min/max/average = 0.98201883, 0.98201883, 0.98201883
+FDICPCG:  Solving for T, Initial residual = 9.8397889e-11, Final residual = 9.8397889e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+FDICPCG:  Solving for Dx, Initial residual = 3.1878929e-07, Final residual = 1.3426185e-23, No Iterations 1
+relResidualD is 0.49823524
+absErrD is 2.1319853e-12
+Domain average displacement: (2.0858499e-05 0 0.008143733)
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.6344252e+30 with a relative power increase of 0
+Maximum deltaT re-calculated by constantHeatSource model: 4.5035996e+15 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 50604800 seconds
+Execution Time = 0.34 s  Clock Time = 0 s  Total Iterations = 374  Total Timesteps = 84
+
+timeout: the monitored command dumped core
+

@@ -173,3 +173,138 @@ export function judgeConvergence(log: string, criterion: ConvergenceCriterion, m
   const last = steps[steps.length - 1]!;
   return { ok: true, stepsChecked: toCheck.length, iterationsInLastStep: last.iterations };
 }
+
+// ---- the mechanics (displacement) criterion, docs/plans/09-mechanics.md M2 ----
+// OFFBEAT's mechanicsSubSolver::converged (at the pinned commit) has the same shape as the thermal one with the vector residual of D: with absErrD above its tolerance
+// (default 0), a step is converged when the initial residual of the displacement solve is below the `D` tolerance vector and relResidualD is below relD, or one of the two is
+// ten times below its threshold; with useRelResD off, when the initial residual alone is below the tolerance. It reads the SAME stressAnalysis dictionary of system/fvSolution.
+
+export interface MechanicsCriterion {
+  /** key `D`, a vector (default 1e-6 each); a component the mesh does not solve is not printed and counts as 0 */
+  D: [number, number, number];
+  relD: number;
+  absErrD: number;
+  useRelResD: boolean;
+}
+
+/** The residuals of the last outer iteration of a step: the first solve of each displacement component, relResidualD and absErrD. */
+export interface MechanicsResiduals {
+  residual: [number, number, number];
+  relResidual: number;
+  absErr: number;
+}
+
+export type MechanicsCriterionResult = { ok: true; criterion: MechanicsCriterion } | { ok: false; message: string };
+
+export function readMechanicsCriterion(fvSolution: string): MechanicsCriterionResult {
+  const m = /(^|\s)stressAnalysis\s*\{/.exec(fvSolution);
+  if (!m) return { ok: false, message: "system/fvSolution has no stressAnalysis dictionary" };
+  let depth = 1;
+  let i = m.index + m[0].length;
+  const start = i;
+  while (i < fvSolution.length && depth > 0) {
+    const ch = fvSolution[i++];
+    if (ch === "{") depth++;
+    else if (ch === "}") depth--;
+  }
+  if (depth !== 0) return { ok: false, message: "the stressAnalysis dictionary is not closed" };
+  let flat = "";
+  depth = 0;
+  for (const ch of fvSolution.slice(start, i - 1)) {
+    if (ch === "{") depth++;
+    if (depth === 0) flat += ch;
+    if (ch === "}") depth--;
+  }
+  const word = (name: string): string | undefined => new RegExp(`(?:^|[\\s;])${name}\\s+([^;\\s(]+)\\s*;`).exec(flat)?.[1];
+  const vec = /(?:^|[\s;])D\s*\(\s*([^\s)]+)\s+([^\s)]+)\s+([^\s)]+)\s*\)\s*;/.exec(flat);
+  const D: [number, number, number] = vec ? [Number(vec[1]), Number(vec[2]), Number(vec[3])] : [1e-6, 1e-6, 1e-6];
+  const relRaw = word("relD");
+  const absRaw = word("absErrD");
+  const useRaw = word("useRelResD");
+  if (useRaw !== undefined && !/^(true|false|on|off|yes|no|1|0)$/i.test(useRaw)) return { ok: false, message: `stressAnalysis useRelResD ${useRaw} is not a boolean` };
+  const useRelResD = useRaw === undefined ? true : /^(true|on|yes|1)$/i.test(useRaw);
+  const relD = relRaw === undefined ? NaN : Number(relRaw);
+  const absErrD = absRaw === undefined ? 0 : Number(absRaw);
+  if (useRelResD && !Number.isFinite(relD)) return { ok: false, message: "stressAnalysis has no valid relD (needed because useRelResD is on)" };
+  if (!D.every(Number.isFinite) || !Number.isFinite(absErrD)) return { ok: false, message: "stressAnalysis has a displacement tolerance that is not a number" };
+  return { ok: true, criterion: { D, relD, absErrD, useRelResD } };
+}
+
+/** OFFBEAT's displacement criterion for one outer iteration, plus: a value that is not finite is not converged. */
+export function mechanicsConverged(r: MechanicsResiduals, c: MechanicsCriterion): boolean {
+  if (![...r.residual, r.relResidual, r.absErr].every(Number.isFinite)) return false;
+  if (!(r.absErr > c.absErrD)) return true;
+  const below = (k: number) => r.residual.every((x, j) => x < c.D[j]! / k);
+  if (c.useRelResD) return (below(1) && r.relResidual < c.relD) || below(10) || r.relResidual < c.relD / 10;
+  return below(1);
+}
+
+/** The residuals of the last outer iteration of each step of an OFFBEAT log (the steps are the same as parseSteps finds). */
+export function parseMechanicsSteps(log: string): { time: number; iterations: number; last: MechanicsResiduals | undefined }[] {
+  const steps: { time: number; iterations: number; last: MechanicsResiduals | undefined }[] = [];
+  let step: (typeof steps)[number] | undefined;
+  let res: [number, number, number] = [0, 0, 0];
+  let seen: [boolean, boolean, boolean] = [false, false, false];
+  let rel: number | undefined;
+  let abs: number | undefined;
+  const reset = () => {
+    res = [0, 0, 0];
+    seen = [false, false, false];
+    rel = abs = undefined;
+  };
+  const close = () => {
+    if (step && step.iterations > 0) step.last = rel !== undefined && abs !== undefined && seen.some(Boolean) ? { residual: res, relResidual: rel, absErr: abs } : undefined;
+  };
+  const reTime = new RegExp(`^Time = ${FLOAT}`);
+  const reIter = /^OuterIteration n\. [0-9]+/;
+  const reInit = new RegExp(`Solving for D([xyz]), Initial residual = ${FLOAT}`);
+  const reRel = new RegExp(`^relResidualD is ${FLOAT}`);
+  const reAbs = new RegExp(`^absErrD is ${FLOAT}`);
+  for (const line of log.split(/\r?\n/)) {
+    let m: RegExpExecArray | null;
+    if ((m = reTime.exec(line))) {
+      close();
+      step = { time: num(m[1]!), iterations: 0, last: undefined };
+      steps.push(step);
+      reset();
+    } else if (step && reIter.test(line)) {
+      close();
+      step.iterations++;
+      reset();
+    } else if (step && step.iterations > 0) {
+      if ((m = reInit.exec(line))) {
+        const j = "xyz".indexOf(m[1]!);
+        if (!seen[j]!) {
+          res[j] = num(m[2]!);
+          seen[j] = true;
+        }
+      } else if ((m = reRel.exec(line))) rel = num(m[1]!);
+      else if ((m = reAbs.exec(line))) abs = num(m[1]!);
+    }
+  }
+  close();
+  return steps;
+}
+
+/** A mechanics run is a result only if the displacement converged in the FINAL step (steady), as the temperature must. */
+export function judgeMechanicsConvergence(log: string, criterion: MechanicsCriterion): ConvergenceVerdict {
+  const steps = parseMechanicsSteps(log);
+  if (steps.length === 0 || steps.every((s) => s.iterations === 0)) {
+    return { ok: false, code: "E_OUTPUT_INCOMPLETE", message: "The solver log has no outer-iteration records, so the convergence of the displacement cannot be judged; the run is not accepted as a result." };
+  }
+  const s = steps[steps.length - 1]!;
+  if (s.iterations === 0 || !s.last) {
+    return { ok: false, code: "E_OUTPUT_INCOMPLETE", message: `The solver log for the final time step (t = ${s.time}) has no complete displacement residual record (a Solving for D line, relResidualD and absErrD), so its convergence cannot be judged; the run is not accepted as a result.` };
+  }
+  if (!mechanicsConverged(s.last, criterion)) {
+    const l = s.last;
+    return {
+      ok: false,
+      code: "E_NOT_CONVERGED",
+      message:
+        `The displacement did not converge at t = ${s.time}: after ${s.iterations} outer iteration${s.iterations === 1 ? "" : "s"} the last had absErrD ${l.absErr}, relResidualD ${l.relResidual} and initial residuals (${l.residual.join(", ")}) ` +
+        `against D (${criterion.D.join(", ")}), relD ${Number.isFinite(criterion.relD) ? criterion.relD : "(unused)"} and absErrD ${criterion.absErrD}. OFFBEAT accepts and writes such a step without a warning, so the output is not a result.`,
+    };
+  }
+  return { ok: true, stepsChecked: 1, iterationsInLastStep: s.iterations };
+}
