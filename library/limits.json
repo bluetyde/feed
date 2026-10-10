@@ -21,5 +21,34 @@
         "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 950 C fuel limit with cladding above 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
       }
     ]
+  },
+  {
+    "id": "triga-ss-uzrh-h16-steady-operation",
+    "name": "TRIGA stainless-clad U-ZrH (H/Zr 1.6): fuel limits for steady operation (750 C design limit and the two safety limits)",
+    "label": "sourced",
+    "description": "For a steady-state case: the 750 C operational design limit on the fuel temperature, then the two safety limits of the other set (1150 C while the cladding is at most 500 C, 950 C once it is above). General Atomics gives the 750 C as a design basis for steady operation, chosen because at the resulting average fuel temperatures the fuel growth from irradiation and fission products is insignificant; it is a design limit, not a point of failure, and a pulse goes above it by design, so do not use this set for a pulse (use the safety-limit set). The two safety limits come from hydrogen outgassing and the cladding stress it produces; FEED computes neither, it only compares the temperature. This set does not cover aluminium cladding, a different hydrogen ratio, burnup (the growth limit assumes the fuel burnt in a normal TRIGA core) or any other failure mechanism.",
+    "citation": "M. T. Simnad, The U-ZrHx Alloy: Its Properties and Use in TRIGA Fuel, General Atomic report E-117-833 (GA Project No. 4314), chapter 4: a steady-state operational fuel temperature design limit of 750 C based on irradiation- and fission-product-induced fuel growth and deformation; the pulsing safety limit of 1150 C for stainless-steel U-ZrH1.65 while the cladding is below 500 C (pages 4-1 to 4-3 and 4-6 to 4-7), and 950 C where the cladding can be as hot as the fuel (the equilibrium hydrogen pressure then equals the cladding's ultimate strength). The K-State SAR (Dec 2004, sections 3.5.1 and 4.7, citing NUREG-1282) and the UT-Austin SAR (Ch. 4 section 4.2.1) give the same 1150 C and 950 C.",
+    "rules": [
+      {
+        "name": "TRIGA fuel steady-state design limit",
+        "region": "fuel",
+        "maxTemperature": { "value": 750, "unit": "degC" },
+        "source": "Simnad, General Atomic E-117-833, chapter 4: steady-state operational fuel temperature design limit of 750 C (irradiation- and fission-product-induced fuel growth), stainless-clad U-ZrH, H/Zr about 1.6"
+      },
+      {
+        "name": "TRIGA fuel limit, cladding at most 500 C",
+        "region": "fuel",
+        "maxTemperature": { "value": 1150, "unit": "degC" },
+        "whileCladding": { "atMost": { "value": 500, "unit": "degC" } },
+        "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1; Simnad, General Atomic E-117-833, chapter 4: 1150 C fuel limit with cladding below 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+      },
+      {
+        "name": "TRIGA fuel limit, cladding above 500 C",
+        "region": "fuel",
+        "maxTemperature": { "value": 950, "unit": "degC" },
+        "whileCladding": { "above": { "value": 500, "unit": "degC" } },
+        "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1; Simnad, General Atomic E-117-833, chapter 4: 950 C fuel limit with cladding above 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+      }
+    ]
   }
 ]

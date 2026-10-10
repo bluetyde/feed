@@ -181,6 +181,32 @@ describe("the sourced TRIGA set and the example cases that use it", () => {
     expect(set.rules[0].whileCladding).toEqual({ atMost: q(500, "degC") });
     expect(set.rules[1].whileCladding).toEqual({ above: q(500, "degC") });
   });
+  it("the steady-operation set adds the 750 C design limit of the General Atomic report in front of the same two safety limits, with no cladding condition on the 750 C rule", () => {
+    const steady = sourcedLimits().find((s: { id: string }) => s.id === "triga-ss-uzrh-h16-steady-operation");
+    expect(library().limits.map((s: { id: string }) => s.id)).toContain("triga-ss-uzrh-h16-steady-operation");
+    expect(steady.label).toBe("sourced");
+    expect(steady.citation).toMatch(/E-117-833/);
+    expect(steady.description).toMatch(/not .* a pulse|do not use this set for a pulse/);
+    expect(steady.rules.map((r: { maxTemperature: unknown }) => r.maxTemperature)).toEqual([q(750, "degC"), q(1150, "degC"), q(950, "degC")]);
+    expect(steady.rules[0].whileCladding).toBeUndefined();
+    expect(steady.rules.slice(1).map((r: { whileCladding: unknown }) => r.whileCladding)).toEqual([set.rules[0].whileCladding, set.rules[1].whileCladding]);
+    expect(new Set(steady.rules.map((r: { name: string }) => r.name)).size).toBe(3);
+  });
+  it("the steady-operation set applies to the K-State hot element and passes all three rules (the hottest point is 510 C), and a pin at 900 C fails the 750 C rule only", () => {
+    const steady = sourcedLimits().find((s: { id: string }) => s.id === "triga-ss-uzrh-h16-steady-operation");
+    const d = read("examples/ksu-triga-1p25mw-film.json");
+    d.limits = steady.rules;
+    const v = validateCase(d);
+    expect(v.errors).toEqual([]);
+    expect(v.normalized!.limits![0]).toMatchObject({ maxTemperature: 1023.15 });
+    expect(v.normalized!.limits![0]!.whileCladding).toBeUndefined();
+    const rules = v.normalized!.limits!;
+    expect(limitChecks(rules, [S(0, 783.7, 317)]).map((c) => c.verdict)).toEqual(["pass", "pass", "pass"]);
+    const hotter = limitChecks(rules, [S(0, 1173.15, 317)]);
+    expect(hotter.map((c) => c.verdict)).toEqual(["fail", "pass", "pass"]);
+    expect(hotter[0]!.value).toBeCloseTo(1023.15 - 1173.15, 9);
+    expect(hotter[2]!.value).toBeNull();
+  });
   it("applies to a case and normalizes to kelvin", () => {
     const d = read("examples/synthetic-pin.json");
     d.limits = set.rules;
