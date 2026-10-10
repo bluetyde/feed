@@ -213,6 +213,40 @@ ${other("fuelBottom", "empty")}${other("fuelTop", "empty")}${c.fuelInnerRadius >
 `;
 }
 
+/** The gas pressure of the gap, constant for the whole run, as OFFBEAT's tabulated gap gas model wants it (pure helium: the gas only carries the pressure, the gap's heat transfer is the case's stated conductance). */
+function gapGasOptions(pressure: number): string {
+  const both = (v: string) => "(" + v + " " + v + ")";
+  return `gapGasOptions
+{
+    timePoints (0 1e12);
+    gapPressures ${both(num(pressure))};
+    Ar ${both("0")};
+    He ${both("1")};
+    Kr ${both("0")};
+    Ne ${both("0")};
+    Rn ${both("0")};
+    Xe ${both("0")};
+    timeInterpolationMethod linear;
+}
+`;
+}
+
+/** The state file OFFBEAT's tabulated gap gas model reads at the start: the mass fractions of the six species and the pressure. */
+function gapGasFile(pressure: number): string {
+  return `${FOAM_HEADER("dictionary", "gapGas", "0/uniform")}
+massFractions
+{
+    Ar 0;
+    He 1;
+    Kr 0;
+    Ne 0;
+    Rn 0;
+    Xe 0;
+}
+gasPressure ${num(pressure)};
+`;
+}
+
 function solverDict(c: NormalizedCase, kf: Conductivity, kc: Conductivity): string {
   const eff = effectiveMechanics(c);
   return `${FOAM_HEADER("dictionary", "solverDict", "constant")}
@@ -228,7 +262,8 @@ heatSource              ${c.transient ? "timeDependentLhgr" : "constantLhgr"};
 burnup                  ${c.burnup ? "constant" : "none"};
 fastFlux                none;
 corrosion               fromLatestTime;
-gapGas                  none;
+gapGas                  ${eff && eff.internalPressure > 0 ? "timeTabulated" : "none"};
+${eff && eff.internalPressure > 0 ? gapGasOptions(eff.internalPressure) : ""}
 fgr                     none;
 sliceMapper             autoAxialSlices;
 
@@ -296,6 +331,9 @@ function mechanicsMapping(c: NormalizedCase): { field: string; file: string; not
     { field: "materials.cladding mechanical.*", file: "constant/solverDict", note: solid("cladding") },
     { field: "mechanics.contact.penaltyFactor", file: "0/D", note: "gapContact penaltyFactor " + num(m.penaltyFactor) + " on fuelOuter and cladInner (the contact pressure depends on it)" },
     { field: "mechanics.coolantPressure", file: "0/D", note: "cladOuter tractionDisplacement, pressure " + num(m.coolantPressure) + " Pa, no traction" },
+    ...(eff.internalPressure > 0
+      ? [{ field: "mechanics.internalPressure", file: "constant/solverDict, 0/uniform/gapGas", note: "gapGas timeTabulated with a constant pressure of " + num(eff.internalPressure) + " Pa, " + eff.internalPressureNote + ": OFFBEAT adds it to the traction on fuelOuter and cladInner. The gap's heat transfer stays the case's stated conductance" }]
+      : []),
   ];
 }
 
@@ -495,6 +533,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     "constant/solverDict": solverDict(c, kf, kc),
     "0/T": temperatureField(c, start),
     "0/D": displacementField(c),
+    ...(effectiveMechanics(c)?.internalPressure ? { "0/uniform/gapGas": gapGasFile(effectiveMechanics(c)!.internalPressure) } : {}),
     ...(c.burnup ? { "0/Bu": burnupField(c, c.burnup.value) } : {}),
     // marks a transient for the run script (it then keeps the field at every write time); OpenFOAM ignores the file
     ...(tr ? { "feed-transient.json": JSON.stringify({ outputs: tr.outputs, steps: tr.steps, timeStep: tr.timeStep, endTime: tr.endTime }) + "\n" } : {}),

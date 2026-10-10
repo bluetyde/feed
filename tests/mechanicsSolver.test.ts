@@ -38,6 +38,7 @@ interface Options {
   fuel?: [number, number, number];
   cladding?: [number, number, number];
   Tref?: number;
+  gas?: unknown;
 }
 function mechanicsCase(o: Options = {}) {
   const d = JSON.parse(readFileSync(join(root, "examples", "synthetic-pin.json"), "utf8"));
@@ -50,6 +51,7 @@ function mechanicsCase(o: Options = {}) {
   Object.assign(d.materials.fuel.sets, elastic(...(o.fuel ?? [2e11, 0.3, 1e-5])));
   Object.assign(d.materials.cladding.sets, elastic(...(o.cladding ?? [2e11, 0.3, 1e-5])));
   d.mechanics = { referenceTemperature: q(o.Tref ?? 300, "K"), plane: o.plane ?? "free-axial", contact: { penaltyFactor: q(o.penalty ?? 0.5, "1") }, coolantPressure: q(o.pressure ?? 0, "Pa") };
+  if (o.gas !== undefined) d.mechanics.internalPressure = o.gas;
   return d;
 }
 async function run(d: unknown) {
@@ -196,4 +198,51 @@ describe.skipIf(!solverOn)("the contact over gaps, stiffness ratios and penalty 
       expect(JSON.stringify(rec.failure)).toMatch(/E_NOT_CONVERGED/);
     }
   }, 900_000);
+});
+
+// M4: the gas pressure in the gap through the real solver (docs/plans/09-mechanics.md). OFFBEAT adds the gap gas pressure to the traction on both surfaces; the gas changes no
+// temperature (the gap's heat transfer is the case's stated conductance), which the thermal checks of every run confirm.
+describe.skipIf(!solverOn)("a gas pressure in the gap (needs FEED_SOLVER=1)", () => {
+  const gas = (p: number) => ({ model: "constant", pressure: q(p, "MPa"), source: "synthetic: chosen for the closed-form checks" });
+  it("an open gap with 5 MPa: the cladding is a thick tube loaded inside (Lame), the fuel is under hydrostatic -5 MPa, and every check passes", async () => {
+    const { res } = await run(mechanicsCase({ gas: gas(5) }));
+    expect(allPass(res!)).toEqual([]);
+    const m = res!.mechanics!;
+    expect(m.internalPressure).toBe(5e6);
+    expect(m.summary.contact).toBe(false);
+    const Rci = 4.12e-3, Rco = 4.75e-3, p = 5e6;
+    const lameInner = (p * (Rco * Rco + Rci * Rci)) / (Rco * Rco - Rci * Rci);
+    const clad = res!.radial.map((x, k) => ({ x, k })).filter((e) => e.x.region === "cladding");
+    expect(Math.abs(m.points[clad[0]!.k]!.sigmaTheta / lameInner - 1)).toBeLessThan(0.03);
+    const fuel = res!.radial.map((x, k) => ({ x, k })).filter((e) => e.x.region === "fuel");
+    // the fuel's own thermal stress (E alpha dT of 0.5 MPa at most at 10 W/m) rides on the gas pressure: radial stress -5 MPa to 4 %
+    for (const e of fuel) expect(Math.abs(m.points[e.k]!.sigmaR / -p - 1)).toBeLessThan(0.05);
+    // OFFBEAT's axial balance gives the cladding the closed-end load of the gas: sigma_z = p Ri^2 / (Ro^2 - Ri^2)
+    for (const e of clad) expect(Math.abs(m.points[e.k]!.sigmaZ / ((p * Rci * Rci) / (Rco * Rco - Rci * Rci)) - 1)).toBeLessThan(0.01);
+  }, 300_000);
+
+  it("a closed gap with 5 MPa of gas: OFFBEAT's interface pressure is the total less the gas, and the contact check passes", async () => {
+    const d = mechanicsCase({ fuel: [2e11, 0.3, 3e-5], cladding: [2e11, 0.3, 1e-5], rci: 4.12, penalty: 0.3, gas: gas(5) });
+    const { res } = await run(d);
+    expect(allPass(res!)).toEqual([]);
+    expect(res!.mechanics!.summary.contact).toBe(true);
+    expect(res!.checks.find((c) => c.id === "mechanicsContact")!.note).toMatch(/interface pressure 22\.\d+ MPa against 22\.\d+ MPa/);
+  }, 300_000);
+
+  it("the hydrogen model on the library's TRIGA fuel and steel: the pressure FEED works out is in the record, the gas is in the gap, and every check passes", async () => {
+    const d = JSON.parse(readFileSync(join(root, "examples", "ksu-triga-hot-element.json"), "utf8"));
+    const lib: any[] = JSON.parse(readFileSync(join(root, "library", "materials.json"), "utf8"));
+    d.materials.fuel = lib.find((e) => e.material.materialId === "triga-uzrh-h16").material;
+    d.materials.cladding = lib.find((e) => e.material.materialId === "ss304-k166").material;
+    d.geometry.claddingInnerRadius = q(d.geometry.fuelRadius.value + 0.2, "mm");
+    d.assumptions.thermalOnly = false;
+    d.mechanics = { referenceTemperature: q(293.15, "K"), plane: "free-axial", contact: { penaltyFactor: q(0.5, "1") }, coolantPressure: q(0.1, "MPa"), internalPressure: { model: "hydrogen-zrh", hZrRatio: q(1.65, "1"), fuelTemperature: "peak", source: "Simnad GA E-117-833 section 2.4" } };
+    const { rec, res } = await run(d);
+    expect(rec.state, JSON.stringify(rec.failure)).toBe("completed");
+    expect(allPass(res!)).toEqual([]);
+    const m = res!.mechanics!;
+    expect(m.internalPressure).toBeGreaterThan(0);
+    expect(m.internalPressureNote).toMatch(/hydrogen dissociation pressure of H\/Zr 1\.65 at the fuel's peak temperature/);
+    expect(m.summary.contact).toBe(false);
+  }, 300_000);
 });

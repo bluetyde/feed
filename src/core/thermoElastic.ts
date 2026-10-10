@@ -85,7 +85,7 @@ function field(s: SolidSetup, A: number, B: number, e: number): SolidField & { s
 }
 
 /** Solve A, (B) and (e) of one solid from its surface pressures (pa on the inside, pb on the outside; a solid without a hole has none inside) and the axial condition. */
-function solveSolid(s: SolidSetup, pa: number, pb: number, plane: MechanicsSpec["plane"]) {
+function solveSolid(s: SolidSetup, pa: number, pb: number, plane: MechanicsSpec["plane"], axialForce = 0) {
   const hasB = s.a > 0;
   const hasE = plane === "free-axial";
   // unknown vector x = [A, B?, e?]; every equation is affine in x, so the columns come from the unit responses
@@ -95,7 +95,7 @@ function solveSolid(s: SolidSetup, pa: number, pb: number, plane: MechanicsSpec[
     const f = field(s, x[idx.A]!, hasB ? x[idx.B]! : 0, hasE ? x[idx.e]! : 0);
     const eqs: number[] = [f.surface(s.b).sigmaR + pb];
     if (hasB) eqs.push(f.surface(s.a).sigmaR + pa);
-    if (hasE) eqs.push(f.force);
+    if (hasE) eqs.push(f.force - axialForce);
     return eqs;
   };
   const base = residual(new Array(n).fill(0));
@@ -152,21 +152,30 @@ export function independentSolution(c: NormalizedCase, props: EffectiveMechanics
   const tClad = temps.cladding;
   const fuel: SolidSetup = { a: c.fuelInnerRadius, b: c.fuelRadius, E: props.fuel.E, nu: props.fuel.nu, alpha: props.fuel.alpha, theta: (r) => tFuel(r) - Tref };
   const clad: SolidSetup = { a: c.claddingInnerRadius, b: c.claddingOuterRadius, E: props.cladding.E, nu: props.cladding.nu, alpha: props.cladding.alpha, theta: (r) => tClad(r) - Tref };
-  return solveSlice(fuel, clad, spec.plane, spec.coolantPressure);
+  return solveSlice(fuel, clad, spec.plane, spec.coolantPressure, props.internalPressure);
 }
 
-/** The two solids with the given constants and temperature differences theta(r) = T - Tref: the gap is clad.a - fuel.b. */
-export function solveSlice(fuel: SolidSetup, clad: SolidSetup, plane: MechanicsSpec["plane"], coolantPressure: number): ThermoElasticSolution {
-  // the surface pressures: the coolant outside the cladding, the interface pressure p between the solids, nothing inside a hole
-  const solve = (p: number) => ({ f: solveSolid(fuel, 0, p, plane), g: solveSolid(clad, p, coolantPressure, plane) });
+/**
+ * The two solids with the given constants and temperature differences theta(r) = T - Tref: the gap is clad.a - fuel.b. The gas in the gap presses on both surfaces with `gas`
+ * (Pa); when the solids touch the radial stress at the interface is the contact pressure plus the gas pressure, which is how OFFBEAT adds them, so only the total decides the
+ * closure and `contactPressure` is the total minus the gas.
+ */
+export function solveSlice(fuel: SolidSetup, clad: SolidSetup, plane: MechanicsSpec["plane"], coolantPressure: number, gas = 0): ThermoElasticSolution {
+  // the surface pressures: the coolant outside the cladding, the total interface pressure p between the solids (the gas alone while the gap is open), nothing inside a hole
+  // The axial force of a solid that is free axially (per 2 pi): OFFBEAT's modifiedPlaneStrain balances the slice against the gas pressure on the end it is given: the cladding
+  // carries p x (the area inside it), a closed-end tube (sigma_z = p a^2 / (b^2 - a^2) on the thin-walled limit), and the fuel p x its own area (OFFBEAT's convention, found on the
+  // real solver, not derived: the fuel's axial stress is then +p, tension). The coolant has no end load.
+  const fuelEnd = (gas * (fuel.b * fuel.b - fuel.a * fuel.a)) / 2;
+  const cladEnd = (gas * clad.a * clad.a) / 2;
+  const solve = (p: number) => ({ f: solveSolid(fuel, 0, p, plane, fuelEnd), g: solveSolid(clad, p, coolantPressure, plane, cladEnd) });
   const gapAt = (s: { f: ReturnType<typeof field>; g: ReturnType<typeof field> }) => clad.a - fuel.b + s.g.surface(clad.a).ur - s.f.surface(fuel.b).ur;
-  const open = solve(0);
+  const open = solve(gas);
   const freeGap = gapAt(open);
   if (freeGap > 0) return { fuel: open.f, cladding: open.g, gap: freeGap, freeGap, contact: false, contactPressure: 0 };
-  // the gap is affine in p: two evaluations give the pressure that closes it (a probe of 1 MPa: a probe of 1 Pa moves the gap by 1e-17 m, below what the difference can resolve)
+  // the gap is affine in the total pressure: two evaluations give the one that closes it (a probe of 1 MPa: a probe of 1 Pa moves the gap by 1e-17 m, below what the difference can resolve)
   const probe = 1e6;
-  const slope = (gapAt(solve(probe)) - freeGap) / probe;
-  const p = -freeGap / slope;
-  const closed = solve(p);
-  return { fuel: closed.f, cladding: closed.g, gap: 0, freeGap, contact: true, contactPressure: p };
+  const slope = (gapAt(solve(gas + probe)) - freeGap) / probe;
+  const total = gas - freeGap / slope;
+  const closed = solve(total);
+  return { fuel: closed.f, cladding: closed.g, gap: 0, freeGap, contact: true, contactPressure: total - gas };
 }
