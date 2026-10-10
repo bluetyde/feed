@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ga7882-pulse-5-dollar-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ga7882-pulse-5-dollar.case.json",
+      "sha256": "28091d2ec1ad3a41ad77317f1c27bc83d50fa742e452b306189f57f653aa5102"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 804.15,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 2.53,
+    "rel": 0
+  },
+  "source": {
+    "kind": "published",
+    "text": "General Atomic report GA-7882, Kinetic Behavior of TRIGA Reactors (1967), Table VII, page 31, modified Fuchs-Nordheim model (C = C0 + C1 T), $5 pulse (delta k prompt 0.028): peak power 9210 MW, burst energy 59.7 MW s, temperature rise of the burst 506 C (parameters: lifetime 4e-5 s, C0 = 8e4 W s/C at 25 C, C1 = 1.5e2 W s/C^2, alpha = 1e-4 per C per core). The hottest fuel is the start temperature of 25 C plus the published rise (the interior of a pulse of some 15 ms is adiabatic: the diffusion time over the radius is seconds).",
+    "check": "Cross-check: tests/gaKineticsTable.test.ts derives the same model exactly (Simpson's rule) and gets 9212.0 MW, 59.65 MW s and a rise of 505.8 C; FEED's generator agrees with that to 1e-4. The report's numbers are rounded and its equation 16 for the rise is an approximation, so the tolerance is 0.5 %."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "TRIGA-like core of the report GA-7882 (Table VII): $5 pulse, prompt neutrons only (no delayed groups), constant prompt coefficient of -1e-4 per K, heat capacity C = C0 + C1 T, 60 ms window (the pulse is over in about 45 ms), initial power 100 kW (about 5e-5 of the peak: the report neglects it); the core is 720 pins of 1 m, the pin an illustrative synthetic one"
+  },
+  "toleranceHash": "e1e3a32f0331acc4345f2ba3b9dd67086e701f4635c66d853d8478c5c98471a3"
+}

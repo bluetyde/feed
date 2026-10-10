@@ -649,6 +649,92 @@ let limitGood = 0;
   }
 }
 
+// ---- literature oracles: the General Atomic report GA-7882, "Kinetic Behavior of TRIGA Reactors" (1967), Table VII (page 31), the modified Fuchs-Nordheim model.
+// A TRIGA core with a prompt lifetime of 4e-5 s, C0 = 8e4 W s/C (at 25 C) and C1 = 1.5e2 W s/C^2 per core, a prompt temperature coefficient of 1e-4 per C, and a prompt
+// reactivity above prompt critical of 0.014 (a $3 pulse) or 0.028 (a $5 pulse). The EXPECTED VALUES ARE THE REPORT'S PRINTED NUMBERS (kind "published"), not ours; the exact
+// derivation below (Simpson's rule on the energy balance) is only the cross-check that the report's rounded table and its approximate equation for the rise are within the
+// tolerance. The core is described to FEED as 720 pins of 1 m of the synthetic pin's fuel (0.038 m3), so its heat capacity per cubic metre is the report's core value over that volume.
+let gaGood = 0;
+{
+  const LIFE = 4e-5, C0 = 8e4, C1 = 1.5e2, ALPHA = 1e-4, T0K = 298.15, PINS = 720, LENGTH = 1;
+  const base = load("examples/synthetic-pulse-kinetics.json");
+  const area = Math.PI * si(base.geometry.fuelRadius) ** 2;
+  const vol = PINS * LENGTH * area;
+  const exact = (dk) => {
+    const simpsonN = (f, a, b, n = 4000) => {
+      const h = (b - a) / n;
+      let t = f(a) + f(b);
+      for (let i = 1; i < n; i++) t += f(a + i * h) * (i % 2 ? 4 : 2);
+      return (t * h) / 3;
+    };
+    const energy = (th) => C0 * th + (C1 * th * th) / 2;
+    const power = (th) => (dk * energy(th) - ALPHA * simpsonN((x) => (C0 + C1 * x) * x, 0, th)) / LIFE;
+    let lo = dk / ALPHA, hi = 4 * dk / ALPHA;
+    for (let i = 0; i < 200; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (power(mid) > 0) lo = mid;
+      else hi = mid;
+    }
+    const rise = 0.5 * (lo + hi);
+    return { pmax: power(dk / ALPHA), e: energy(rise), rise };
+  };
+  const ROWS = [
+    { id: "ga7882-pulse-3-dollar", dk: 0.014, label: "$3", pmax: 2130, e: 26.1, rise: 262 },
+    { id: "ga7882-pulse-5-dollar", dk: 0.028, label: "$5", pmax: 9210, e: 59.7, rise: 506 },
+  ];
+  for (const row of ROWS) {
+    const doc = JSON.parse(JSON.stringify(base));
+    doc.caseId = row.id;
+    doc.name = "GA-7882 Table VII core, " + row.label + " pulse (modified Fuchs-Nordheim model); an illustrative pin, only the core parameters are the report's";
+    const t = doc.transient;
+    t.endTime = { value: 60, unit: "ms" };
+    t.outputs = 3; // 20, 40 and 60 ms: divides the 1200 steps of 0.05 ms; an output before the pulse has deposited less than the six digits of the solver's fields can resolve, which the energy balance would judge
+    t.initialTemperature = { value: T0K, unit: "K" };
+    const pk = t.pointKinetics;
+    pk.reactivityInsertion = { value: row.dk, unit: "dk/k" };
+    pk.promptGenerationTime = { value: LIFE * 1e6, unit: "us" };
+    pk.delayedGroups = [];
+    delete pk.delayedSource;
+    pk.feedback = { model: "constant", coefficient: { value: -ALPHA, unit: "dk/k/K" }, source: "General Atomic GA-7882, Table VII: prompt temperature coefficient 1e-4 per C" };
+    pk.initialPower = { value: 100, unit: "kW" }; // the report neglects the initial power; 100 kW is 5e-5 of the peak and brings the pulse to about 32 ms
+    pk.core = { pins: PINS, activeLength: { value: LENGTH, unit: "m" }, peakingFactor: { value: 1, unit: "1" } };
+    // C(T) = C0 + C1 (T - 25 C) per core, per cubic metre of fuel and in kelvin: a = (C0 - C1 T0K) / V, b = C1 / V
+    doc.materials.fuel.sets["thermal.volumetricHeatCapacity"] = {
+      model: "linear",
+      a: { value: Number(((C0 - C1 * T0K) / vol).toFixed(3)), unit: "J/m3/K" },
+      b: { value: Number((C1 / vol).toFixed(5)), unit: "J/m3/K2" },
+      validRange: { min: { value: 273.15, unit: "K" }, max: { value: 1273.15, unit: "K" } },
+      source: "General Atomic GA-7882, Table VII: C = C0 + C1 T per core with C0 = 8e4 W s/C at 25 C and C1 = 1.5e2 W s/C^2, divided by the volume of the 720 pins of 1 m modelled here",
+    };
+    const ex = exact(row.dk);
+    // the table is rounded and its equation 16 approximate: the exact derivation must be within the tolerances of the entries
+    if (Math.abs(ex.e / 1e6 / row.e - 1) > 5e-3 || Math.abs(ex.pmax / 1e6 / row.pmax - 1) > 5e-3 || Math.abs(ex.rise - row.rise) > 1) throw new Error(row.id + ": the exact derivation leaves the published row");
+    const rel = writeCase(row.id, doc);
+    const domain = "TRIGA-like core of the report GA-7882 (Table VII): " + row.label + " pulse, prompt neutrons only (no delayed groups), constant prompt coefficient of -1e-4 per K, heat capacity C = C0 + C1 T, 60 ms window (the pulse is over in about 45 ms), initial power 100 kW (about 5e-5 of the peak: the report neglects it); the core is " + PINS + " pins of " + LENGTH + " m, the pin an illustrative synthetic one";
+    const check = "Cross-check: " + "tests/gaKineticsTable.test.ts derives the same model exactly (Simpson's rule) and gets " + (ex.pmax / 1e6).toFixed(1) + " MW, " + (ex.e / 1e6).toFixed(2) + " MW s and a rise of " + ex.rise.toFixed(1) + " C; FEED's generator agrees with that to 1e-4. The report's numbers are rounded and its equation 16 for the rise is an approximation, so the tolerance is 0.5 %.";
+    const text = "General Atomic report GA-7882, Kinetic Behavior of TRIGA Reactors (1967), Table VII, page 31, modified Fuchs-Nordheim model (C = C0 + C1 T), " + row.label + " pulse (delta k prompt " + row.dk + "): peak power " + row.pmax + " MW, burst energy " + row.e + " MW s, temperature rise of the burst " + row.rise + " C (parameters: lifetime 4e-5 s, C0 = 8e4 W s/C at 25 C, C1 = 1.5e2 W s/C^2, alpha = 1e-4 per C per core). ";
+    entry({
+      id: "feed-" + row.id + "-energy-deposited",
+      tag: "good",
+      casePath: rel,
+      expected: { quantity: "energy_deposited", value: round((row.e * 1e6 * 1) / (PINS * LENGTH), 3), unit: "J/m" },
+      tolerance: { abs: 0, rel: 5e-3 },
+      source: { kind: "published", text: text + "The energy of the slice is the burst energy of the core over the " + PINS + " pins of " + LENGTH + " m.", check },
+      coverage: { quantities: ["energy_deposited"], domain },
+    });
+    entry({
+      id: "feed-" + row.id + "-temperature-peak-max",
+      tag: "good",
+      casePath: rel,
+      expected: { quantity: "temperature_peak_max", value: round(T0K + row.rise, 4), unit: "K" },
+      tolerance: { abs: Number((5e-3 * row.rise).toFixed(2)), rel: 0 },
+      source: { kind: "published", text: text + "The hottest fuel is the start temperature of 25 C plus the published rise (the interior of a pulse of some 15 ms is adiabatic: the diffusion time over the radius is seconds).", check },
+      coverage: { quantities: ["temperature_peak_max"], domain },
+    });
+    gaGood += 2;
+  }
+}
+
 // Known limit for a transient: the fuel's heat capacity law stated valid only up to a temperature the pulse exceeds.
 {
   const doc = load("schema/vectors/good/pulse-linear-heat-capacity.json");
@@ -676,10 +762,10 @@ write(
     "Expected values are the closed-form series solution computed by the generator, never the output of a solver run. A tolerance is part of the",
     "entry's hash: changing it needs a new `entryVersion` made by a human.",
     "",
-    (good + transientGood + kineticsGood + limitGood) + " good entries (steady: peak, outer-wall temperature, flux and energy balance over eight pins, two of them with a cubic and a tabulated fuel conductivity; pulses: adiabatic peak and energy deposited over four tabulated-power cases, two generated by point kinetics, and a steady-start hold), " + BAD.length + " bad-input entries, 2 known-limit entries.",
+    (good + transientGood + kineticsGood + limitGood + gaGood) + " good entries (steady: peak, outer-wall temperature, flux and energy balance over eight pins, two of them with a cubic and a tabulated fuel conductivity; pulses: adiabatic peak and energy deposited over four tabulated-power cases, two generated by point kinetics, and a steady-start hold), " + BAD.length + " bad-input entries, 2 known-limit entries.",
     "All cases use the mesh " + MESH.fuelCells + "/" + MESH.claddingCells + " (fuel/cladding cells). The peak is the first fuel cell centre of that mesh.",
     "Pulse entries test the adiabatic limit only: heat leaving the fuel during a long transient has no entry here (FEED checks it against its own independent solution). Not covered: mechanics, a central hole whose surface is not insulated, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
     "",
   ].join(NL)
 );
-console.log("wrote " + (good + transientGood + kineticsGood + limitGood) + " good, " + BAD.length + " bad-input and 2 known-limit entries to " + out);
+console.log("wrote " + (good + transientGood + kineticsGood + limitGood + gaGood) + " good, " + BAD.length + " bad-input and 2 known-limit entries to " + out);
