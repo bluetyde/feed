@@ -395,6 +395,13 @@ add("good", "mechanics-section", mech(clone()), {});
   c.materials.fuel.sets["mechanical.elasticity"] = { model: "linear", a: { value: 250, unit: "GPa" }, b: { value: -0.05, unit: "GPa/K" }, poissonRatio: { value: 0.3, unit: "1" }, validRange: { min: { value: 300, unit: "K" }, max: { value: 400, unit: "K" } }, source: "synthetic: chosen for the vectors" };
   add("good", "mechanics-elasticity-range-warning", c, { warnings: ["W_ELASTICITY_RANGE"] });
 }
+add("good", "mechanics-internal-pressure-constant", (() => { const c = mech(clone()); c.mechanics.internalPressure = { model: "constant", pressure: { value: 5, unit: "MPa" }, source: "a synthetic input" }; return c; })(), {});
+add("good", "mechanics-internal-pressure-hydrogen", (() => { const c = mech(clone()); c.mechanics.internalPressure = { model: "hydrogen-zrh", hZrRatio: { value: 1.65, unit: "1" }, fuelTemperature: "peak", source: "Simnad GA E-117-833 section 2.4" }; return c; })(), {});
+bad("mechanics-internal-pressure-no-source", "E_PROP_MISSING", "/mechanics/internalPressure/source", (c) => { mech(c); c.mechanics.internalPressure = { model: "constant", pressure: { value: 5, unit: "MPa" } }; });
+bad("mechanics-internal-pressure-zero", "E_OUT_OF_RANGE", "/mechanics/internalPressure/pressure", (c) => { mech(c); c.mechanics.internalPressure = { model: "constant", pressure: { value: 0, unit: "MPa" }, source: "x" }; });
+bad("mechanics-internal-pressure-unknown-model", "E_UNSUPPORTED", "/mechanics/internalPressure/model", (c) => { mech(c); c.mechanics.internalPressure = { model: "plenum", source: "x" }; });
+bad("mechanics-hydrogen-ratio-out-of-range", "E_OUT_OF_RANGE", "/mechanics/internalPressure/hZrRatio", (c) => { mech(c); c.mechanics.internalPressure = { model: "hydrogen-zrh", hZrRatio: { value: 2.1, unit: "1" }, fuelTemperature: "peak", source: "x" }; });
+bad("mechanics-hydrogen-temperature-missing", "E_PROP_MISSING", "/mechanics/internalPressure/fuelTemperature", (c) => { mech(c); c.mechanics.internalPressure = { model: "hydrogen-zrh", hZrRatio: { value: 1.65, unit: "1" }, source: "x" }; });
 bad("mechanics-reference-temperature-missing", "E_PROP_MISSING", "/mechanics/referenceTemperature", (c) => { mech(c); delete c.mechanics.referenceTemperature; });
 bad("mechanics-reference-temperature-zero", "E_OUT_OF_RANGE", "/mechanics/referenceTemperature", (c) => { mech(c); c.mechanics.referenceTemperature = { value: 0, unit: "K" }; });
 bad("mechanics-plane-missing", "E_PROP_MISSING", "/mechanics/plane", (c) => { mech(c); delete c.mechanics.plane; });

@@ -39,6 +39,9 @@ export interface MechanicsRecord {
   referenceTemperature: number;
   penaltyFactor: number;
   coolantPressure: number;
+  /** The gas pressure in the gap, Pa (0 for none) and how it was found. */
+  internalPressure: number;
+  internalPressureNote?: string;
   /** The constants OFFBEAT was given for each solid: a law of temperature is reduced to these (mechanicalEval.ts). */
   properties: EffectiveMechanics;
   points: MechanicsPoint[];
@@ -161,6 +164,8 @@ export function buildMechanics(
       referenceTemperature: spec.referenceTemperature,
       penaltyFactor: spec.penaltyFactor,
       coolantPressure: spec.coolantPressure,
+      internalPressure: properties.internalPressure,
+      ...(properties.internalPressureNote ? { internalPressureNote: properties.internalPressureNote } : {}),
       properties,
       points,
       summary: { fuel: solid("fuel"), cladding: solid("cladding"), gapWidth, contactPressure, contact },

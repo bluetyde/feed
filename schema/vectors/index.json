@@ -959,6 +959,44 @@
     ]
   },
   {
+    "file": "good/mechanics-internal-pressure-constant.json",
+    "valid": true
+  },
+  {
+    "file": "good/mechanics-internal-pressure-hydrogen.json",
+    "valid": true
+  },
+  {
+    "file": "bad/mechanics-internal-pressure-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/internalPressure/source"
+  },
+  {
+    "file": "bad/mechanics-internal-pressure-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/internalPressure/pressure"
+  },
+  {
+    "file": "bad/mechanics-internal-pressure-unknown-model.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics/internalPressure/model"
+  },
+  {
+    "file": "bad/mechanics-hydrogen-ratio-out-of-range.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/internalPressure/hZrRatio"
+  },
+  {
+    "file": "bad/mechanics-hydrogen-temperature-missing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/internalPressure/fuelTemperature"
+  },
+  {
     "file": "bad/mechanics-reference-temperature-missing.json",
     "valid": false,
     "code": "E_PROP_MISSING",

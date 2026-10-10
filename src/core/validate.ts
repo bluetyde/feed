@@ -12,6 +12,7 @@ import { heatCapacityLaw } from "./heatCapacity";
 import type { LimitRule } from "./limits";
 import { alphaAt, ExpansionLaw, hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
 import { effectiveMechanics } from "./mechanicalEval";
+import { HYDROGEN_RATIO_RANGE } from "./hydrogenPressure";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
 import { Dimension, toSI } from "./units";
@@ -106,7 +107,14 @@ export interface MechanicsSpec {
   penaltyFactor: number;
   /** The pressure on the cladding's outer surface, Pa. */
   coolantPressure: number;
+  /** The gas pressure in the gap, an input with its source; absent for none (plan 09 M4). */
+  internalPressure?: InternalPressure;
 }
+
+/** A constant pressure, or the hydrogen dissociation pressure of the hydride fuel at a fuel temperature the case names (src/core/hydrogenPressure.ts). */
+export type InternalPressure =
+  | { kind: "constant"; pressure: number; source: string }
+  | { kind: "hydrogen-zrh"; hZrRatio: number; basis: "peak" | "mean"; source: string };
 
 export interface NormalizedCase {
   caseId: string;
@@ -1079,7 +1087,7 @@ function expansionLaw(raw: unknown, field: string, err: ErrFn, qty: QtyFn): Expa
   return law;
 }
 
-const MECHANICS_KEYS = ["referenceTemperature", "plane", "contact", "coolantPressure"];
+const MECHANICS_KEYS = ["referenceTemperature", "plane", "contact", "coolantPressure", "internalPressure"];
 const PENALTY_MIN = 0.05;
 const PENALTY_MAX = 1;
 const MAX_PRESSURE = 1e9;
@@ -1139,8 +1147,74 @@ function parseMechanics(raw: unknown, err: ErrFn, qty: QtyFn): MechanicsSpec | u
       coolantPressure = undefined;
     }
   }
+  const internalPressure = raw.internalPressure === undefined ? undefined : parseInternalPressure(raw.internalPressure, bad, qty);
+  if (raw.internalPressure !== undefined && internalPressure === undefined) ok = false;
   if (!ok || referenceTemperature === undefined || plane === undefined || penaltyFactor === undefined || coolantPressure === undefined) return undefined;
-  return { referenceTemperature, plane, penaltyFactor, coolantPressure };
+  return { referenceTemperature, plane, penaltyFactor, coolantPressure, ...(internalPressure ? { internalPressure } : {}) };
+}
+
+/**
+ * The pressure of the gas in the gap (plan 09 M4), an input that names its source: `{model: "constant", pressure, source}`, or `{model: "hydrogen-zrh", hZrRatio, fuelTemperature:
+ * "peak" | "mean", source}`, the hydrogen pressure the hydride fuel holds at the hottest (or the area-mean) fuel temperature of the run. FEED computes no fuel hydrogen inventory,
+ * no fission gas and no plenum: the case states what it takes the pressure to be.
+ */
+function parseInternalPressure(raw: unknown, bad: (code: string, field: string, message: string, extra?: Partial<Issue>) => void, qty: QtyFn): InternalPressure | undefined {
+  const F = "/mechanics/internalPressure";
+  if (!isObject(raw)) {
+    bad("E_SCHEMA_INVALID", F, "internalPressure is an object: {model: 'constant', pressure, source} or {model: 'hydrogen-zrh', hZrRatio, fuelTemperature, source}");
+    return undefined;
+  }
+  const keysFor = raw.model === "constant" ? ["model", "pressure", "source"] : ["model", "hZrRatio", "fuelTemperature", "source"];
+  if (raw.model !== "constant" && raw.model !== "hydrogen-zrh") {
+    bad("E_UNSUPPORTED", F + "/model", "the internal pressure models are 'constant' and 'hydrogen-zrh'");
+    return undefined;
+  }
+  let ok = true;
+  for (const k of Object.keys(raw)) {
+    if (!keysFor.includes(k)) {
+      bad("E_SCHEMA_INVALID", F + "/" + k, "unknown key '" + k + "' (the " + raw.model + " internal pressure has " + keysFor.join(", ") + ")");
+      ok = false;
+    }
+  }
+  let source: string | undefined;
+  if (typeof raw.source !== "string" || raw.source.trim() === "") {
+    bad("E_PROP_MISSING", F + "/source", "the source of the internal pressure is required: FEED has no gas inventory of its own, so the case says where the number comes from");
+    ok = false;
+  } else source = raw.source;
+  if (raw.model === "constant") {
+    if (raw.pressure === undefined) {
+      bad("E_PROP_MISSING", F + "/pressure", "the gas pressure is required");
+      return undefined;
+    }
+    const pressure = qty(raw.pressure, "pressure", F + "/pressure");
+    if (pressure === undefined) return undefined;
+    if (!(pressure > 0 && pressure <= MAX_PRESSURE)) {
+      bad("E_OUT_OF_RANGE", F + "/pressure", "the gas pressure is above 0 and at most " + MAX_PRESSURE + " Pa (leave internalPressure out for none)", { unit: "Pa" });
+      return undefined;
+    }
+    return ok && source !== undefined ? { kind: "constant", pressure, source } : undefined;
+  }
+  let hZrRatio: number | undefined;
+  if (raw.hZrRatio === undefined) {
+    bad("E_PROP_MISSING", F + "/hZrRatio", "the hydrogen-to-zirconium atom ratio of the fuel is required");
+    ok = false;
+  } else {
+    hZrRatio = qty(raw.hZrRatio, "fraction", F + "/hZrRatio");
+    if (hZrRatio === undefined) ok = false;
+    else if (!(hZrRatio >= HYDROGEN_RATIO_RANGE[0] && hZrRatio <= HYDROGEN_RATIO_RANGE[1])) {
+      bad("E_OUT_OF_RANGE", F + "/hZrRatio", "the H/Zr ratio is from " + HYDROGEN_RATIO_RANGE[0] + " to " + HYDROGEN_RATIO_RANGE[1] + ", the delta phase the correlation (Simnad, GA E-117-833 section 2.4) is for", { unit: "1" });
+      ok = false;
+    }
+  }
+  const basis = raw.fuelTemperature;
+  if (basis === undefined) {
+    bad("E_PROP_MISSING", F + "/fuelTemperature", "the fuel temperature the hydrogen pressure is taken at is required: 'peak' (the hottest point, as the SARs do) or 'mean' (the area-weighted mean)");
+    ok = false;
+  } else if (basis !== "peak" && basis !== "mean") {
+    bad("E_UNSUPPORTED", F + "/fuelTemperature", "the fuel temperature is 'peak' or 'mean'");
+    ok = false;
+  }
+  return ok && hZrRatio !== undefined && source !== undefined && (basis === "peak" || basis === "mean") ? { kind: "hydrogen-zrh", hZrRatio, basis, source } : undefined;
 }
 
 /** Bounds of a mechanical property: a solid's Young's modulus is between a soft polymer and the stiffest ceramic. */

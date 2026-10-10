@@ -9,6 +9,7 @@
 // This is an approximation of the stress (the strain profile is the constant coefficient's, not the law's) and the results say so. A solid that runs outside the range its law
 // is stated for is reported, not refused (the same as the hot dimensions).
 import { alphaAt, profileStats, thermalStrain } from "./hotDimensions";
+import { hydrogenPressure } from "./hydrogenPressure";
 import type { Elasticity, MechanicalProps, NormalizedCase } from "./validate";
 
 export interface EffectiveSolid {
@@ -28,6 +29,9 @@ export interface EffectiveSolid {
 
 export interface EffectiveMechanics {
   referenceTemperature: number;
+  /** The gas pressure in the gap, Pa (0 for none), and for the hydrogen model the fuel temperature (K) and the H/Zr ratio it was taken at. */
+  internalPressure: number;
+  internalPressureNote?: string;
   fuel: EffectiveSolid;
   cladding: EffectiveSolid;
 }
@@ -61,5 +65,16 @@ export function effectiveMechanics(c: NormalizedCase): EffectiveMechanics | unde
   if (!c.mechanics || !c.mechanical) return undefined;
   const Tref = c.mechanics.referenceTemperature;
   const stats = profileStats(c, (T) => thermalStrain(c.mechanical!.fuel.expansion, T, Tref), (T) => thermalStrain(c.mechanical!.cladding.expansion, T, Tref));
-  return { referenceTemperature: Tref, fuel: effective(c.mechanical.fuel, stats.fuel, Tref), cladding: effective(c.mechanical.cladding, stats.cladding, Tref) };
+  const ip = c.mechanics.internalPressure;
+  let internalPressure = 0;
+  let internalPressureNote: string | undefined;
+  if (ip?.kind === "constant") {
+    internalPressure = ip.pressure;
+    internalPressureNote = "a stated pressure of " + ip.pressure + " Pa (" + ip.source + ")";
+  } else if (ip?.kind === "hydrogen-zrh") {
+    const T = ip.basis === "peak" ? stats.fuel.max : stats.fuel.meanT;
+    internalPressure = hydrogenPressure(ip.hZrRatio, T);
+    internalPressureNote = "the hydrogen dissociation pressure of H/Zr " + ip.hZrRatio + " at the fuel's " + (ip.basis === "peak" ? "peak" : "area-mean") + " temperature " + T.toFixed(1) + " K, " + internalPressure.toPrecision(5) + " Pa (" + ip.source + ")";
+  }
+  return { referenceTemperature: Tref, internalPressure, ...(internalPressureNote ? { internalPressureNote } : {}), fuel: effective(c.mechanical.fuel, stats.fuel, Tref), cladding: effective(c.mechanical.cladding, stats.cladding, Tref) };
 }
