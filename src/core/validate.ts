@@ -87,6 +87,14 @@ export const RADIUS_MIN = 1e-9;
 export const RADIUS_MAX = 1e3;
 export const HEAT_CAPACITY_MAX = 1e8;
 
+/** Young's modulus (Pa) and Poisson's ratio of a solid: a constant, or E = a + b T over a stated temperature range (T in K). */
+export type Elasticity = { kind: "constant"; E: number; nu: number; range?: [number, number] } | { kind: "linear"; a: number; b: number; nu: number; range: [number, number] };
+/** The mechanical properties of one solid that a thermo-elastic run needs (docs/plans/09-mechanics.md M1). */
+export interface MechanicalProps {
+  elasticity: Elasticity;
+  expansion: ExpansionLaw;
+}
+
 export interface NormalizedCase {
   caseId: string;
   /** Steady: the linear heat rate (W/m). Transient: the peak of the power history, as a reference value only. */
@@ -111,6 +119,8 @@ export interface NormalizedCase {
   burnup?: { value: number; source: string };
   /** Present when the case asks for hot dimensions: the radii above are then the hot ones and this holds the cold ones, the mean temperatures and the factors (src/core/hotDimensions.ts). */
   hot?: HotRecord;
+  /** The mechanical property sets of both solids, present when each has a valid mechanical.elasticity and mechanical.thermalExpansion (a thermal run does not use them). */
+  mechanical?: { fuel: MechanicalProps; cladding: MechanicalProps };
 }
 
 export interface ValidationResult {
@@ -277,6 +287,9 @@ export function validateCase(doc: unknown): ValidationResult {
   if (fuelK && fuelK.kind !== "uo2-nfi" && c.burnup !== undefined) err("E_UNSUPPORTED", "/burnup", "the fuel's conductivity model '" + fuelK.kind + "' does not depend on burnup, so a burnup would change nothing; use the uo2-nfi model or remove the burnup");
   if (c.burnup !== undefined && isTransient) err("E_UNSUPPORTED", "/burnup", "a burnup is for steady cases in this release: the conductivity would be frozen over the transient");
   const claddingK = conductivity(c.materials.cladding, "cladding", err, qty);
+  // Mechanical property sets (plan 09 M1): checked whenever a material carries them; a case that asks for mechanics (assumptions.thermalOnly false) must have both sets for both solids
+  const mechFuel = mechanicalSets(c.materials.fuel, "fuel", err, qty, c.assumptions.thermalOnly === false);
+  const mechCladding = mechanicalSets(c.materials.cladding, "cladding", err, qty, c.assumptions.thermalOnly === false);
 
   const limits = c.limits === undefined ? undefined : parseLimits(c.limits, err, qty);
   const hotSpec = c.hotDimensions === undefined ? undefined : parseHot(c.hotDimensions, err, qty);
@@ -343,6 +356,7 @@ export function validateCase(doc: unknown): ValidationResult {
       mesh: { fuelCells: mesh.fuelCells, claddingCells: mesh.claddingCells },
       ...(isTransient ? { transient, fuelHeatCapacity: fuelCp, claddingHeatCapacity: claddingCp } : {}),
       ...(limits ? { limits } : {}),
+      ...(mechFuel && mechCladding ? { mechanical: { fuel: mechFuel, cladding: mechCladding } } : {}),
       ...(fuelK.kind === "uo2-nfi" && burnupSpec ? { burnup: burnupSpec } : {}),
     };
     // Hot dimensions: the radii above are cold; replace them with the radii each solid has at its own mean temperature (the temperatures and the radii are iterated together).
@@ -499,6 +513,7 @@ export function validateMaterial(region: "fuel" | "cladding", material: unknown)
   };
   conductivity(material, region, err as ErrFn, qty);
   if (sets["thermal.volumetricHeatCapacity"] !== undefined) heatCapacity(material, region, err as ErrFn, qty);
+  mechanicalSets(material, region, err as ErrFn, qty, false);
   return finish(issues);
 }
 
@@ -1027,6 +1042,115 @@ function expansionLaw(raw: unknown, field: string, err: ErrFn, qty: QtyFn): Expa
     return undefined;
   }
   return law;
+}
+
+/** Bounds of a mechanical property: a solid's Young's modulus is between a soft polymer and the stiffest ceramic. */
+const E_MIN = 1e7;
+const E_MAX = 5e12;
+
+const MECHANICAL_ELASTICITY_KEYS = { constant: ["model", "youngModulus", "poissonRatio", "validRange", "source"], linear: ["model", "a", "b", "poissonRatio", "validRange", "source"] } as const;
+
+/**
+ * The mechanical property sets of one solid (docs/plans/09-mechanics.md M1): `mechanical.elasticity` (Young's modulus as a constant or `a + b T` over a stated range, and Poisson's
+ * ratio, with the source) and `mechanical.thermalExpansion` (the linear expansion coefficient, constant or `a + b T`, with the source: the same law as the hot dimensions use).
+ * Checked whenever present. With `required`, a missing set is refused naming it: FEED has no mechanical properties of its own and a silent default would be a made-up number
+ * (OFFBEAT itself stops with a fatal error on a missing one, docs/spike/mechanics-probe.md). Returns both when both are valid.
+ */
+function mechanicalSets(material: Record<string, any>, region: string, err: ErrFn, qty: QtyFn, required: boolean): MechanicalProps | undefined {
+  const sets = isObject(material.sets) ? material.sets : {};
+  const eBase = "/materials/" + region + "/sets/mechanical.elasticity";
+  const xBase = "/materials/" + region + "/sets/mechanical.thermalExpansion";
+  let elasticity: Elasticity | undefined;
+  let expansion: ExpansionLaw | undefined;
+  const missing = (base: string, name: string, what: string) =>
+    err("E_PROP_MISSING", base, region + " material '" + material.materialId + "' has no " + name + " set; a mechanical run needs " + what + " (FEED has none of its own and does not default one)");
+
+  const e = sets["mechanical.elasticity"];
+  if (e === undefined) {
+    if (required) missing(eBase, "mechanical.elasticity", "Young's modulus and Poisson's ratio of both solids");
+  } else if (!isObject(e)) {
+    err("E_SCHEMA_INVALID", eBase, "a property set is an object");
+  } else {
+    let ok = true;
+    const bad = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+      err(code, field, message, extra);
+      ok = false;
+    };
+    if (e.model !== "constant" && e.model !== "linear") bad(e.model === undefined ? "E_PROP_MISSING" : "E_UNSUPPORTED", eBase + "/model", "the elasticity models are 'constant' (E and nu) and 'linear' (E = a + b T over a valid range)");
+    else for (const k of Object.keys(e)) if (!(MECHANICAL_ELASTICITY_KEYS[e.model] as readonly string[]).includes(k)) bad("E_SCHEMA_INVALID", eBase + "/" + k, "unknown key '" + k + "' for the " + e.model + " elasticity (" + MECHANICAL_ELASTICITY_KEYS[e.model].join(", ") + ")");
+    if (e.source === undefined || typeof e.source !== "string" || e.source.trim() === "") bad("E_PROP_MISSING", eBase + "/source", "the elasticity needs the source it comes from (a report and a table or page): FEED has no mechanical properties of its own");
+    let nu: number | undefined;
+    if (e.poissonRatio === undefined) bad("E_PROP_MISSING", eBase + "/poissonRatio", "the elasticity needs Poisson's ratio");
+    else {
+      nu = qty(e.poissonRatio, "fraction", eBase + "/poissonRatio");
+      if (nu === undefined) ok = false;
+      else if (!(nu >= 0 && nu < 0.5)) {
+        bad("E_OUT_OF_RANGE", eBase + "/poissonRatio", "Poisson's ratio of a solid is from 0 up to (not including) 0.5, got " + nu, { unit: "1" });
+        nu = undefined;
+      }
+    }
+    let range: [number, number] | undefined;
+    if (e.validRange !== undefined) {
+      const vr = e.validRange;
+      if (!isObject(vr) || vr.min === undefined || vr.max === undefined) bad("E_SCHEMA_INVALID", eBase + "/validRange", "validRange is {min, max}, each a temperature");
+      else {
+        const lo = qty(vr.min, "temperature", eBase + "/validRange/min");
+        const hi = qty(vr.max, "temperature", eBase + "/validRange/max");
+        if (lo === undefined || hi === undefined) ok = false;
+        else if (!(lo > 0 && hi > lo && hi <= MAX_REFERENCE_TEMPERATURE)) bad("E_OUT_OF_RANGE", eBase + "/validRange", "the range is above 0 K, increasing and at most " + MAX_REFERENCE_TEMPERATURE + " K", { unit: "K" });
+        else range = [lo, hi];
+      }
+    } else if (e.model === "linear") bad("E_PROP_MISSING", eBase + "/validRange", "a linear elasticity needs the temperature range it is valid over: it is not extrapolated silently");
+    const inBounds = (E: number) => E >= E_MIN && E <= E_MAX;
+    if (ok && e.model === "constant") {
+      if (e.youngModulus === undefined) bad("E_PROP_MISSING", eBase + "/youngModulus", "a constant elasticity needs its Young's modulus");
+      else {
+        const E = qty(e.youngModulus, "pressure", eBase + "/youngModulus");
+        if (E === undefined) ok = false;
+        else if (!inBounds(E)) bad("E_OUT_OF_RANGE", eBase + "/youngModulus", "Young's modulus is between " + E_MIN + " and " + E_MAX + " Pa (solids are 1e9 to 1e12), got " + E, { unit: "Pa" });
+        else if (ok && nu !== undefined) elasticity = { kind: "constant", E, nu, ...(range ? { range } : {}) };
+      }
+    }
+    if (ok && e.model === "linear") {
+      const a = e.a === undefined ? undefined : qty(e.a, "pressure", eBase + "/a");
+      const b = e.b === undefined ? undefined : qty(e.b, "pressurePerK", eBase + "/b");
+      if (e.a === undefined) bad("E_PROP_MISSING", eBase + "/a", "a linear elasticity needs its term 'a'");
+      if (e.b === undefined) bad("E_PROP_MISSING", eBase + "/b", "a linear elasticity needs its term 'b'");
+      if (a === undefined || b === undefined) ok = false;
+      else if (ok && range && nu !== undefined) {
+        const lo = a + b * range[0];
+        const hi = a + b * range[1];
+        if (!inBounds(lo) || !inBounds(hi)) bad("E_OUT_OF_RANGE", eBase, "Young's modulus a + b T must be between " + E_MIN + " and " + E_MAX + " Pa across the whole valid range (it is " + lo + " Pa at " + range[0] + " K and " + hi + " Pa at " + range[1] + " K)", { unit: "Pa" });
+        else elasticity = { kind: "linear", a, b, nu, range };
+      }
+    }
+  }
+
+  const x = sets["mechanical.thermalExpansion"];
+  if (x === undefined) {
+    if (required) missing(xBase, "mechanical.thermalExpansion", "the linear expansion coefficient of both solids");
+  } else if (!isObject(x)) {
+    err("E_SCHEMA_INVALID", xBase, "a property set is an object");
+  } else {
+    let ok = true;
+    for (const k of Object.keys(x)) if (!["linearExpansion", "source"].includes(k)) {
+      err("E_SCHEMA_INVALID", xBase + "/" + k, "unknown key '" + k + "' (a thermal expansion set has linearExpansion and source)");
+      ok = false;
+    }
+    if (x.source === undefined || typeof x.source !== "string" || x.source.trim() === "") {
+      err("E_PROP_MISSING", xBase + "/source", "the thermal expansion needs the source it comes from (a report and a table or page): FEED has none of its own");
+      ok = false;
+    }
+    if (x.linearExpansion === undefined) {
+      err("E_PROP_MISSING", xBase + "/linearExpansion", "the thermal expansion set needs its linearExpansion (a coefficient, or a linear law with its valid range)");
+      ok = false;
+    } else {
+      expansion = expansionLaw(x.linearExpansion, xBase + "/linearExpansion", err, qty);
+      if (!expansion) ok = false;
+    }
+    if (!ok) expansion = undefined;
+  }
+  return elasticity && expansion ? { elasticity, expansion } : undefined;
 }
 
 /**

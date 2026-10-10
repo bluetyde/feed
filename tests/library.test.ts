@@ -57,7 +57,7 @@ describe("library", () => {
 
     it("adding the set made a new revision and left the conductivity as it was", () => {
       const byId = (id: string) => lib.materials.find((x: any) => x.material.materialId === id)!.material;
-      expect(byId("triga-uzrh-h16").revision).toBe(2);
+      expect(byId("triga-uzrh-h16").revision).toBe(3); // revision 3 added the mechanical sets (plan 09 M1)
       expect((byId("triga-uzrh-h16").sets as any)["thermal.conductivity"].value).toEqual({ value: 18, unit: "W/m/K" });
       expect((byId("ss304-k166").sets as any)["thermal.conductivity"].value).toEqual({ value: 16.6, unit: "W/m/K" });
       for (const x of withHc) if (x.material.materialId !== "ss304-ktable") expect(x.material.revision, x.material.materialId).toBeGreaterThanOrEqual(2); // ss304-ktable was born with its heat capacity

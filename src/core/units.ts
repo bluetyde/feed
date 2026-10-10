@@ -1,7 +1,7 @@
 // Quantity parsing: every physical input is {value, unit}; the unit must belong to the expected dimension.
 // SI is used inside the app (docs/ARCHITECTURE.md, Conventions).
 
-export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "expansion" | "expansionPerK" | "burnup" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
+export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "expansion" | "expansionPerK" | "pressure" | "pressurePerK" | "burnup" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
 
 interface UnitDef {
   dim: Dimension;
@@ -33,6 +33,16 @@ const UNITS: Record<string, UnitDef> = {
   "GWd/tHM": { dim: "burnup", scale: 1 },
   "MWd/tHM": { dim: "burnup", scale: 1e-3 },
   "1e-9/K2": { dim: "expansionPerK", scale: 1e-9 },
+  // pressure and stress (Young's modulus, strength); psi is 6894.757293168 Pa
+  Pa: { dim: "pressure", scale: 1 },
+  kPa: { dim: "pressure", scale: 1e3 },
+  MPa: { dim: "pressure", scale: 1e6 },
+  GPa: { dim: "pressure", scale: 1e9 },
+  psi: { dim: "pressure", scale: 6894.757293168 },
+  ksi: { dim: "pressure", scale: 6894757.293168 },
+  "Pa/K": { dim: "pressurePerK", scale: 1 },
+  "MPa/K": { dim: "pressurePerK", scale: 1e6 },
+  "GPa/K": { dim: "pressurePerK", scale: 1e9 },
   "W/m2/K": { dim: "htc", scale: 1 },
   "kW/m2/K": { dim: "htc", scale: 1e3 },
   s: { dim: "time", scale: 1 },
@@ -72,6 +82,8 @@ export const SI_UNIT: Record<Dimension, string> = {
   conductivityPerK3: "W/m/K4",
   expansion: "1/K",
   expansionPerK: "1/K2",
+  pressure: "Pa",
+  pressurePerK: "Pa/K",
   burnup: "MWd/kgHM",
   htc: "W/m2/K",
   time: "s",

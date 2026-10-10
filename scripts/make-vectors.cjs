@@ -338,7 +338,27 @@ badL("limits-condition-zero", "E_OUT_OF_RANGE", "/limits/0/whileCladding/above",
 
 bad("unsupported-contact-model", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "contact" }));
 bad("unsupported-gas-gap", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "gas-gap" }));
-bad("unsupported-mechanics", "E_UNSUPPORTED", "/assumptions/thermalOnly", (c) => (c.assumptions.thermalOnly = false));
+// the mechanical property sets of plan 09 M1: both solids carry them in these vectors (a case that asks for mechanics without them gets E_PROP_MISSING as well: tests/mechanicalSets.test.ts)
+const elasticity = (extra = {}) => ({ model: "constant", youngModulus: { value: 100, unit: "GPa" }, poissonRatio: { value: 0.3, unit: "1" }, source: "synthetic: chosen for the vectors, not a sourced property", ...extra });
+const expansionSet = (extra = {}) => ({ linearExpansion: { value: 10, unit: "ppm/K" }, source: "synthetic: chosen for the vectors, not a sourced property", ...extra });
+const withMech = (c, over = {}) => {
+  for (const r of ["fuel", "cladding"]) {
+    c.materials[r].sets["mechanical.elasticity"] = elasticity();
+    c.materials[r].sets["mechanical.thermalExpansion"] = expansionSet();
+  }
+  Object.assign(c.materials.fuel.sets, over);
+  return c;
+};
+bad("unsupported-mechanics", "E_UNSUPPORTED", "/assumptions/thermalOnly", (c) => (withMech(c), (c.assumptions.thermalOnly = false)));
+add("good", "mechanical-sets", withMech(clone()), {});
+bad("mechanical-elasticity-no-source", "E_PROP_MISSING", "/materials/fuel/sets/mechanical.elasticity/source", (c) => withMech(c, { "mechanical.elasticity": elasticity({ source: "" }) }));
+bad("mechanical-poisson-too-high", "E_OUT_OF_RANGE", "/materials/fuel/sets/mechanical.elasticity/poissonRatio", (c) => withMech(c, { "mechanical.elasticity": elasticity({ poissonRatio: { value: 0.5, unit: "1" } }) }));
+bad("mechanical-modulus-wrong-unit", "E_UNITS", "/materials/fuel/sets/mechanical.elasticity/youngModulus", (c) => withMech(c, { "mechanical.elasticity": elasticity({ youngModulus: { value: 100, unit: "W/m/K" } }) }));
+bad("mechanical-modulus-too-small", "E_OUT_OF_RANGE", "/materials/fuel/sets/mechanical.elasticity/youngModulus", (c) => withMech(c, { "mechanical.elasticity": elasticity({ youngModulus: { value: 100, unit: "Pa" } }) }));
+bad("mechanical-linear-no-range", "E_PROP_MISSING", "/materials/fuel/sets/mechanical.elasticity/validRange", (c) => withMech(c, { "mechanical.elasticity": { model: "linear", a: { value: 100, unit: "GPa" }, b: { value: -0.01, unit: "GPa/K" }, poissonRatio: { value: 0.3, unit: "1" }, source: "synthetic: chosen for the vectors" } }));
+bad("mechanical-elasticity-unknown-model", "E_UNSUPPORTED", "/materials/fuel/sets/mechanical.elasticity/model", (c) => withMech(c, { "mechanical.elasticity": elasticity({ model: "table" }) }));
+bad("mechanical-expansion-no-source", "E_PROP_MISSING", "/materials/fuel/sets/mechanical.thermalExpansion/source", (c) => withMech(c, { "mechanical.thermalExpansion": expansionSet({ source: " " }) }));
+bad("mechanical-expansion-negative", "E_OUT_OF_RANGE", "/materials/fuel/sets/mechanical.thermalExpansion/linearExpansion", (c) => withMech(c, { "mechanical.thermalExpansion": expansionSet({ linearExpansion: { value: -10, unit: "ppm/K" } }) }));
 bad("unsupported-power-shape", "E_UNSUPPORTED", "/power/radialShape", (c) => (c.power.radialShape = "edge-depressed"));
 bad("unsupported-conductivity-model", "E_UNSUPPORTED", "/materials/fuel/sets/thermal.conductivity/model", (c) => (c.materials.fuel.sets["thermal.conductivity"].model = "expression"));
 bad("mesh-fuel-low", "E_MESH", "/mesh/fuelCells", (c) => (c.mesh.fuelCells = 2));

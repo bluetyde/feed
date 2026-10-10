@@ -818,6 +818,58 @@
     "field": "/assumptions/thermalOnly"
   },
   {
+    "file": "good/mechanical-sets.json",
+    "valid": true
+  },
+  {
+    "file": "bad/mechanical-elasticity-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/mechanical.elasticity/source"
+  },
+  {
+    "file": "bad/mechanical-poisson-too-high.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/mechanical.elasticity/poissonRatio"
+  },
+  {
+    "file": "bad/mechanical-modulus-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/materials/fuel/sets/mechanical.elasticity/youngModulus"
+  },
+  {
+    "file": "bad/mechanical-modulus-too-small.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/mechanical.elasticity/youngModulus"
+  },
+  {
+    "file": "bad/mechanical-linear-no-range.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/mechanical.elasticity/validRange"
+  },
+  {
+    "file": "bad/mechanical-elasticity-unknown-model.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/materials/fuel/sets/mechanical.elasticity/model"
+  },
+  {
+    "file": "bad/mechanical-expansion-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/fuel/sets/mechanical.thermalExpansion/source"
+  },
+  {
+    "file": "bad/mechanical-expansion-negative.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/fuel/sets/mechanical.thermalExpansion/linearExpansion"
+  },
+  {
     "file": "bad/unsupported-power-shape.json",
     "valid": false,
     "code": "E_UNSUPPORTED",
