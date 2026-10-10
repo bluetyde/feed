@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { BURNUP_BU_TOLERANCE, BURNUP_K_TOLERANCE, buildResults, burnupText, ResultsError, THERMAL_ONLY_TEXT } from "../src/core/resultsParser";
 import { resultsToCsv } from "../src/core/exportResults";
 import { RunManager } from "../src/core/runManager";
+import { quickLook } from "../src/core/quickLook";
 import { validateCase } from "../src/core/validate";
 import { FakeBackend, Script } from "./helpers/fakeBackend";
 
@@ -61,6 +62,28 @@ describe("a burnup result from real OFFBEAT fields", () => {
     expect(res.thermalOnly).toBe(THERMAL_ONLY_TEXT);
     expect(res.burnup).toBeUndefined();
     expect(res.checks.some((c) => c.id.startsWith("burnup"))).toBe(false);
+  });
+});
+
+describe("the property range counts the hottest point, not only the cell centres", () => {
+  it("a range that ends between the first fuel cell and the closed-form centre is out of domain", () => {
+    const n = pin();
+    const first = build().summary.maxT;
+    const centre = quickLook(n).temperatures.centreT;
+    expect(centre - first).toBeGreaterThan(0.01);
+    const d = JSON.parse(readFileSync(join(root, "examples/synthetic-pin.json"), "utf8"));
+    d.power.linearHeatRate = q(20, "kW/m");
+    d.materials.fuel.sets["thermal.conductivity"] = { model: "uo2-nfi", densityFraction: q(95, "%"), validRange: { min: q(300, "K"), max: q((first + centre) / 2, "K") }, source: "NUREG/CR-7024 Eq. 2.3-10 and 2.3-11" };
+    d.burnup = { value: q(40, "MWd/kgHM"), basis: "heavy-metal", source: "chosen for the study" };
+    const v = validateCase(d);
+    expect(v.errors).toEqual([]);
+    const r = buildResults(v.normalized!, { T, C, k, Bu, time: 5e7 });
+    expect(r.domain.verdict).toBe("out-of-domain");
+    expect(r.domain.findings[0]!.region).toBe("fuel");
+    expect(r.checks.find((c) => c.id === "propertyRange")!.verdict).toBe("fail");
+  });
+  it("a range that holds every point leaves the verdict in-domain", () => {
+    expect(build().domain.verdict).toBe("in-domain");
   });
 });
 

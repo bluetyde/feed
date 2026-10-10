@@ -264,19 +264,21 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
 
   // Property range: a conductivity law is used outside its stated range => the result is out-of-domain, never plain success.
   const findings: DomainFinding[] = [];
-  const range = (region: "fuel" | "cladding", k: Conductivity, pts: RadialPoint[]) => {
+  // The cell-centre values stop a cell short of the axis (and of the hole surface), so the closed-form hottest and surface points of each solid count as well: a stated range
+  // whose upper end lies between the first cell and the true hottest point is crossed.
+  const range = (region: "fuel" | "cladding", k: Conductivity, pts: RadialPoint[], extra: number[]) => {
     const r = rangeOf(k);
     if (!r) return;
-    const t = pts.map((p) => p.T);
+    const t = [...pts.map((p) => p.T), ...extra];
     const lo = Math.min(...t);
     const hi = Math.max(...t);
     if (lo < r[0] || hi > r[1]) findings.push({ region, produced: [lo, hi], validRange: r });
   };
-  range("fuel", c.fuelConductivity, fuel);
-  range("cladding", c.claddingConductivity, clad);
+  range("fuel", c.fuelConductivity, fuel, [tFuelSurface, tFuelSurface + fuelDeltaT]);
+  range("cladding", c.claddingConductivity, clad, [tOuter, tCladInner]);
   const domain = { verdict: (findings.length === 0 ? "in-domain" : "out-of-domain") as "in-domain" | "out-of-domain", findings };
   if (rangeOf(c.fuelConductivity) || rangeOf(c.claddingConductivity)) {
-    checks.push({ id: "propertyRange", label: "Conductivity law within its stated range", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures inside the stated range" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". The law was extrapolated; this result is out-of-domain." });
+    checks.push({ id: "propertyRange", label: "Conductivity law within its stated range", value: null, unit: "", verdict: findings.length === 0 ? "pass" : "fail", note: findings.length === 0 ? "all cell temperatures and the closed-form hottest and surface points inside the stated range" : findings.map((f) => `${f.region}: ${f.produced.map((x) => x.toFixed(0)).join("-")} K outside ${f.validRange.join("-")} K`).join("; ") + ". The law was extrapolated; this result is out-of-domain." });
   }
 
   checks.push(...fitChecks(c));
