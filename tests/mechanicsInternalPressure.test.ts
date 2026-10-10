@@ -7,7 +7,7 @@ import { writeOffbeatCase } from "../src/core/caseWriter";
 import { hydrogenPressure } from "../src/core/hydrogenPressure";
 import { effectiveMechanics } from "../src/core/mechanicalEval";
 import { quickLook } from "../src/core/quickLook";
-import { SolidSetup, solveSlice } from "../src/core/thermoElastic";
+import { SolidSetup, independentSolution, solveSlice } from "../src/core/thermoElastic";
 import { validateCase } from "../src/core/validate";
 
 const root = join(__dirname, "..");
@@ -142,5 +142,22 @@ describe("the independent solution with a gas in the gap", () => {
     expect(a.contact && b.contact).toBe(true);
     expect(Math.abs(b.contactPressure + 5e6 - a.contactPressure) / a.contactPressure).toBeLessThan(1e-9);
     expect(Math.abs(b.fuel.at(Rf).sigmaR + (b.contactPressure + 5e6)) / a.contactPressure).toBeLessThan(1e-9);
+  });
+  it("free-axial with a gas: the cladding carries the closed-end load p a^2 / (b^2 - a^2) and the fuel +p (OFFBEAT's axial balance, found on the real solver)", () => {
+    const p = 5e6;
+    const s = solveSlice(solid(0, Rf, 2e11, 0.3, 1e-5, 0), solid(Rci, Rco, 1.9e11, 0.3, 1e-5, 0), "free-axial", 0, p);
+    const closedEnd = (p * Rci * Rci) / (Rco * Rco - Rci * Rci);
+    for (const r of [Rci, 4.4e-3, Rco]) expect(Math.abs(s.cladding.at(r).sigmaZ / closedEnd - 1)).toBeLessThan(1e-9);
+    for (const r of [1e-3, 3e-3, Rf]) expect(Math.abs(s.fuel.at(r).sigmaZ / p - 1)).toBeLessThan(1e-9);
+    // plane strain has no such condition, and the coolant has no end load
+    const free = solveSlice(solid(0, Rf, 2e11, 0.3, 1e-5, 0), solid(Rci, Rco, 1.9e11, 0.3, 1e-5, 0), "free-axial", 20e6, 0);
+    expect(Math.abs(free.cladding.at(4.4e-3).sigmaZ)).toBeLessThan(1);
+  });
+  it("the gas pressure of the case reaches the independent solution through the properties", () => {
+    const n = validateCase(pinCase(constant(5))).normalized!;
+    const props = effectiveMechanics(n)!;
+    const a = independentSolution(n, props, n.mechanics!);
+    const b = independentSolution(n, { ...props, internalPressure: 0 }, n.mechanics!);
+    expect(Math.abs(a.fuel.at(2e-3).sigmaR - b.fuel.at(2e-3).sigmaR + 5e6)).toBeLessThan(1);
   });
 });
