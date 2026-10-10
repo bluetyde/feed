@@ -109,6 +109,17 @@ export interface MechanicsSpec {
   coolantPressure: number;
   /** The gas pressure in the gap, an input with its source; absent for none (plan 09 M4). */
   internalPressure?: InternalPressure;
+  /** Stress limits the case states, each with its source (plan 09 M4); FEED has none of its own. */
+  stressLimits?: StressLimit[];
+}
+
+/** The von Mises stress of a solid's cells must stay at or below a strength that depends on the cell's temperature, a table the case states. */
+export interface StressLimit {
+  name: string;
+  region: "fuel" | "cladding";
+  /** Temperature (K) and strength (Pa) points, temperatures strictly increasing; linear in between, and not defined outside. */
+  table: { temperature: number; strength: number }[];
+  source: string;
 }
 
 /** A constant pressure, or the hydrogen dissociation pressure of the hydride fuel at a fuel temperature the case names (src/core/hydrogenPressure.ts). */
@@ -1087,7 +1098,8 @@ function expansionLaw(raw: unknown, field: string, err: ErrFn, qty: QtyFn): Expa
   return law;
 }
 
-const MECHANICS_KEYS = ["referenceTemperature", "plane", "contact", "coolantPressure", "internalPressure"];
+const MECHANICS_KEYS = ["referenceTemperature", "plane", "contact", "coolantPressure", "internalPressure", "stressLimits"];
+const MAX_STRESS_LIMITS = 8;
 const PENALTY_MIN = 0.05;
 const PENALTY_MAX = 1;
 const MAX_PRESSURE = 1e9;
@@ -1149,8 +1161,10 @@ function parseMechanics(raw: unknown, err: ErrFn, qty: QtyFn): MechanicsSpec | u
   }
   const internalPressure = raw.internalPressure === undefined ? undefined : parseInternalPressure(raw.internalPressure, bad, qty);
   if (raw.internalPressure !== undefined && internalPressure === undefined) ok = false;
+  const stressLimits = raw.stressLimits === undefined ? undefined : parseStressLimits(raw.stressLimits, bad, qty);
+  if (raw.stressLimits !== undefined && stressLimits === undefined) ok = false;
   if (!ok || referenceTemperature === undefined || plane === undefined || penaltyFactor === undefined || coolantPressure === undefined) return undefined;
-  return { referenceTemperature, plane, penaltyFactor, coolantPressure, ...(internalPressure ? { internalPressure } : {}) };
+  return { referenceTemperature, plane, penaltyFactor, coolantPressure, ...(internalPressure ? { internalPressure } : {}), ...(stressLimits ? { stressLimits } : {}) };
 }
 
 /**
@@ -1215,6 +1229,53 @@ function parseInternalPressure(raw: unknown, bad: (code: string, field: string, 
     ok = false;
   }
   return ok && hZrRatio !== undefined && source !== undefined && (basis === "peak" || basis === "mean") ? { kind: "hydrogen-zrh", hZrRatio, basis, source } : undefined;
+}
+
+/**
+ * The stress limits a case states (plan 09 M4): a name, a region, a strength table against temperature and the source. FEED ships no strength curve: the digitised figures of the
+ * UT-Austin SAR would be good to 5 to 10 % and exist only from 400 C, so the case brings its own table and says where it is from.
+ */
+function parseStressLimits(raw: unknown, bad: (code: string, field: string, message: string, extra?: Partial<Issue>) => void, qty: QtyFn): StressLimit[] | undefined {
+  const F = "/mechanics/stressLimits";
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > MAX_STRESS_LIMITS) {
+    bad("E_SCHEMA_INVALID", F, "stressLimits is a list of 1 to " + MAX_STRESS_LIMITS + " rules");
+    return undefined;
+  }
+  const out: StressLimit[] = [];
+  const names = new Set<string>();
+  let ok = true;
+  raw.forEach((r: unknown, i: number) => {
+    const base = F + "/" + i;
+    const fail = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+      bad(code, field, message, extra);
+      ok = false;
+    };
+    if (!isObject(r)) return fail("E_SCHEMA_INVALID", base, "a stress limit is an object with name, region, table and source");
+    for (const k of Object.keys(r)) if (!["name", "region", "table", "source"].includes(k)) fail("E_SCHEMA_INVALID", base + "/" + k, "unknown key '" + k + "' (a stress limit has name, region, table, source)");
+    const name = typeof r.name === "string" ? r.name.trim() : "";
+    if (name === "") fail("E_PROP_MISSING", base + "/name", "a stress limit needs a name: a result says which limit it is about");
+    else if (names.has(name)) fail("E_SCHEMA_INVALID", base + "/name", "two stress limits are named '" + name + "'");
+    names.add(name);
+    if (r.region !== "fuel" && r.region !== "cladding") fail("E_SCHEMA_INVALID", base + "/region", "the region is 'fuel' or 'cladding'");
+    if (typeof r.source !== "string" || r.source.trim() === "") fail("E_PROP_MISSING", base + "/source", "a stress limit needs the source it comes from: FEED has no strengths of its own");
+    const table: { temperature: number; strength: number }[] = [];
+    if (!Array.isArray(r.table) || r.table.length < 2 || r.table.length > 200) fail("E_SCHEMA_INVALID", base + "/table", "the table is a list of 2 to 200 points {temperature, strength}");
+    else {
+      r.table.forEach((pt: unknown, j: number) => {
+        const f = base + "/table/" + j;
+        if (!isObject(pt) || Object.keys(pt).some((k) => k !== "temperature" && k !== "strength")) return fail("E_SCHEMA_INVALID", f, "a table point is {temperature, strength}");
+        const T = pt.temperature === undefined ? undefined : qty(pt.temperature, "temperature", f + "/temperature");
+        const S = pt.strength === undefined ? undefined : qty(pt.strength, "pressure", f + "/strength");
+        if (T === undefined || S === undefined) return fail(pt.temperature === undefined || pt.strength === undefined ? "E_PROP_MISSING" : "E_SCHEMA_INVALID", f, "a table point needs a temperature and a strength");
+        if (!(T > 0 && T <= MAX_REFERENCE_TEMPERATURE)) return fail("E_OUT_OF_RANGE", f + "/temperature", "the temperature is above 0 K and at most " + MAX_REFERENCE_TEMPERATURE + " K", { unit: "K" });
+        if (!(S > 0 && S <= MAX_PRESSURE)) return fail("E_OUT_OF_RANGE", f + "/strength", "the strength is above 0 and at most " + MAX_PRESSURE + " Pa", { unit: "Pa" });
+        if (table.length > 0 && !(T > table[table.length - 1]!.temperature)) return fail("E_OUT_OF_RANGE", f + "/temperature", "the table's temperatures must increase");
+        table.push({ temperature: T, strength: S });
+      });
+    }
+    if (ok && table.length === (r.table as unknown[]).length) out.push({ name, region: r.region as "fuel" | "cladding", table, source: r.source as string });
+  });
+  return ok && out.length === raw.length ? out : undefined;
 }
 
 /** Bounds of a mechanical property: a solid's Young's modulus is between a soft polymer and the stiffest ceramic. */

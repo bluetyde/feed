@@ -5,7 +5,7 @@ import type { EffectiveMechanics } from "./mechanicalEval";
 import type { MechanicsRecord } from "./mechanicsResults";
 import type { Check } from "./resultsParser";
 import { closedFormTemperatures, independentSolution } from "./thermoElastic";
-import type { NormalizedCase } from "./validate";
+import type { MechanicsSpec, NormalizedCase } from "./validate";
 
 export const MECHANICS_TOLERANCE = {
   /** Displacement: this fraction of the largest |ur| of the solid, plus the floor (m). */
@@ -153,4 +153,56 @@ function contactCheck(sol: ReturnType<typeof independentSolution>, record: Mecha
     return { id, label, value: dev, unit: "m", verdict: dev <= bound ? "pass" : "fail", note: `gap ${(s.gapWidth * 1e6).toFixed(3)} micron against ${(sol.gap * 1e6).toFixed(3)} micron, no contact; bound ${g.fraction * 100} % + ${g.floor} m` };
   }
   return { id, label, value: null, unit: "Pa", verdict: "pass", note: `the gap is nearly closed (free gap ${(sol.freeGap * 1e6).toFixed(3)} micron, within ${tol.nearlyClosed * 1e6} micron of touching): touching is not judged either way` };
+}
+
+/** The strength a limit's table gives at T (linear between points), or null outside the table: nothing is extrapolated. */
+export function strengthAt(table: { temperature: number; strength: number }[], T: number): number | null {
+  if (!(T >= table[0]!.temperature && T <= table[table.length - 1]!.temperature)) return null;
+  for (let i = 0; i + 1 < table.length; i++) {
+    const a = table[i]!;
+    const b = table[i + 1]!;
+    if (T <= b.temperature) return a.strength + ((b.strength - a.strength) * (T - a.temperature)) / (b.temperature - a.temperature);
+  }
+  return table[table.length - 1]!.strength;
+}
+
+/**
+ * One check per stress limit the case states: the smallest margin (strength at the cell's temperature minus its von Mises stress) over the solid's cells. A cell whose temperature
+ * is outside the table cannot be judged, and a limit that cannot be judged does not pass: it fails, and says how many cells and what range the table covers. A stress that is
+ * not a number fails too. A passing check says that the stress is below THIS strength; it is not an integrity assessment (no creep, no fatigue, no plasticity).
+ */
+export function stressLimitChecks(limits: NonNullable<MechanicsSpec["stressLimits"]>, record: MechanicsRecord, cells: { region: "fuel" | "cladding"; T: number }[]): Check[] {
+  return limits.map((lim) => {
+    let margin: number | null = null;
+    let worst = "";
+    let outside = 0;
+    let invalid = 0;
+    let judged = 0;
+    cells.forEach((c, i) => {
+      if (c.region !== lim.region) return;
+      const s = record.points[i]!.sigmaEq;
+      if (!Number.isFinite(s) || !Number.isFinite(c.T)) {
+        invalid++;
+        return;
+      }
+      const strength = strengthAt(lim.table, c.T);
+      if (strength === null) {
+        outside++;
+        return;
+      }
+      judged++;
+      const m = strength - s;
+      if (margin === null || m < margin) {
+        margin = m;
+        worst = `cell ${i} at ${c.T.toFixed(1)} K: von Mises ${(s / 1e6).toFixed(2)} MPa against ${(strength / 1e6).toFixed(2)} MPa`;
+      }
+    });
+    const range = `${lim.table[0]!.temperature} to ${lim.table[lim.table.length - 1]!.temperature} K`;
+    const id = "stressLimit:" + lim.name;
+    const label = `Stress limit '${lim.name}' (${lim.region}, von Mises, smallest margin)`;
+    const src = ` Source: ${lim.source}. A stress below a strength is not an integrity assessment: no creep, fatigue, plasticity or strain limit is checked.`;
+    if (invalid > 0) return { id, label, value: null, unit: "Pa", verdict: "fail" as const, note: `${invalid} cells have a stress or temperature that is not a finite number, so the limit cannot be judged.${src}` };
+    if (outside > 0) return { id, label, value: margin, unit: "Pa", verdict: "fail" as const, note: `${outside} of the ${lim.region}'s cells are at temperatures outside the table (${range}), where the strength is not stated: the limit cannot be judged there and is not passed.${judged > 0 ? " Smallest margin of the " + judged + " cells inside: " + worst + "." : ""}${src}` };
+    return { id, label, value: margin, unit: "Pa", verdict: margin !== null && margin >= 0 ? "pass" as const : "fail" as const, note: `smallest margin at ${worst}.${src}` };
+  });
 }
