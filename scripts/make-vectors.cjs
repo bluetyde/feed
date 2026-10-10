@@ -386,5 +386,35 @@ bad("hot-dimensions-no-source", "E_PROP_MISSING", "/hotDimensions/fuel/source", 
   add("bad", "hot-dimensions-transient", c, { code: "E_UNSUPPORTED", field: "/hotDimensions" });
 }
 
+// ---- the mechanics section (plan 09 M2): one good case and one fault each
+const mech = (c, extra = {}) => { withMech(c); c.assumptions.thermalOnly = false; c.mechanics = { referenceTemperature: { value: 300, unit: "K" }, plane: "free-axial", contact: { penaltyFactor: { value: 0.3, unit: "1" } }, coolantPressure: { value: 0.1, unit: "MPa" }, ...extra }; return c; };
+add("good", "mechanics-section", mech(clone()), {});
+bad("mechanics-reference-temperature-missing", "E_PROP_MISSING", "/mechanics/referenceTemperature", (c) => { mech(c); delete c.mechanics.referenceTemperature; });
+bad("mechanics-reference-temperature-zero", "E_OUT_OF_RANGE", "/mechanics/referenceTemperature", (c) => { mech(c); c.mechanics.referenceTemperature = { value: 0, unit: "K" }; });
+bad("mechanics-plane-missing", "E_PROP_MISSING", "/mechanics/plane", (c) => { mech(c); delete c.mechanics.plane; });
+bad("mechanics-plane-stress", "E_UNSUPPORTED", "/mechanics/plane", (c) => { mech(c); c.mechanics.plane = "plane-stress"; });
+bad("mechanics-contact-missing", "E_PROP_MISSING", "/mechanics/contact", (c) => { mech(c); delete c.mechanics.contact; });
+bad("mechanics-penalty-missing", "E_PROP_MISSING", "/mechanics/contact/penaltyFactor", (c) => { mech(c); delete c.mechanics.contact.penaltyFactor; });
+bad("mechanics-penalty-too-high", "E_OUT_OF_RANGE", "/mechanics/contact/penaltyFactor", (c) => { mech(c); c.mechanics.contact.penaltyFactor = { value: 10, unit: "1" }; });
+bad("mechanics-penalty-too-low", "E_OUT_OF_RANGE", "/mechanics/contact/penaltyFactor", (c) => { mech(c); c.mechanics.contact.penaltyFactor = { value: 0.01, unit: "1" }; });
+bad("mechanics-coolant-pressure-missing", "E_PROP_MISSING", "/mechanics/coolantPressure", (c) => { mech(c); delete c.mechanics.coolantPressure; });
+bad("mechanics-coolant-pressure-negative", "E_OUT_OF_RANGE", "/mechanics/coolantPressure", (c) => { mech(c); c.mechanics.coolantPressure = { value: -1, unit: "MPa" }; });
+bad("mechanics-unknown-key", "E_SCHEMA_INVALID", "/mechanics/creep", (c) => { mech(c, { creep: true }); });
+bad("mechanics-with-thermal-only-true", "E_SCHEMA_INVALID", "/assumptions/thermalOnly", (c) => { mech(c); c.assumptions.thermalOnly = true; });
+bad("mechanics-with-hot-dimensions", "E_UNSUPPORTED", "/hotDimensions", (c) => {
+  mech(c);
+  c.hotDimensions = {
+    referenceTemperature: { value: 20, unit: "degC" },
+    fuel: { linearExpansion: { value: 12, unit: "ppm/K" }, source: "synthetic: a typical order of magnitude" },
+    cladding: { linearExpansion: { value: 10, unit: "ppm/K" }, source: "synthetic: a typical order of magnitude" },
+  };
+});
+bad("mechanics-with-burnup", "E_UNSUPPORTED", "/burnup", (c) => { mech(c); nfi(c); burnup(c); });
+{
+  const c = pulse();
+  mech(c);
+  add("bad", "mechanics-in-transient", c, { code: "E_UNSUPPORTED", field: "/mechanics" });
+}
+
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 console.log(index.length + " vectors written");

@@ -946,5 +946,99 @@
     "valid": false,
     "code": "E_UNSUPPORTED",
     "field": "/hotDimensions"
+  },
+  {
+    "file": "good/mechanics-section.json",
+    "valid": true
+  },
+  {
+    "file": "bad/mechanics-reference-temperature-missing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/referenceTemperature"
+  },
+  {
+    "file": "bad/mechanics-reference-temperature-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/referenceTemperature"
+  },
+  {
+    "file": "bad/mechanics-plane-missing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/plane"
+  },
+  {
+    "file": "bad/mechanics-plane-stress.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics/plane"
+  },
+  {
+    "file": "bad/mechanics-contact-missing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/contact"
+  },
+  {
+    "file": "bad/mechanics-penalty-missing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/contact/penaltyFactor"
+  },
+  {
+    "file": "bad/mechanics-penalty-too-high.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/contact/penaltyFactor"
+  },
+  {
+    "file": "bad/mechanics-penalty-too-low.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/contact/penaltyFactor"
+  },
+  {
+    "file": "bad/mechanics-coolant-pressure-missing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/coolantPressure"
+  },
+  {
+    "file": "bad/mechanics-coolant-pressure-negative.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/coolantPressure"
+  },
+  {
+    "file": "bad/mechanics-unknown-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mechanics/creep"
+  },
+  {
+    "file": "bad/mechanics-with-thermal-only-true.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/assumptions/thermalOnly"
+  },
+  {
+    "file": "bad/mechanics-with-hot-dimensions.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/hotDimensions"
+  },
+  {
+    "file": "bad/mechanics-with-burnup.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/burnup"
+  },
+  {
+    "file": "bad/mechanics-in-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics"
   }
 ]
