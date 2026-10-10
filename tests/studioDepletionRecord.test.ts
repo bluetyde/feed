@@ -34,6 +34,13 @@ describe("a record written by OpenMC Studio", () => {
     expect(() => parseDepletionRecord(shuffled)).toThrow(/id: does not match/);
     expect(r.id).toBe(j.id);
   });
+  it("refuses a record whose arithmetic overflows: an infinite computed burnup must not pass as consistent", () => {
+    const j = JSON.parse(text);
+    delete j.id;
+    j.time_steps_days = [1e308, 1e308];
+    j.regions[0].power_w = [1e308, 1e308];
+    expect(() => parseDepletionRecord(JSON.stringify(j))).toThrow(/not a finite number/);
+  });
   it("gives the burnup at the end of each step, MWd/tU, heavy-metal basis", () => {
     const r = parseDepletionRecord(text);
     const name = r.regions[0]!.name;

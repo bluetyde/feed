@@ -25,6 +25,8 @@ const pin = (B = 40) => {
 };
 const build = (over: { k?: string | undefined; Bu?: string | undefined; T?: string; n?: ReturnType<typeof pin> } = {}) =>
   buildResults(over.n ?? pin(), { T: over.T ?? T, C, k: "k" in over ? over.k : k, Bu: "Bu" in over ? over.Bu : Bu, time: 5e7 });
+/** A field file cut short after its complete cell list: no boundary block, no footer. */
+const cut = (text: string) => text.slice(0, text.lastIndexOf("boundaryField"));
 const check = (r: ReturnType<typeof build>, id: string) => r.checks.find((c) => c.id === id)!;
 /** The list of a nonuniform scalar field with each value of the fuel cells passed through f. */
 const mapCells = (text: string, f: (v: number, i: number) => number) => {
@@ -69,6 +71,10 @@ describe("the burnup checks fail what is wrong, and a result without the evidenc
     expect(check(bad, "burnupConductivity").note).toMatch(/at fuel cell 7/);
     expect(check(build({ k: mapCells(k, (v, i) => (i < 20 ? v * (1 + 0.5e-4) : v)) }), "burnupConductivity").verdict).toBe("pass");
     expect(check(build({ k: mapCells(k, (v, i) => (i < 20 ? v * (1 + 2e-4) : v)) }), "burnupConductivity").verdict).toBe("fail");
+  });
+  it("a k or Bu field cut short after its complete cell list is refused, as T and C are", () => {
+    expect(() => build({ k: cut(k) })).toThrow(/footer|cut short/);
+    expect(() => build({ Bu: cut(Bu) })).toThrow(/footer|cut short/);
   });
   it("the cladding's k is not judged against the fuel law (only the fuel cells are)", () => {
     expect(check(build({ k: mapCells(k, (v, i) => (i >= 20 ? v * 2 : v)) }), "burnupConductivity").verdict).toBe("pass");

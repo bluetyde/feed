@@ -323,6 +323,7 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
 
 /** A scalar field that may be written compactly as `uniform X` (OFFBEAT does that when every cell is equal): expanded to n values. */
 function cellValues(text: string, name: string, n: number): number[] {
+  assertWholeFoamFile(text, name);
   const u = /internalField\s+uniform\s+([^;\s]+)\s*;/.exec(text);
   if (u) {
     const v = Number(u[1]);

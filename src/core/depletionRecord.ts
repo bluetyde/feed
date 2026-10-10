@@ -270,6 +270,9 @@ export function parseDepletionRecord(text: string): DepletionRecord {
       const expectedBurnup = cumMwd / tU;
       const actualBurnup = burnupMwdPerTu[j]!;
       const diff = Math.abs(actualBurnup - expectedBurnup);
+      if (!Number.isFinite(cumMwd) || !Number.isFinite(expectedBurnup) || !Number.isFinite(diff)) {
+        throw new DepletionRecordError(`${rPath}.burnup_mwd_per_tu`, `the burnup computed at step ${j} is not a finite number (the power, durations or mass overflow)`);
+      }
       const tol = expectedBurnup === 0 ? 1e-12 : Math.abs(expectedBurnup) * 1e-9;
       if (diff > tol) {
         throw new DepletionRecordError(

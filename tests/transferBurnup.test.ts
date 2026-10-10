@@ -134,6 +134,13 @@ describe("what the burnup transfer refuses", () => {
     expect(codes(transfer(request(5, { recipe: { source: rs({ kind: "run" }) } })))).toEqual(["E_RECIPE_INVALID /recipe/source"]);
     expect(codes(transfer(request(5, { recipe: { source: rs({ record: "other-record/1" }) } })))).toEqual(["E_RECIPE_INVALID /recipe/source"]);
   });
+  it("a recipe for another record field, a record file hash that is not the approved one, a missing or malformed hash", () => {
+    const units = { field: "other_field", from: "MWd/tU", to: "MWd/kgHM", factor: 0.001, basis: "heavy-metal" };
+    expect(codes(transfer(request(5, { recipe: { units } })))).toEqual(["E_UNITS /recipe/units"]);
+    expect(codes(transfer(request(5, { recipeSource: { recordSha256: "f".repeat(64) } })))).toEqual(["E_RECIPE_INVALID /source/recordSha256"]);
+    expect(codes(transfer(request(5, { source: { recordSha256: "abc" }, recipeSource: { recordSha256: "abc" } })))).toEqual(["E_SCHEMA_INVALID /source/recordSha256"]);
+    expect(codes(transfer(request(5, { source: { recordSha256: undefined }, recipeSource: { recordSha256: undefined } })))).toEqual(["E_SCHEMA_INVALID /source/recordSha256"]);
+  });
   it("a request that is not the approved recipe: another region, time or record id", () => {
     expect(codes(transfer(request(5, { recipeSource: { region: "other" } })))).toEqual(["E_RECIPE_INVALID /source/region"]);
     expect(codes(transfer(request(5, { recipeSource: { time: 4 } })))).toEqual(["E_RECIPE_INVALID /source/time"]);

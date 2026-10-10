@@ -56,7 +56,7 @@ export function transferBurnup(requestIn: unknown): BurnupReply {
   const rs = recipe.source;
   if (!isObj(rs) || rs.kind !== "record" || rs.record !== RECORD_KIND) return refuse("E_RECIPE_INVALID", "/recipe/source", `the recipe's source is not a ${RECORD_KIND} record`);
   const ru = recipe.units;
-  if (!isObj(ru) || ru.from !== "MWd/tU" || ru.to !== "MWd/kgHM" || ru.factor !== FACTOR || ru.basis !== "heavy-metal") {
+  if (!isObj(ru) || ru.field !== "burnup_mwd_per_tu" || ru.from !== "MWd/tU" || ru.to !== "MWd/kgHM" || ru.factor !== FACTOR || ru.basis !== "heavy-metal") {
     return refuse("E_UNITS", "/recipe/units", "FEED takes a burnup on a heavy-metal basis, MWd/tU to MWd/kgHM with the factor 0.001; an oxide basis or another factor is refused");
   }
 
@@ -64,10 +64,11 @@ export function transferBurnup(requestIn: unknown): BurnupReply {
   const src = requestIn.source;
   if (!isObj(src) || src.kind !== "record" || src.record !== RECORD_KIND) return refuse("E_SCHEMA_INVALID", "/source", `the request's source is not a ${RECORD_KIND} record`);
   if (!nonEmpty(src.recordId) || !HEX64.test(src.recordId)) return refuse("E_SCHEMA_INVALID", "/source/recordId", "the record id must be 64 lowercase hex digits (SHA-256)");
+  if (!nonEmpty(src.recordSha256) || !HEX64.test(src.recordSha256)) return refuse("E_SCHEMA_INVALID", "/source/recordSha256", "the record file hash must be 64 lowercase hex digits (SHA-256)");
   if (!nonEmpty(src.region)) return refuse("E_SCHEMA_INVALID", "/source/region", "the request names no region");
   if (!finite(src.time) || src.time < 0) return refuse("E_SCHEMA_INVALID", "/source/time", "the time must be a finite number of days, 0 or more");
   // what the recipe approved is what the request carries; a mismatch is a request that is not the approved recipe
-  for (const k of ["recordId", "region", "time"] as const) {
+  for (const k of ["recordId", "recordSha256", "region", "time"] as const) {
     if (rs[k] !== src[k]) return refuse("E_RECIPE_INVALID", `/source/${k}`, `the request's ${k} (${String(src[k])}) is not the one the recipe was approved for (${String(rs[k])})`);
   }
   const q = src.quantity;
@@ -116,7 +117,7 @@ export function transferBurnup(requestIn: unknown): BurnupReply {
     ...(recipeDigest ? { recipeDigest } : {}),
     record: RECORD_KIND,
     recordId: src.recordId,
-    ...(nonEmpty(src.recordSha256) ? { recordSha256: src.recordSha256 } : {}),
+    recordSha256: src.recordSha256,
     region: src.region,
     time: src.time,
     timeUnit: "d",
