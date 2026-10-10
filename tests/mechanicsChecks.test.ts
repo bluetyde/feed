@@ -4,7 +4,9 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
-import { MECHANICS_TOLERANCE } from "../src/core/mechanicsChecks";
+import { effectiveMechanics } from "../src/core/mechanicalEval";
+import { MECHANICS_TOLERANCE, mechanicsChecks } from "../src/core/mechanicsChecks";
+import { independentSolution } from "../src/core/thermoElastic";
 import { buildResults } from "../src/core/resultsParser";
 import { validateCase } from "../src/core/validate";
 
@@ -77,6 +79,12 @@ describe("each check fails when its field is damaged by more than the tolerance"
     const c = checks({ ...fields(), sigmaCyl: changeRows(g("sigmaCyl"), (r) => [r[0]! + 8e7, r[1]!, r[2]!, r[3]! + 8e7, r[4]!, r[5]! + 8e7], [10]) });
     expect(c.mechanicsStress!.verdict).toBe("fail");
   });
+  it("a stress component off by 8e7 Pa in one fuel cell fails the stress check whichever component it is: radial, hoop or axial", () => {
+    for (const col of [0, 3, 5]) {
+      const c = checks({ ...fields(), sigmaCyl: changeRows(g("sigmaCyl"), (r) => r.map((v, i) => (i === col ? v + 8e7 : v)), [10]) });
+      expect(c.mechanicsStress!.verdict, "component " + col).toBe("fail");
+    }
+  });
   it("a stress change that stays inside the stress tolerance but breaks the radial balance fails only the balance", () => {
     // 2.5 % of the fuel's stress scale (about 7.5e8 Pa): under the 3 % of the cross check, over the 2 % of the balance
     const c = checks({ ...fields(), sigmaCyl: changeRows(g("sigmaCyl"), (r) => [r[0]! + 1.9e7, ...r.slice(1)], [10]) });
@@ -117,5 +125,78 @@ describe("the tolerances are the ones fixed in the plan before the first run", (
     expect(plan).toMatch(/Displacement\*\* `ur`: within 1 %/);
     expect(plan).toMatch(/within 3 % of the larger of/);
     expect(plan).toMatch(/within 2 % of the solid's stress scale/);
+  });
+});
+
+// Records made from the independent solution itself (every cell exact), then disturbed: what the checks do at the edges of their tolerances and where the golden case cannot reach
+// (a contact, a stress that is nearly zero).
+describe("records built from the independent solution, then disturbed", () => {
+  const cells = [...Array.from({ length: 20 }, (_, i) => ({ region: "fuel" as const, r: ((i + 0.5) / 20) * 4.1e-3 })), ...Array.from({ length: 8 }, (_, i) => ({ region: "cladding" as const, r: 4.12e-3 + ((i + 0.5) / 8) * 0.63e-3 }))];
+  /** The synthetic pin at 10 W/m, 600 K coolant, reference 300 K, E 2e11 and nu 0.3 for both solids, the fuel's alpha as given. */
+  function make(fuelAlpha: number, rci: number) {
+    const d = JSON.parse(readFileSync(join(root, "examples/synthetic-pin.json"), "utf8"));
+    d.power.linearHeatRate = q(10, "W/m");
+    d.boundary = { bulkTemperature: q(600, "K"), heatTransferCoefficient: q(30000, "W/m2/K") };
+    d.geometry.claddingInnerRadius = q(rci, "mm");
+    d.assumptions.thermalOnly = false;
+    const e = (a: number) => ({ "mechanical.elasticity": { model: "constant", youngModulus: q(2e11, "Pa"), poissonRatio: q(0.3, "1"), source: "a test" }, "mechanical.thermalExpansion": { linearExpansion: q(a, "1/K"), source: "a test" } });
+    Object.assign(d.materials.fuel.sets, e(fuelAlpha));
+    Object.assign(d.materials.cladding.sets, e(1e-5));
+    d.mechanics = { referenceTemperature: q(300, "K"), plane: "free-axial", contact: { penaltyFactor: q(0.3, "1") }, coolantPressure: q(0, "Pa") };
+    const v = validateCase(d);
+    expect(v.errors).toEqual([]);
+    const n = v.normalized!;
+    const props = effectiveMechanics(n)!;
+    const sol = independentSolution(n, props, n.mechanics!);
+    const points = cells.map((c) => {
+      const p = (c.region === "fuel" ? sol.fuel : sol.cladding).at(c.r);
+      return { ur: p.ur, uz: 0, sigmaR: p.sigmaR, sigmaTheta: p.sigmaTheta, sigmaZ: p.sigmaZ, sigmaEq: 0 };
+    });
+    const record = (over: { contactPressure?: number; gapWidth?: number; contact?: boolean } = {}) =>
+      ({ points: points.map((x) => ({ ...x })), summary: { gapWidth: over.gapWidth ?? sol.gap, contactPressure: over.contactPressure ?? sol.contactPressure, contact: over.contact ?? sol.contact } }) as any;
+    return { n, props, sol, record };
+  }
+  const verdicts = (m: ReturnType<typeof make>, rec: any) => Object.fromEntries(mechanicsChecks(m.n, m.props, rec, cells).map((c) => [c.id, c.verdict]));
+
+  it("an exact record passes everything, with a contact and without", () => {
+    for (const [alpha, rci] of [[4e-5, 4.12], [1e-5, 4.12]] as const) {
+      const m = make(alpha, rci);
+      expect(Object.values(verdicts(m, m.record())).every((v) => v === "pass")).toBe(true);
+    }
+    expect(make(4e-5, 4.12).sol.contact).toBe(true);
+    expect(make(1e-5, 4.12).sol.contact).toBe(false);
+  });
+  it("the contact pressure 2 % off passes and 5 % off fails (3 % bound)", () => {
+    const m = make(4e-5, 4.12);
+    const p = m.sol.contactPressure;
+    expect(verdicts(m, m.record({ contactPressure: p * 0.98 })).mechanicsContact).toBe("pass");
+    expect(verdicts(m, m.record({ contactPressure: p * 1.02 })).mechanicsContact).toBe("pass");
+    expect(verdicts(m, m.record({ contactPressure: p * 0.95 })).mechanicsContact).toBe("fail");
+    expect(verdicts(m, m.record({ contactPressure: p * 1.05 })).mechanicsContact).toBe("fail");
+  });
+  it("where the stress is nearly zero (a pin at 10 W/m, free expansion) the floor of 1 % of E alpha dT keeps solver noise of 100 kPa from failing the check, and 1 MPa still fails", () => {
+    const m = make(1e-5, 4.2);
+    const noisy = (amp: number) => {
+      const r = m.record();
+      r.points.forEach((x: any, i: number) => (x.sigmaZ += i % 2 ? amp : -amp));
+      return r;
+    };
+    expect(verdicts(m, noisy(1e5)).mechanicsStress).toBe("pass");
+    expect(verdicts(m, noisy(1e6)).mechanicsStress).toBe("fail");
+  });
+  it("a gap that is open by less than a micron is open (a mutant that called it closed would pass the pressure check with a made-up pressure)", () => {
+    // find the alpha for which the free gap is +0.3 micron by bisection, then the independent solution says no contact and gap 0.3 micron
+    let lo = 1e-6;
+    let hi = 2e-4;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (make(mid, 4.12).sol.freeGap > 0.3e-6) lo = mid;
+      else hi = mid;
+    }
+    const s = make(lo, 4.12).sol;
+    expect(s.freeGap).toBeGreaterThan(0.29e-6);
+    expect(s.contact).toBe(false);
+    expect(s.contactPressure).toBe(0);
+    expect(s.gap).toBeCloseTo(s.freeGap, 15);
   });
 });
