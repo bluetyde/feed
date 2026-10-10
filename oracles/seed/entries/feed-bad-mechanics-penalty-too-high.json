@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-mechanics-penalty-too-high",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-mechanics-penalty-too-high.case.json",
+      "sha256": "c46977ae45a14f546035eb98ff1b6d6ca4bf41ecf327dd296231fd792e8a5e4b"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_OUT_OF_RANGE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a contact penalty factor of 10, which gave a pressure eleven times too large with nothing in OFFBEAT's log to say so. FEED must refuse it before any run; SEED reports E_OUT_OF_RANGE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/mechanics-penalty-too-high.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "e05860386a107c17b68ea7591afc5a14d460746119a0fd4fae416450bb1dc06e"
+}

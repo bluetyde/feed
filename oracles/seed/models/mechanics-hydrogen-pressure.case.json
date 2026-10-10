@@ -1,0 +1,157 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "synthetic-pin",
+  "name": "Mechanics: hydrogen pressure",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": false,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.12,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 20,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 600,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "mechanical.elasticity": {
+          "model": "constant",
+          "youngModulus": {
+            "value": 200000000000,
+            "unit": "Pa"
+          },
+          "poissonRatio": {
+            "value": 0.3,
+            "unit": "1"
+          },
+          "source": "synthetic, chosen for the closed-form entries"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 0.00001,
+            "unit": "1/K"
+          },
+          "source": "synthetic, chosen for the closed-form entries"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 15,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "mechanical.elasticity": {
+          "model": "constant",
+          "youngModulus": {
+            "value": 200000000000,
+            "unit": "Pa"
+          },
+          "poissonRatio": {
+            "value": 0.3,
+            "unit": "1"
+          },
+          "source": "synthetic, chosen for the closed-form entries"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 0.00001,
+            "unit": "1/K"
+          },
+          "source": "synthetic, chosen for the closed-form entries"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 8
+  },
+  "description": "The hydrogen dissociation pressure of U-ZrH (H/Zr 1.65) at the fuel's peak temperature, as the gas pressure in the gap.",
+  "mechanics": {
+    "referenceTemperature": {
+      "value": 300,
+      "unit": "K"
+    },
+    "plane": "free-axial",
+    "contact": {
+      "penaltyFactor": {
+        "value": 0.3,
+        "unit": "1"
+      }
+    },
+    "coolantPressure": {
+      "value": 0,
+      "unit": "Pa"
+    },
+    "internalPressure": {
+      "model": "hydrogen-zrh",
+      "hZrRatio": {
+        "value": 1.65,
+        "unit": "1"
+      },
+      "fuelTemperature": "peak",
+      "source": "Simnad, General Atomic E-117-833, section 2.4 (dissociation pressures)"
+    }
+  }
+}

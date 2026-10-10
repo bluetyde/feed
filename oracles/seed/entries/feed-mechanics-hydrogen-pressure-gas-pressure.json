@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-mechanics-hydrogen-pressure-gas-pressure",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/mechanics-hydrogen-pressure.case.json",
+      "sha256": "2fc7cb68aec565b9d825e713f043bee6c76ec07dd488bced74d53d9973487fd8"
+    }
+  ],
+  "expected": {
+    "quantity": "gas_pressure",
+    "value": 5676240,
+    "unit": "Pa"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.0001
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "General Atomic report E-117-833 (Simnad), section 2.4: log10 P(atm) = K1 + K2 x 1e3 / T with K1 = -3.8415 + 38.6433 X - 34.2639 X^2 + 9.2821 X^3 and K2 = -31.2982 + 23.5741 X - 6.0280 X^2, X = H/Zr = 1.65, at the closed-form peak fuel temperature 1338.322 K of this 20 kW/m pin: 5.6762 MPa. The value is the case's gas pressure as FEED works it out (the temperature is the closed form's, not the mesh's).",
+    "check": "FEED's tests/hydrogenPressure.test.ts evaluates the same correlation at four points against a separate script, and the UT-Austin SAR figure 4.3b is reproduced (1.56 MPa at 960 C for H/Zr 1.65)."
+  },
+  "coverage": {
+    "quantities": [
+      "gas_pressure"
+    ],
+    "domain": "synthetic pin at 20 kW/m, U-ZrH-like hydrogen pressure for H/Zr 1.65 taken at the peak fuel temperature; FEED computes no hydrogen inventory and the report gives no temperature range for the correlation"
+  },
+  "toleranceHash": "3324f1a6e6b19cf1bb7dd8061c258b5fb2b791fee87529e2f2860930176bc55a"
+}

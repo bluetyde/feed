@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-mechanics-gap-closure-contact-pressure",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/mechanics-gap-closure.case.json",
+      "sha256": "ccb7f4ea759863e75a7cea0c5f2d55ec26d56129982ca75c8a21cd98a0b54f30"
+    }
+  ],
+  "expected": {
+    "quantity": "contact_pressure",
+    "value": 78895000,
+    "unit": "Pa"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.04
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Fuel alpha 3e-5 per K (a synthetic figure) against 1e-5 for the cladding closes the 20 micron gap with a free overlap of 11.939 micron; the contact pressure is that overlap over the sum of the compliances of the two cylinders (plane strain: the solid fuel's (1 + nu)(1 - 2 nu) R / E and the thick cladding tube's Lame bore compliance).",
+    "check": "FEED's independent solution (src/core/thermoElastic.ts) gives the same pressure to 1e-9 in tests/thermoElastic.test.ts (the interference test written from these compliances); the real-solver sweep of M3 finds the penalty contact 1.1 % low at the factor 0.5 for equal moduli (2 % at 0.3), which is why the tolerance is 4 %."
+  },
+  "coverage": {
+    "quantities": [
+      "contact_pressure"
+    ],
+    "domain": "synthetic pin at 10 W/m in a 600 K coolant, both solids linear elastic (E 200 GPa, nu 0.3) stress-free at 300 K, constant conductivities; thermo-elastic, small strain, no creep, plasticity or swelling; axially fixed, fuel alpha 3e-5 per K, cladding alpha 1e-5 per K, penalty factor 0.5, the 20 micron gap closes"
+  },
+  "toleranceHash": "308079e080bb2e6626bbafff9a0461a27f83d0fff013b481431892ceaf124fd3"
+}

@@ -4,7 +4,7 @@ A case may ask for **mechanics**: the displacement and the stress of the fuel an
 
 ## What it is, and is not
 
-Small strain, **linear elastic**, one radial slice, thermal expansion, a contact condition between the fuel and the cladding. **No creep, no plasticity, no swelling or densification, no fuel cracking or relocation**, no pressure inside the cladding (that is M4), steady cases only. A stress is **not** a verdict: nothing is compared with a strength unless a limit is stated, and this release states none. Every result and export carries that sentence (`MECHANICS_TEXT`). The thermal result of the same case is the one FEED always gave: the temperatures do not depend on the mechanics (the M0 probe found them equal to 1e-5 K), and the gap conductance is the stated one.
+Small strain, **linear elastic**, one radial slice, thermal expansion, a contact condition between the fuel and the cladding. **No creep, no plasticity, no swelling or densification, no fuel cracking or relocation**, no pressure inside the cladding (that is M4), steady cases only. A stress is **not** a verdict: nothing is compared with a strength unless a limit is stated, and this release states none. Every result and export carries that sentence (`MECHANICS_TEXT`). The gap conductance is the stated one and the temperatures are essentially those of the thermal case, **but not exactly**: the M0 probe found them equal to 1e-5 K at a few watts per metre, and at 20 kW/m the fuel temperature moves by about 0.13 % of its rise (0.7 K) when mechanics is on (found in M6 against the same case without it). At a fine mesh that exceeds the thermal closed-form check's bound (5 dT / N^2: 0.27 K at 100 cells, 6.6 K at 20).
 
 ## What a case says
 
@@ -75,4 +75,5 @@ Three cold gaps (10, 20, 40 micron) and fuels of E 5e10, 2e11 and 4e11 Pa agains
 - **The independent solution and the four checks on every result** (M3, above), with the contact sweep over gaps, stiffness ratios and penalty factors.
 - **Gas pressure and stress limits** (M4): the independent solution carries the gas on both surfaces and OFFBEAT's end load; real-solver tests with an open gap, a closed gap and the hydrogen model on the TRIGA fuel and steel; the stress-limit check on OFFBEAT's real fields (`tests/mechanicsStressLimits.test.ts`).
 - **The editor** (M5): the Mechanics item and its panel, the suggested penalty factor by stiffness ratio, the mechanics cards and the stress and displacement plots in the Results view.
-- **Not yet**: SEED oracle entries (M6). A strength of the cladding below 400 C has no source we hold (only Sandia's single point at 154 C).
+- **SEED oracle entries** (M6): 14 entries on the branch `claude/mechanics-m6` (7 good, 6 bad-input, 1 known limit), closed forms written in the generator, checked against the independent solution and the real solver; they wait for SEED's adapter ([seed-mechanics-request.md](seed-mechanics-request.md)).
+- A strength of the cladding below 400 C has no source we hold (only Sandia's single point at 154 C).

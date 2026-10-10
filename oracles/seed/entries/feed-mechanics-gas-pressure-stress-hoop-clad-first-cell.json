@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-mechanics-gas-pressure-stress-hoop-clad-first-cell",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/mechanics-gas-pressure.case.json",
+      "sha256": "98f96f51a98b9a797c159b98a0260368488599bafe406bb90f47c2f72ecc66cf"
+    }
+  ],
+  "expected": {
+    "quantity": "stress_hoop_clad_first_cell",
+    "value": 34995600,
+    "unit": "Pa"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.01
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Lame's thick tube under an inside pressure of 5 MPa and none outside: sigma_theta = p a^2 / (b^2 - a^2) (1 + b^2 / r^2), here at the first cladding cell centre r = 4.1594 mm (a = 4.12 mm, b = 4.75 mm). The cladding is uniformly heated, which adds no stress in a free tube.",
+    "check": "FEED's real-solver test (tests/mechanicsSolver.test.ts, a gas pressure) finds the inner hoop stress of the Lame value to 3 %, and its independent solution reproduces the Lame tube to 1e-9 (tests/mechanicsInternalPressure.test.ts)."
+  },
+  "coverage": {
+    "quantities": [
+      "stress_hoop_clad_first_cell"
+    ],
+    "domain": "synthetic pin at 10 W/m in a 600 K coolant, both solids linear elastic (E 200 GPa, nu 0.3) stress-free at 300 K, constant conductivities; thermo-elastic, small strain, no creep, plasticity or swelling; axially fixed, a constant gas pressure of 5 MPa in the open gap, no coolant pressure"
+  },
+  "toleranceHash": "f2e803dabd347f359f87c0a59660ed8a042d2ea4df189a965801fe25ab325abd"
+}

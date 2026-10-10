@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-mechanics-gap-closure-soft-fuel-contact-pressure",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "known-limit",
+  "inputs": [
+    {
+      "path": "models/mechanics-gap-closure-soft-fuel.case.json",
+      "sha256": "c8bcd50b87c1195254c42e0b2f7d6b1c45487637bf4ca39bd709aaef10ea7929"
+    }
+  ],
+  "expected": {
+    "quantity": "contact_pressure",
+    "value": 65130800,
+    "unit": "Pa"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.02
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "As the closing-gap entry with a fuel a quarter as stiff as its cladding (E 5e10 against 2e11, the TRIGA fuel against steel is 0.3) and the penalty factor 0.7, the one that converges for such a pair. The same two-cylinder compliance form gives the pressure; FEED's penalty contact is known to give it 2.7 to 3.1 % low there.",
+    "check": "FEED's sweep (docs/mechanics.md, 'What the contact sweep found'; the gated tests of tests/mechanicsSolver.test.ts assert the known limit). The tolerance of 2 % is below the known error on purpose: this entry records a limit and is expected to miss."
+  },
+  "coverage": {
+    "quantities": [
+      "contact_pressure"
+    ],
+    "domain": "synthetic pin at 10 W/m in a 600 K coolant, both solids linear elastic (E 200 GPa, nu 0.3) stress-free at 300 K, constant conductivities; thermo-elastic, small strain, no creep, plasticity or swelling; axially fixed, a soft fuel (E 5e10), penalty factor 0.7"
+  },
+  "toleranceHash": "2093fa4f1262a4a270d034b71e49e2150bccdba3815f4fe30129050537ccf868"
+}

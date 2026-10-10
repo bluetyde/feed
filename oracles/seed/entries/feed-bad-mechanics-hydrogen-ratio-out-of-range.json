@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-mechanics-hydrogen-ratio-out-of-range",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-mechanics-hydrogen-ratio-out-of-range.case.json",
+      "sha256": "05ee744a3184e0b21892ec566c50a6871fd802fd2e3864b317190eb36c70c314"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_OUT_OF_RANGE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: an H/Zr ratio of 2.1, outside the delta phase (1.5 to 1.8) that the hydrogen pressure correlation is for. FEED must refuse it before any run; SEED reports E_OUT_OF_RANGE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/mechanics-hydrogen-ratio-out-of-range.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "e05860386a107c17b68ea7591afc5a14d460746119a0fd4fae416450bb1dc06e"
+}

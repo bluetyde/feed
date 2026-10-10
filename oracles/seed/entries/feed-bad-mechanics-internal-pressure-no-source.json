@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-mechanics-internal-pressure-no-source",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-mechanics-internal-pressure-no-source.case.json",
+      "sha256": "83ed22476f6332c159e4a5de2f637cd4c5c67441fbde38aade263d01fd3ccbae"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_PROP_MISSING"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a gas pressure in the gap with no source (FEED has no gas inventory of its own, so the case says where the number comes from). FEED must refuse it before any run; SEED reports E_PROP_MISSING.",
+    "check": "FEED's schema vectors (schema/vectors/bad/mechanics-internal-pressure-no-source.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "127d1e0fe66ba8635a27c05df81c4883cc47920ccbb50ef00cf04a1919ee2d6f"
+}

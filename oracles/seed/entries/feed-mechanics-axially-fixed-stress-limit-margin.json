@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-mechanics-axially-fixed-stress-limit-margin",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/mechanics-axially-fixed.case.json",
+      "sha256": "5b3f321dd76acaf45242a0a013850b25397ab9b292be1080459be162c50f6ef2"
+    }
+  ],
+  "expected": {
+    "quantity": "stress_limit_margin",
+    "value": 399262000,
+    "unit": "Pa"
+  },
+  "tolerance": {
+    "abs": 3000000,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "A stress limit the case states for the fuel (a flat strength of 1 GPa, a synthetic figure) against the largest von Mises stress, which for this state is |sigma_z| = E alpha (hottest cell rise): margin 1 GPa minus 600.74 MPa. The check is the smallest margin over the fuel's cells.",
+    "check": "FEED's real-solver test (tests/mechanicsSolver.test.ts, plane strain) reproduces sigma_z = -E alpha dT to 0.5 %. The margin is the check 'stressLimit:<name>' of FEED's result."
+  },
+  "coverage": {
+    "quantities": [
+      "stress_limit_margin"
+    ],
+    "domain": "synthetic pin at 10 W/m in a 600 K coolant, both solids linear elastic (E 200 GPa, nu 0.3) stress-free at 300 K, constant conductivities; thermo-elastic, small strain, no creep, plasticity or swelling; axially fixed, one fuel stress limit with a flat strength"
+  },
+  "toleranceHash": "416ec02a2d5367323e2827f3be3b768ec1618c74577520afbf7d12d848293fb1"
+}
