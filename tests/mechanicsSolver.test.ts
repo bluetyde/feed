@@ -38,7 +38,8 @@ interface Options {
 }
 function mechanicsCase(o: Options = {}) {
   const d = JSON.parse(readFileSync(join(root, "examples", "synthetic-pin.json"), "utf8"));
-  d.power.linearHeatRate = q(o.q ?? 1, "W/m");
+  // 10 W/m: the pin is within a third of a kelvin of its coolant temperature, and the cladding's temperature difference (0.014 K) is large enough for the thermal energy balance to be read through OFFBEAT's eight printed digits (at 1 W/m it is about 1 %, the check's threshold)
+  d.power.linearHeatRate = q(o.q ?? 10, "W/m");
   d.boundary = { bulkTemperature: q(o.T ?? 600, "K"), heatTransferCoefficient: q(30000, "W/m2/K") };
   d.geometry.claddingInnerRadius = q(o.rci ?? 4.12, "mm");
   d.mesh = { fuelCells: 20, claddingCells: 8 };
@@ -70,7 +71,7 @@ describe.skipIf(!solverOn)("an elastic case through the real solver (needs FEED_
     const fuelOuter = res!.radial.filter((p) => p.region === "fuel").slice(-1)[0]!;
     const i = res!.radial.indexOf(fuelOuter);
     expect(Math.abs(m.points[i]!.ur / (expected * fuelOuter.r) - 1)).toBeLessThan(2e-3);
-    for (const p of m.points) for (const s of [p.sigmaR, p.sigmaTheta]) expect(Math.abs(s)).toBeLessThan(1e6); // no stress to a megapascal (the axial component carries the solver's noise of about 50 kPa)
+    for (const p of m.points) for (const s of [p.sigmaR, p.sigmaTheta]) expect(Math.abs(s)).toBeLessThan(2e6); // no stress to 2 MPa: the 0.27 K across the fuel gives E alpha dT = 0.5 MPa at most (the axial component carries the solver's noise of about 50 kPa)
     expect(m.summary.contact).toBe(false);
     // the gap between the solids at the end: b (1 + e) - a (1 + e) with the same strain on both, to a micron
     expect(m.summary.gapWidth! * 1e6).toBeCloseTo((4.12 - 4.1) * 1e3 * (1 + expected), 0);
