@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-mechanics-stress-limit-unordered-table",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-mechanics-stress-limit-unordered-table.case.json",
+      "sha256": "6ae0c8d4c3ee5256a606368ac5732cc052e8f6194eddc1d811adbbd60415239d"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_OUT_OF_RANGE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a stress limit whose strength table does not have increasing temperatures, so the strength at a temperature would not be defined. FEED must refuse it before any run; SEED reports E_OUT_OF_RANGE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/mechanics-stress-limit-unordered-table.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "e05860386a107c17b68ea7591afc5a14d460746119a0fd4fae416450bb1dc06e"
+}

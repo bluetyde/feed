@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-mechanics-free-expansion-displacement-radial-fuel-last-cell",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/mechanics-free-expansion.case.json",
+      "sha256": "2f5e81930a8c4d8accbff5d033a07fd4b3d946aee4e5e0ed3bb668f802479724"
+    }
+  ],
+  "expected": {
+    "quantity": "displacement_radial_fuel_last_cell",
+    "value": 0.000012002,
+    "unit": "m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.01
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "A solid that is free to expand (no gap closure, free axially) grows by u = alpha (T - Tref) r: for a long free-ended cylinder the surface strain is alpha times the area-mean temperature rise, whatever Poisson's ratio. Fuel alpha 1e-5 per K, mean rise 300.237 K, last fuel cell centre at 3.9975 mm.",
+    "check": "FEED's real-solver test (tests/mechanicsSolver.test.ts, free thermal expansion) reproduces u = alpha dT r to 0.2 % and its independent thermo-elastic solution (src/core/thermoElastic.ts, checked against Timoshenko and Lame) agrees with every result."
+  },
+  "coverage": {
+    "quantities": [
+      "displacement_radial_fuel_last_cell"
+    ],
+    "domain": "synthetic pin at 10 W/m in a 600 K coolant, both solids linear elastic (E 200 GPa, nu 0.3) stress-free at 300 K, constant conductivities; thermo-elastic, small strain, no creep, plasticity or swelling; fuel alpha 1e-5 per K, cladding alpha 17e-6 per K, free axially, the 20 micron gap stays open"
+  },
+  "toleranceHash": "be2242dfa5241333e5ec63d40e41ce10090e6d8e238bc32939a3140977186b72"
+}

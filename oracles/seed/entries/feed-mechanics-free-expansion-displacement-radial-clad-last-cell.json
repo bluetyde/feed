@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-mechanics-free-expansion-displacement-radial-clad-last-cell",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/mechanics-free-expansion.case.json",
+      "sha256": "2f5e81930a8c4d8accbff5d033a07fd4b3d946aee4e5e0ed3bb668f802479724"
+    }
+  ],
+  "expected": {
+    "quantity": "displacement_radial_clad_last_cell",
+    "value": 0.0000240257,
+    "unit": "m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.01
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The same for the cladding (a hollow cylinder with free surfaces): u = alpha (T - Tref) r at its outermost cell centre, 4.7106 mm, cladding alpha 17e-6 per K, rise 300.018 K.",
+    "check": "FEED's real-solver test (tests/mechanicsSolver.test.ts, free thermal expansion) reproduces u = alpha dT r to 0.2 % and its independent thermo-elastic solution (src/core/thermoElastic.ts, checked against Timoshenko and Lame) agrees with every result."
+  },
+  "coverage": {
+    "quantities": [
+      "displacement_radial_clad_last_cell"
+    ],
+    "domain": "synthetic pin at 10 W/m in a 600 K coolant, both solids linear elastic (E 200 GPa, nu 0.3) stress-free at 300 K, constant conductivities; thermo-elastic, small strain, no creep, plasticity or swelling; fuel alpha 1e-5 per K, cladding alpha 17e-6 per K, free axially, the 20 micron gap stays open"
+  },
+  "toleranceHash": "7336a0f4bd9aac0db8c231ae0bfadc6cef4345fc3453db4c405db3f2ba863f61"
+}

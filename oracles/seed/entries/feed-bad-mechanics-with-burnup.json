@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-mechanics-with-burnup",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-mechanics-with-burnup.case.json",
+      "sha256": "43bff0bfde1abec2726b09afea62ab7574a1a450d97f8df2afb3f3860f92589c"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_UNSUPPORTED"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: mechanics together with a burnup (swelling and densification are not modelled, so the combination would look more complete than it is). FEED must refuse it before any run; SEED reports E_UNSUPPORTED.",
+    "check": "FEED's schema vectors (schema/vectors/bad/mechanics-with-burnup.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "be0cd25da730942e7f9784bcfc09d2f79454f857d7c497d9037ce42ff2ab7c7e"
+}

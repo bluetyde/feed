@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-mechanics-axially-fixed-stress-axial-fuel-min",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/mechanics-axially-fixed.case.json",
+      "sha256": "5b3f321dd76acaf45242a0a013850b25397ab9b292be1080459be162c50f6ef2"
+    }
+  ],
+  "expected": {
+    "quantity": "stress_axial_fuel_min",
+    "value": -600738000,
+    "unit": "Pa"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.01
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "With the axial strain held at zero a uniformly heated solid has sigma_z = -E alpha (T - Tref) and no radial or hoop stress. The most compressive cell is the hottest, the first fuel cell centre (600.369 K, rise 300.369 K), E 200 GPa, alpha 1e-5 per K.",
+    "check": "FEED's real-solver test (tests/mechanicsSolver.test.ts, plane strain) reproduces sigma_z = -E alpha dT to 0.5 %."
+  },
+  "coverage": {
+    "quantities": [
+      "stress_axial_fuel_min"
+    ],
+    "domain": "synthetic pin at 10 W/m in a 600 K coolant, both solids linear elastic (E 200 GPa, nu 0.3) stress-free at 300 K, constant conductivities; thermo-elastic, small strain, no creep, plasticity or swelling; axially fixed (plane strain)"
+  },
+  "toleranceHash": "272ff3393a4383bfab62b2b6d68338f0544f0d696013d45060c84af9dc2d7c95"
+}
