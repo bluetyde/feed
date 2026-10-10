@@ -8,6 +8,7 @@ import { evaluate, lawOf, primitive, rangeOf, solveHot } from "./conductivity";
 import { NFI_OXIDE_TO_HEAVY_METAL } from "./uo2Nfi";
 import { remainingChangeBound, STEADY_TOLERANCE } from "./steadyState";
 import { effectiveMechanics } from "./mechanicalEval";
+import { mechanicsChecks } from "./mechanicsChecks";
 import { MECHANICS_TEXT, MechanicsInput, MechanicsRecord, buildMechanics } from "./mechanicsResults";
 import { Conductivity, NormalizedCase } from "./validate";
 
@@ -316,6 +317,7 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
     if (built.record) {
       const order = [...fuel, ...clad].map((p) => radial.indexOf(p));
       mechanics = { ...built.record, points: order.map((i) => built.record!.points[i]!) };
+      checks.push(...mechanicsChecks(c, eff, mechanics, [...fuel, ...clad].map((p) => ({ region: p.region, r: p.r }))));
     }
   }
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value}); the cell geometry is inconsistent`);
