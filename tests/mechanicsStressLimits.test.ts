@@ -3,7 +3,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
-import { strengthAt } from "../src/core/mechanicsChecks";
+import { strengthAt, stressLimitChecks } from "../src/core/mechanicsChecks";
 import { buildResults } from "../src/core/resultsParser";
 import { validateCase } from "../src/core/validate";
 
@@ -113,5 +113,31 @@ describe("the check on the golden OFFBEAT result", () => {
     const r = results([limit(), limit({ name: "fuel", region: "fuel", table: [pt(300, 1000), pt(1800, 1000)] })]);
     expect(Object.keys(r).sort()).toEqual(["stressLimit:clad-flat", "stressLimit:fuel"]);
     expect(results(undefined)).toEqual({});
+  });
+});
+
+describe("the check by itself", () => {
+  const lim = [{ name: "L", region: "cladding" as const, table: [{ temperature: 300, strength: 400e6 }, { temperature: 900, strength: 100e6 }], source: "s" }];
+  const rec = (eq: number[]) => ({ points: eq.map((e) => ({ ur: 0, uz: 0, sigmaR: 0, sigmaTheta: 0, sigmaZ: 0, sigmaEq: e })) }) as any;
+  it("the smallest margin of the solid's cells, not the largest, and only the limit's own region", () => {
+    const cells = [{ region: "fuel" as const, T: 300 }, { region: "cladding" as const, T: 300 }, { region: "cladding" as const, T: 600 }, { region: "cladding" as const, T: 900 }];
+    // strengths 400, 250, 100 MPa against stresses 100, 200, 50 MPa: margins 300, 50, 50 (the fuel cell's 1e9 is ignored)
+    const c = stressLimitChecks(lim, rec([1e9, 100e6, 200e6, 50e6]), cells)[0]!;
+    expect(c.value).toBeCloseTo(50e6, 0);
+    const d = stressLimitChecks(lim, rec([1e9, 100e6, 150e6, 50e6]), cells)[0]!;
+    expect(d.value).toBeCloseTo(50e6, 0);
+    expect(stressLimitChecks(lim, rec([1e9, 390e6, 10e6, 10e6]), cells)[0]!.value).toBeCloseTo(10e6, 0);
+  });
+  it("a stress that is not a number fails the limit, and so does a temperature that is not", () => {
+    const cells = [{ region: "cladding" as const, T: 300 }, { region: "cladding" as const, T: 500 }];
+    const a = stressLimitChecks(lim, rec([NaN, 1e6]), cells)[0]!;
+    expect(a.verdict).toBe("fail");
+    expect(a.note).toMatch(/not a finite number/);
+    expect(stressLimitChecks(lim, rec([1e6, 1e6]), [cells[0]!, { region: "cladding", T: NaN }])[0]!.verdict).toBe("fail");
+  });
+  it("a margin of exactly zero passes and a negative one fails", () => {
+    const cells = [{ region: "cladding" as const, T: 300 }];
+    expect(stressLimitChecks(lim, rec([400e6]), cells)[0]!.verdict).toBe("pass");
+    expect(stressLimitChecks(lim, rec([400e6 + 1]), cells)[0]!.verdict).toBe("fail");
   });
 });
