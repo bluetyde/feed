@@ -1,0 +1,40 @@
+[
+  {
+    "id": "ss304-ut-sar-ultimate",
+    "name": "304 stainless steel cladding: ultimate tensile strength against temperature (UT-Austin SAR figure 4.3a)",
+    "label": "sourced, read from a figure",
+    "region": "cladding",
+    "kind": "ultimate tensile strength",
+    "citation": "University of Texas at Austin TRIGA II Research Reactor Safety Analysis Report (2023, redacted), section 4.2.1, Figure 4.3a 'Temperature, Cladding Strength, and Stress' (reference given there: Carpenter and Crucible Steel); cross-checked against Figure 4.3b.",
+    "uncertainty": "Read by eye from a logarithmic plot (one decade of stress is about 300 pixels in the figure as supplied): good to about 10 %. The two figures of the SAR differ by about 25 % at 1100 C (5.2 ksi in 4.3a, about 4.0 ksi in 4.3b) and agree to a few percent near 960 C. Defined only from 400 to 1100 C; below 400 C nothing is stated and a case that has cladding below 400 C is not judged by this table.",
+    "validRange": { "min": { "value": 400, "unit": "degC" }, "max": { "value": 1100, "unit": "degC" } },
+    "table": [
+      { "temperature": { "value": 400, "unit": "degC" }, "strength": { "value": 62, "unit": "ksi" } },
+      { "temperature": { "value": 500, "unit": "degC" }, "strength": { "value": 57, "unit": "ksi" } },
+      { "temperature": { "value": 600, "unit": "degC" }, "strength": { "value": 48, "unit": "ksi" } },
+      { "temperature": { "value": 700, "unit": "degC" }, "strength": { "value": 34, "unit": "ksi" } },
+      { "temperature": { "value": 800, "unit": "degC" }, "strength": { "value": 19, "unit": "ksi" } },
+      { "temperature": { "value": 900, "unit": "degC" }, "strength": { "value": 10.2, "unit": "ksi" } },
+      { "temperature": { "value": 1000, "unit": "degC" }, "strength": { "value": 6.9, "unit": "ksi" } },
+      { "temperature": { "value": 1100, "unit": "degC" }, "strength": { "value": 5.2, "unit": "ksi" } }
+    ]
+  },
+  {
+    "id": "ss304-ut-sar-yield",
+    "name": "304 stainless steel cladding: 0.2 % yield strength against temperature (UT-Austin SAR figure 4.3a)",
+    "label": "sourced, read from a figure",
+    "region": "cladding",
+    "kind": "0.2 % yield strength",
+    "citation": "University of Texas at Austin TRIGA II Research Reactor Safety Analysis Report (2023, redacted), section 4.2.1, Figure 4.3a (reference there: Carpenter and Crucible Steel).",
+    "uncertainty": "Read by eye from a logarithmic plot: good to about 10 %. The curve is drawn from 400 C and ends at about 870 C (10 ksi); nothing is stated outside 400 to 870 C. It gives no stress-strain law: it supports a limit on the stress, not a plasticity model.",
+    "validRange": { "min": { "value": 400, "unit": "degC" }, "max": { "value": 870, "unit": "degC" } },
+    "table": [
+      { "temperature": { "value": 400, "unit": "degC" }, "strength": { "value": 35, "unit": "ksi" } },
+      { "temperature": { "value": 500, "unit": "degC" }, "strength": { "value": 34.5, "unit": "ksi" } },
+      { "temperature": { "value": 600, "unit": "degC" }, "strength": { "value": 32, "unit": "ksi" } },
+      { "temperature": { "value": 700, "unit": "degC" }, "strength": { "value": 24, "unit": "ksi" } },
+      { "temperature": { "value": 800, "unit": "degC" }, "strength": { "value": 14, "unit": "ksi" } },
+      { "temperature": { "value": 870, "unit": "degC" }, "strength": { "value": 10, "unit": "ksi" } }
+    ]
+  }
+]
