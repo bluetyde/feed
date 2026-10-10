@@ -4,10 +4,10 @@
     "name": "U-ZrH (TRIGA, H/Zr 1.6), k = 18 W/m/K",
     "label": "sourced",
     "description": "Fuel-moderator of TRIGA Mark III elements: 8.5 wt% U, 20% enriched, delta-phase ZrH1.6. Conductivity stated as nearly independent of temperature. Revision 2 adds the volumetric heat capacity (needed for a pulse); the conductivity is unchanged.",
-    "citation": "UT-Austin SAR Table 4.1: thermal conductivity 0.18 W/cm/K. K-State SAR Table 13.3 and Table 4.6: 18 W/m/K, all temperatures; K-State attributes General Atomics and Simnad (1980) and says there is little temperature dependence over the range of interest. Sources: University of Texas at Austin TRIGA II Research Reactor Safety Analysis Report, Chapter 4, 8/2023; Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004.",
+    "citation": "UT-Austin SAR Table 4.1: thermal conductivity 0.18 W/cm/K. K-State SAR Table 13.3 and Table 4.6: 18 W/m/K, all temperatures; K-State attributes General Atomics and Simnad (1980) and says there is little temperature dependence over the range of interest. Sources: University of Texas at Austin TRIGA II Research Reactor Safety Analysis Report, Chapter 4, 8/2023; Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004. Mechanical sets (added with revision 3): the elastic modulus of delta-phase U-ZrH from UT-Austin SAR Table 4.1 and K-State SAR 2004 (9.1e6 psi at 20 C, 6.0e6 psi at 650 C), confirmed by Simnad (General Atomic E-117-833, section 2.11); Poisson's ratio 0.32 from Sandia SAND2009-7374C (secondary); the expansion is Simnad's SNAP-data law.",
     "material": {
       "materialId": "triga-uzrh-h16",
-      "revision": 2,
+      "revision": 3,
       "sets": {
         "thermal.conductivity": {
           "model": "constant",
@@ -42,6 +42,56 @@
             }
           },
           "source": "UT-Austin SAR Table 4.1: 2.04 + 0.00417 T[C] J/cm3/K, rewritten in kelvin (a = 2.04e6 - 4170 x 273.15). The SAR states no validity range; 0 to 1000 C is assumed to cover a pulse"
+        },
+        "mechanical.elasticity": {
+          "model": "linear",
+          "a": {
+            "value": 72687869320.0,
+            "unit": "Pa"
+          },
+          "b": {
+            "value": -33926583.51,
+            "unit": "Pa/K"
+          },
+          "poissonRatio": {
+            "value": 0.32,
+            "unit": "1"
+          },
+          "validRange": {
+            "min": {
+              "value": 293.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 923.15,
+              "unit": "K"
+            }
+          },
+          "source": "UT-Austin SAR 2023 Table 4.1 and K-State SAR 2004 (its source is the Texas SAR of 1991): elastic modulus of delta-phase U-ZrH 9.1e6 psi at 20 C and 6.0e6 psi at 650 C, linear between the two (62.7 GPa and 41.4 GPa; General Atomic E-117-833 section 2.11, page 2-31, measured 63,000 MPa and about 41,000 MPa on ZrH1.6). Poisson's ratio 0.32 from Sandia SAND2009-7374C (the given value of a finite-element analysis of a TRIGA-type element; a secondary source, no SAR gives one)"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "model": "linear",
+            "a": {
+              "value": -7.381375e-07,
+              "unit": "1/K"
+            },
+            "b": {
+              "value": 1.925e-08,
+              "unit": "1/K2"
+            },
+            "validRange": {
+              "min": {
+                "value": 293.15,
+                "unit": "K"
+              },
+              "max": {
+                "value": 1073.15,
+                "unit": "K"
+              }
+            }
+          },
+          "source": "Simnad, Nucl. Eng. Des. 64 (1981) 403, section 2.10: 4.52e-6 + 19.25e-9 T(C) per C (SNAP data), rewritten in kelvin (a = 4.52e-6 - 19.25e-9 x 273.15); range 20 to 800 C assumed from the cycled specimens"
         }
       }
     }
@@ -121,10 +171,10 @@
     "name": "Stainless steel 304, k = 16.6 W/m/K (K-State value)",
     "label": "sourced",
     "description": "TRIGA cladding, 0.508 mm thick. The single value K-State uses for expected conditions (400 K). Revision 2 adds the volumetric heat capacity (needed for a pulse); the conductivity is unchanged.",
-    "citation": "K-State SAR Table 13.3 and Table 4.6: 16.6 W/m/K at 400 K; the SAR says the 127 C value applies under expected conditions. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004.",
+    "citation": "K-State SAR Table 13.3 and Table 4.6: 16.6 W/m/K at 400 K; the SAR says the 127 C value applies under expected conditions. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004. Mechanical sets (added with the next revision): Young's modulus 1.9e11 Pa and Poisson's ratio 0.3 from Sandia SAND2009-7374C (the given values of a finite-element analysis; constant, no range), the expansion 17.2e-6 per K from Svajger et al. 2024.",
     "material": {
       "materialId": "ss304-k166",
-      "revision": 2,
+      "revision": 3,
       "sets": {
         "thermal.conductivity": {
           "model": "constant",
@@ -149,6 +199,25 @@
             "unit": "K"
           },
           "source": "K-State SAR Table 13.3: 7900 kg/m3 x 477 J/kg/K at 300 K (515 J/kg/K at 400 K: the value rises 8% over 100 K, which matters little for a pulse this short, and much more for a long run)"
+        },
+        "mechanical.elasticity": {
+          "model": "constant",
+          "youngModulus": {
+            "value": 190,
+            "unit": "GPa"
+          },
+          "poissonRatio": {
+            "value": 0.3,
+            "unit": "1"
+          },
+          "source": "Sandia SAND2009-7374C (Black et al.), the physical properties of SS 304 cladding given for a finite-element analysis of a TRIGA-type element: Young's modulus 1.9e11 Pa, Poisson's ratio 0.3. A secondary source with no temperature dependence and no range stated; the modulus of stainless steel falls with temperature, so over hundreds of kelvin this is a single value"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 17.2,
+            "unit": "1e-6/K"
+          },
+          "source": "Svajger et al., Nucl. Eng. Technol. 56 (2024) 1165, eq. (4.7): 17.2e-6 per K for the SS 304 cladding of the JSI TRIGA, citing Kraut et al.; a secondary source with no stated temperature range"
         }
       }
     }
@@ -158,10 +227,10 @@
     "name": "Stainless steel 304, k(T) = 10.0 + 0.016333 T (300-600 K)",
     "label": "sourced",
     "description": "Straight line through the SAR's end points (14.9 W/m/K at 300 K, 19.8 at 600 K); it gives 16.53 at 400 K against the tabulated 16.6. Valid only over 300 to 600 K. Revision 2 adds the volumetric heat capacity (needed for a pulse); the conductivity is unchanged.",
-    "citation": "Fit by this project to K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The fit is ours; the three points are the SAR's. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004.",
+    "citation": "Fit by this project to K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The fit is ours; the three points are the SAR's. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004. Mechanical sets (added with the next revision): Young's modulus 1.9e11 Pa and Poisson's ratio 0.3 from Sandia SAND2009-7374C (the given values of a finite-element analysis; constant, no range), the expansion 17.2e-6 per K from Svajger et al. 2024.",
     "material": {
       "materialId": "ss304-ktemp",
-      "revision": 2,
+      "revision": 3,
       "sets": {
         "thermal.conductivity": {
           "model": "linear",
@@ -196,6 +265,25 @@
             "unit": "K"
           },
           "source": "K-State SAR Table 13.3: 7900 kg/m3 x 477 J/kg/K at 300 K (515 J/kg/K at 400 K: the value rises 8% over 100 K, which matters little for a pulse this short, and much more for a long run)"
+        },
+        "mechanical.elasticity": {
+          "model": "constant",
+          "youngModulus": {
+            "value": 190,
+            "unit": "GPa"
+          },
+          "poissonRatio": {
+            "value": 0.3,
+            "unit": "1"
+          },
+          "source": "Sandia SAND2009-7374C (Black et al.), the physical properties of SS 304 cladding given for a finite-element analysis of a TRIGA-type element: Young's modulus 1.9e11 Pa, Poisson's ratio 0.3. A secondary source with no temperature dependence and no range stated; the modulus of stainless steel falls with temperature, so over hundreds of kelvin this is a single value"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 17.2,
+            "unit": "1e-6/K"
+          },
+          "source": "Svajger et al., Nucl. Eng. Technol. 56 (2024) 1165, eq. (4.7): 17.2e-6 per K for the SS 304 cladding of the JSI TRIGA, citing Kraut et al.; a secondary source with no stated temperature range"
         }
       }
     }
@@ -205,10 +293,10 @@
     "name": "Stainless steel 304, k(T) table of the SAR's three points, quadratic fit (300-600 K)",
     "label": "sourced",
     "description": "The SAR's three conductivity points as a table; the degree 2 polynomial passes through all three exactly (fit deviation zero), so the model reproduces 16.6 W/m/K at 400 K, unlike the straight line. Valid only over 300 to 600 K. Shows the table model: replace the points with measured data and the fit is checked against the tolerance.",
-    "citation": "K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The three points are the SAR's; the quadratic through them is computed by FEED. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004.",
+    "citation": "K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The three points are the SAR's; the quadratic through them is computed by FEED. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004. Mechanical sets (added with the next revision): Young's modulus 1.9e11 Pa and Poisson's ratio 0.3 from Sandia SAND2009-7374C (the given values of a finite-element analysis; constant, no range), the expansion 17.2e-6 per K from Svajger et al. 2024.",
     "material": {
       "materialId": "ss304-ktable",
-      "revision": 1,
+      "revision": 2,
       "sets": {
         "thermal.conductivity": {
           "model": "table",
@@ -264,6 +352,25 @@
             "unit": "K"
           },
           "source": "K-State SAR Table 13.3: 7900 kg/m3 x 477 J/kg/K at 300 K (515 J/kg/K at 400 K: the value rises 8% over 100 K, which matters little for a pulse this short, and much more for a long run)"
+        },
+        "mechanical.elasticity": {
+          "model": "constant",
+          "youngModulus": {
+            "value": 190,
+            "unit": "GPa"
+          },
+          "poissonRatio": {
+            "value": 0.3,
+            "unit": "1"
+          },
+          "source": "Sandia SAND2009-7374C (Black et al.), the physical properties of SS 304 cladding given for a finite-element analysis of a TRIGA-type element: Young's modulus 1.9e11 Pa, Poisson's ratio 0.3. A secondary source with no temperature dependence and no range stated; the modulus of stainless steel falls with temperature, so over hundreds of kelvin this is a single value"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 17.2,
+            "unit": "1e-6/K"
+          },
+          "source": "Svajger et al., Nucl. Eng. Technol. 56 (2024) 1165, eq. (4.7): 17.2e-6 per K for the SS 304 cladding of the JSI TRIGA, citing Kraut et al.; a secondary source with no stated temperature range"
         }
       }
     }
