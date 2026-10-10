@@ -15,6 +15,21 @@
     "source": "Simnad, Nucl. Eng. Des. 64 (1981) 403, section 2.10: 4.52e-6 + 19.25e-9 T(C) per C (SNAP data), rewritten in kelvin (a = 4.52e-6 - 19.25e-9 x 273.15); range 20 to 800 C assumed from the cycled specimens"
   },
   {
+    "id": "triga-uzrh-simnad-45wt-expansion",
+    "solid": "fuel",
+    "name": "U-ZrH (TRIGA, H/Zr 1.6): linear expansion measured on 45 wt% uranium, Simnad 1980",
+    "label": "sourced",
+    "description": "The linear thermal expansion coefficient that General Atomics measured on 45 wt% uranium-zirconium hydride (H/Zr 1.6): alpha = 7.38e-6 + 15.1e-9 T per degree C (7.7e-6 at 20 C, 17.2e-6 at 650 C, 19.5e-6 at 800 C), from two specimens thermally cycled more than 100 times from room temperature to 800 C in a dilatometer; the fit deviates from the data by less than 10 %, and a phase transformation at about 650 C changes the density. It is the same expression that a 2024 paper on the JSI TRIGA gives without a unit. The fuel of a standard TRIGA element has 8 to 12 wt% uranium: the report says the maximum radial expansion of such an element is about 0.5 % against 0.6 % for 45 wt% fuel, so this coefficient may over-state the growth of standard fuel, as the SNAP-data entry may. Rewritten here in kelvin; 20 to 800 C is the range the specimens were cycled over.",
+    "citation": "M. T. Simnad, The U-ZrHx Alloy: Its Properties and Use in TRIGA Fuel, General Atomic report E-117-833 (GA Project No. 4314), section 2.10 (Thermal expansion), pages 2-26 to 2-31: 'the expansion coefficient for 45 wt % UZrH1.6 is alpha = 7.38e-6 + 15.1e-9 T (C)^-1'; the same expression is in I. Svajger et al., Nuclear Engineering and Technology 56 (2024) 1165, without a unit.",
+    "linearExpansion": {
+      "model": "linear",
+      "a": { "value": 3.255435e-06, "unit": "1/K" },
+      "b": { "value": 1.51e-08, "unit": "1/K2" },
+      "validRange": { "min": { "value": 293.15, "unit": "K" }, "max": { "value": 1073.15, "unit": "K" } }
+    },
+    "source": "Simnad, General Atomic E-117-833, section 2.10: 7.38e-6 + 15.1e-9 T(C) per C measured on 45 wt% U-ZrH1.6, rewritten in kelvin (a = 7.38e-6 - 15.1e-9 x 273.15); range 20 to 800 C from the cycled specimens"
+  },
+  {
     "id": "triga-ss304-jsi-expansion",
     "solid": "cladding",
     "name": "Stainless steel 304 cladding: linear expansion, 17.2e-6 per K (JSI TRIGA)",

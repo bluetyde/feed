@@ -261,12 +261,15 @@ describe("the sourced coefficients in library/expansion.json", () => {
   const bySolid = (s: "fuel" | "cladding") => sets.filter((x) => x.solid === s);
   const apply = (d: any, ref = { value: 20, unit: "degC" }) => {
     d.hotDimensions = { referenceTemperature: ref };
-    for (const s of sets) d.hotDimensions[s.solid] = { linearExpansion: s.linearExpansion, source: s.source };
+    for (const solid of ["fuel", "cladding"] as const) {
+      const s = bySolid(solid)[0];
+      d.hotDimensions[solid] = { linearExpansion: s.linearExpansion, source: s.source };
+    }
     return d;
   };
 
-  it("has one set per solid, each labelled sourced with a citation, a description and the source text a case carries", () => {
-    expect(bySolid("fuel").length).toBe(1);
+  it("has the sets, each labelled sourced with a citation, a description and the source text a case carries (two for the fuel, one for the cladding)", () => {
+    expect(bySolid("fuel").length).toBe(2);
     expect(bySolid("cladding").length).toBe(1);
     for (const s of sets) {
       expect(s.label).toBe("sourced");
@@ -282,6 +285,17 @@ describe("the sourced coefficients in library/expansion.json", () => {
     for (const C of [20, 650, 800]) expect(Math.abs((a + b * (C + 273.15)) / (4.52e-6 + 19.25e-9 * C) - 1), "at " + C + " C").toBeLessThan(1e-9);
     expect(f.validRange.min.value).toBeCloseTo(293.15, 10);
     expect(f.validRange.max.value).toBeCloseTo(1073.15, 10);
+  });
+
+  it("the second fuel set is the 45 wt% measurement 7.38e-6 + 15.1e-9 T(C) per C of the same report, in kelvin: its values at 20, 650 and 800 C, and its source names the report", () => {
+    const s = bySolid("fuel")[1];
+    expect(s.id).toBe("triga-uzrh-simnad-45wt-expansion");
+    const f = s.linearExpansion;
+    for (const C of [20, 650, 800]) expect(Math.abs((f.a.value + f.b.value * (C + 273.15)) / (7.38e-6 + 15.1e-9 * C) - 1), "at " + C + " C").toBeLessThan(1e-9);
+    expect(f.validRange.min.value).toBeCloseTo(293.15, 10);
+    expect(f.validRange.max.value).toBeCloseTo(1073.15, 10);
+    expect(s.source).toMatch(/45 wt% U-ZrH1\.6/);
+    expect(s.citation).toMatch(/E-117-833/);
   });
 
   it("the cladding coefficient is the 17.2e-6 per K of the cited paper", () => {
