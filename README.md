@@ -1,29 +1,37 @@
 # Fuel Performance Studio (FEED, Fuel Engineering and Experimental Design)
 
-FEED is a browser editor and a command line for the thermal analysis of one fuel pin, with a solver (OFFBEAT, in a separate WSL distro) behind it. Planned 2026-09-30; built from 2026-10-05, starting with a solver-free core (closed-form oracles, case schema, validator). Built since: the editor and server, the OFFBEAT backend and its result checks, thermal transients, temperature limits, hot dimensions, a burnup-dependent UO2 conductivity, a library of sourced materials, and the hand-offs to SEED (the adapter, oracle entries and transfers). It is private and not released; [TODO.md](TODO.md) lists what is open. Mechanics (stress, contact, swelling) is planned and paused, not built.
+FEED is a browser editor and a command line for the thermal analysis of one fuel pin: steady heat conduction through fuel, gap, cladding and coolant film, or a thermal transient such as a reactor pulse. It is for students and for engineers who want a small, checkable model of a pin, with the assumptions written next to every result. The solver behind it is OFFBEAT, which runs in a separate Linux environment; without it the editor gives a closed-form quick look.
 
-Start with [PLAN.md](PLAN.md), then [TODO.md](TODO.md). Design documents are in [docs/](docs/README.md): architecture, workflows, tooling, the delegation board and ten area plans (backend, case and materials, editor and adapter, verification, suite transfers, mechanics and irradiation, release, transients, mechanics, burnup). Suite decisions and cross-app contracts live in [the integration draft](../plans/nuclear-suite-integration.md); the agentic harness it plugs into is in [the harness plan](../plans/agentic-harness.md) and the SEED repo (`../experiment-studio`).
+**Status: experimental and educational. Results are thermal only and are not validated for safety, licensing or operation.** A thermal result never implies stress, failure or fuel integrity.
 
-Folders: `docs/` design notes and [decision records](docs/decisions/); `src/core/` units, closed forms, case validator, quick look; `schema/` case schema, error codes and good/bad vectors; `oracles/` the closed-form oracle table; `examples/` teaching cases (synthetic or sourced, labelled); `tests/` unit, oracle and cross-check tests.
+## What works, and what does not
 
-With the `feed-solver` WSL distro present (see [solver/PINS.md](solver/PINS.md)) the editor's Run button runs OFFBEAT; without it the button gives the closed-form quick look. `FEED_SOLVER=1 npm test` also runs the tests that use the real solver.
+Works: the case editor and local server; runs on OFFBEAT with checks of each result against closed forms and against the solver's own fields; steady and transient (pulse) cases; a conductivity model per solid ([constant, linear, reciprocal, polynomial, table, and a burnup-dependent UO2 model](docs/conductivity-models.md)); [hot dimensions](docs/hot-dimensions.md) (radii at operating temperature from free thermal expansion); a [burnup](docs/burnup.md) for UO2 fuel; [temperature limits](docs/temperature-limits.md) with a margin check; [point kinetics](docs/point-kinetics.md) for a generated pulse; a library of sourced materials; teaching examples in `examples/`, each labelled synthetic or sourced.
 
-Run the tests (Node 24):
+Does not: stress, contact, swelling, creep, fission-gas release or a fuel history ([mechanics](docs/plans/09-mechanics.md) is planned, not built). A burnup case is a frozen snapshot of the conductivity: the gap stays as stated and nothing evolves. TRIGA fuel has no burnup model. Several figures in the examples are illustrative; each says so. [TODO.md](TODO.md) lists what is open.
+
+## Install and first run
+
+Needs Node 24. The editor and the quick look need nothing else.
 
 ```bash
-cd fuel-performance-studio && npm install && npm test
+npm install
+npm test          # builds, then runs the tests
+npm start         # the editor, on http://127.0.0.1:8771/
 ```
 
-Regenerate the bad vectors after changing the example pin: `node scripts/make-vectors.cjs`. Regenerate the SEED oracle entries after changing a case they pin: `node scripts/gen-seed-oracles.cjs` (the entries are hash-pinned by SEED; a changed tolerance needs a new entry version made by a person).
+On Windows, `Start Fuel Performance Studio.cmd` does the same with a double click. With the `feed-solver` WSL distro present ([solver/PINS.md](solver/PINS.md) says how it is built and which versions it pins) the Run button runs OFFBEAT; `FEED_SOLVER=1 npm test` also runs the tests that use the real solver. Tested on Windows 11 with WSL 2 only; the Linux and macOS paths for the solver are not tested.
 
-What it solves: steady-state radial heat conduction through one fuel pin (fuel, optionally with a central hole, gap, cladding, coolant), or a thermal transient (a pulse) from a power history you give it, with a heat capacity for each solid. See [plan 08](docs/plans/08-transients.md) for the transient. In the editor, Power > Analysis switches between the two.
+Regenerate the bad vectors after changing the example pin: `node scripts/make-vectors.cjs`. Regenerate the SEED oracle entries after changing a case they pin: `node scripts/gen-seed-oracles.cjs` (SEED pins each entry by hash; a changed tolerance needs a new entry version made by a person).
 
-Also in the case: a [conductivity model](docs/conductivity-models.md) per solid (constant, linear, reciprocal, polynomial, table, and for UO2 the burnup-dependent modified NFI model); [hot dimensions](docs/hot-dimensions.md) (radii at operating temperature from free thermal expansion); a [burnup](docs/burnup.md) for UO2 fuel, taken as a frozen snapshot, never a fuel history; [temperature limits](docs/temperature-limits.md) with a margin check; and [point kinetics](docs/point-kinetics.md) for a generated pulse. A burnup can come from an OpenMC Studio depletion record through a SEED transfer ([transfer-burnup.md](docs/transfer-burnup.md)); heating and coolant conditions arrive the same way ([heating](docs/transfer-heating.md), [boundary](docs/transfer-boundary.md)). The 74 SEED oracle entries are in `oracles/seed/`, generated by `scripts/gen-seed-oracles.cjs`.
+## Where things are
 
-A thermal-only result never implies stress, failure or fuel integrity. A burnup case is a frozen snapshot of the conductivity: no swelling, densification, relocation or fission-gas release, and the gap stays as stated.
+`docs/` design notes, plans and [decision records](docs/decisions/); `src/core/` units, closed forms, case validator, results checks; `src/server/` and `src/web/` the server and the editor; `schema/` the case schema, error codes and good and bad vectors; `oracles/` the closed-form tables and the SEED oracle entries; `library/` sourced material, expansion and limit data; `examples/` teaching cases; `solver/` the pins and scripts for the solver environment; `tests/`. Start with [PLAN.md](PLAN.md), then [docs/README.md](docs/README.md).
 
-Development coordination: [project log](../messages/fuel-performance-studio.md) and [workspace rules](../messages/INSTRUCTIONS.md). Do not interpret an unchecked task or proposed contract as implemented support.
+FEED is one app of a small suite. A burnup can come from an OpenMC Studio depletion record, and heating and coolant conditions from other apps, through hand-off files that SEED, the experiment harness, checks ([burnup](docs/transfer-burnup.md), [heating](docs/transfer-heating.md), [boundary](docs/transfer-boundary.md)). Nothing needs SEED to run FEED.
+
+How the project is developed (several coding agents, a shared log, reviews): [docs/WORKFLOWS.md](docs/WORKFLOWS.md). An unchecked task or a proposed contract is not implemented support.
 
 ## Licence and third-party software
 
-FEED's own code is MIT licensed (see [LICENSE](LICENSE)). It does not contain, bundle or redistribute OpenFOAM or OFFBEAT (both GPL): the solver is installed separately (SEED's installer, or the scripts in `solver/`) and FEED runs it as a separate program. FEED writes input files in OFFBEAT's format, using OFFBEAT's keyword names, and its tests compare against output files the solver produced. The mesh vertex correction in `src/core/caseWriter.ts` is derived in that file's comment and checked against OFFBEAT's `rodMaker.py` output; no OFFBEAT source is copied. The sourced property values cite the reactor safety analysis reports they come from (see `library/` and `examples/`). The licences of the solver stack, the texts kept for the pinned versions and what each way of distributing would have to carry are in [docs/licences](docs/licences/README.md); it is not legal advice and lists what is still missing.
+FEED's own code is MIT licensed (see [LICENSE](LICENSE)). It does not contain, bundle or redistribute OpenFOAM or OFFBEAT (both GPL): the solver is installed separately (SEED's installer, or the scripts in `solver/`) and FEED runs it as a separate program. FEED writes input files in OFFBEAT's format, using OFFBEAT's keyword names, and its tests compare against output files the solver produced. No OFFBEAT source is copied. The sourced property values cite the reports and papers they come from (see `library/` and `examples/`). What is used, under which licence and what ships where is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the working notes behind it, with the texts kept for the pinned versions, are in [docs/licences](docs/licences/README.md).

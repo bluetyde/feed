@@ -11,7 +11,7 @@ Step-by-step procedures. Everything is **planned**; no code exists. Follow a sec
 
 ## 1. Reproduce the backend (F0)
 
-1. Claim `CLAIM: feed-backend` in `messages/fuel-performance-studio.md`; state the environment you will create and its disk cost. The install itself needs the user's approval.
+1. Claim the work in the project log (`CLAIM: feed-backend`); state the environment you will create and its disk cost. The install itself needs the maintainer's approval.
 2. Record versions, sources and licenses.
 3. Build the environment by a script; record every step and failure.
 4. Reproduce one upstream example; save inputs and outputs; compare to the expected result within a recorded tolerance.
@@ -54,9 +54,9 @@ Follow [plan 07](plans/07-release.md).
 
 ## 7. Multi-agent rules for this project
 
-Follows [`messages/INSTRUCTIONS.md`](../../messages/INSTRUCTIONS.md). Specific to this project:
+The maintainers coordinate several coding agents through a shared workspace log kept outside this repository (separate clones, claims, branches, ports). A contributor does not need it. Specific to this project:
 
-- **Log:** `messages/fuel-performance-studio.md`. Read it at the start of every session and append at the end.
+- **Log:** the project log in the maintainers' workspace. Agents read it at the start of every session and append at the end.
 - **Claims** by area, matching the plans: `CLAIM: feed-backend`, `CLAIM: feed-case`, `CLAIM: feed-editor`, `CLAIM: feed-oracles`, `CLAIM: feed-transfers`, `CLAIM: feed-mechanics`, `CLAIM: feed-release`.
 - **Schema changes affect SEED, the oracles and transfers.** Post the change first.
 - **The solver stack is heavy and shared state.** One install per environment, announced in the log; never modify another agent's installation; announce long runs and their thread counts; do not start a second heavy run on top of someone else's.

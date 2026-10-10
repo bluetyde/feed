@@ -4,7 +4,7 @@ Date: 2026-10-05. Status: **provisional**, written by Claude Code. The user conf
 
 ## Stack
 
-TypeScript on Node 24, vitest for tests, ajv (JSON Schema 2020-12) for structure. Same as SEED (`../../../experiment-studio`), so the SEED adapter and the shared schemas and oracle format sit in one toolchain. The browser editor and local server (F2) will use the same language; the framework is not chosen yet. The solver (OFFBEAT/OpenFOAM) stays outside Node, run in an isolated Linux or WSL environment (F0, not started).
+TypeScript on Node 24, vitest for tests, ajv (JSON Schema 2020-12) for structure. Same as SEED (the experiment harness, a separate project), so the SEED adapter and the shared schemas and oracle format sit in one toolchain. The browser editor and local server (F2) will use the same language; the framework is not chosen yet. The solver (OFFBEAT/OpenFOAM) stays outside Node, run in an isolated Linux or WSL environment (F0, not started).
 
 Alternative considered: Python like Pipe Studio (NODAL). Not chosen because the SEED adapter, schemas and oracle format are TypeScript and would need a second validator. Cost of changing later: the core is about 600 lines plus data files, so low.
 

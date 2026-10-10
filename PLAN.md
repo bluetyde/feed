@@ -10,7 +10,7 @@ Detailed documents:
 - [docs/plans/](docs/plans/): one plan per area: [01 backend](docs/plans/01-backend.md), [02 case and materials](docs/plans/02-case-and-materials.md),
   [03 editor and adapter](docs/plans/03-editor-and-adapter.md), [04 verification](docs/plans/04-verification.md), [05 suite transfers](docs/plans/05-suite-transfers.md),
   [06 mechanics and irradiation](docs/plans/06-mechanics-and-irradiation.md), [07 release](docs/plans/07-release.md)
-- Suite context (workspace): `plans/nuclear-suite-integration.md`, `plans/agentic-harness.md`, and the SEED repo's plans (`experiment-studio/`).
+- Suite context: FEED is one app of a small suite of nuclear engineering tools; the contracts between the apps (hand-off files, the oracle format) are defined by SEED, the experiment harness, in its own repository. This repository restates only what FEED must implement.
 
 ## Goal
 

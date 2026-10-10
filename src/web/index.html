@@ -769,6 +769,8 @@ function burnupPanel(p) {
     const st = sweepData.points.find((q) => q.burnup === sweepData.stated);
     const fresh = sweepData.points[0];
     p.append(note("Centre temperature of the fuel: " + (fresh && fresh.centreT !== undefined ? K(fresh.centreT) + " fresh" : "") + (st && st.centreT !== undefined && fresh && fresh.centreT !== undefined ? ", " + K(st.centreT) + " at " + sweepData.stated + " MWd/kgHM (" + (showDegC ? "+" : "+") + (st.centreT - fresh.centreT).toFixed(0) + " K)" : "") + ". " + sweepData.note));
+    const ood = sweepData.points.filter((q) => q.verdict === "out-of-domain");
+    if (ood.length) p.append(note("Outside the model's stated temperature range at " + ood.map((q) => q.burnup).join(", ") + " MWd/kgHM (hollow marks on the plot): those points use the conductivity law beyond the range it is valid for, so they are extrapolated estimates."));
     const bad = sweepData.points.filter((q) => q.problem);
     if (bad.length) p.append(note("Refused at " + bad.map((q) => q.burnup).join(", ") + " MWd/kgHM: " + bad[0].problem));
     setTimeout(() => drawBurnupSweep(cv, sweepData, pts), 0); /* after the panel is in the page, so the canvas has its size (not requestAnimationFrame: it pauses in a hidden pane) */
@@ -790,6 +792,8 @@ function drawBurnupSweep(canvas, sweep, pts) {
   line("centreT", "#52b8ff"); line("fuelSurfaceT", "#52b8ff", [5, 4]);
   const st = pts.find((q) => q.burnup === sweep.stated);
   if (st) { x.fillStyle = "#e6b455"; x.beginPath(); x.arc(X(st.burnup), Y(showT(st.centreT)), 4, 0, 7); x.fill(); x.fillText("the case", X(st.burnup) + 7, Y(showT(st.centreT)) - 6); }
+  x.strokeStyle = "#e6b455"; x.lineWidth = 2; x.setLineDash([]);
+  for (const q of pts) if (q.verdict === "out-of-domain") { x.beginPath(); x.arc(X(q.burnup), Y(showT(q.centreT)), 5, 0, 7); x.stroke(); }
   x.fillStyle = "#52b8ff"; x.fillText("centre (closed form, an estimate)", L + 6, Tp + 10);
   plotText(canvas, "burnup (MWd/kgHM)", showDegC ? "T (°C)" : "T (K)", [{ label: "fuel centre", x: pts.map((q) => q.burnup), y: pts.map((q) => showT(q.centreT)) }, { label: "fuel surface", x: pts.map((q) => q.burnup), y: pts.map((q) => showT(q.fuelSurfaceT)) }]);
 }
