@@ -6,6 +6,7 @@
 import { MIN_STEADY_END_TIME, steadyEndTime } from "./steadyState";
 import { NFI_OXIDE_TO_HEAVY_METAL, NFI_PARAMETERS } from "./uo2Nfi";
 import { initialState } from "./transientResults";
+import { EffectiveSolid, effectiveMechanics } from "./mechanicalEval";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
 export interface WrittenCase {
@@ -162,18 +163,31 @@ function conductivityNote(region: string, k: Conductivity): string {
   return `materials.${region}: ZyRELAP (k = par1 + par2 T - par3 T^2 + par4 T^3, T in K) with par1 = a, par2 = b, par3 = -c, par4 = d, all four written` + (k.fit ? `; fitted to a table of ${k.fit.points.length} points, degree ${k.fit.degree}, largest deviation ${(k.fit.maxRelativeDeviation * 100).toPrecision(3)}% at ${k.fit.worstAt} K (tolerance ${(k.fit.tolerance * 100).toPrecision(3)}%)` : "");
 }
 
-function constantMaterial(name: string, k: Conductivity, cp?: HeatCapacity): string {
+/** The mechanical constants a `constant` material needs: the placeholders of a thermal run (unused with mechanics off), or the case's own, reduced to constants (mechanicalEval.ts). */
+function mechanicalConstants(m?: EffectiveSolid, Tref?: number): string {
+  if (!m || Tref === undefined) {
+    return `        E           E     [1 -1 -2 0 0]  2e11;
+        nu          nu    [0 0 0 0 0]    0.3;
+        G           G     [1 -1 -2 0 0]  7.69e10;
+        alpha       alpha [0 0 0 0 0]    1e-5;
+        Tref        Tref  [0 0 0 1 0]    300;
+`;
+  }
+  return `        E           E     [1 -1 -2 0 0]  ${num(m.E)};
+        nu          nu    [0 0 0 0 0]    ${num(m.nu)};
+        G           G     [1 -1 -2 0 0]  ${num(m.G)};
+        alpha       alpha [0 0 0 0 0]    ${num(m.alpha)};
+        Tref        Tref  [0 0 0 1 0]    ${num(Tref)};
+`;
+}
+
+function constantMaterial(name: string, k: Conductivity, cp?: HeatCapacity, mech?: EffectiveSolid, Tref?: number): string {
   return `    ${name}
     {
         material constant;
         rho         rho   [1 -3 0 0 0]   ${WRITER_DENSITY};
 ${heatCapacityLines(cp)}${conductivityLines(k)}        emissivity  emissivity [0 0 0 0 0] 0.8;
-        E           E     [1 -1 -2 0 0]  2e11;
-        nu          nu    [0 0 0 0 0]    0.3;
-        G           G     [1 -1 -2 0 0]  7.69e10;
-        alpha       alpha [0 0 0 0 0]    1e-5;
-        Tref        Tref  [0 0 0 1 0]    300;
-        rheologyModel elasticity;
+${mechanicalConstants(mech, Tref)}        rheologyModel elasticity;
     }
 `;
 }
@@ -200,9 +214,10 @@ ${other("fuelBottom", "empty")}${other("fuelTop", "empty")}${c.fuelInnerRadius >
 }
 
 function solverDict(c: NormalizedCase, kf: Conductivity, kc: Conductivity): string {
+  const eff = effectiveMechanics(c);
   return `${FOAM_HEADER("dictionary", "solverDict", "constant")}
 thermalSolver           solidConduction;
-mechanicsSolver         fromLatestTime;
+mechanicsSolver         ${eff ? "smallStrain" : "fromLatestTime"};
 neutronicsSolver        none;
 elementTransport        none;
 
@@ -228,7 +243,23 @@ thermalSolverOptions
     heatFluxSummary     off;
 }
 
-heatSourceOptions
+${eff && c.mechanics ? `rheologyOptions
+{
+    thermalExpansion on;
+    planeStress off;
+    modifiedPlaneStrain ${c.mechanics.plane === "free-axial" ? "on" : "off"};
+    coolantPressureList { values 2 ( (0 0) (1e10 0) ); }
+    springModulus 3500;
+}
+
+mechanicsSolverOptions
+{
+    forceSummary off;
+    cylindricalStress on;
+    RhieChowCorrection false;
+}
+
+` : ""}heatSourceOptions
 {
 ${c.transient ? `    timePoints  (${[...c.transient.times, c.transient.times[c.transient.times.length - 1]! + c.transient.timeStep].map(num).join(" ")});
     lhgr        (${[...c.transient.linearHeatRate, c.transient.linearHeatRate[c.transient.linearHeatRate.length - 1]!].map(num).join(" ")});
@@ -241,12 +272,32 @@ ${c.transient ? `    timePoints  (${[...c.transient.times, c.transient.times[c.t
 
 materials
 {
-${constantMaterial("fuel", kf, c.fuelHeatCapacity)}
-${constantMaterial("cladding", kc, c.claddingHeatCapacity)}}
+${constantMaterial("fuel", kf, c.fuelHeatCapacity, eff?.fuel, eff?.referenceTemperature)}
+${constantMaterial("cladding", kc, c.claddingHeatCapacity, eff?.cladding, eff?.referenceTemperature)}}
 `;
 }
 
 const NL = String.fromCharCode(10);
+
+/** Where the mechanics section and the mechanical property sets went (docs/plans/09-mechanics.md M2). */
+function mechanicsMapping(c: NormalizedCase): { field: string; file: string; note?: string }[] {
+  const eff = effectiveMechanics(c)!;
+  const m = c.mechanics!;
+  const solid = (name: "fuel" | "cladding") => {
+    const s = eff[name];
+    const p = c.mechanical![name];
+    const how = (kind: string, what: string) => (kind === "constant" ? what + " as stated" : what + " reduced to a constant (" + (what === "E" ? "its value at the mean temperature " + s.meanTemperature.toFixed(1) + " K" : "the coefficient that gives the mean thermal strain from the reference temperature") + ")");
+    return `materials.${name}: E = ${num(s.E)} Pa (${how(p.elasticity.kind, "E")}), nu = ${num(s.nu)}, G = E / (2 (1 + nu)), alpha = ${num(s.alpha)} 1/K (${how(p.expansion.kind, "alpha")})${s.elasticityOutOfRange || s.expansionOutOfRange ? "; the solid's temperatures leave the range a law is stated for" : ""}`;
+  };
+  return [
+    { field: "mechanics", file: "constant/solverDict", note: "mechanicsSolver smallStrain, thermalExpansion on, planeStress off, modifiedPlaneStrain " + (m.plane === "free-axial" ? "on (each solid takes its own axial strain, free of axial force)" : "off (plane strain, axially fixed)") },
+    { field: "mechanics.referenceTemperature", file: "constant/solverDict", note: "Tref " + num(m.referenceTemperature) + " K of both materials (the stress-free temperature)" },
+    { field: "materials.fuel mechanical.*", file: "constant/solverDict", note: solid("fuel") },
+    { field: "materials.cladding mechanical.*", file: "constant/solverDict", note: solid("cladding") },
+    { field: "mechanics.contact.penaltyFactor", file: "0/D", note: "gapContact penaltyFactor " + num(m.penaltyFactor) + " on fuelOuter and cladInner (the contact pressure depends on it)" },
+    { field: "mechanics.coolantPressure", file: "0/D", note: "cladOuter tractionDisplacement, pressure " + num(m.coolantPressure) + " Pa, no traction" },
+  ];
+}
 
 /** The starting temperature: one number for the whole pin, or the temperature of every cell (the blockMesh order: fuel inner to outer, then cladding inner to outer) with the outer wall. */
 type StartField = { kind: "uniform"; T: number } | { kind: "field"; T: number[]; wall: number };
@@ -315,8 +366,12 @@ boundaryField
     }
     cladOuter
     {
-        type            fixedValue;
-        value           uniform (0 0 0);
+${c.mechanics ? `        type            tractionDisplacement;
+        traction        uniform (0 0 0);
+        pressure        uniform ${num(c.mechanics.coolantPressure)};
+        relax           1.0;
+        value           uniform (0 0 0);` : `        type            fixedValue;
+        value           uniform (0 0 0);`}
     }
 ${c.fuelInnerRadius > 0 ? `    fuelInner
     {
@@ -326,7 +381,7 @@ ${c.fuelInnerRadius > 0 ? `    fuelInner
     {
         type            gapContact;
         patchType       regionCoupledOFFBEAT;
-        penaltyFactor   0.1;
+        penaltyFactor   ${c.mechanics ? num(c.mechanics.penaltyFactor) : "0.1"};
         frictionCoefficient        0;
         relax           1.0;
         relaxInterfacePressure           0.1;
@@ -462,6 +517,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     { field: "materials.fuel thermal.conductivity", file: "constant/solverDict", note: conductivityNote("fuel", kf) },
     { field: "materials.cladding thermal.conductivity", file: "constant/solverDict", note: conductivityNote("cladding", kc) },
     { field: "gap.conductance", file: "0/T", note: "resistiveGap alpha on fuelOuter and cladInner" },
+    ...(c.mechanics ? mechanicsMapping(c) : []),
     ...(c.burnup ? [{ field: "burnup", file: "0/Bu", note: "burnup constant; Bu = " + c.burnup.value + " MWd/kgHM x 1000 x 0.881 = " + num(c.burnup.value * 1000 * NFI_OXIDE_TO_HEAVY_METAL) + " MWd/t of oxide in every fuel cell, 0 in the cladding (the model divides by its own 0.881); source: " + c.burnup.source }] : []),
     { field: "boundary", file: "0/T", note: c.boundary.kind === "convective" ? "cladOuter convectiveHTC (T0, h)" : "cladOuter fixedValue" },
   ];
@@ -470,7 +526,9 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
       ? { name: "rho", value: WRITER_DENSITY + " kg/m3", why: "carrier for the volumetric heat capacity: the model wants rho and a mass-based Cp, and only their product rho Cp enters the heat equation" }
       : { name: "rho", value: "10000 kg/m3", why: "required by the constant material model; storage only, no effect on the steady result" },
     ...(tr ? [] : [{ name: "Cp", value: "300 J/kg/K", why: "same" }]),
-    { name: "emissivity, E, nu, G, alpha, Tref", value: "0.8, 2e11, 0.3, 7.69e10, 1e-5, 300", why: "required by the constant material model; unused with mechanics off" },
+    c.mechanics
+      ? { name: "emissivity", value: "0.8", why: "required by the constant material model; storage only, no effect on the temperatures" }
+      : { name: "emissivity, E, nu, G, alpha, Tref", value: "0.8, 2e11, 0.3, 7.69e10, 1e-5, 300", why: "required by the constant material model; unused with mechanics off" },
     steadyStart
       ? { name: "initial temperature field", value: "steady state at " + (tr!.initial as { linearHeatRate: number }).linearHeatRate + " W/m, " + Math.min(...steadyStart.T).toFixed(2) + " to " + steadyStart.peak.toFixed(2) + " K", why: "the transient starts from the steady operating state of this pin at the stated heat rate (independent finite-volume solution, same mesh)" }
       : { name: "initial temperature", value: String(t0) + " K", why: tr ? "the transient's initial temperature, as given" : "starting field; the steady result does not depend on it" },
