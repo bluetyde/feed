@@ -6,8 +6,11 @@ import { mkdtempSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
+import { effectiveMechanics } from "../src/core/mechanicalEval";
 import { ResultsRecord } from "../src/core/resultsParser";
 import { RunManager } from "../src/core/runManager";
+import { independentSolution } from "../src/core/thermoElastic";
+import { validateCase } from "../src/core/validate";
 import { WslBackend } from "../src/core/wslBackend";
 
 const root = join(__dirname, "..");
@@ -126,4 +129,71 @@ describe.skipIf(!solverOn)("an elastic case through the real solver (needs FEED_
     expect(p.fuel.E).toBeLessThan(63e9);
     expect(p.cladding.E).toBeCloseTo(190e9, -6);
   }, 300_000);
+});
+
+// M3's sweep (docs/plans/09-mechanics.md): the contact pressure depends on the penalty factor, and the M0 probe found that on one geometry and one pair of materials. Here three cold
+// gaps (10, 20, 40 micron) and three stiffness ratios of the fuel to the cladding (E 5e10, 2e11, 4e11 against 2e11), the fuel's expansion chosen (by bisection on the independent
+// solution) so that free expansion would overlap the solids by 5 micron, which presses them with 23 to 32 MPa, the order of a real pin's contact pressure. What the sweep found
+// (docs/mechanics.md, "What it was checked against") is asserted here as it is, so that a change in the writer or the solver that moves it shows:
+//  - at a factor that suits the pair the contact pressure is within 3 % of the independent solution and every check passes: 0.3 for the equal and the stiffer fuel;
+//  - the fuel a quarter as stiff as the cladding (the TRIGA fuel against steel) is the known limit: the factor must be 0.7 for the penalty contact to be stable and its pressure is
+//    then 3 % low (2.7 to 3.1 %), at the edge of the tolerance, so the stress check can fail; the run completes, the solids touch and the pressure is within 4 %;
+//  - a factor that is too small is accepted by the solver and by the run and then FAILS the contact check (the pressure 13 % low at 0.05 for equal moduli); a factor that is too
+//    large for the pair never converges and the run fails with E_NOT_CONVERGED, never a result. A bad factor is never a pass.
+// A first sweep with overlaps of 60 micron (a closure of 1.5 % strain, 100 to 250 MPa) is not repeated: the displacement then missed its 1 % by the micron of overlap the penalty
+// contact leaves, and the temperature of the stiff fuel did not converge; that is outside the small-strain range the mechanics is stated for and not what a pin does.
+describe.skipIf(!solverOn)("the contact over gaps, stiffness ratios and penalty factors (needs FEED_SOLVER=1)", () => {
+  const gaps = [4.11, 4.12, 4.14];
+  /** The fuel's expansion coefficient for which free expansion overlaps the solids by `overlap` metres (bisection on the independent solution). */
+  function alphaFor(Ef: number, rci: number, overlap: number): number {
+    let lo = 1e-6;
+    let hi = 2e-4;
+    for (let i = 0; i < 80; i++) {
+      const mid = (lo + hi) / 2;
+      const n = validateCase(mechanicsCase({ fuel: [Ef, 0.3, mid], cladding: [2e11, 0.3, 1e-5], rci, penalty: 0.5 })).normalized!;
+      const free = independentSolution(n, effectiveMechanics(n)!, n.mechanics!).freeGap;
+      if (free > -overlap) lo = mid;
+      else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+  const pair = (Ef: number, rci: number, penalty: number) => mechanicsCase({ fuel: [Ef, 0.3, alphaFor(Ef, rci, 5e-6)], cladding: [2e11, 0.3, 1e-5], rci, penalty });
+  for (const rci of gaps) {
+    const um = ((rci - 4.1) * 1e3).toFixed(0);
+    it(`gap ${um} micron, equal moduli at 0.3 and a stiffer fuel at 0.3: every check passes and the solids touch`, async () => {
+      for (const Ef of [2e11, 4e11]) {
+        const { res } = await run(pair(Ef, rci, 0.3));
+        expect(allPass(res!), `E fuel ${Ef}`).toEqual([]);
+        expect(res!.mechanics!.summary.contact).toBe(true);
+        expect(res!.checks.find((c) => c.id === "mechanicsContact")!.note).toMatch(/interface pressure/);
+      }
+    }, 600_000);
+    it(`gap ${um} micron, a fuel a quarter as stiff as the cladding at 0.7: the known limit (touches, pressure within 4 %)`, async () => {
+      const d = pair(5e10, rci, 0.7);
+      const n = validateCase(d).normalized!;
+      const ref = independentSolution(n, effectiveMechanics(n)!, n.mechanics!).contactPressure;
+      const { res } = await run(d);
+      expect(res!.mechanics!.summary.contact).toBe(true);
+      expect(Math.abs(res!.mechanics!.summary.contactPressure! / ref - 1)).toBeLessThan(0.04);
+      expect(res!.checks.filter((c) => c.verdict !== "pass").map((c) => c.id).filter((id) => id !== "mechanicsContact" && id !== "mechanicsStress")).toEqual([]);
+    }, 300_000);
+  }
+  it("a factor that is too small runs, and fails the contact check (equal moduli, 0.05: the pressure is 13 % low)", async () => {
+    const d = pair(2e11, 4.12, 0.05);
+    const { res } = await run(d);
+    const c = res!.checks.find((x) => x.id === "mechanicsContact")!;
+    expect(c.verdict).toBe("fail");
+    expect(c.note).toMatch(/interface pressure/);
+    expect(res!.mechanics!.summary.contact).toBe(true);
+  }, 300_000);
+  it("a factor that is too large for the pair never converges and the run fails (equal moduli at 0.7, a stiffer fuel at 0.5, a soft fuel at 1)", async () => {
+    for (const [Ef, pen] of [[2e11, 0.7], [4e11, 0.5], [5e10, 1]] as const) {
+      const mgr = new RunManager({ runsRoot: mkdtempSync(join(tmpdir(), "feed-mechrun-")), backend: new WslBackend(), timeoutMs: 280_000 });
+      const s = mgr.start(pair(Ef, 4.12, pen));
+      if (!s.ok) throw new Error("start refused");
+      const rec = await mgr.done(s.id);
+      expect(rec.state, `E fuel ${Ef} at ${pen}`).toBe("failed");
+      expect(JSON.stringify(rec.failure)).toMatch(/E_NOT_CONVERGED/);
+    }
+  }, 900_000);
 });
