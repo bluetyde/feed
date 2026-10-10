@@ -2,6 +2,9 @@
 // Binds to 127.0.0.1 only. POST bodies must be application/json (blocks cross-site form posts) and are size-limited.
 // No solver yet: /api/check returns the validation and the closed-form quick look only.
 
+import { effectiveMechanics } from "../core/mechanicalEval";
+import { MECHANICS_TEXT } from "../core/mechanicsResults";
+import { penaltyAdvice } from "../core/penaltyAdvice";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { AddressInfo } from "net";
 import { readdirSync, readFileSync } from "fs";
@@ -96,6 +99,10 @@ export function sourcedLimits(): any[] {
   return JSON.parse(readFileSync(join(root, "library", "limits.json"), "utf8"));
 }
 
+export function sourcedStrengths(): any[] {
+  return JSON.parse(readFileSync(join(root, "library", "strengths.json"), "utf8"));
+}
+
 export function sourcedExpansion(): any[] {
   return JSON.parse(readFileSync(join(root, "library", "expansion.json"), "utf8"));
 }
@@ -114,7 +121,7 @@ export function library() {
   const sourced = sourcedMaterials();
   const user = readUserEntries();
   const custom = latestEntries(user.entries).map((e) => ({ region: e.region, name: e.name, label: e.label, description: e.description, citation: e.citation, savedAt: e.savedAt, revisions: user.entries.filter((x) => x.material.materialId === e.material.materialId).length, material: e.material }));
-  return { pins, materials: [...sourced, ...custom], limits: sourcedLimits(), expansion: sourcedExpansion(), userLibrary: user.problem ? { problem: user.problem } : { entries: user.entries.length } };
+  return { pins, materials: [...sourced, ...custom], limits: sourcedLimits(), expansion: sourcedExpansion(), strengths: sourcedStrengths(), userLibrary: user.problem ? { problem: user.problem } : { entries: user.entries.length } };
 }
 
 /** Largest finest-level cell counts a study may request (the finest level is 4x the case's mesh). */
@@ -212,11 +219,15 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
     };
   }
   const look = quickLook(n);
+  const eff = effectiveMechanics(n);
   return {
     ok: true,
     errors: v.errors,
     warnings: v.warnings,
     normalized: n,
+    // the contact penalty factor that suits the stiffness ratio of this case (M3's sweep), and the gas pressure the case works out, for the Mechanics panel
+    ...(n.mechanics ? { mechanicsNote: MECHANICS_TEXT } : {}),
+    ...(eff ? { mechanicsAdvice: { penalty: penaltyAdvice(eff.fuel.E, eff.cladding.E), internalPressure: eff.internalPressure, internalPressureNote: eff.internalPressureNote ?? null } } : {}),
     // what a burnup result is and is not, for the banner while the case is edited (the same words as in every result)
     ...(n.burnup ? { burnupNote: burnupText(n.burnup.value) } : {}),
     quick: look,

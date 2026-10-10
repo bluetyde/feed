@@ -1,6 +1,6 @@
 # Mechanics: a thermo-elastic result for one slice
 
-A case may ask for **mechanics**: the displacement and the stress of the fuel and the cladding in one radial slice, from the temperatures, the thermal expansion and the contact between the solids. It is [plan 09](plans/09-mechanics.md) (M0 probe, M1 properties, M2 the run, M3 the independent check of every result; M4 internal pressure and stress limits and M5 the editor are still to do). Code: `src/core/validate.ts` (`parseMechanics`, `mechanicalSets`), `src/core/mechanicalEval.ts`, `src/core/caseWriter.ts`, `src/core/mechanicsResults.ts`, `src/core/convergence.ts`, `src/core/thermoElastic.ts` (the independent solution) and `src/core/mechanicsChecks.ts` (the checks). Data and what the sources give: [spike/mechanics-data.md](spike/mechanics-data.md).
+A case may ask for **mechanics**: the displacement and the stress of the fuel and the cladding in one radial slice, from the temperatures, the thermal expansion and the contact between the solids. It is [plan 09](plans/09-mechanics.md) (M0 probe, M1 properties, M2 the run, M3 the independent check of every result, M4 internal pressure and stress limits, M5 the editor; M6, SEED oracle entries, is still to do). Code: `src/core/validate.ts` (`parseMechanics`, `mechanicalSets`), `src/core/mechanicalEval.ts`, `src/core/caseWriter.ts`, `src/core/mechanicsResults.ts`, `src/core/convergence.ts`, `src/core/thermoElastic.ts` (the independent solution) and `src/core/mechanicsChecks.ts` (the checks). Data and what the sources give: [spike/mechanics-data.md](spike/mechanics-data.md).
 
 ## What it is, and is not
 
@@ -74,4 +74,5 @@ Three cold gaps (10, 20, 40 micron) and fuels of E 5e10, 2e11 and 4e11 Pa agains
 - **The reduction of a law** (`tests/mechanicalEval.test.ts`): the mean strain against an exact integral of the profile written in the test.
 - **The independent solution and the four checks on every result** (M3, above), with the contact sweep over gaps, stiffness ratios and penalty factors.
 - **Gas pressure and stress limits** (M4): the independent solution carries the gas on both surfaces and OFFBEAT's end load; real-solver tests with an open gap, a closed gap and the hydrogen model on the TRIGA fuel and steel; the stress-limit check on OFFBEAT's real fields (`tests/mechanicsStressLimits.test.ts`).
-- **Not yet**: the editor (M5), SEED oracle entries (M6). A strength of the cladding below 400 C has no source we hold (only Sandia's single point at 154 C).
+- **The editor** (M5): the Mechanics item and its panel, the suggested penalty factor by stiffness ratio, the mechanics cards and the stress and displacement plots in the Results view.
+- **Not yet**: SEED oracle entries (M6). A strength of the cladding below 400 C has no source we hold (only Sandia's single point at 154 C).

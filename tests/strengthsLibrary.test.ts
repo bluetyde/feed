@@ -37,7 +37,7 @@ describe("library/strengths.json", () => {
     expect(validateCase(caseWith(lib.map(asLimit))).errors).toEqual([]);
   });
   it("the strength falls as the temperature rises, the yield is below the ultimate everywhere they are both stated, and the stated range is the table's", () => {
-    const tabs = Object.fromEntries(lib.map((e) => [e.id, validateCase(caseWith([asLimit(e)])).normalized!.mechanics!.stressLimits![0]!.table]));
+    const tabs = Object.fromEntries(lib.map((e) => [e.id, validateCase(caseWith([asLimit(e)])).normalized!.mechanics!.stressLimits![0]!.table])) as Record<string, { temperature: number; strength: number }[]>;
     for (const t of Object.values(tabs)) for (let i = 1; i < t.length; i++) expect(t[i]!.strength).toBeLessThan(t[i - 1]!.strength);
     for (const T of [400, 500, 600, 700, 800, 870]) {
       const K = T + 273.15;

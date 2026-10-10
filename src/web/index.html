@@ -132,6 +132,9 @@ input.bad,select.bad{border-color:var(--err)}
 .mcard.wide{grid-column:1/-1}
 .ml{color:var(--muted);font-size:11px}.mv{font:500 15px var(--mono)}.ms{color:var(--faint);font-size:11px;margin-top:2px}
 .vpwrap1{flex:1;min-height:120px;background:var(--ground)}
+#docResults{overflow-y:auto}
+#docResults .mechplot{flex:0 0 240px;height:240px}
+#docResults .mechplot[hidden]{display:none}
 .vpwrap1 canvas,.ccell canvas{width:100%;height:100%;display:block}
 .cgrid{flex:1;min-height:0;display:grid;grid-template-rows:minmax(120px,32%) minmax(54px,13%) minmax(0,1fr)}
 .ccell{min-height:0;background:var(--ground);border-bottom:1px solid var(--line)}
@@ -166,7 +169,7 @@ input.bad,select.bad{border-color:var(--err)}
     <span class="chip" id="runChip" role="status" aria-live="polite">no solver installed · closed-form quick look</span>
     <button class="runbtn" id="runBtn" type="button"><svg width="12" height="12" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 3l10 6-10 6z" fill="currentColor"/></svg>Run</button>
   </header>
-  <div class="banner">Thermal-only result. It says nothing about stress, failure or fuel integrity.</div>
+  <div class="banner" id="caseBanner">Thermal-only result. It says nothing about stress, failure or fuel integrity.</div>
   <div class="banner" id="burnupBanner" hidden></div>
 
   <nav class="ribbon" aria-label="Commands">
@@ -220,6 +223,8 @@ input.bad,select.bad{border-color:var(--err)}
         <div class="toolbar"><span id="rTitle" style="color:var(--text)">No run selected</span><div class="seg" role="group" aria-label="Plot"><button type="button" id="rCf" aria-pressed="true">Closed-form line</button></div><span class="readout" id="rReadout">Hover the profile</span></div>
         <div class="metrics" id="metrics"></div>
         <div class="vpwrap1"><canvas id="rprof" aria-label="Radial temperature profile of the selected run"></canvas></div>
+        <div class="vpwrap1 mechplot" id="rmechWrap" hidden><canvas id="rmech" aria-label="Stress against radius of the selected run"></canvas></div>
+        <div class="vpwrap1 mechplot" id="rdispWrap" hidden><canvas id="rdisp" aria-label="Radial displacement against radius of the selected run"></canvas></div>
       </div>
       <div class="doc" id="docCompare" role="tabpanel" aria-labelledby="tabCompare" hidden>
         <div class="banner" id="cBanner" hidden></div>
@@ -247,7 +252,7 @@ input.bad,select.bad{border-color:var(--err)}
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
-const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"], burnup: ["MWd/kgHM", "GWd/tHM", "MWd/tHM"] };
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"], burnup: ["MWd/kgHM", "GWd/tHM", "MWd/tHM"], pressure: ["Pa", "kPa", "MPa", "GPa", "psi", "ksi"], ratio: ["1"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
 let sweepData = null, sweepFor = "", sweepMsg = "";
 let doc = null, result = null, selected = "power", outTab = "problems", logText = "", showDegC = false, seq = 0, timer = null;
@@ -263,6 +268,7 @@ const ITEMS = [
   ["fuel", "Fuel", "Materials", ["/materials/fuel"]],
   ["cladding", "Cladding", "Materials", ["/materials/cladding"]],
   ["burnup", "Burnup", "Materials", ["/burnup"]],
+  ["mechanics", "Mechanics", "Checks", ["/mechanics"]],
   ["limits", "Temperature limits", "Checks", ["/limits"]],
 ];
 const itemOf = (field) => { const f = (ITEMS.find((i) => i[3].some((p) => field === p || field.startsWith(p + "/"))) || [])[0]; return f || null; };
@@ -358,6 +364,8 @@ function renderProps() {
     burnupPanel(p);
   } else if (selected === "hot") {
     hotPanel(p);
+  } else if (selected === "mechanics") {
+    mechanicsPanel(p);
   } else if (selected === "limits") {
     limitsPanel(p);
   } else if (selected === "mesh") {
@@ -402,6 +410,7 @@ function meta(id) {
     case "mesh": return doc.mesh.fuelCells + " / " + doc.mesh.claddingCells;
     case "hot": return doc.hotDimensions ? (result && result.ok && result.normalized && result.normalized.hot ? "gap " + (result.normalized.hot.hotGap * 1e6).toFixed(1) + " µm hot" : "on") : "off";
     case "burnup": return doc.burnup && doc.burnup.value ? fmt(doc.burnup.value) : "none";
+    case "mechanics": return doc.mechanics ? (doc.mechanics.plane === "plane-strain" ? "plane strain" : "free axial") : "off";
     case "limits": return Array.isArray(doc.limits) ? doc.limits.length + (doc.limits.length === 1 ? " rule" : " rules") : "none";
     default: { const k = getp(doc, ["materials", id, "sets", "thermal.conductivity"]); return k ? (k.model === "constant" ? "k " + fmt(k.value) : "k(T)") : "no k"; }
   }
@@ -584,6 +593,7 @@ async function runCheck(rebuildProps) {
     const j = await r.json(); if (my !== seq) return; result = j;
   } catch (e) { result = { ok: false, errors: [{ code: "E_SERVER", severity: "error", field: "/", message: "Couldn't reach the server. Restart the app." }], warnings: [] }; }
   const active = document.activeElement; const keep = active && $("props").contains(active) && !rebuildProps ? active.id : null;
+  $("caseBanner").textContent = doc && doc.mechanics ? ((result && result.mechanicsNote) || "Mechanics is on: a thermo-elastic result (linear elastic, no creep, plasticity or swelling). It does not say that anything fails or holds.") : "Thermal-only result. It says nothing about stress, failure or fuel integrity.";
   $("burnupBanner").textContent = (result && result.burnupNote) || ""; $("burnupBanner").hidden = !(result && result.burnupNote);
   if (sweepFor !== "" && sweepFor !== JSON.stringify(doc)) { sweepData = null; sweepFor = ""; }
   $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderOutput(); draw();
@@ -599,7 +609,7 @@ function refreshErrors() {  /* update inline error text without rebuilding field
 function renderPropsKeepFocus() { const id = document.activeElement && document.activeElement.id; const pos = document.activeElement && document.activeElement.selectionStart; renderProps(); if (id) { const e = $(id); if (e) { e.focus(); try { if (pos != null) e.setSelectionRange(pos, pos); } catch (_) {} } } }
 function changed(rebuild) { if (study) { study = null; clearTimeout(studyTimer); } if (solverRes) { solverRes = null; runRec = null; logText += "Solver result cleared: the case changed.\n"; setChip(); } clearTimeout(timer); timer = setTimeout(() => runCheck(!!rebuild), rebuild ? 0 : 150); renderTreeMetaOnly(); }
 function renderTreeMetaOnly() { document.querySelectorAll("#tree .titem").forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(ITEMS[i][0]); }); }
-let lib = { pins: [], materials: [], limits: [], expansion: [] }, menuEl = null;
+let lib = { pins: [], materials: [], limits: [], expansion: [], strengths: [] }, menuEl = null;
 function closeMenu() { if (menuEl) { const had = menuEl.contains(document.activeElement), opener = menuEl.dataset.for && document.getElementById(menuEl.dataset.for); menuEl.remove(); menuEl = null; if (had && opener) opener.focus(); /* focus goes back to the button that opened it */ } }
 function openMenu(btn, heading, groups) {
   const was = menuEl && menuEl.dataset.for === btn.id; closeMenu(); if (was) return;
@@ -846,6 +856,106 @@ function hotPanel(p) {
     p.append(note("Fuel at " + t.fuel.meanTemperature.toFixed(1) + " K mean: radius " + um(t.cold.fuelRadius) + " → " + um(n.fuelRadius) + (n.fuelInnerRadius > 0 ? ", hole " + um(t.cold.fuelInnerRadius) + " → " + um(n.fuelInnerRadius) : "") + ". Cladding at " + t.cladding.meanTemperature.toFixed(1) + " K mean: inner " + um(t.cold.claddingInnerRadius) + " → " + um(n.claddingInnerRadius) + ", outer " + um(t.cold.claddingOuterRadius) + " → " + um(n.claddingOuterRadius) + ". Gap " + (t.coldGap * 1e6).toFixed(2) + " → " + (t.hotGap * 1e6).toFixed(2) + " µm (" + t.iterations + " iterations)."));
   }
   p.append(note("Free expansion only: no stress, no contact, no swelling or creep. A case in which the solids would touch is refused. The gap conductance is the one stated; it is not recomputed for the new gap."));
+}
+
+/* mechanics (docs/mechanics.md): the section, the mechanical properties of each solid, the gas pressure and the stress limits. FEED has no mechanical data of its own: placeholders say so until a source is stated. */
+const NL = String.fromCharCode(10);
+function mechSolidBlock(p, solid) {
+  const base = ["materials", solid, "sets"];
+  const e = getp(doc, base.concat("mechanical.elasticity")), x = getp(doc, base.concat("mechanical.thermalExpansion"));
+  p.append(sec("Mechanical properties: " + solid));
+  if (!e || !x) {
+    p.append(note("The " + solid + " has no " + (!e && !x ? "elasticity and no thermal expansion" : (!e ? "elasticity" : "thermal expansion")) + " set. Mechanics needs both. Pick a library material that has them (Fuel or Cladding item), or add constant placeholders and state their source."));
+    const b = elt("button", "Add constant properties (placeholders)", { class: "tbtn", type: "button" });
+    b.addEventListener("click", () => {
+      if (!doc.materials[solid].sets) doc.materials[solid].sets = {};
+      const s = doc.materials[solid].sets;
+      if (!s["mechanical.elasticity"]) s["mechanical.elasticity"] = { model: "constant", youngModulus: { value: 200, unit: "GPa" }, poissonRatio: { value: 0.3, unit: "1" }, source: "" };
+      if (!s["mechanical.thermalExpansion"]) s["mechanical.thermalExpansion"] = { linearExpansion: { value: 1e-5, unit: "1/K" }, source: "" };
+      logText += "Placeholder mechanical properties added to the " + solid + ": state their source." + NL; changed(true); renderProps();
+    });
+    const row = el("div", "prow note"); row.append(b); p.append(row);
+    return;
+  }
+  if (e.model === "constant") p.append(qField("Young's modulus", base.concat("mechanical.elasticity", "youngModulus"), "pressure"), qField("Poisson's ratio", base.concat("mechanical.elasticity", "poissonRatio"), "ratio"));
+  else p.append(note("Elasticity: a law of temperature, E = a + b T (from the library). The run uses the modulus at the solid's mean temperature."));
+  p.append(tField("Elasticity source", base.concat("mechanical.elasticity", "source")));
+  const le = x.linearExpansion;
+  if (le && le.model === "linear") p.append(note("Thermal expansion: a law of temperature (from the library). The run uses the coefficient that gives the same mean thermal strain."));
+  else p.append(qField("Linear expansion", base.concat("mechanical.thermalExpansion", "linearExpansion"), "expansion"));
+  p.append(tField("Expansion source", base.concat("mechanical.thermalExpansion", "source")));
+}
+function mechanicsPanel(p) {
+  p.append(sec("Mechanics"));
+  const m = doc.mechanics;
+  if (!m) {
+    p.append(note("This case is thermal only: it computes temperatures and no stress. Mechanics adds the displacement and the stress of the fuel and the cladding in one radial slice (thermal expansion, the gap closing into a contact). It is linear elastic: <b>no creep, plasticity, swelling or cracking</b>, and a stress is not a verdict unless a limit is stated. It needs the mechanical properties of both solids and a stress-free temperature: FEED has none of its own. A steady case only, without hot dimensions or a burnup."));
+    if (isTransient()) { p.append(note("A transient cannot use mechanics (it is refused).")); return; }
+    const on = elt("button", "Use mechanics", { class: "tbtn", type: "button" });
+    on.addEventListener("click", () => {
+      doc.assumptions.thermalOnly = false;
+      doc.mechanics = { referenceTemperature: { value: 293.15, unit: "K" }, plane: "free-axial", contact: { penaltyFactor: { value: 0.3, unit: "1" } }, coolantPressure: { value: 0, unit: "Pa" } };
+      logText += "Mechanics switched on (stress-free temperature and the properties are placeholders until their source is stated)." + NL; changed(true); renderProps();
+    });
+    const row = el("div", "prow note"); row.append(on); p.append(row);
+    return;
+  }
+  p.append(qField("Stress-free at", ["mechanics", "referenceTemperature"], "temperature"));
+  p.append(sField("Axial condition", ["mechanics", "plane"], [["free-axial", "Free axially (each solid free of axial force)"], ["plane-strain", "Plane strain (axially fixed)"]], () => {}));
+  p.append(qField("Coolant pressure (on the cladding)", ["mechanics", "coolantPressure"], "pressure"));
+  p.append(sec("Contact"));
+  p.append(qField("Penalty factor", ["mechanics", "contact", "penaltyFactor"], "ratio"));
+  const adv = result && result.mechanicsAdvice && result.mechanicsAdvice.penalty;
+  if (adv) {
+    p.append(note("<b>Suggested " + adv.factor + "</b> for this stiffness ratio. " + adv.note.replace(/</g, "&lt;")));
+    const b = elt("button", "Use " + adv.factor, { class: "tbtn", type: "button" });
+    b.addEventListener("click", () => { doc.mechanics.contact.penaltyFactor = { value: adv.factor, unit: "1" }; changed(true); renderProps(); });
+    const row = el("div", "prow note"); row.append(b); p.append(row);
+  } else p.append(note("The contact pressure depends on this factor and the right one depends on how stiff the fuel is against the cladding. Fix the problems listed below to get a suggestion; a wrong factor shows in the results (a failed contact check, or a run that does not converge)."));
+  p.append(sec("Gas pressure in the gap"));
+  const ip = m.internalPressure;
+  const kind = ip ? ip.model : "none";
+  const row = el("div", "prow"); row.append(elt("label", "Gas pressure", { for: "ipkind" }));
+  const sel = elt("select", "", { id: "ipkind" });
+  for (const [v, tx] of [["none", "None"], ["constant", "A stated pressure"], ["hydrogen-zrh", "Hydrogen of U-ZrH (Simnad's correlation)"]]) sel.append(elt("option", tx, { value: v }));
+  sel.value = kind;
+  sel.addEventListener("change", () => {
+    if (sel.value === "none") delete m.internalPressure;
+    else if (sel.value === "constant") m.internalPressure = { model: "constant", pressure: { value: 1, unit: "MPa" }, source: "" };
+    else m.internalPressure = { model: "hydrogen-zrh", hZrRatio: { value: 1.65, unit: "1" }, fuelTemperature: "peak", source: "Simnad, General Atomic E-117-833, section 2.4 (dissociation pressures)" };
+    changed(true); renderProps();
+  });
+  row.append(sel); p.append(row);
+  if (kind === "constant") p.append(qField("Pressure", ["mechanics", "internalPressure", "pressure"], "pressure"), tField("Source", ["mechanics", "internalPressure", "source"]));
+  if (kind === "hydrogen-zrh") {
+    p.append(qField("H/Zr ratio (1.5 to 1.8)", ["mechanics", "internalPressure", "hZrRatio"], "ratio"), sField("At the fuel's", ["mechanics", "internalPressure", "fuelTemperature"], [["peak", "peak temperature"], ["mean", "area-mean temperature"]], () => {}), tField("Source", ["mechanics", "internalPressure", "source"]));
+    p.append(note("FEED works out the hydrogen pressure of the hydride at that temperature; it computes no hydrogen inventory, fission gas or plenum. The report gives no temperature range for the correlation."));
+  }
+  const ap = result && result.mechanicsAdvice;
+  if (ap && ap.internalPressure > 0) p.append(note("The run uses a gas pressure of <code>" + (ap.internalPressure / 1e6).toPrecision(4) + " MPa</code>: " + String(ap.internalPressureNote || "").replace(/</g, "&lt;")));
+  mechSolidBlock(p, "fuel"); mechSolidBlock(p, "cladding");
+  p.append(sec("Stress limits"));
+  const lims = Array.isArray(m.stressLimits) ? m.stressLimits : [];
+  if (!lims.length) p.append(note("No stress limit is stated, so the results say nothing about strength. A limit is an input with its source: FEED has none of its own. Pick a sourced strength table below."));
+  const bar = el("div", "prow note");
+  for (const s of lib.strengths || []) {
+    const b = elt("button", "Add: " + s.name.split(" (")[0].replace("304 stainless steel cladding: ", ""), { class: "tbtn", type: "button", title: s.uncertainty });
+    b.addEventListener("click", () => { if (!Array.isArray(m.stressLimits)) m.stressLimits = []; if (!m.stressLimits.some((l) => l.name === s.id)) m.stressLimits.push({ name: s.id, region: s.region, table: JSON.parse(JSON.stringify(s.table)), source: s.citation }); logText += "Stress limit added: " + s.id + NL; changed(true); renderProps(); });
+    bar.append(b);
+  }
+  p.append(bar);
+  lims.forEach((l, i) => {
+    const r = el("div", "prow note"); const pp = document.createElement("p");
+    pp.innerHTML = "<code>" + String(l.name).replace(/</g, "&lt;") + "</code> · " + l.region + " · " + (l.table ? l.table.length : 0) + " points. Von Mises stress against the strength at the cell's temperature; a cell outside the table is not judged and the check fails.";
+    const del = elt("button", "Remove", { class: "tbtn", type: "button" });
+    del.addEventListener("click", () => { m.stressLimits.splice(i, 1); if (!m.stressLimits.length) delete m.stressLimits; changed(true); renderProps(); });
+    r.append(pp, del); p.append(r);
+  });
+  p.append(note("The sourced tables are the 304 steel of the UT-Austin SAR (400 C and up, read from a figure, about 10 %). A cladding that stays below 400 C is not covered and the check says so. A stress below a strength is not an integrity assessment."));
+  const off = elt("button", "Switch mechanics off", { class: "tbtn", type: "button" });
+  off.addEventListener("click", () => { delete doc.mechanics; doc.assumptions.thermalOnly = true; logText += "Mechanics switched off." + NL; changed(true); renderProps(); });
+  const orow = el("div", "prow note"); orow.append(off); p.append(orow);
+  p.append(note("What it is and is not: " + "thermo-elastic, small strain, one radial slice; no creep, plasticity, swelling, cracking or relocation."));
 }
 function limitsPanel(p) {
   p.append(sec("Temperature limits"));
@@ -1444,6 +1554,50 @@ function drawGeneric(canvas, spec) {
   spec.series.forEach((s, i) => { x.fillStyle = s.color; x.fillText("● " + s.label, w - Rr - 8, Tp + 12 + i * 14); });
   x.textAlign = "left";
 }
+
+/* a plain x-y plot for the mechanics results (stress and displacement against radius), with the same table for screen readers as the temperature plots */
+function drawXY(canvas, wrap, spec) {
+  wrap.hidden = !spec;
+  if (!spec) return;
+  requestAnimationFrame(() => drawXYNow(canvas, spec));
+}
+function drawXYNow(canvas, spec) {
+  const [x, w, h] = sizeCanvas(canvas); x.clearRect(0, 0, w, h);
+  const L = 62, Rr = 16, Tp = 14, Bt = 26;
+  const all = spec.series.flatMap((s) => s.pts.map((p) => p[1]));
+  let lo = Math.min(0, ...all), hi = Math.max(0, ...all); const pad = (hi - lo) * 0.08 || 1; hi += pad; if (lo < 0) lo -= pad;
+  const rmax = Math.max(...spec.series.flatMap((s) => s.pts.map((p) => p[0]))) * 1e3;
+  const X = (r) => L + (r / rmax) * (w - L - Rr), Y = (v) => h - Bt - ((v - lo) / (hi - lo)) * (h - Bt - Tp);
+  plotText(canvas, "r (mm)", spec.yName, spec.series.map((s) => ({ label: s.label, x: s.pts.map((p) => p[0] * 1e3), y: s.pts.map((p) => p[1]) })));
+  x.font = "11px ui-monospace,Consolas,monospace"; x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const v = lo + ((hi - lo) * i) / 4, y = Y(v); x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, y); x.lineTo(w - Rr, y); x.stroke(); x.fillStyle = "#8c949e"; x.fillText(v.toFixed(Math.abs(hi - lo) < 5 ? 2 : 0), 4, y + 4); }
+  for (let i = 0; i <= 5; i++) { const r = (rmax * i) / 5; x.fillStyle = "#8c949e"; x.fillText(r.toFixed(1), X(r) - 8, h - Bt + 14); }
+  x.strokeStyle = "#5e6670"; x.beginPath(); x.moveTo(L, Y(0)); x.lineTo(w - Rr, Y(0)); x.stroke();
+  x.fillStyle = "#8c949e"; x.fillText("r (mm)", w - 54, h - 5); x.fillText(spec.yName, 8, Tp - 2);
+  const band = (a, b, col) => { x.fillStyle = col; x.fillRect(X(a * 1e3), Tp, X(b * 1e3) - X(a * 1e3), h - Bt - Tp); };
+  band(0, spec.geom.fuelR, "rgba(201,164,92,.07)"); band(spec.geom.fuelR, spec.geom.cladIn, "rgba(240,117,117,.18)"); band(spec.geom.cladIn, spec.geom.cladOut, "rgba(140,148,158,.12)");
+  for (const s of spec.series) {
+    for (const region of ["fuel", "cladding"]) {
+      const pts = s.pts.filter((p) => (region === "fuel" ? p[0] <= spec.geom.fuelR + 1e-9 : p[0] > spec.geom.fuelR + 1e-9));
+      x.strokeStyle = s.color; x.lineWidth = 1.5; x.beginPath(); pts.forEach((p, i) => { const px = X(p[0] * 1e3), py = Y(p[1]); if (i) x.lineTo(px, py); else x.moveTo(px, py); }); x.stroke();
+      x.fillStyle = s.color; pts.forEach((p) => { x.beginPath(); x.arc(X(p[0] * 1e3), Y(p[1]), 2, 0, 7); x.fill(); });
+    }
+  }
+  x.textAlign = "right"; spec.series.forEach((s, i) => { x.fillStyle = s.color; x.fillText("● " + s.label, w - Rr - 8, Tp + 12 + i * 14); }); x.textAlign = "left";
+}
+function renderMechanicsResults(d, m) {
+  const mech = d.results && d.results.mechanics;
+  if (!mech) { drawXY($("rmech"), $("rmechWrap"), null); drawXY($("rdisp"), $("rdispWrap"), null); return; }
+  const s = mech.summary, MPa = (v) => (v / 1e6).toFixed(1) + " MPa";
+  m.append(card("Gap / contact", s.contact ? "touching" + (s.contactPressure !== null ? ", " + MPa(s.contactPressure) : "") : (s.gapWidth !== null ? (s.gapWidth * 1e6).toFixed(1) + " µm open" : "no gap field"), s.contact ? "interface pressure from OFFBEAT (total less the gas)" : "the gap between the solids after the deformation"));
+  m.append(card("Peak von Mises", "fuel " + MPa(s.fuel.maxEquivalent), "cladding " + MPa(s.cladding.maxEquivalent)));
+  m.append(card("Cladding hoop stress", MPa(s.cladding.hoop[0]) + " to " + MPa(s.cladding.hoop[1]), "tension positive"));
+  if (mech.internalPressure > 0) m.append(card("Gas pressure in the gap", MPa(mech.internalPressure), mech.internalPressureNote || ""));
+  const g = geomOf(d.normalized), cells = d.results.radial;
+  const ser = (label, key, color, k) => ({ label, color, pts: mech.points.map((p, i) => [cells[i].r, p[key] * (k || 1e-6)]) });
+  drawXY($("rmech"), $("rmechWrap"), { geom: g, yName: "stress (MPa)", series: [ser("radial", "sigmaR", "#52b8ff"), ser("hoop", "sigmaTheta", "#f0a35e"), ser("axial", "sigmaZ", "#6fd49c"), ser("von Mises", "sigmaEq", "#c89df2")] });
+  drawXY($("rdisp"), $("rdispWrap"), { geom: g, yName: "radial displacement (µm)", series: [ser("ur", "ur", "#52b8ff", 1e6)] });
+}
 function hoverFor(canvas, readoutId) {
   canvas.addEventListener("mousemove", (e) => {
     const p = canvas._plot; if (!p) return; if (p.spec.time) { timeHover(canvas, $(readoutId), e); return; } const b = canvas.getBoundingClientRect(), r = ((e.clientX - b.left - p.L) / (p.w - p.L - p.Rr)) * p.rmax; if (r < 0 || r > p.rmax) return;
@@ -1472,6 +1626,7 @@ function renderResults() {
   const d = selDetail, m = $("metrics"); m.replaceChildren();
   $("rTitle").textContent = d ? (d.record.caseName || d.record.caseId) + " · " + d.record.id : "No run selected";
   const pr = $("props"); pr.replaceChildren(); $("propSub").textContent = d ? "Run " + d.record.id : "";
+  $("rmechWrap").hidden = true; $("rdispWrap").hidden = true;
   if (!d) { drawGeneric($("rprof"), null); $("rBanner").hidden = true; return; }
   const rec = d.record;
   $("rBanner").hidden = false;
@@ -1489,6 +1644,7 @@ function renderResults() {
     const series = [{ label: "OFFBEAT cells", pts: radialPts(d.results), color: COL.solver, dots: true, line: true, width: 1 }];
     if ($("rCf").getAttribute("aria-pressed") === "true" && d.closed) series.unshift({ label: "closed form", pts: d.closed.profile.map((p) => [p.r, p.T]), color: COL.closed, line: true, dash: true, width: 1.4 });
     drawGeneric($("rprof"), { geom: geomOf(d.normalized), series, bulk: d.normalized.boundary.kind === "convective" ? d.normalized.boundary.bulkTemperature : null });
+    renderMechanicsResults(d, m);
   } else {
     const f = rec.failure; const box = el("div", "mcard wide"); box.append(elt("div", "This run has no result", { class: "ml" }), elt("div", rec.state, { class: "mv" }), elt("div", f ? f.code + ": " + f.message : (rec.notes || []).join(" "), { class: "ms" }));
     if (f && f.native) { const pre = el("pre", "log"); pre.textContent = f.native; box.append(pre); }
