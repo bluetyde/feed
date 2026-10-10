@@ -87,6 +87,51 @@ describe("a thermo-elastic result from real OFFBEAT fields", () => {
   });
 });
 
+describe("the contact is read from the gap width and the interface pressure", () => {
+  /** The gapWidth or interfaceP file with the value of the fuelOuter patch replaced. */
+  const withPatch = (text: string, v: string) => text.replace(/(fuelOuter\s*\{[^}]*?value\s+)uniform\s+[^;]+;/, "$1uniform " + v + ";");
+  it("the golden values are a gap and no pressure: no contact", () => {
+    expect(build().mechanics!.summary).toMatchObject({ contact: false, contactPressure: 0 });
+  });
+  it("a gap of zero or less is contact, even with no pressure written", () => {
+    expect(build({ ...fields(), gapWidth: withPatch(g("gapWidth"), "-1e-6") }).mechanics!.summary).toMatchObject({ contact: true, gapWidth: -1e-6 });
+    expect(build({ ...fields(), gapWidth: withPatch(g("gapWidth"), "0") }).mechanics!.summary.contact).toBe(true);
+    expect(build({ ...fields(), gapWidth: withPatch(g("gapWidth"), "1e-9") }).mechanics!.summary.contact).toBe(false);
+  });
+  it("a positive interface pressure is contact, whatever the gap width reads", () => {
+    const s = build({ ...fields(), interfaceP: withPatch(g("interfaceP"), "5e6") }).mechanics!.summary;
+    expect(s).toMatchObject({ contact: true, contactPressure: 5e6 });
+    expect(s.gapWidth).toBeGreaterThan(0);
+    expect(build({ ...fields(), interfaceP: withPatch(g("interfaceP"), "1") }).mechanics!.summary.contact).toBe(true);
+  });
+});
+
+describe("the points follow the radial profile whatever order the solver wrote its cells in", () => {
+  /** The same field with its entries in another order: the list is one entry per line between the "(" line after the count and the closing ")" line. */
+  const reorder = (text: string, perm: number[]) => {
+    const lines = text.split("\n");
+    const open = lines.findIndex((l, i) => /^\d+$/.test(l.trim()) && lines[i + 1] === "(");
+    const n = Number(lines[open]!.trim());
+    const rows = lines.slice(open + 2, open + 2 + n);
+    return [...lines.slice(0, open + 2), ...perm.map((i) => rows[i]!), ...lines.slice(open + 2 + n)].join("\n");
+  };
+  it("a permutation of every field leaves the record as it was", () => {
+    const same = build();
+    const count = same.radial.length;
+    expect(count).toBeGreaterThan(5);
+    const perm = Array.from({ length: count }, (_, i) => (i * 7 + 3) % count);
+    expect(new Set(perm).size).toBe(count); // a permutation when 7 and the count are coprime
+    const permuted = buildResults(normalized(), {
+      T: reorder(g("T"), perm),
+      C: reorder(g("C"), perm),
+      time: 5e7,
+      mechanics: { D: reorder(g("D"), perm), sigma: reorder(g("sigma"), perm), sigmaCyl: reorder(g("sigmaCyl"), perm), gapWidth: g("gapWidth"), interfaceP: g("interfaceP") },
+    });
+    expect(permuted.radial).toEqual(same.radial);
+    expect(permuted.mechanics!.points).toEqual(same.mechanics!.points);
+  });
+});
+
 describe("a missing or damaged field is a failed check and no record, never a pass", () => {
   const failed = (mech: Record<string, string | undefined>) => {
     const r = build(mech);
@@ -111,6 +156,13 @@ describe("a missing or damaged field is a failed check and no record, never a pa
     const first = /\n\((-?[\d.]+(?:e[-+]?\d+)?) /;
     expect(first.test(g("sigmaCyl"))).toBe(true);
     expect(failed({ ...fields(), sigmaCyl: g("sigmaCyl").replace(first, "\n(nan ") })).toMatch(/not 6 finite numbers/);
+  });
+  it("a list with a different number of cells from the case's (a consistent header and rows)", () => {
+    const lines = g("D").split("\n");
+    const open = lines.findIndex((l, i) => /^\d+$/.test(l.trim()) && lines[i + 1] === "(");
+    const n = Number(lines[open]!.trim());
+    const shorter = [...lines.slice(0, open), String(n - 1), "(", ...lines.slice(open + 2, open + 2 + n - 1), ...lines.slice(open + 2 + n)].join("\n");
+    expect(failed({ ...fields(), D: shorter })).toMatch(new RegExp(`field D has ${n - 1} cells, the case has ${n}`));
   });
   it("a list that is cut short", () => {
     const D = g("D");

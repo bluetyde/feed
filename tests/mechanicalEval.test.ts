@@ -105,7 +105,10 @@ describe("a solid that leaves the range of a law", () => {
     expect(e.fuel.expansionOutOfRange).toBe(true);
   });
   it("the reference temperature counts for the expansion: a range that holds the solid but not the reference temperature is out of range", () => {
-    const fits = norm(pinCase(sets(elasticity(), linearAlpha(5e-6, 2e-8, 900, 1500)), sets(elasticity(), constAlpha(1e-5)), 300));
+    // the fuel runs from about 780 to 1310 K here: 600 to 1500 K holds it entirely, and not the reference temperature of 300 K
+    const fits = norm(pinCase(sets(elasticity(), linearAlpha(5e-6, 2e-8, 600, 1500)), sets(elasticity(), constAlpha(1e-5)), 300));
+    expect(effectiveMechanics(fits.normalized!)!.fuel.temperatureRange[0]).toBeGreaterThan(600);
+    expect(effectiveMechanics(fits.normalized!)!.fuel.temperatureRange[1]).toBeLessThan(1500);
     expect(fits.warnings.map((x) => x.code)).toContain("W_EXPANSION_RANGE");
     const holds = norm(pinCase(sets(elasticity(), linearAlpha(5e-6, 2e-8, 250, 1500)), sets(elasticity(), constAlpha(1e-5)), 300));
     expect(holds.warnings.map((x) => x.code)).not.toContain("W_EXPANSION_RANGE");
