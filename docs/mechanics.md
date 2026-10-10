@@ -1,6 +1,6 @@
 # Mechanics: a thermo-elastic result for one slice
 
-A case may ask for **mechanics**: the displacement and the stress of the fuel and the cladding in one radial slice, from the temperatures, the thermal expansion and the contact between the solids. It is the first step of [plan 09](plans/09-mechanics.md) (M0 probe, M1 properties, M2 this page; M3 the independent check of every result, M4 internal pressure and stress limits, M5 the editor are still to do). Code: `src/core/validate.ts` (`parseMechanics`, `mechanicalSets`), `src/core/mechanicalEval.ts`, `src/core/caseWriter.ts`, `src/core/mechanicsResults.ts`, `src/core/convergence.ts`. Data and what the sources give: [spike/mechanics-data.md](spike/mechanics-data.md).
+A case may ask for **mechanics**: the displacement and the stress of the fuel and the cladding in one radial slice, from the temperatures, the thermal expansion and the contact between the solids. It is [plan 09](plans/09-mechanics.md) (M0 probe, M1 properties, M2 the run, M3 the independent check of every result; M4 internal pressure and stress limits and M5 the editor are still to do). Code: `src/core/validate.ts` (`parseMechanics`, `mechanicalSets`), `src/core/mechanicalEval.ts`, `src/core/caseWriter.ts`, `src/core/mechanicsResults.ts`, `src/core/convergence.ts`, `src/core/thermoElastic.ts` (the independent solution) and `src/core/mechanicsChecks.ts` (the checks). Data and what the sources give: [spike/mechanics-data.md](spike/mechanics-data.md).
 
 ## What it is, and is not
 
@@ -22,7 +22,7 @@ Small strain, **linear elastic**, one radial slice, thermal expansion, a contact
 - **`assumptions.thermalOnly: false` and the section go together.** The flag without the section is refused (`E_PROP_MISSING` at `/mechanics`), the section with the flag true is refused (`E_SCHEMA_INVALID`). A case without either is unchanged, byte for byte, in what it writes and what it reports.
 - **`referenceTemperature`**: where the solids are free of thermal stress (K or degC). Required, nothing assumed.
 - **`plane`**: `free-axial` (each solid takes its own axial strain, free of axial force; OFFBEAT's `modifiedPlaneStrain on`, what a short free slice of a rod does) or `plane-strain` (axially fixed). Plane stress is wrong for a rod and a strain common to both solids is not available on this mesh.
-- **`contact.penaltyFactor`**, from 0.05 to 1: the contact pressure depends on it. The M0 probe found 0.1 about 7 % low, 0.5 about 1 % low and 10 eleven times too high with nothing in the log to say so; a factor outside 0.05 to 1 is refused. M3 will check every result with contact against the closed form.
+- **`contact.penaltyFactor`**, from 0.05 to 1: the contact pressure depends on it. The M0 probe found 0.1 about 7 % low, 0.5 about 1 % low and 10 eleven times too high with nothing in the log to say so; a factor outside 0.05 to 1 is refused. Every result with a contact is checked against the independent solution (below), and a factor that does not suit the materials fails there; the sweep is in the last section.
 - **`coolantPressure`**: the pressure on the cladding's outer surface (Pa, kPa, MPa, GPa, psi, ksi), 0 for none.
 - **The property sets** of both solids are required (`mechanical.elasticity`, `mechanical.thermalExpansion`); a missing one is refused naming the set, the material and the solid.
 - **Not combined** with a transient, with hot dimensions (a mechanics case computes the expansion itself: the two would count it twice) or with a burnup (`E_UNSUPPORTED`).
@@ -37,9 +37,35 @@ OFFBEAT's `constant` material takes one Young's modulus and one expansion coeffi
 - **The displacement must converge, or the run fails.** FEED reads OFFBEAT's own criterion for the displacement (`mechanicsSubSolver::converged`: the initial residual of `D` below the `D` tolerance and the relative residual below `relD`, or one of the two ten times below, from the same `stressAnalysis` dictionary) on the last outer iteration of the final step, the same way it judges the temperature. A run that did not converge is `failed` with `E_NOT_CONVERGED`, never a result.
 - The run script copies `D`, `sigma`, `sigmaCyl`, `gapWidth` and `interfaceP` out of OFFBEAT's last time; the results record carries, for each cell, the radial and axial displacement, the radial, hoop and axial stress (tension positive) and the von Mises equivalent, and for each solid the ranges and the displacement of its outer surface, the gap between the solids (negative when they overlap), the contact pressure and whether they touch. A missing or damaged field is a **failed check** (`mechanicsFields`) and no record, never a pass.
 
+## The checks every result carries
+
+Each mechanics result is compared with an **independent thermo-elastic solution** (`src/core/thermoElastic.ts`) written without OFFBEAT: two concentric cylinders with the constants OFFBEAT is given (the reduced constants of the record) and the closed-form temperatures of the case. For a solid, with the thermal strain `theta = T - Tref`, the displacement is `u = A r + B / r + (1 + nu) alpha / (1 - nu) x (1 / r) x the integral of theta s ds` (the hollow cylinder of Timoshenko and Goodier, with the axial strain of the generalized plane strain); the constants A, B and the axial strain follow from the surface pressures and the axial condition, and a gap that closes gets the interface pressure that makes it exactly zero. The module was itself checked first (`tests/thermoElastic.test.ts`: Timoshenko's long solid cylinder with free ends and a parabolic temperature, the Lame thick tube, the interference pressure of two cylinders from their compliances).
+
+| Check | What it compares | Tolerance (fixed in the plan before the first run) |
+|---|---|---|
+| `mechanicsDisplacement` | the radial displacement of every cell | 1 % of the largest displacement of the solid + 1e-9 m |
+| `mechanicsStress` | radial, hoop and axial stress of every cell | 3 % of the solid's stress scale + 10 kPa (the scale is the larger of its largest independent stress and 1 % of E alpha max abs(T - Tref)) |
+| `mechanicsEquilibrium` | OFFBEAT's own stress against the radial balance between neighbouring cells | 2 % of the same scale + 10 kPa |
+| `mechanicsContact` | whether the solids touch, the interface pressure, or the open gap | pressure 3 % + 10 kPa; gap 2 % + 1e-8 m; a gap within 0.5 micron of closing is not judged for touching |
+
+The first run of the independent solution against OFFBEAT's real output (the golden case of M2) passed all four inside those tolerances (the displacement within 2e-8 m, the open gap to 0.05 %, the stress within 2.1 MPa of 760 MPa). Each check was then shown to fail when its field is damaged by more than the tolerance (`tests/mechanicsChecks.test.ts`), and a mutation run of the module and the checks (33 mutants; 5 survived and got tests, none survives now).
+
+### What the contact sweep found (gated tests, real solver)
+
+Three cold gaps (10, 20, 40 micron) and fuels of E 5e10, 2e11 and 4e11 Pa against a cladding of 2e11, each closed by 5 micron of free overlap (23 to 32 MPa), at several penalty factors:
+
+- **The contact pressure depends on the penalty factor, and by different amounts for different stiffness ratios.** The pressure is always low, by about 0.3 / factor % for the stiffer fuel, 0.7 / factor % for equal moduli and 2.1 / factor % for a fuel a quarter as stiff as the cladding. Equal moduli: 0.05 gives 13 % low, 0.1 gives 6.6 %, 0.2 gives 3.2 %, 0.3 gives 2.0 %.
+- **A factor that is too large does not converge:** equal moduli at 0.7, the stiffer fuel at 0.5 and the soft fuel at 1.0 all end `E_NOT_CONVERGED` (the criterion of M2 catching it: the run is failed, never a result).
+- **At a factor that suits the pair** every check passes: 0.3 for equal moduli and for the stiffer fuel (the pressure within 2.2 % and 1.1 % at worst over the three gaps).
+- **A fuel a quarter as stiff as the cladding (the TRIGA fuel against steel) is the known limit.** Its factor has to be 0.7 for the contact to be stable, and its pressure is then 2.7 to 3.1 % low, at the edge of the 3 % tolerance; the stress check can fail by about 1 MPa. The solids touch and the pressure is right to 4 %, but the result is not within the tolerance fixed in advance, and it is reported as such.
+- **A factor that is too small is accepted by OFFBEAT and by the run, and then fails the contact check.** A bad factor is never a pass.
+- A first sweep with 60 micron of free overlap (1.5 % strain, 100 to 250 MPa) was outside the small-strain range and not a pin: the displacement missed its 1 % by the micron of overlap the penalty contact leaves, and the temperature of the stiff fuel did not converge. It is not part of the tests.
+- Not tried in the tests: a displacement relaxation of 0.3 instead of 0.5 widens the stable range (the stiffer fuel at 0.5 then converges and is 0.3 % low; equal moduli at 0.5 is 1.1 % low) but does not move the soft fuel's limit. It is a candidate for a later change of the writer, with a recommended factor in the editor (M5).
+
 ## What it was checked against
 
 - **Through the real solver** (`tests/mechanicsSolver.test.ts`, `FEED_SOLVER=1`): free thermal expansion (`u = alpha dT r`, no stress); plane strain (`u = (1 + nu) alpha dT r`, `sigma_z = -E alpha dT`); an external pressure on the cladding; a fuel that expands four times as fast as its cladding closing a 20 micron gap (the interference pressure of the closed form, 101.3 MPa); the library's TRIGA fuel and stainless steel cladding with their laws reduced to constants.
 - **On real saved OFFBEAT output** (`tests/golden/offbeat-mechanics`, `tests/mechanicsResults.test.ts`, `tests/mechanicsConvergence.test.ts`): the parser, the order of the points, the damaged-field refusals, the criterion with the thresholds on both sides.
 - **The reduction of a law** (`tests/mechanicalEval.test.ts`): the mean strain against an exact integral of the profile written in the test.
-- **Not yet**: an independent thermo-elastic solution that checks every result (M3), stress limits and the hydrogen pressure (M4), the editor (M5), SEED oracle entries (M6).
+- **The independent solution and the four checks on every result** (M3, above), with the contact sweep over gaps, stiffness ratios and penalty factors.
+- **Not yet**: stress limits and the hydrogen pressure (M4), the editor (M5), SEED oracle entries (M6).
