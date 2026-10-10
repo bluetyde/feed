@@ -85,6 +85,7 @@ describe("coolant pressure", () => {
   });
   it("a negative pressure is refused", () => {
     expect(codes(mechCase(sec({ coolantPressure: q(-1, "MPa") })))).toEqual(["E_OUT_OF_RANGE /mechanics/coolantPressure"]);
+    expect(codes(mechCase(sec({ coolantPressure: q(-0.5, "Pa") })))).toEqual(["E_OUT_OF_RANGE /mechanics/coolantPressure"]); // a tiny negative one is refused too
   });
   it("2e9 Pa is refused", () => {
     expect(codes(mechCase(sec({ coolantPressure: q(2e9, "Pa") })))).toEqual(["E_OUT_OF_RANGE /mechanics/coolantPressure"]);
