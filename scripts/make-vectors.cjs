@@ -402,6 +402,11 @@ bad("mechanics-internal-pressure-zero", "E_OUT_OF_RANGE", "/mechanics/internalPr
 bad("mechanics-internal-pressure-unknown-model", "E_UNSUPPORTED", "/mechanics/internalPressure/model", (c) => { mech(c); c.mechanics.internalPressure = { model: "plenum", source: "x" }; });
 bad("mechanics-hydrogen-ratio-out-of-range", "E_OUT_OF_RANGE", "/mechanics/internalPressure/hZrRatio", (c) => { mech(c); c.mechanics.internalPressure = { model: "hydrogen-zrh", hZrRatio: { value: 2.1, unit: "1" }, fuelTemperature: "peak", source: "x" }; });
 bad("mechanics-hydrogen-temperature-missing", "E_PROP_MISSING", "/mechanics/internalPressure/fuelTemperature", (c) => { mech(c); c.mechanics.internalPressure = { model: "hydrogen-zrh", hZrRatio: { value: 1.65, unit: "1" }, source: "x" }; });
+const slim = (extra = {}) => ({ name: "clad-flat", region: "cladding", table: [{ temperature: { value: 300, unit: "K" }, strength: { value: 500, unit: "MPa" } }, { temperature: { value: 1500, unit: "K" }, strength: { value: 300, unit: "MPa" } }], source: "a synthetic table", ...extra });
+add("good", "mechanics-stress-limit", (() => { const c = mech(clone()); c.mechanics.stressLimits = [slim()]; return c; })(), {});
+bad("mechanics-stress-limit-no-source", "E_PROP_MISSING", "/mechanics/stressLimits/0/source", (c) => { mech(c); c.mechanics.stressLimits = [slim({ source: undefined })]; });
+bad("mechanics-stress-limit-unordered-table", "E_OUT_OF_RANGE", "/mechanics/stressLimits/0/table/1/temperature", (c) => { mech(c); c.mechanics.stressLimits = [slim({ table: [{ temperature: { value: 600, unit: "K" }, strength: { value: 500, unit: "MPa" } }, { temperature: { value: 300, unit: "K" }, strength: { value: 400, unit: "MPa" } }] })]; });
+bad("mechanics-stress-limit-bad-region", "E_SCHEMA_INVALID", "/mechanics/stressLimits/0/region", (c) => { mech(c); c.mechanics.stressLimits = [slim({ region: "gap" })]; });
 bad("mechanics-reference-temperature-missing", "E_PROP_MISSING", "/mechanics/referenceTemperature", (c) => { mech(c); delete c.mechanics.referenceTemperature; });
 bad("mechanics-reference-temperature-zero", "E_OUT_OF_RANGE", "/mechanics/referenceTemperature", (c) => { mech(c); c.mechanics.referenceTemperature = { value: 0, unit: "K" }; });
 bad("mechanics-plane-missing", "E_PROP_MISSING", "/mechanics/plane", (c) => { mech(c); delete c.mechanics.plane; });

@@ -997,6 +997,28 @@
     "field": "/mechanics/internalPressure/fuelTemperature"
   },
   {
+    "file": "good/mechanics-stress-limit.json",
+    "valid": true
+  },
+  {
+    "file": "bad/mechanics-stress-limit-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/stressLimits/0/source"
+  },
+  {
+    "file": "bad/mechanics-stress-limit-unordered-table.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/stressLimits/0/table/1/temperature"
+  },
+  {
+    "file": "bad/mechanics-stress-limit-bad-region.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mechanics/stressLimits/0/region"
+  },
+  {
     "file": "bad/mechanics-reference-temperature-missing.json",
     "valid": false,
     "code": "E_PROP_MISSING",
