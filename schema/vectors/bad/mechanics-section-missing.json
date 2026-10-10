@@ -1,6 +1,6 @@
 {
   "schema": "feed.case/0.1",
-  "caseId": "unsupported-mechanics",
+  "caseId": "mechanics-section-missing",
   "name": "Synthetic composite pin (illustrative numbers, not a real fuel design)",
   "label": "synthetic",
   "assumptions": {

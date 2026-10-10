@@ -95,6 +95,18 @@ export interface MechanicalProps {
   expansion: ExpansionLaw;
 }
 
+/** The mechanics section (plan 09 M2): what a thermo-elastic run needs besides the geometry, the temperatures and the material sets. */
+export interface MechanicsSpec {
+  /** The stress-free temperature, K. */
+  referenceTemperature: number;
+  /** free-axial: each solid takes its own axial strain, free of axial force (OFFBEAT's modifiedPlaneStrain); plane-strain: axially fixed. */
+  plane: "free-axial" | "plane-strain";
+  /** The penalty factor of the gap contact condition (the contact pressure depends on it: docs/spike/mechanics-probe.md). */
+  penaltyFactor: number;
+  /** The pressure on the cladding's outer surface, Pa. */
+  coolantPressure: number;
+}
+
 export interface NormalizedCase {
   caseId: string;
   /** Steady: the linear heat rate (W/m). Transient: the peak of the power history, as a reference value only. */
@@ -119,6 +131,8 @@ export interface NormalizedCase {
   burnup?: { value: number; source: string };
   /** Present when the case asks for hot dimensions: the radii above are then the hot ones and this holds the cold ones, the mean temperatures and the factors (src/core/hotDimensions.ts). */
   hot?: HotRecord;
+  /** Present when the case asks for mechanics; its material properties are in `mechanical`. */
+  mechanics?: MechanicsSpec;
   /** The mechanical property sets of both solids, present when each has a valid mechanical.elasticity and mechanical.thermalExpansion (a thermal run does not use them). */
   mechanical?: { fuel: MechanicalProps; cladding: MechanicalProps };
 }
@@ -184,7 +198,9 @@ export function validateCase(doc: unknown): ValidationResult {
   };
 
   // Scope of V1
-  if (c.assumptions.thermalOnly !== true) err("E_UNSUPPORTED", "/assumptions/thermalOnly", "V1 is thermal-only; mechanics and irradiation are later capabilities");
+  // A case either is thermal-only or asks for mechanics, which needs its section (docs/plans/09-mechanics.md M2); irradiation is not offered.
+  if (c.mechanics !== undefined && c.assumptions.thermalOnly !== false) err("E_SCHEMA_INVALID", "/assumptions/thermalOnly", "a case with a mechanics section is not thermal-only: set assumptions.thermalOnly to false");
+  if (c.assumptions.thermalOnly === false && c.mechanics === undefined) err("E_PROP_MISSING", "/mechanics", "assumptions.thermalOnly is false, which asks for mechanics, but the case has no mechanics section (reference temperature, plane condition, contact and coolant pressure)");
   // steadyState false means a thermal transient: it needs the transient section and heat capacities (checked below). Nothing is assumed.
   const isTransient = c.assumptions.steadyState === false;
   if (!isTransient && c.transient !== undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "the case has a transient section but assumptions.steadyState is true; set it to false to run the transient, or remove the section");
@@ -293,6 +309,12 @@ export function validateCase(doc: unknown): ValidationResult {
 
   const limits = c.limits === undefined ? undefined : parseLimits(c.limits, err, qty);
   const hotSpec = c.hotDimensions === undefined ? undefined : parseHot(c.hotDimensions, err, qty);
+  const mechanicsSpec = c.mechanics === undefined ? undefined : parseMechanics(c.mechanics, err, qty);
+  if (c.mechanics !== undefined) {
+    if (isTransient) err("E_UNSUPPORTED", "/mechanics", "mechanics is for steady cases in this release: a transient needs the time history of the stress, which is not offered");
+    if (c.hotDimensions !== undefined) err("E_UNSUPPORTED", "/hotDimensions", "a mechanics case computes the thermal expansion itself: hot dimensions would count it twice, so the two cannot be combined");
+    if (c.burnup !== undefined) err("E_UNSUPPORTED", "/burnup", "mechanics with a burnup is not offered: the burnup conductivity is frozen and the mechanical response of burnt fuel (swelling, relocation) is not modelled");
+  }
   if (c.hotDimensions !== undefined && isTransient) err("E_UNSUPPORTED", "/hotDimensions", "hot dimensions are for steady cases: in a transient the temperatures, and so the radii, change with time");
 
   // Transient: heat capacities of both solids and the time section.
@@ -356,6 +378,7 @@ export function validateCase(doc: unknown): ValidationResult {
       mesh: { fuelCells: mesh.fuelCells, claddingCells: mesh.claddingCells },
       ...(isTransient ? { transient, fuelHeatCapacity: fuelCp, claddingHeatCapacity: claddingCp } : {}),
       ...(limits ? { limits } : {}),
+      ...(mechanicsSpec ? { mechanics: mechanicsSpec } : {}),
       ...(mechFuel && mechCladding ? { mechanical: { fuel: mechFuel, cladding: mechCladding } } : {}),
       ...(fuelK.kind === "uo2-nfi" && burnupSpec ? { burnup: burnupSpec } : {}),
     };
@@ -1042,6 +1065,70 @@ function expansionLaw(raw: unknown, field: string, err: ErrFn, qty: QtyFn): Expa
     return undefined;
   }
   return law;
+}
+
+const MECHANICS_KEYS = ["referenceTemperature", "plane", "contact", "coolantPressure"];
+const PENALTY_MIN = 0.05;
+const PENALTY_MAX = 1;
+const MAX_PRESSURE = 1e9;
+
+/**
+ * The mechanics section: the stress-free (reference) temperature, the plane condition, the penalty factor of the gap contact and the coolant pressure on the cladding.
+ * Nothing is defaulted. The penalty factor decides the contact pressure (a factor of 10 gave an answer eleven times too large with nothing in the log to say so,
+ * docs/spike/mechanics-probe.md), so it is bounded to the range that was shown to be close, and the results check the contact against the closed form (M3).
+ */
+function parseMechanics(raw: unknown, err: ErrFn, qty: QtyFn): MechanicsSpec | undefined {
+  if (!isObject(raw)) {
+    err("E_SCHEMA_INVALID", "/mechanics", "mechanics is an object with referenceTemperature, plane, contact and coolantPressure");
+    return undefined;
+  }
+  let ok = true;
+  const bad = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+    err(code, field, message, extra);
+    ok = false;
+  };
+  for (const k of Object.keys(raw)) if (!MECHANICS_KEYS.includes(k)) bad("E_SCHEMA_INVALID", "/mechanics/" + k, "unknown key '" + k + "' (the mechanics section has " + MECHANICS_KEYS.join(", ") + ")");
+  let referenceTemperature: number | undefined;
+  if (raw.referenceTemperature === undefined) bad("E_PROP_MISSING", "/mechanics/referenceTemperature", "the reference temperature, where the solids are free of thermal stress, is required: nothing is assumed");
+  else {
+    referenceTemperature = qty(raw.referenceTemperature, "temperature", "/mechanics/referenceTemperature");
+    if (referenceTemperature === undefined) ok = false;
+    else if (!(referenceTemperature > 0 && referenceTemperature <= MAX_REFERENCE_TEMPERATURE)) {
+      bad("E_OUT_OF_RANGE", "/mechanics/referenceTemperature", "the reference temperature is above 0 K and at most " + MAX_REFERENCE_TEMPERATURE + " K", { unit: "K" });
+      referenceTemperature = undefined;
+    }
+  }
+  let plane: "free-axial" | "plane-strain" | undefined;
+  if (raw.plane === undefined) bad("E_PROP_MISSING", "/mechanics/plane", "the plane condition is required: 'free-axial' (each solid takes its own axial strain, free of axial force) or 'plane-strain' (axially fixed)");
+  else if (raw.plane === "free-axial" || raw.plane === "plane-strain") plane = raw.plane;
+  else bad("E_UNSUPPORTED", "/mechanics/plane", "the plane conditions are 'free-axial' and 'plane-strain'; plane stress is wrong for a rod and a strain common to both solids is not available on this mesh");
+  let penaltyFactor: number | undefined;
+  if (raw.contact === undefined) bad("E_PROP_MISSING", "/mechanics/contact", "the contact condition is required: {penaltyFactor}");
+  else if (!isObject(raw.contact)) bad("E_SCHEMA_INVALID", "/mechanics/contact", "contact is an object with a penaltyFactor");
+  else {
+    for (const k of Object.keys(raw.contact)) if (k !== "penaltyFactor") bad("E_SCHEMA_INVALID", "/mechanics/contact/" + k, "unknown key '" + k + "' (the contact condition has penaltyFactor)");
+    if (raw.contact.penaltyFactor === undefined) bad("E_PROP_MISSING", "/mechanics/contact/penaltyFactor", "the penalty factor of the contact condition is required: it decides the contact pressure");
+    else {
+      penaltyFactor = qty(raw.contact.penaltyFactor, "fraction", "/mechanics/contact/penaltyFactor");
+      if (penaltyFactor === undefined) ok = false;
+      else if (!(penaltyFactor >= PENALTY_MIN && penaltyFactor <= PENALTY_MAX)) {
+        bad("E_OUT_OF_RANGE", "/mechanics/contact/penaltyFactor", "the penalty factor is from " + PENALTY_MIN + " to " + PENALTY_MAX + ": below it the solids overlap and the pressure is far too low, above it the answer can be an order of magnitude wrong without a warning (docs/spike/mechanics-probe.md)", { unit: "1" });
+        penaltyFactor = undefined;
+      }
+    }
+  }
+  let coolantPressure: number | undefined;
+  if (raw.coolantPressure === undefined) bad("E_PROP_MISSING", "/mechanics/coolantPressure", "the coolant pressure on the cladding's outer surface is required (0 for none)");
+  else {
+    coolantPressure = qty(raw.coolantPressure, "pressure", "/mechanics/coolantPressure");
+    if (coolantPressure === undefined) ok = false;
+    else if (!(coolantPressure >= 0 && coolantPressure <= MAX_PRESSURE)) {
+      bad("E_OUT_OF_RANGE", "/mechanics/coolantPressure", "the coolant pressure is from 0 to " + MAX_PRESSURE + " Pa", { unit: "Pa" });
+      coolantPressure = undefined;
+    }
+  }
+  if (!ok || referenceTemperature === undefined || plane === undefined || penaltyFactor === undefined || coolantPressure === undefined) return undefined;
+  return { referenceTemperature, plane, penaltyFactor, coolantPressure };
 }
 
 /** Bounds of a mechanical property: a solid's Young's modulus is between a soft polymer and the stiffest ceramic. */
