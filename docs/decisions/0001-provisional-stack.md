@@ -1,6 +1,6 @@
 # 0001: Provisional stack and first case-contract choices
 
-Date: 2026-10-05. Status: **provisional**, written by Claude Code. The user confirms or changes it ([TODO](../../TODO.md), "Decisions waiting").
+Date: 2026-10-05. Status: **confirmed by the user on 2026-10-10** (it had been provisional since 2026-10-05). Written by Claude Code.
 
 ## Stack
 
