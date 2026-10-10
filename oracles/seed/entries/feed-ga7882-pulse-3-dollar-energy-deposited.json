@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-ga7882-pulse-3-dollar-energy-deposited",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/ga7882-pulse-3-dollar.case.json",
+      "sha256": "8b18dc83e54e1a2956327efd85562c3f1b95509adb356e65393832ef6ee3ddbb"
+    }
+  ],
+  "expected": {
+    "quantity": "energy_deposited",
+    "value": 36250,
+    "unit": "J/m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.005
+  },
+  "source": {
+    "kind": "published",
+    "text": "General Atomic report GA-7882, Kinetic Behavior of TRIGA Reactors (1967), Table VII, page 31, modified Fuchs-Nordheim model (C = C0 + C1 T), $3 pulse (delta k prompt 0.014): peak power 2130 MW, burst energy 26.1 MW s, temperature rise of the burst 262 C (parameters: lifetime 4e-5 s, C0 = 8e4 W s/C at 25 C, C1 = 1.5e2 W s/C^2, alpha = 1e-4 per C per core). The energy of the slice is the burst energy of the core over the 720 pins of 1 m.",
+    "check": "Cross-check: tests/gaKineticsTable.test.ts derives the same model exactly (Simpson's rule) and gets 2131.5 MW, 26.19 MW s and a rise of 262.7 C; FEED's generator agrees with that to 1e-4. The report's numbers are rounded and its equation 16 for the rise is an approximation, so the tolerance is 0.5 %."
+  },
+  "coverage": {
+    "quantities": [
+      "energy_deposited"
+    ],
+    "domain": "TRIGA-like core of the report GA-7882 (Table VII): $3 pulse, prompt neutrons only (no delayed groups), constant prompt coefficient of -1e-4 per K, heat capacity C = C0 + C1 T, 60 ms window (the pulse is over in about 45 ms), initial power 100 kW (about 5e-5 of the peak: the report neglects it); the core is 720 pins of 1 m, the pin an illustrative synthetic one"
+  },
+  "toleranceHash": "e9d94cda0ca9c06e2a6a6d9845b424dde84909b4abbc9928f380d7f1db75554b"
+}
