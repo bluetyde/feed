@@ -30,7 +30,7 @@ Regenerate the bad vectors after changing the example pin: `node scripts/make-ve
 
 FEED is one app of a small suite. A burnup can come from an OpenMC Studio depletion record, and heating and coolant conditions from other apps, through hand-off files that SEED, the experiment harness, checks ([burnup](docs/transfer-burnup.md), [heating](docs/transfer-heating.md), [boundary](docs/transfer-boundary.md)). Nothing needs SEED to run FEED.
 
-How the project is developed (several coding agents, a shared log, reviews): [docs/WORKFLOWS.md](docs/WORKFLOWS.md). An unchecked task or a proposed contract is not implemented support.
+Made with the assistance of AI coding agents, under the direction and review of the maintainer. How the project is developed (several agents, a shared log, independent reviews): [docs/WORKFLOWS.md](docs/WORKFLOWS.md). An unchecked task or a proposed contract is not implemented support.
 
 ## Licence and third-party software
 
