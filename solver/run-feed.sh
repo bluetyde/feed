@@ -62,6 +62,8 @@ if [ "$final" != "0" ]; then
   cp "$final/T" "$final/C" "$OUT/final/" 2>/dev/null
   # a burnup case is checked against OFFBEAT's own conductivity (k) and burnup (Bu) fields (src/core/resultsParser.ts); other cases have no use for them
   cp "$final/k" "$final/Bu" "$OUT/final/" 2>/dev/null
+  # a mechanics case is read back from the displacement and stress fields and the contact (src/core/mechanicsResults.ts)
+  cp "$final/D" "$final/sigma" "$final/sigmaCyl" "$final/gapWidth" "$final/interfaceP" "$OUT/final/" 2>/dev/null
   # a transient (marked by feed-transient.json) keeps the temperature field at every write time; the cell centres are the same throughout
   if [ -e "$RUN/feed-transient.json" ]; then
     for d in $(ls -d [0-9]* 2>/dev/null | sort -g); do

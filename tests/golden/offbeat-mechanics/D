@@ -1,0 +1,140 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "50000000";
+    object      D;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 0 0 0 0 0];
+
+internalField   nonuniform List<vector> 
+26
+(
+(1.3489867e-06 0 0.0074271259)
+(3.1463699e-06 0 0.0074271259)
+(5.1108959e-06 0 0.0074271259)
+(7.084801e-06 0 0.0074271259)
+(9.038256e-06 0 0.0074271259)
+(1.0965035e-05 0 0.0074271259)
+(1.2848356e-05 0 0.0074271259)
+(1.4688681e-05 0 0.0074271259)
+(1.6467359e-05 0 0.0074271259)
+(1.8189065e-05 0 0.0074271259)
+(1.9831463e-05 0 0.0074271259)
+(2.1403693e-05 0 0.0074271259)
+(2.2878894e-05 0 0.0074271259)
+(2.4271177e-05 0 0.0074271259)
+(2.5548513e-05 0 0.0074271259)
+(2.6730522e-05 0 0.0074271259)
+(2.7779439e-05 0 0.0074271259)
+(2.872091e-05 0 0.0074271259)
+(2.9510912e-05 0 0.0074271259)
+(3.0181606e-05 0 0.0074271259)
+(1.3045298e-05 0 0.01051032)
+(1.3354135e-05 0 0.01051032)
+(1.3654593e-05 0 0.01051032)
+(1.3946885e-05 0 0.01051032)
+(1.4231442e-05 0 0.01051032)
+(1.4508539e-05 0 0.01051032)
+)
+;
+
+boundaryField
+{
+    fuelBottom
+    {
+        type            empty;
+    }
+    fuelTop
+    {
+        type            empty;
+    }
+    fuelOuter
+    {
+        type            gapContact;
+        refValue        uniform (0 0 0);
+        refGradient     uniform (0.0024425811 0 0);
+        valueFraction   uniform (0 0 0 0 0 0);
+        value           uniform (3.0429831e-05 0 0.0074271259);
+        limitCoeff      1;
+        traction        uniform (-0 -0 -0);
+        pressure        uniform 0;
+        totalTraction   uniform (-0 -0 -0);
+        value           uniform (3.0429831e-05 0 0.0074271259);
+        penaltyFactor   0.3;
+        relaxInterfacePressure 0.1;
+        interfaceP      uniform 0;
+        slip            uniform (-0 -0 -0);
+        frictionTraction uniform (-0 -0 -0);
+    }
+    fuelFront
+    {
+        type            wedge;
+    }
+    fuelBack
+    {
+        type            wedge;
+    }
+    cladBottom
+    {
+        type            empty;
+    }
+    cladTop
+    {
+        type            empty;
+    }
+    cladInner
+    {
+        type            gapContact;
+        refValue        uniform (0 0 0);
+        refGradient     uniform (-0.0033455553 0 1.6520285e-15);
+        valueFraction   uniform (0 0 0 0 0 0);
+        value           uniform (1.2885789e-05 0 0.01051032);
+        limitCoeff      1;
+        traction        uniform (0 0 0);
+        pressure        uniform 0;
+        totalTraction   uniform (0 0 0);
+        value           uniform (1.2885789e-05 0 0.01051032);
+        relaxInterfacePressure 0.1;
+        interfaceP      uniform 0;
+        slip            uniform (0 0 0);
+        frictionTraction uniform (0 0 0);
+    }
+    cladOuter
+    {
+        type            tractionDisplacement;
+        refValue        uniform (0 0 0);
+        refGradient     uniform (0.0028412478 -8.4703295e-22 4.8068081e-16);
+        valueFraction   uniform (0 0 0 0 0 0);
+        value           uniform (1.4643044e-05 -4.0098565e-26 0.01051032);
+        limitCoeff      1;
+        traction        uniform (0 0 0);
+        pressure        uniform 0;
+        totalTraction   uniform (0 0 0);
+        value           uniform (1.4643044e-05 -4.0098565e-26 0.01051032);
+    }
+    cladFront
+    {
+        type            wedge;
+    }
+    cladBack
+    {
+        type            wedge;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

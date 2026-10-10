@@ -12,5 +12,6 @@
   "E_FIT": { "severity": "error", "meaning": "a table cannot be carried by the polynomial asked for: the polynomial is further from the table than the stated tolerance, the degree needs more points than the table has, or the points do not determine it" },
   "E_KINETICS": { "severity": "error", "meaning": "the point-kinetics generator cannot produce a power history: the pulse does not happen inside the run, the integration fails or needs too many steps, or the history cannot be written within its point budget" },
   "W_POWER_RANGE": { "severity": "warning", "meaning": "linear heat rate above the sanity range; not clamped, not an error" },
+  "W_ELASTICITY_RANGE": { "severity": "warning", "meaning": "a solid's temperatures leave the range its Young's modulus law is stated for; the modulus is applied beyond it as given, and the warning says where" },
   "W_EXPANSION_RANGE": { "severity": "warning", "meaning": "a solid's temperatures leave the range its linear expansion coefficient is stated for; the formula is applied beyond it as given, and the warning says where" }
 }

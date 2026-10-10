@@ -11,6 +11,7 @@ import { NFI_RANGE, nfiConductivity } from "./uo2Nfi";
 import { heatCapacityLaw } from "./heatCapacity";
 import type { LimitRule } from "./limits";
 import { alphaAt, ExpansionLaw, hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
+import { effectiveMechanics } from "./mechanicalEval";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
 import { Dimension, toSI } from "./units";
@@ -400,6 +401,17 @@ export function validateCase(doc: unknown): ValidationResult {
         const [code, field] = h.kind === "geometry" ? ["E_GEOMETRY", "/hotDimensions"] : h.kind === "temperatures" ? ["E_OUT_OF_RANGE", "/materials"] : ["E_OUT_OF_RANGE", "/hotDimensions"];
         result.errors.push({ code, severity: "error", field, message: h.reason });
         delete result.normalized;
+      }
+    }
+    // Mechanics: a modulus or an expansion coefficient stated as a law of temperature is reduced to a constant for the solver (src/core/mechanicalEval.ts); say where a solid's temperatures leave the range a law is stated for.
+    if (result.normalized && result.normalized.mechanics && result.normalized.mechanical) {
+      const eff = effectiveMechanics(result.normalized);
+      for (const solid of ["fuel", "cladding"] as const) {
+        const s = eff?.[solid];
+        if (!s) continue;
+        const range = "from " + s.temperatureRange[0].toFixed(1) + " to " + s.temperatureRange[1].toFixed(1) + " K";
+        if (s.elasticityOutOfRange) result.warnings.push({ code: "W_ELASTICITY_RANGE", severity: "warning", field: "/materials/" + solid + "/sets/mechanical.elasticity", message: "the " + solid + " runs " + range + ", outside the range its Young's modulus law is stated for: the modulus is applied beyond it as given" });
+        if (s.expansionOutOfRange) result.warnings.push({ code: "W_EXPANSION_RANGE", severity: "warning", field: "/materials/" + solid + "/sets/mechanical.thermalExpansion", message: "the " + solid + " runs " + range + " (and the reference temperature counts), outside the range its expansion law is stated for: the formula is applied beyond it as given" });
       }
     }
     // A transient that starts from a steady operating state needs that state to exist and to lie where the heat capacity laws hold (the uniform start is checked above).
