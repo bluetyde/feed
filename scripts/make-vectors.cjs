@@ -389,6 +389,12 @@ bad("hot-dimensions-no-source", "E_PROP_MISSING", "/hotDimensions/fuel/source", 
 // ---- the mechanics section (plan 09 M2): one good case and one fault each
 const mech = (c, extra = {}) => { withMech(c); c.assumptions.thermalOnly = false; c.mechanics = { referenceTemperature: { value: 300, unit: "K" }, plane: "free-axial", contact: { penaltyFactor: { value: 0.3, unit: "1" } }, coolantPressure: { value: 0.1, unit: "MPa" }, ...extra }; return c; };
 add("good", "mechanics-section", mech(clone()), {});
+{
+  // a modulus stated as a law of temperature over a range the fuel leaves (the fuel runs about 700 to 1300 K here): applied as given, with a warning
+  const c = mech(clone());
+  c.materials.fuel.sets["mechanical.elasticity"] = { model: "linear", a: { value: 250, unit: "GPa" }, b: { value: -0.05, unit: "GPa/K" }, poissonRatio: { value: 0.3, unit: "1" }, validRange: { min: { value: 300, unit: "K" }, max: { value: 400, unit: "K" } }, source: "synthetic: chosen for the vectors" };
+  add("good", "mechanics-elasticity-range-warning", c, { warnings: ["W_ELASTICITY_RANGE"] });
+}
 bad("mechanics-reference-temperature-missing", "E_PROP_MISSING", "/mechanics/referenceTemperature", (c) => { mech(c); delete c.mechanics.referenceTemperature; });
 bad("mechanics-reference-temperature-zero", "E_OUT_OF_RANGE", "/mechanics/referenceTemperature", (c) => { mech(c); c.mechanics.referenceTemperature = { value: 0, unit: "K" }; });
 bad("mechanics-plane-missing", "E_PROP_MISSING", "/mechanics/plane", (c) => { mech(c); delete c.mechanics.plane; });
