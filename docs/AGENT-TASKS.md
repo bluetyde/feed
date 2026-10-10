@@ -1,8 +1,8 @@
 # Agent task board
 
-Delegation workflow: **Claude plans and verifies; Antigravity (agy, `antigravity-task` skill) implements delegated tasks in the isolated `agent-sandbox`; Codex (`codex-review` skill) reviews non-trivial diffs read-only.** Nothing merges until Claude has re-run the checks and the user agrees.
+Delegation workflow: **one agent plans and verifies; other agents implement delegated tasks in an isolated sandbox; an independent model reviews non-trivial diffs read-only.** Nothing merges until the planning agent has re-run the checks and a maintainer agrees.
 
-Decide whether to delegate with **step 0 of the antigravity-task skill** (`~/.claude/skills/antigravity-task/SKILL.md`); run it again before dispatching. The clear wins are large, mechanical tasks with a fixed contract and a strong oracle. Judgment, safety and physics-normalization tasks stay with Claude. See Virtual Reactor's [board](../../virtual-reactor/docs/AGENT-TASKS.md) for the evidence.
+Decide whether to delegate before dispatching, and decide again each time. The clear wins are large, mechanical tasks with a fixed contract and a strong oracle. Judgment, safety and physics-normalization tasks stay with the planning agent.
 
 Note: the agent sandbox has no OpenFOAM and no network by default; delegated tasks here must be solver-free (schemas, writers tested by golden files, closed-form oracles).
 

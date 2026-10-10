@@ -24,7 +24,7 @@ Output of F0: the reproduced example, saved inputs and outputs, the exact enviro
 
 ## Environment rules
 
-- The solver lives in its own environment (a dedicated WSL distro or a container). **It is never installed into, or modified in, another agent's environment**, and never into the shared `openmc-mcnp` environment. Agents follow `messages/INSTRUCTIONS.md` (no restarting WSL, no touching others' processes).
+- The solver lives in its own environment (a dedicated WSL distro or a container). **It is never installed into, or modified in, another agent's environment**, and never into the shared `openmc-mcnp` environment. Agents follow the maintainers' workspace rules (no restarting WSL, no touching others' processes).
 - Record disk footprint and build time. An OpenFOAM stack is large; the install is an explicit, user-approved step.
 - Record every version of every component; the case writer and the oracles name the versions they were checked on.
 - A pinned pair is the only supported pair. Upgrading is a new F0 pass with the oracle set re-run.

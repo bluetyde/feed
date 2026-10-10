@@ -131,3 +131,39 @@ describe("FEED's own licence and its npm packages", () => {
     for (const l of [...closure().values(), ...Object.values(dev)]) expect(l).not.toMatch(/GPL/);
   });
 });
+
+describe("THIRD_PARTY_NOTICES.md", () => {
+  const notices = read(join(root, "THIRD_PARTY_NOTICES.md"));
+  const pkg = JSON.parse(read(join(root, "package.json")));
+  const lock = JSON.parse(read(join(root, "package-lock.json"))).packages as Record<string, { version: string; license?: string; dev?: boolean; optional?: boolean }>;
+
+  it("names FEED's licence holder, the pinned OFFBEAT commit and the OpenFOAM package and version", () => {
+    expect(notices).toContain("Copyright (c) 2026 bluetyde");
+    expect(notices).toContain(pins.OFFBEAT_COMMIT!);
+    expect(notices).toContain(pins.OPENFOAM_PACKAGE!);
+    expect(notices).toContain(pins.OPENFOAM_VERSION!);
+  });
+
+  it("lists every package FEED depends on, and every package that runs, with the version and the licence of the lock file", () => {
+    const names = new Set([...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {})]);
+    for (const [path, v] of Object.entries(lock)) if (path && !v.dev && !v.optional) names.add(path.split("node_modules/").pop()!);
+    expect(names.size).toBeGreaterThanOrEqual(8);
+    for (const name of names) {
+      const v = lock["node_modules/" + name]!;
+      expect(notices, name).toContain(`| ${name} | ${v.version} | ${v.license}`);
+    }
+  });
+
+  it("names every saved licence text by file name, and every relative link in it points at a file that exists", () => {
+    for (const f of readdirSync(tp).filter((x) => x !== "SHA256SUMS")) expect(notices, f).toContain(f);
+    for (const m of notices.matchAll(/\]\(([^)#]+)\)/g)) {
+      const target = m[1]!;
+      if (/^https?:/.test(target)) continue;
+      expect(existsSync(join(root, target)), target).toBe(true);
+    }
+  });
+
+  it("says the solver is installed separately and not bundled, and what distributing it would carry", () => {
+    for (const needle of ["never bundled", "GNU GPL, version 3 or later", "CeCILL-C", "corresponding source"]) expect(notices, needle).toContain(needle);
+  });
+});

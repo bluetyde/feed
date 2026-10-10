@@ -61,6 +61,10 @@ describe("the burnup item of the editor (docs/plans/10-burnup.md M4)", () => {
     expect(html).toMatch(/\$\("burnupBanner"\)\.textContent = \(result && result\.burnupNote\)/);
     expect(html).toContain('$("burnupBanner").hidden = !(result && result.burnupNote);');
     expect(html).toContain('["uo2-nfi", "UO2 with burnup (modified NFI)"]');
+    // the sweep says which burnups are outside the model's stated range, in words and on the plot
+    expect(html).toMatch(/const ood = sweepData\.points\.filter\(\(q\) => q\.verdict === "out-of-domain"\)/);
+    expect(html).toContain("Outside the model's stated temperature range at ");
+    expect(html).toMatch(/if \(q\.verdict === "out-of-domain"\) \{ x\.beginPath\(\); x\.arc\(/);
   });
   it("a fuel that is not the burnup model has no burnup, and one that is gets a burnup to fill in (a burnup that changes nothing is refused)", () => {
     expect(html).toMatch(/if \(model === "uo2-nfi" && !doc\.burnup\) doc\.burnup = /);

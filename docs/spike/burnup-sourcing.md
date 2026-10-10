@@ -2,7 +2,7 @@
 
 Done 2026-10-07 for [plan 10](../plans/10-burnup.md), milestone M1, after the user allowed the fetch. **Question:** can the equation and the 13 constants of OFFBEAT's `UO2MATPRO` conductivity, and a Zircaloy conductivity, each be put on a page of a document, with their range of validity? **Answer: yes, but the model is not MATPRO.**
 
-## The documents (in `research/fuel-performance/`, with a README of their sources and SHA-256)
+## The documents (copies kept outside this repository, not redistributed; the maintainers' notes record their sources and SHA-256)
 
 | File | What it is | Source and size |
 |---|---|---|
@@ -40,7 +40,7 @@ NUREG/CR-7024 **Eq. 3.2-1** (section 3.2.1, page 3.4), the MATPRO CTHCON correla
 - **A gap conductance and the pin's dimensions and power.** Not in these reports. The example takes the dimensions from OFFBEAT's own tutorial pin and a gap conductance the case states with its source; it is labelled **synthetic, properties sourced**.
 - **The uncertainty of the modified NFI model** at high burnup (the passage read gives none for it; the report's section 2.7 compares it with irradiated data, figures only, not read for numbers).
 - **The original Ohira and Itagaki paper** (1997) and Lanning et al. (2005): cited by the report, not fetched; the report's equations are the source FEED cites.
-- **The MATPRO report's revisions.** The copy in `research/` is the first issue of Version 11 (February 1979); the unirradiated equation FEED does not use.
+- **The MATPRO report's revisions.** The copy used is the first issue of Version 11 (February 1979); the unirradiated equation FEED does not use.
 
 ## What this changes
 

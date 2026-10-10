@@ -34,7 +34,7 @@ If the expansion would close the gap (the hot cladding inner radius is not above
 
 ## The sourced coefficients (`library/expansion.json`)
 
-The editor offers each as a button ("Use: ..."); a case carries the law and the source text. There is **no sourced expansion coefficient in either SAR** (searched in both: the only expansion in them is the coolant's volumetric one and the fuel's yield and modulus), so the sets come from two papers in `research/VIRTUAL REACTOR/`.
+The editor offers each as a button ("Use: ..."); a case carries the law and the source text. There is **no sourced expansion coefficient in either SAR** (searched in both: the only expansion in them is the coolant's volumetric one and the fuel's yield and modulus), so the sets come from two published papers (cited in `library/expansion.json`; copies are not redistributed here).
 
 | Solid | Law | Source | Caveats |
 |---|---|---|---|

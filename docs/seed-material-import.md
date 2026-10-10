@@ -1,6 +1,6 @@
 # Importing a material from a SEED project
 
-A SEED project (`seed.project.json`, schema `seed.project/0.1`, [SEED contracts section 5](../../experiment-studio/docs/contracts.md)) lists **materials** by id and revision. Each has **property sets** named by their consumer (`openmc.composition`, `thermal.conductivity`, ...), and a set is opaque to everyone but its owner. FEED's editor can read one material from a project into the fuel or the cladding of a case. Code: `src/core/projectImport.ts`; routes `POST /api/import/project` (list) and `POST /api/import/material`; the material panel's "Import from a SEED project". Tests: `tests/projectImport.test.ts`.
+A SEED project (`seed.project.json`, schema `seed.project/0.1`, SEED contracts, section 5, in the SEED repository) lists **materials** by id and revision. Each has **property sets** named by their consumer (`openmc.composition`, `thermal.conductivity`, ...), and a set is opaque to everyone but its owner. FEED's editor can read one material from a project into the fuel or the cladding of a case. Code: `src/core/projectImport.ts`; routes `POST /api/import/project` (list) and `POST /api/import/material`; the material panel's "Import from a SEED project". Tests: `tests/projectImport.test.ts`.
 
 **FEED only reads.** It never writes into a project: SEED owns the manifest (its writer lock, its expected-revision check). A material that FEED changes is saved in FEED's own library as a new revision ([user-library.md](user-library.md)); getting that revision back into the project is SEED's side and is not built.
 

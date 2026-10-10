@@ -28,7 +28,7 @@ OpenFOAM's trademark is not addressed on the Foundation's licence page, and no t
 - `solver/make-oracle-case.py` (the F0 harness) reads a copy of OFFBEAT's `generic_pwr_1D` test case **at run time from the user's own installation**; it does not embed it.
 - The scripts in `solver/` are FEED's own (MIT). They fetch and build the upstream software on the user's machine and refuse to run on a version other than the pinned one.
 - FEED runs the solver as a separate program (`wsl.exe` to `bash` to `offbeat`) and exchanges files with it. The user's Windows installation holds the solver, not FEED.
-- FEED's repo does hold **outputs** of the solver as test fixtures: field files under `tests/golden/` and `solver/results/` (OpenFOAM writes a six-line banner naming OpenFOAM, its website and version at the top of each field file), and OFFBEAT log text under `tests/golden/offbeat-convergence/`. They are data, not program code. Whether that needs a notice, or the banner removed, is a question for legal review (section 5).
+- FEED's repo does hold **outputs** of the solver as test fixtures: field files under `tests/golden/` and `solver/results/` (OpenFOAM writes a six-line banner naming OpenFOAM, its website and version at the top of each field file), and OFFBEAT log text under `tests/golden/offbeat-convergence/`. They are data, not program code. They are kept as written, with a notice in THIRD_PARTY_NOTICES.md (section 4).
 
 ## 3. What each way of distributing would have to carry
 
@@ -44,7 +44,8 @@ OpenFOAM's trademark is not addressed on the Foundation's licence page, and no t
 
 - [x] `LICENSE` and the `license` field are MIT.
 - [x] `docs/licences/third-party/` holds reference copies of other parties' licences; they do not apply to FEED's own code and the README says so.
-- [ ] Decide on the solver-output fixtures (section 2): keep, or strip the OpenFOAM banner and log text.
+- [x] The solver-output fixtures (section 2) are kept as written, banners included, and say so in [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) section 4 (decided 2026-10-10: both projects are open source and the files are data).
+- [x] [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) lists the packages, the solver stack with its licences and the published sources, and is checked by a test.
 - [ ] If a release bundles `node_modules` or a built bundle: include the MIT, BSD-3-Clause and Apache-2.0 notices of the packages in section 1.
 
 **C. A binary distribution: the `feed-solver` WSL image, or built solver binaries.** Not planned and not ready. It would be redistribution of GPL programs and of a modified Ubuntu. Checklist, with what is held:
@@ -79,7 +80,7 @@ Under route A the licences of OpenFOAM, OFFBEAT, Scotch, SCIANTIX, CoolProp-IF97
 | **OpenFOAM trademark terms** (not on the Foundation's licence page; none found) | practically not: saying that FEED works with OpenFOAM 9 is a statement of compatibility | a product is named or branded with OpenFOAM, or endorsement is implied |
 | The **fixtures** in section 2 (solver output with OpenFOAM's banner and OFFBEAT log text) | only if the FEED repository is made public so that something can fetch it; it is private now | FEED's repository is published: decide then whether to keep them, strip the banner or regenerate them |
 | **Canonical's** position on a modified Ubuntu | no: the user's machine fetches Ubuntu from Canonical and builds its own distro; no image is shipped | we export or host a `feed-solver` image |
-| A **legal review** of this document | not needed to run the plan; optional before SEED is promoted widely | at the owner's discretion |
+| A **legal review** of this document | not needed: FEED ships no third-party code, the solver stack is open source and installed separately, and the notices file lists what is used; optional only if the solver environment is ever distributed as an image | at the owner's discretion |
 
 One item belongs to SEED, not FEED: its installer and its documentation should say that OpenFOAM and OFFBEAT are fetched from their upstream sources and not bundled, and should fetch from those sources and never from a mirror of our own (a mirror would make us redistribute). That is the SEED agent's.
 

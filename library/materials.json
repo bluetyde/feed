@@ -4,7 +4,7 @@
     "name": "U-ZrH (TRIGA, H/Zr 1.6), k = 18 W/m/K",
     "label": "sourced",
     "description": "Fuel-moderator of TRIGA Mark III elements: 8.5 wt% U, 20% enriched, delta-phase ZrH1.6. Conductivity stated as nearly independent of temperature. Revision 2 adds the volumetric heat capacity (needed for a pulse); the conductivity is unchanged.",
-    "citation": "UT-Austin SAR Table 4.1: thermal conductivity 0.18 W/cm/K. K-State SAR Table 13.3 and Table 4.6: 18 W/m/K, all temperatures; K-State attributes General Atomics and Simnad (1980) and says there is little temperature dependence over the range of interest. Sources: University of Texas at Austin TRIGA II Research Reactor Safety Analysis Report, Chapter 4, 8/2023 (research/VIRTUAL REACTOR/University of Texas-Austin TRIGA Research Reactor Safety Analysis Report - Redacted Version.pdf); Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004 (research/VIRTUAL REACTOR/Kansas State University, Safety Analysis Report Dated 12_21_2004_.pdf).",
+    "citation": "UT-Austin SAR Table 4.1: thermal conductivity 0.18 W/cm/K. K-State SAR Table 13.3 and Table 4.6: 18 W/m/K, all temperatures; K-State attributes General Atomics and Simnad (1980) and says there is little temperature dependence over the range of interest. Sources: University of Texas at Austin TRIGA II Research Reactor Safety Analysis Report, Chapter 4, 8/2023; Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004.",
     "material": {
       "materialId": "triga-uzrh-h16",
       "revision": 2,
@@ -121,7 +121,7 @@
     "name": "Stainless steel 304, k = 16.6 W/m/K (K-State value)",
     "label": "sourced",
     "description": "TRIGA cladding, 0.508 mm thick. The single value K-State uses for expected conditions (400 K). Revision 2 adds the volumetric heat capacity (needed for a pulse); the conductivity is unchanged.",
-    "citation": "K-State SAR Table 13.3 and Table 4.6: 16.6 W/m/K at 400 K; the SAR says the 127 C value applies under expected conditions. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004 (research/VIRTUAL REACTOR/Kansas State University, Safety Analysis Report Dated 12_21_2004_.pdf).",
+    "citation": "K-State SAR Table 13.3 and Table 4.6: 16.6 W/m/K at 400 K; the SAR says the 127 C value applies under expected conditions. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004.",
     "material": {
       "materialId": "ss304-k166",
       "revision": 2,
@@ -158,7 +158,7 @@
     "name": "Stainless steel 304, k(T) = 10.0 + 0.016333 T (300-600 K)",
     "label": "sourced",
     "description": "Straight line through the SAR's end points (14.9 W/m/K at 300 K, 19.8 at 600 K); it gives 16.53 at 400 K against the tabulated 16.6. Valid only over 300 to 600 K. Revision 2 adds the volumetric heat capacity (needed for a pulse); the conductivity is unchanged.",
-    "citation": "Fit by this project to K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The fit is ours; the three points are the SAR's. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004 (research/VIRTUAL REACTOR/Kansas State University, Safety Analysis Report Dated 12_21_2004_.pdf).",
+    "citation": "Fit by this project to K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The fit is ours; the three points are the SAR's. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004.",
     "material": {
       "materialId": "ss304-ktemp",
       "revision": 2,
@@ -205,7 +205,7 @@
     "name": "Stainless steel 304, k(T) table of the SAR's three points, quadratic fit (300-600 K)",
     "label": "sourced",
     "description": "The SAR's three conductivity points as a table; the degree 2 polynomial passes through all three exactly (fit deviation zero), so the model reproduces 16.6 W/m/K at 400 K, unlike the straight line. Valid only over 300 to 600 K. Shows the table model: replace the points with measured data and the fit is checked against the tolerance.",
-    "citation": "K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The three points are the SAR's; the quadratic through them is computed by FEED. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004 (research/VIRTUAL REACTOR/Kansas State University, Safety Analysis Report Dated 12_21_2004_.pdf).",
+    "citation": "K-State SAR Table 13.3 (14.9 W/m/K at 300 K, 16.6 at 400 K, 19.8 at 600 K; the SAR cites Incropera and DeWitt 1990 and the Metals Handbook 1961). The three points are the SAR's; the quadratic through them is computed by FEED. Source: Kansas State University TRIGA Mark II Safety Analysis Report, Dec 2004.",
     "material": {
       "materialId": "ss304-ktable",
       "revision": 1,
@@ -333,7 +333,7 @@
     "name": "UO2 at 95 % TD, conductivity with burnup (FRAPCON-3.4 modified NFI)",
     "label": "sourced",
     "description": "UO2 fuel whose conductivity depends on temperature, burnup, gadolinia and as-fabricated density: the modified NFI model of FRAPCON-3.4 (Ohira and Itagaki 1997, modified by Lanning 2005, with the gadolinia term of Massih 1992 and the porosity correction of Lucuta 1996). The density fraction 0.95 is the model's reference density (K95); change it in the editor (0.92 to 0.97). The burnup is not the material's: it is the case's, and the case must state it (0 for fresh fuel). Valid for 300 to 3000 K, rod-average burnup 0 to 62 MWd/kgHM, density 92 to 97 % TD and gadolinia 0 to 10 wt%. Frozen burnup only: no swelling, densification or fission-gas release. OFFBEAT runs it as UO2MATPRO, a misleading name (the model is not MATPRO).",
-    "citation": "W. G. Luscher and K. J. Geelhood, Material Property Correlations: Comparisons between FRAPCON-3.4, FRAPTRAN 1.4, and MATPRO, NUREG/CR-7024 (PNNL-19417), August 2010: Eq. 2.3-10 (page 2.11), Eq. 2.3-11 (page 2.12), range of applicability in section 2.3.2 (page 2.20). File: research/fuel-performance/NUREG-CR-7024 PNNL-19417 Material Property Correlations FRAPCON-3.4 FRAPTRAN-1.4 MATPRO (2010).pdf. The check against OFFBEAT: docs/spike/burnup-sourcing.md.",
+    "citation": "W. G. Luscher and K. J. Geelhood, Material Property Correlations: Comparisons between FRAPCON-3.4, FRAPTRAN 1.4, and MATPRO, NUREG/CR-7024 (PNNL-19417), August 2010: Eq. 2.3-10 (page 2.11), Eq. 2.3-11 (page 2.12), range of applicability in section 2.3.2 (page 2.20).. The check against OFFBEAT: docs/spike/burnup-sourcing.md.",
     "material": {
       "materialId": "uo2-nfi-95td",
       "revision": 1,
@@ -354,7 +354,7 @@
     "name": "Zircaloy, thermal conductivity (MATPRO CTHCON)",
     "label": "sourced",
     "description": "The conductivity of Zircaloy-2, Zircaloy-4, ZIRLO and M5 from MATPRO subcode CTHCON, the same correlation in MATPRO, FRAPCON-3.4 and FRAPTRAN 1.4: k = 7.51 + 2.09e-2 T - 1.45e-5 T^2 + 7.67e-9 T^3 W/m/K with T in kelvin, below 2098 K; standard deviation of the data about it 1.01 W/m/K. The report says it predicts k very well from room temperature to the data limit of about 1800 K and may be extrapolated with some confidence to the melting point; the range here is 300 to 2098 K, the range of the equation. Conductivity only: this entry has no heat capacity, so it is for steady cases.",
-    "citation": "W. G. Luscher and K. J. Geelhood, NUREG/CR-7024 (PNNL-19417), 2010, Eq. 3.2-1 and 3.2-2 (section 3.2.1, page 3.4); MATPRO-Version 11, NUREG/CR-0497 (TREE-1280), 1979, Eq. B-2.3 (cladding thermal conductivity, subcode CTHCON). Files: research/fuel-performance/.",
+    "citation": "W. G. Luscher and K. J. Geelhood, NUREG/CR-7024 (PNNL-19417), 2010, Eq. 3.2-1 and 3.2-2 (section 3.2.1, page 3.4); MATPRO-Version 11, NUREG/CR-0497 (TREE-1280), 1979, Eq. B-2.3 (cladding thermal conductivity, subcode CTHCON).",
     "material": {
       "materialId": "zircaloy-matpro-cthcon",
       "revision": 1,

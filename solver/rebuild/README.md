@@ -7,7 +7,7 @@ Evidence for F0 review finding 1 and plan 01's exit criterion "the environment s
 | Step | Command (from Windows) | Time |
 |---|---|---|
 | 1. Check the pinned Ubuntu rootfs | SHA-256 of `ubuntu-jammy-wsl-amd64-ubuntu22.04lts.rootfs.tar.gz` (341,130,963 bytes) equals the one in PINS.md, `1483cc5c...b4109` | seconds |
-| 2. Import it under a new name | `wsl --import feed-solver-rebuild C:\WSL\feed-solver-rebuild <tar> --version 2` | about 30 s |
+| 2. Import it under a new name | `wsl --import feed-solver-rebuild <folder>\feed-solver-rebuild <tar> --version 2` | about 30 s |
 | 3. Confirm it is clean | Ubuntu 22.04.5, 562 packages, no `feed` user, no compiler, no OpenFOAM | |
 | 4. Setup, as root | `wsl -d feed-solver-rebuild -u root --exec bash solver/setup-feed-solver.sh` | **322 s** |
 | 5. Build, as user feed | `wsl -d feed-solver-rebuild -u feed --exec bash solver/build-offbeat.sh` | **323 s** |
@@ -43,7 +43,7 @@ The original distro `feed-solver` was not touched by any of it (its newest run f
 ## Repeating it
 
 ```
-wsl --import feed-solver-rebuild C:\WSL\feed-solver-rebuild <rootfs.tar.gz> --version 2
+wsl --import feed-solver-rebuild <folder>\feed-solver-rebuild <rootfs.tar.gz> --version 2
 wsl -d feed-solver-rebuild -u root --exec bash /mnt/c/.../solver/setup-feed-solver.sh
 wsl -d feed-solver-rebuild -u feed --exec bash /mnt/c/.../solver/build-offbeat.sh
 node scripts/verify-rebuild.cjs feed-solver-rebuild

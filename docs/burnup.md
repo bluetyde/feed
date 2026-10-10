@@ -16,6 +16,7 @@ A case may state a **burnup** for its fuel, and the fuel's conductivity follows 
 - **The material** (`model: "uo2-nfi"`, fuel only) states the as-fabricated density as a fraction of theoretical (0.92 to 0.97), optionally the gadolinia weight fraction (`gadolinia`, 0 to 0.1) and optionally a temperature `validRange` inside 300 to 3000 K. Its 13 constants are the model's and are not the material's to change.
 - **The case** states the burnup: `value` in MWd/kgHM, GWd/tHM (the same number) or MWd/tHM, a `basis` that must be `heavy-metal` (an oxide basis is refused), and a `source`. 0 is fresh fuel and is **stated**, not assumed: a fuel with the model and no burnup is refused (`E_PROP_MISSING` at `/burnup`), and a burnup with a fuel that does not use it is refused (`E_UNSUPPORTED`, it would change nothing). A burnup outside 0 to 62 MWd/kgHM is refused (`E_OUT_OF_RANGE`).
 - **Steady cases only.** A burnup in a transient is refused (`E_UNSUPPORTED`): the conductivity would be frozen over the pulse.
+- **The model name is the declaration that the fuel is UO2.** FEED does not read the material's label or composition, so a case that gives a TRIGA or other non-oxide material this model is not refused; the results would be those of oxide fuel. Choose the model only for UO2.
 - **TRIGA fuel has no burnup model here**: OFFBEAT's burnup field and every burnup-dependent conductivity model it has are for oxide fuel, and the SARs give no burnup dependence for U-ZrH.
 - It works together with hot dimensions.
 
@@ -33,7 +34,7 @@ Every result, CSV export and comparison of a burnup case says, after the thermal
 
 ## In the editor
 
-The fuel's conductivity model list offers **UO2 with burnup (modified NFI)**; choosing it adds a Burnup item (under Materials) with the value, its unit and its source (to fill in: the source starts empty and the case is refused until it is stated). **Show the cost of burnup** plots the closed-form centre and surface temperature of the fuel against burnup, 0 to 62 MWd/kgHM, for the same pin, with the case's own burnup marked, and a table of the plotted values for a screen reader. Those are **independent estimates** (FEED's own closed form on the law, no solver); the solver's run at the case's own burnup is the check at that one point. On the example `lwr-uo2-burnup` (a typical PWR pin at 20 kW/m) the centre goes from 1235 K fresh to 1466 K at 40 and 1560 K at 62 MWd/kgHM.
+The fuel's conductivity model list offers **UO2 with burnup (modified NFI)**; choosing it adds a Burnup item (under Materials) with the value, its unit and its source (to fill in: the source starts empty and the case is refused until it is stated). **Show the cost of burnup** plots the closed-form centre and surface temperature of the fuel against burnup, 0 to 62 MWd/kgHM, for the same pin, with the case's own burnup marked, and a table of the plotted values for a screen reader. A point whose fuel runs outside the model's stated temperature range is drawn as a hollow mark and listed in words under the plot. Those are **independent estimates** (FEED's own closed form on the law, no solver); the solver's run at the case's own burnup is the check at that one point. On the example `lwr-uo2-burnup` (a typical PWR pin at 20 kW/m) the centre goes from 1235 K fresh to 1466 K at 40 and 1560 K at 62 MWd/kgHM.
 
 ## Not done
 
