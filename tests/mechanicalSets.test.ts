@@ -68,11 +68,11 @@ describe("the sets are checked whenever a material carries them", () => {
     expect(E(1e3, "ksi")).toBeCloseTo(6894757293.168, 3);
   });
   it("a linear modulus E = a + b T over a stated range", () => {
-    const e = elasticity({ model: "linear", youngModulus: undefined, a: q(100, "GPa"), b: q(-0.01, "GPa/K"), validRange: { min: q(300, "K"), max: q(900, "K") } });
+    const e = elasticity({ model: "linear", youngModulus: undefined, a: q(100, "GPa"), b: q(-0.01, "GPa/K"), poissonRatio: q(0.27, "1"), validRange: { min: q(300, "K"), max: q(900, "K") } });
     delete (e as any).youngModulus;
     const v = validateCase(pin({ ...both, "mechanical.elasticity": e }));
     expect(v.errors).toEqual([]);
-    expect(v.normalized!.mechanical!.fuel.elasticity).toEqual({ kind: "linear", a: 1e11, b: -1e7, nu: 0.3, range: [300, 900] });
+    expect(v.normalized!.mechanical!.fuel.elasticity).toEqual({ kind: "linear", a: 1e11, b: -1e7, nu: 0.27, range: [300, 900] });
   });
   it("a linear modulus that turns too small inside its range is refused", () => {
     const e: any = elasticity({ model: "linear", a: q(100, "GPa"), b: q(-0.2, "GPa/K"), validRange: { min: q(300, "K"), max: q(900, "K") } });
@@ -155,6 +155,13 @@ describe("the library materials carry the sourced sets (revision 3 of the TRIGA 
     expect(v.errors).toEqual([]);
     expect(v.normalized!.mechanical!.fuel.elasticity.kind).toBe("linear");
     expect((v.normalized!.mechanical!.cladding.expansion as { alpha: number }).alpha).toBeCloseTo(17.2e-6, 15);
+  });
+  it("a library material with a bad mechanical set is refused as a material, with the field named as in a case", () => {
+    const m = JSON.parse(JSON.stringify(byId("triga-uzrh-h16")));
+    m.sets["mechanical.elasticity"].poissonRatio = { value: 0.7, unit: "1" };
+    delete m.sets["mechanical.thermalExpansion"].source;
+    const r = validateMaterial("fuel", m);
+    expect(r.errors.map((e) => e.code + " " + e.field)).toEqual(["E_OUT_OF_RANGE /materials/fuel/sets/mechanical.elasticity/poissonRatio", "E_PROP_MISSING /materials/fuel/sets/mechanical.thermalExpansion/source"]);
   });
   it("the revisions went up with the sets: the thermal sets are as they were", () => {
     expect(byId("triga-uzrh-h16").revision).toBe(3);
