@@ -23,11 +23,11 @@ const pin = (fuel: Record<string, unknown> | null, cladding: Record<string, unkn
 const codes = (d: unknown) => validateCase(d).errors.map((e) => e.code + " " + e.field);
 
 describe("a case that asks for mechanics needs both sets of both solids, and says which is missing", () => {
-  it("none: each of the four sets is named, besides the refusal that mechanics is not solved yet", () => {
+  it("none: each of the four sets is named, besides the missing mechanics section", () => {
     const c = codes(pin(null, null, false));
-    expect(c).toContain("E_UNSUPPORTED /assumptions/thermalOnly");
+    expect(c).toContain("E_PROP_MISSING /mechanics");
     for (const r of ["fuel", "cladding"]) for (const s of ["mechanical.elasticity", "mechanical.thermalExpansion"]) expect(c, r + " " + s).toContain(`E_PROP_MISSING /materials/${r}/sets/${s}`);
-    expect(c.filter((x) => x.startsWith("E_PROP_MISSING"))).toHaveLength(4);
+    expect(c.filter((x) => x.startsWith("E_PROP_MISSING /materials"))).toHaveLength(4);
   });
   it("the message names the material, the set and what it is for, and says there is no default", () => {
     const e = validateCase(pin(null, null, false)).errors.find((x) => x.field === "/materials/fuel/sets/mechanical.elasticity")!;
@@ -36,10 +36,10 @@ describe("a case that asks for mechanics needs both sets of both solids, and say
   });
   it("only the cladding's expansion missing: that one set is named", () => {
     const d = pin(both, { "mechanical.elasticity": elasticity() }, false);
-    expect(codes(d).filter((x) => x.startsWith("E_PROP_MISSING"))).toEqual(["E_PROP_MISSING /materials/cladding/sets/mechanical.thermalExpansion"]);
+    expect(codes(d).filter((x) => x.startsWith("E_PROP_MISSING /materials"))).toEqual(["E_PROP_MISSING /materials/cladding/sets/mechanical.thermalExpansion"]);
   });
-  it("all four present: only the refusal that mechanics is not solved yet is left", () => {
-    expect(codes(pin(both, both, false))).toEqual(["E_UNSUPPORTED /assumptions/thermalOnly"]);
+  it("all four present: only the missing mechanics section is left", () => {
+    expect(codes(pin(both, both, false))).toEqual(["E_PROP_MISSING /mechanics"]);
   });
   it("a thermal-only case needs none of them and is unchanged", () => {
     const v = validateCase(pin(null, null, true));

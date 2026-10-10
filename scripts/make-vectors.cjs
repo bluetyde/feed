@@ -349,7 +349,7 @@ const withMech = (c, over = {}) => {
   Object.assign(c.materials.fuel.sets, over);
   return c;
 };
-bad("unsupported-mechanics", "E_UNSUPPORTED", "/assumptions/thermalOnly", (c) => (withMech(c), (c.assumptions.thermalOnly = false)));
+bad("mechanics-section-missing", "E_PROP_MISSING", "/mechanics", (c) => (withMech(c), (c.assumptions.thermalOnly = false)));
 add("good", "mechanical-sets", withMech(clone()), {});
 bad("mechanical-elasticity-no-source", "E_PROP_MISSING", "/materials/fuel/sets/mechanical.elasticity/source", (c) => withMech(c, { "mechanical.elasticity": elasticity({ source: "" }) }));
 bad("mechanical-poisson-too-high", "E_OUT_OF_RANGE", "/materials/fuel/sets/mechanical.elasticity/poissonRatio", (c) => withMech(c, { "mechanical.elasticity": elasticity({ poissonRatio: { value: 0.5, unit: "1" } }) }));

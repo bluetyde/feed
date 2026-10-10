@@ -812,10 +812,10 @@
     "field": "/gap/model"
   },
   {
-    "file": "bad/unsupported-mechanics.json",
+    "file": "bad/mechanics-section-missing.json",
     "valid": false,
-    "code": "E_UNSUPPORTED",
-    "field": "/assumptions/thermalOnly"
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics"
   },
   {
     "file": "good/mechanical-sets.json",
