@@ -38,7 +38,7 @@ describe("the markdown of the repository", () => {
     const hits: string[] = [];
     for (const f of files) {
       const text = readFileSync(f, "utf8");
-      for (const needle of ["jwncr", "Claude Code Test", "C:\Users", "../messages", "../../plans", "../experiment-studio", "../../OpenMC"]) if (text.includes(needle)) hits.push(relative(root, f) + ": " + needle);
+      for (const needle of ["jw" + "ncr", "Claude Code Test", "C:\Users", "../messages", "../../plans", "../experiment-studio", "../../OpenMC"]) if (text.includes(needle)) hits.push(relative(root, f) + ": " + needle);
     }
     expect(hits).toEqual([]);
   });

@@ -2,7 +2,7 @@
 // Validates the case, writes the OFFBEAT files and feed-manifest.json (mapping, placeholders, file hashes). LF endings.
 
 import { createHash } from "crypto";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { writeOffbeatCase } from "../core/caseWriter";
 import { validateCase } from "../core/validate";
@@ -20,6 +20,11 @@ function main(argv: string[]): number {
     return 1;
   }
   const out = resolve(outDir);
+  // only a folder this tool wrote before (it holds feed-manifest.json) or an empty one is replaced: a wrong path never deletes someone's files (Codex review 2026-10-11)
+  if (existsSync(out) && readdirSync(out).length > 0 && !existsSync(join(out, "feed-manifest.json"))) {
+    console.error("refused: " + out + " exists, is not empty and is not a case this tool wrote (no feed-manifest.json); give an empty or new folder");
+    return 1;
+  }
   rmSync(out, { recursive: true, force: true });
   const w = writeOffbeatCase(v.normalized);
   const hashes: Record<string, string> = {};

@@ -325,6 +325,8 @@ function attachErr(row, field, inputs) {
 function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
 function elt(tag, text, attrs) { const e = document.createElement(tag); if (text) e.textContent = text; for (const k in attrs || {}) { if (k === "class") e.className = attrs[k]; else e.setAttribute(k, attrs[k]); } if (/(^| )psec( |$)/.test(e.className)) { e.setAttribute("role", "heading"); e.setAttribute("aria-level", "3"); } return e; }
 const sec = (t) => elt("div", t, { class: "psec" });
+/* text from a case file or a server message goes into note() HTML only through esc(): a case can carry any string in its label or a stress-limit region */
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const note = (html) => { const r = el("div", "prow note"); const p = document.createElement("p"); p.innerHTML = html; r.append(p); return r; };
 
 /* ---- property panels */
@@ -353,7 +355,7 @@ function renderProps() {
   } else if (selected === "geometry") {
     p.append(sec("Radii"), qField("Fuel radius", ["geometry", "fuelRadius"], "length"), qField("Central hole (optional, insulated)", ["geometry", "fuelInnerRadius"], "length"), qField("Clad inner", ["geometry", "claddingInnerRadius"], "length"), qField("Clad outer", ["geometry", "claddingOuterRadius"], "length"));
     designView(p);
-    if (doc.description) p.append(note("<code>" + (doc.label || "") + "</code> " + String(doc.description).replace(/</g, "&lt;")));
+    if (doc.description) p.append(note("<code>" + esc(doc.label || "") + "</code> " + String(doc.description).replace(/</g, "&lt;")));
     if (doc.citation) p.append(note("Source: " + String(doc.citation).replace(/</g, "&lt;")));
     const d = result && result.derived; p.append(note(d ? "Gap thickness <code>" + (d.gapThickness * 1e3).toFixed(3) + " mm</code>. Equal radii are allowed only with an explicit effective gap conductance (zero cold gap); contact is not modelled." : "Radii must satisfy fuel &lt; cladding inner &lt; cladding outer."));
   } else if (selected === "gap") {
@@ -382,7 +384,7 @@ function renderProps() {
     const cur = mine.find((x) => x.material.materialId === m.materialId);
     if (cur) p.append(note("<code>" + cur.label + "</code> " + cur.description.replace(/</g, "&lt;")));
     if (cur && cur.citation) p.append(note("Source: " + cur.citation.replace(/</g, "&lt;")));
-    if (cur && cur.label === "custom") p.append(note("Yours: revision " + cur.material.revision + " of " + cur.revisions + " saved. Editing it and saving again makes a new revision."));
+    if (cur && cur.label === "custom") p.append(note("Yours: revision " + esc(cur.material.revision) + " of " + esc(cur.revisions) + " saved. Editing it and saving again makes a new revision."));
     p.append(tField("ID", base.concat("materialId")), iField("Revision", base.concat("revision")));
     const kp = base.concat("sets", "thermal.conductivity"); const k = getp(doc, kp);
     p.append(sec("Thermal conductivity"));
@@ -782,7 +784,7 @@ function burnupPanel(p) {
     const ood = sweepData.points.filter((q) => q.verdict === "out-of-domain");
     if (ood.length) p.append(note("Outside the model's stated temperature range at " + ood.map((q) => q.burnup).join(", ") + " MWd/kgHM (hollow marks on the plot): those points use the conductivity law beyond the range it is valid for, so they are extrapolated estimates."));
     const bad = sweepData.points.filter((q) => q.problem);
-    if (bad.length) p.append(note("Refused at " + bad.map((q) => q.burnup).join(", ") + " MWd/kgHM: " + bad[0].problem));
+    if (bad.length) p.append(note("Refused at " + bad.map((q) => q.burnup).join(", ") + " MWd/kgHM: " + esc(bad[0].problem)));
     setTimeout(() => drawBurnupSweep(cv, sweepData, pts), 0); /* after the panel is in the page, so the canvas has its size (not requestAnimationFrame: it pauses in a hidden pane) */
   }
 }
@@ -946,7 +948,7 @@ function mechanicsPanel(p) {
   p.append(bar);
   lims.forEach((l, i) => {
     const r = el("div", "prow note"); const pp = document.createElement("p");
-    pp.innerHTML = "<code>" + String(l.name).replace(/</g, "&lt;") + "</code> · " + l.region + " · " + (l.table ? l.table.length : 0) + " points. Von Mises stress against the strength at the cell's temperature; a cell outside the table is not judged and the check fails.";
+    pp.innerHTML = "<code>" + String(l.name).replace(/</g, "&lt;") + "</code> · " + esc(l.region) + " · " + (l.table ? l.table.length : 0) + " points. Von Mises stress against the strength at the cell's temperature; a cell outside the table is not judged and the check fails.";
     const del = elt("button", "Remove", { class: "tbtn", type: "button" });
     del.addEventListener("click", () => { m.stressLimits.splice(i, 1); if (!m.stressLimits.length) delete m.stressLimits; changed(true); renderProps(); });
     r.append(pp, del); p.append(r);
