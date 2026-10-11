@@ -9,10 +9,12 @@ export type Script = "burnup-good" | "burnup-no-k" | "burnup-wrong-basis" | "sta
 
 const golden = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-syn", f), "utf8");
 /** Real OFFBEAT logs from the non-convergence probe: one step that converged (6 outer iterations), one that hit its cap unconverged. */
-export const convergedLog = () => readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "converged-1s.log.txt"), "utf8");
+/** The golden probe logs are one-second runs; a fake steady run ends at 5e7 s and the judge requires the log's last step to be at the final time (Codex review 2026-10-11), so the time label is moved. */
+const atFinalTime = (log: string) => log.replace("Time = 1 seconds", "Time = 5e+07 seconds");
+export const convergedLog = () => atFinalTime(readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "converged-1s.log.txt"), "utf8"));
 /** The real log of a full steady run (84 time steps to 5e7 s; the last step printed a relative temperature change of -0). */
 export const steadyLog = () => readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "steady-full-run.log.txt"), "utf8");
-export const unconvergedLog = () => readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "capped-unconverged.log.txt"), "utf8");
+export const unconvergedLog = () => atFinalTime(readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "capped-unconverged.log.txt"), "utf8"));
 
 export class FakeBackend implements RunBackend {
   runs: string[] = [];

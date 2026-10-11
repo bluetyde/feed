@@ -76,6 +76,13 @@ export interface MechanicsInput {
   interfaceP?: string;
 }
 
+/** A written OpenFOAM field ends with the "// ***** //" footer and has balanced braces and parentheses; a file killed mid-write does not, even when its cell list is complete. */
+function wholeFile(text: string, name: string): void {
+  if (!/\/\/ \*{20,} \/\/\s*$/.test(text)) throw new FieldError(`field ${name} does not end with the OpenFOAM footer (the file is cut short)`);
+  const count = (ch: string) => text.split(ch).length - 1;
+  if (count("{") !== count("}") || count("(") !== count(")")) throw new FieldError(`field ${name} has unbalanced braces or parentheses (the file is cut short or malformed)`);
+}
+
 /** `internalField nonuniform List<type> N ( ... )` or `internalField uniform (...)` of a vector or symmetric tensor field, n numbers per cell. */
 function listField(text: string, name: string, width: number, cells: number): number[][] {
   const un = /internalField\s+uniform\s+\(([^)]*)\)/.exec(text);
@@ -104,7 +111,7 @@ function patchScalar(text: string, patch: string, key = "value"): number | null 
   const block = new RegExp(`\\b${patch}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`).exec(text.slice(text.indexOf("boundaryField")));
   if (!block) return null;
   const un = new RegExp(`${key}\\s+uniform\\s+([-+.\\deE]+)\\s*;`).exec(block[1]!);
-  if (un) return Number(un[1]);
+  if (un) return Number.isFinite(Number(un[1])) ? Number(un[1]) : null;
   const list = new RegExp(`${key}\\s+nonuniform\\s+List<scalar>\\s*(\\d+)\\s*\\(([^)]*)\\)`).exec(block[1]!);
   if (!list) return null;
   const vals = list[2]!.trim().split(/\s+/).filter(Boolean).map(Number);
@@ -133,6 +140,8 @@ export function buildMechanics(
   let D: number[][];
   let S: number[][];
   try {
+    wholeFile(input.D, "D");
+    wholeFile(stressText, input.sigmaCyl !== undefined ? "sigmaCyl" : "sigma");
     D = listField(input.D, "D", 3, cells.length);
     S = listField(stressText, input.sigmaCyl !== undefined ? "sigmaCyl" : "sigma", 6, cells.length);
   } catch (e) {

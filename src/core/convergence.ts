@@ -141,6 +141,13 @@ export function parseSteps(log: string): StepRecord[] {
   return steps;
 }
 
+/** The log's last step must be the one whose fields were read: a log that lost its final step but kept an earlier converged one would otherwise vouch for the final fields. */
+function staleLog(logTime: number, finalTime: number | undefined): { ok: false; code: "E_OUTPUT_INCOMPLETE"; message: string } | undefined {
+  if (finalTime === undefined) return undefined;
+  if (Number.isFinite(logTime) && Math.abs(logTime - finalTime) <= 1e-6 * Math.max(1, Math.abs(finalTime))) return undefined;
+  return { ok: false, code: "E_OUTPUT_INCOMPLETE", message: `The solver log ends at t = ${logTime}, not at the final time ${finalTime} of the output that was read, so it cannot show that the final step converged; the run is not accepted as a result.` };
+}
+
 export type ConvergenceVerdict = { ok: true; stepsChecked: number; iterationsInLastStep: number } | { ok: false; code: "E_NOT_CONVERGED" | "E_OUTPUT_INCOMPLETE"; message: string };
 
 /**
@@ -148,12 +155,15 @@ export type ConvergenceVerdict = { ok: true; stepsChecked: number; iterationsInL
  * converge (an unconverged step in the middle corrupts the history that follows). A log with no outer-iteration records, or a
  * step whose last iteration lacks any of the three numbers, cannot be judged and is refused rather than assumed fine.
  */
-export function judgeConvergence(log: string, criterion: ConvergenceCriterion, mode: "final-step" | "every-step"): ConvergenceVerdict {
+export function judgeConvergence(log: string, criterion: ConvergenceCriterion, mode: "final-step" | "every-step", finalTime?: number): ConvergenceVerdict {
   const steps = parseSteps(log);
   if (steps.length === 0 || steps.every((s) => s.iterations === 0)) {
     return { ok: false, code: "E_OUTPUT_INCOMPLETE", message: "The solver log has no outer-iteration records, so convergence cannot be judged; the run is not accepted as a result." };
   }
-  const toCheck = mode === "final-step" ? [steps[steps.length - 1]!] : steps;
+  const lastStep = steps[steps.length - 1]!;
+  const stale = staleLog(lastStep.time, finalTime);
+  if (stale) return stale;
+  const toCheck = mode === "final-step" ? [lastStep] : steps;
   for (const s of toCheck) {
     if (s.iterations === 0 || !s.last) {
       return { ok: false, code: "E_OUTPUT_INCOMPLETE", message: `The solver log for the time step at t = ${s.time} has no complete residual record (initial residual, relResidualT and absErrT), so convergence cannot be judged.` };
@@ -287,12 +297,14 @@ export function parseMechanicsSteps(log: string): { time: number; iterations: nu
 }
 
 /** A mechanics run is a result only if the displacement converged in the FINAL step (steady), as the temperature must. */
-export function judgeMechanicsConvergence(log: string, criterion: MechanicsCriterion): ConvergenceVerdict {
+export function judgeMechanicsConvergence(log: string, criterion: MechanicsCriterion, finalTime?: number): ConvergenceVerdict {
   const steps = parseMechanicsSteps(log);
   if (steps.length === 0 || steps.every((s) => s.iterations === 0)) {
     return { ok: false, code: "E_OUTPUT_INCOMPLETE", message: "The solver log has no outer-iteration records, so the convergence of the displacement cannot be judged; the run is not accepted as a result." };
   }
   const s = steps[steps.length - 1]!;
+  const stale = staleLog(s.time, finalTime);
+  if (stale) return stale;
   if (s.iterations === 0 || !s.last) {
     return { ok: false, code: "E_OUTPUT_INCOMPLETE", message: `The solver log for the final time step (t = ${s.time}) has no complete displacement residual record (a Solving for D line, relResidualD and absErrD), so its convergence cannot be judged; the run is not accepted as a result.` };
   }

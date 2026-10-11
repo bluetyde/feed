@@ -416,7 +416,7 @@ describe("run manager: convergence and exit status (F0 finding 2)", () => {
     const { rec, mgr, id, runsRoot } = await runOne("unconverged");
     expect(rec.state).toBe("failed");
     expect(rec.failure!.code).toBe("E_NOT_CONVERGED");
-    expect(rec.failure!.message).toMatch(/did not converge at t = 1/);
+    expect(rec.failure!.message).toMatch(/did not converge at t = 50000000/);
     expect(rec.failure!.message).toMatch(/absErrT 11\.1641/);
     expect(rec.failure!.message).toMatch(/without a warning/);
     expect(rec.failure!.native).toMatch(/absErrT is 11\.1641/); // the evidence from the log is kept

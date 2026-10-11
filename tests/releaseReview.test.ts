@@ -8,6 +8,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { server } from "../src/server/server";
+import { judgeConvergence } from "../src/core/convergence";
+import { steadyLog } from "./helpers/fakeBackend";
 
 const root = join(__dirname, "..");
 let port = 0;
@@ -69,5 +71,19 @@ describe("write-case", () => {
     expect(run(caseFile, out)).toBe(0);
     expect(existsSync(join(out, "stale.txt"))).toBe(false);
     expect(existsSync(join(out, "system/controlDict"))).toBe(true);
+  });
+});
+
+describe("the convergence verdict is about the step whose fields were read (Codex review 2026-10-11)", () => {
+  it("a log that ends before the final time of the output is not accepted, even when the step it ends on converged", () => {
+    const crit = { T: 1e-5, relT: 1e-6, absErrT: 0, maxOuterIter: 1000, useRelResT: true } as any;
+    const full = judgeConvergence(steadyLog(), crit, "final-step", 5e7);
+    expect(full.ok, JSON.stringify(full)).toBe(true);
+    const cut = steadyLog().replace(/Time = 5e\+07 seconds[\s\S]*$/, "");
+    const v = judgeConvergence(cut, crit, "final-step", 5e7);
+    expect(v.ok).toBe(false);
+    expect(!v.ok && v.code).toBe("E_OUTPUT_INCOMPLETE");
+    expect(!v.ok && v.message).toMatch(/not at the final time 50000000/);
+    expect(judgeConvergence(cut, crit, "final-step").ok, "without a final time the old behaviour").toBe(true);
   });
 });

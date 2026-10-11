@@ -104,6 +104,11 @@ describe("each check fails when its field is damaged by more than the tolerance"
     const w = checks({ ...fields(), gapWidth: patch(g("gapWidth"), "-1e-6") });
     expect(w.mechanicsContact!.verdict).toBe("fail");
   });
+  it("an unreadable gap width with a pressure that reads zero is not a pass for an open gap that is not nearly closed (Codex review 2026-10-11)", () => {
+    const c = checks({ ...fields(), gapWidth: g("gapWidth").replace(/(fuelOuter\s*\{[^}]*?value\s+)uniform\s+[^;]+;/, "$1uniform nan;") });
+    expect(c.mechanicsContact!.verdict).toBe("fail");
+    expect(c.mechanicsContact!.note).toMatch(/never passed unread/);
+  });
   it("no gap field and no pressure field is a failed contact check, not a pass", () => {
     const c = checks({ ...fields(), gapWidth: undefined, interfaceP: undefined });
     expect(c.mechanicsContact!.verdict).toBe("fail");
