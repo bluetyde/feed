@@ -2,7 +2,7 @@
 
 A case can state **limits**: a maximum temperature for the fuel or the cladding, with the source it comes from. Each rule becomes a check in the results. Code: `src/core/limits.ts` (the arithmetic and the checks), `parseLimits` in `src/core/validate.ts`; the editor's "Temperature limits" item; the sourced set in `library/limits.json`. Tests: `tests/limits.test.ts`, `tests/temperatureLimitsSolver.test.ts` (`FEED_SOLVER=1`), the `limits-*` schema vectors.
 
-**FEED has no limits of its own.** A limit is an input of the case, as a material's conductivity is, and it needs its source or the case is refused. A case with no `limits` has no limit checks and its results say nothing about any. A temperature below a limit is **not** an integrity assessment: FEED computes no stress, no hydrogen pressure, no failure, and every limit check says so.
+**FEED has no limits of its own.** A limit is an input of the case, as a material's conductivity is, and it needs its source or the case is refused. A case with no `limits` has no limit checks and its results say nothing about any. A temperature below a limit is **not** an integrity assessment: the temperature-limit check computes no stress, no hydrogen pressure and no failure, and says so (a case that asks for [mechanics](mechanics.md) gets its stress separately, and a stress below a strength is not an integrity assessment either).
 
 ## The rule
 

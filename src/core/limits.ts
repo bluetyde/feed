@@ -87,7 +87,7 @@ export function limitChecks(rules: readonly LimitRule[], observed: readonly Limi
     const o = pick.o;
     const invalid = a.invalid + (b ? b.invalid : 0);
     const head = `${rule.name}: the hottest ${rule.region} stays at or below ${showT(rule.maxTemperature)}${condition(rule)}. Source: ${rule.source}.`;
-    const tail = " FEED computes no stress; staying below a limit is not an integrity assessment.";
+    const tail = " This check computes no stress; staying below a limit is not an integrity assessment.";
     const id = `temperatureLimit${i + 1}`;
     const label = `Temperature limit: ${rule.name}`;
     if (invalid > 0) {
