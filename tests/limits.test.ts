@@ -68,7 +68,7 @@ describe("the checks", () => {
     expect(ok!.note).toContain("1423.15 K (1150 C)");
     expect(ok!.note).toContain("at most 773.15 K (500 C)");
     expect(ok!.note).toContain("Source: SAR section 4.7.");
-    expect(ok!.note).toContain("FEED computes no stress; staying below a limit is not an integrity assessment.");
+    expect(ok!.note).toContain("This check computes no stress; staying below a limit is not an integrity assessment.");
     const [bad] = limitChecks([r], [S(0, 1500, 400)]);
     expect(bad!.verdict).toBe("fail");
     expect(bad!.value!).toBeCloseTo(-76.85, 9);
