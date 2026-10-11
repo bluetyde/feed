@@ -152,6 +152,7 @@ function contactCheck(sol: ReturnType<typeof independentSolution>, record: Mecha
     const bound = g.fraction * Math.abs(sol.gap) + g.floor;
     return { id, label, value: dev, unit: "m", verdict: dev <= bound ? "pass" : "fail", note: `gap ${(s.gapWidth * 1e6).toFixed(3)} micron against ${(sol.gap * 1e6).toFixed(3)} micron, no contact; bound ${g.fraction * 100} % + ${g.floor} m` };
   }
+  if (!nearly) return { id, label, value: null, unit: "Pa", verdict: "fail", note: `the contact cannot be judged: the independent solution says the solids ${refTouch ? "touch" : "do not touch (free gap " + (sol.freeGap * 1e6).toFixed(2) + " micron)"} and OFFBEAT's gap width is unread or its result is not comparable, and a gap that is not nearly closed is never passed unread` };
   return { id, label, value: null, unit: "Pa", verdict: "pass", note: `the gap is nearly closed (free gap ${(sol.freeGap * 1e6).toFixed(3)} micron, within ${tol.nearlyClosed * 1e6} micron of touching): touching is not judged either way` };
 }
 

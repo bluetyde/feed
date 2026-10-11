@@ -384,7 +384,7 @@ export class RunManager {
     const fvSolution = read(join(dir, "inputs", "system", "fvSolution"));
     const criterion = fvSolution === undefined ? ({ ok: false, message: "the run's system/fvSolution is missing" } as const) : readCriterion(fvSolution);
     if (!criterion.ok) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "Convergence cannot be judged: " + criterion.message + ". The run is not accepted as a result.", native });
-    const convergence = judgeConvergence(log, criterion.criterion, isTransient ? "every-step" : "final-step");
+    const convergence = judgeConvergence(log, criterion.criterion, isTransient ? "every-step" : "final-step", exit.finalTime);
     if (!convergence.ok) {
       const evidence = log.split(/\r?\n/).filter((l) => /^(Time = |OuterIteration|relResidualT|absErrT)|Solving for T/.test(l)).slice(-16).join("\n");
       return fail({ code: convergence.code, message: convergence.message, native: evidence || native });
@@ -394,7 +394,7 @@ export class RunManager {
     if (hasMechanics) {
       const mc = readMechanicsCriterion(fvSolution!);
       if (!mc.ok) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "Convergence of the displacement cannot be judged: " + mc.message + ". The run is not accepted as a result.", native });
-      const mv = judgeMechanicsConvergence(log, mc.criterion);
+      const mv = judgeMechanicsConvergence(log, mc.criterion, exit.finalTime);
       if (!mv.ok) {
         const evidence = log.split(/\r?\n/).filter((l) => /^(Time = |OuterIteration|relResidualD|absErrD)|Solving for D/.test(l)).slice(-16).join("\n");
         return fail({ code: mv.code, message: mv.message, native: evidence || native });
@@ -434,6 +434,8 @@ export class RunManager {
         ? { mechanics: { D: read(join(nativeDir, "final", "D")), sigma: read(join(nativeDir, "final", "sigma")), sigmaCyl: read(join(nativeDir, "final", "sigmaCyl")), gapWidth: read(join(nativeDir, "final", "gapWidth")), interfaceP: read(join(nativeDir, "final", "interfaceP")) } }
         : {};
       const results = buildResults(normalized, { T, C, ...extra, ...mechanics, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
+      const unread = results.checks.find((c) => c.id === "mechanicsFields" && c.verdict !== "pass");
+      if (unread) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "The solver output is not a complete result: " + unread.note, native });
       atomicWrite(join(dir, "results.json"), JSON.stringify(results, null, 2) + "\n");
       r.headline = { centreCellT: results.summary.centreCellT, claddingOuterWallT: results.summary.claddingOuterWallT };
     } catch (e) {

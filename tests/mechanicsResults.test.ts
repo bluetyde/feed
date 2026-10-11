@@ -166,7 +166,17 @@ describe("a missing or damaged field is a failed check and no record, never a pa
   });
   it("a list that is cut short", () => {
     const D = g("D");
-    expect(failed({ ...fields(), D: D.slice(0, D.indexOf("\n)") - 5) })).toMatch(/not closed|header says/);
+    expect(failed({ ...fields(), D: D.slice(0, D.indexOf("\n)") - 5) })).toMatch(/not closed|header says|OpenFOAM footer/);
+  });
+  it("a file cut right after a complete list (no boundary field, no footer) is refused, for D and for the stress", () => {
+    const cut = (s: string) => s.slice(0, s.indexOf("\n)") + 2);
+    expect(failed({ ...fields(), D: cut(g("D")) })).toMatch(/field D does not end with the OpenFOAM footer/);
+    expect(failed({ ...fields(), sigmaCyl: cut(g("sigmaCyl")) })).toMatch(/field sigmaCyl does not end with the OpenFOAM footer/);
+  });
+  it("a non-finite interface pressure or gap width is unread, not a number to compare", () => {
+    const inf = (text: string) => text.replace(/(fuelOuter\s*\{[^}]*?value\s+)uniform\s+[^;]+;/, "$1uniform -1e999;");
+    const s = build({ ...fields(), interfaceP: inf(g("interfaceP")) }).mechanics!.summary;
+    expect(s.contactPressure).toBeNull();
   });
   it("the thermal part of the result is still checked when the mechanics fields are damaged (a bad T is refused as before)", () => {
     expect(() => buildResults(normalized(), { T: g("T").slice(0, 600), C: g("C"), time: 5e7, mechanics: fields() })).toThrow(ResultsError);
