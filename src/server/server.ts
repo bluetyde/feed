@@ -246,7 +246,11 @@ export const server = createServer(async (req, res) => {
     const refusal = allowedRequest(req);
     if (refusal) return json(res, 403, { error: refusal });
     const url = (req.url ?? "/").split("?")[0] ?? "/";
-    if (req.method === "GET" && url === "/") return send(res, 200, "text/html; charset=utf-8", readFileSync(join(root, "src", "web", "index.html"), "utf8"));
+    if (req.method === "GET" && url === "/") {
+      // the editor may not be framed by another page (a framed editor would carry its own authorised requests: Codex review 2026-10-11)
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "content-security-policy": "frame-ancestors 'none'", "x-frame-options": "DENY" });
+      return void res.end(readFileSync(join(root, "src", "web", "index.html"), "utf8"));
+    }
     if (req.method === "GET" && url === "/api/ping") return json(res, 200, { ok: true, app: "fuel-performance-studio", solver: solverUp ? "OpenFOAM Foundation 9 + OFFBEAT (feed-solver)" : null });
     if (req.method === "GET" && url === "/api/library") return json(res, 200, library());
     if (req.method === "POST" && url === "/api/design") {
