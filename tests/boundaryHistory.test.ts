@@ -73,6 +73,7 @@ describe("refusals", () => {
   it("not a list, one point, not from zero, not increasing, stops short of the end time", () => {
     expect(codes(withHistory({ a: 1 }))).toContain("E_SCHEMA_INVALID /transient/boundaryHistory");
     expect(codes(withHistory([conv(0, 300, 30000)]))).toContain("E_TIME /transient/boundaryHistory");
+    expect(validateCase(withHistory([conv(0, 300, 30000)])).errors.map((e) => e.message).join(" ")).toMatch(/at least two points/);
     expect(codes(withHistory([conv(10, 300, 30000), conv(100, 300, 1000)]))).toContain("E_TIME /transient/boundaryHistory/0/time");
     expect(codes(withHistory([conv(0, 300, 30000), conv(60, 300, 30000), conv(60, 300, 1000), conv(100, 300, 1000)]))).toContain("E_TIME /transient/boundaryHistory/2/time");
     expect(codes(withHistory([conv(0, 300, 30000), conv(99, 300, 1000)]))).toContain("E_TIME /transient/boundaryHistory");
@@ -113,6 +114,23 @@ describe("refusals", () => {
     expect(codes(steady([conv(0, 300, 29000), conv(100, 300, 1000)]))).toContain("E_TRANSIENT_INCOMPLETE /transient/boundaryHistory/0");
     // a uniform start has no such rule
     expect(validateCase(withHistory([conv(0, 500, 5000), conv(100, 300, 1000)])).errors).toEqual([]);
+  });
+  it("a prescribed wall: its temperature bound, and a steady start must begin at the case's own wall temperature", () => {
+    const wall = (T: number, T1: number) => {
+      const d = withHistory([{ time: q(0, "ms"), surfaceTemperature: q(T, "K") }, { time: q(100, "ms"), surfaceTemperature: q(T1, "K") }]);
+      d.boundary = { surfaceTemperature: q(300, "K") };
+      return d;
+    };
+    expect(codes(wall(300, 10001))).toContain("E_OUT_OF_RANGE /transient/boundaryHistory/1/surfaceTemperature");
+    expect(codes(wall(300, 0))).toContain("E_OUT_OF_RANGE /transient/boundaryHistory/1/surfaceTemperature");
+    const steady = (T: number) => {
+      const d = wall(T, 400);
+      delete d.transient.initialTemperature;
+      d.transient.initialSteadyLinearHeatRate = q(20, "kW/m");
+      return d;
+    };
+    expect(validateCase(steady(300)).errors).toEqual([]);
+    expect(codes(steady(310))).toContain("E_TRANSIENT_INCOMPLETE /transient/boundaryHistory/0");
   });
   it("is not combined with mechanics", () => {
     const d = good();
