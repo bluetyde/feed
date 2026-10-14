@@ -1,0 +1,7 @@
+const {internal}=require(__dirname+"/readf.cjs");
+const [,,name,nf,nc,N]=process.argv;const dir=__dirname+"/"+name;
+const C=internal(dir+"/result/C",true),T=internal(dir+"/result/T",false);
+const F=+nf,Cc=+nc,n=+N;const rows=[];
+for(let k=0;k<n;k++){rows.push({z:+C[F*k][2].toFixed(5),centre:+T[F*k].toFixed(3),fuelSurf:+T[F*k+F-1].toFixed(3),wall:+T[F*n+Cc*k+Cc-1].toFixed(3)});}
+console.log(name,JSON.stringify(rows.map(r=>[r.z,r.centre,r.wall])));
+module.exports={rows,T,C};

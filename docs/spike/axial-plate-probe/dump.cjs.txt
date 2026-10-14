@@ -1,0 +1,10 @@
+const fs=require("fs"),path=require("path");
+const root="C:/Users/jwncr/Claude Code Test/fuel-performance-studio";
+const {validateCase}=require(root+"/dist/core/validate.js");
+const {writeOffbeatCase}=require(root+"/dist/core/caseWriter.js");
+const [,, ex, out]=process.argv;
+const d=JSON.parse(fs.readFileSync(root+"/examples/"+ex+".json","utf8"));
+const v=validateCase(d); if(!v.ok) throw new Error(JSON.stringify(v.errors));
+const w=writeOffbeatCase(v.normalized);
+for(const [f,t] of Object.entries(w.files)){const p=path.join(out,f);fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,t);}
+console.log(Object.keys(w.files).join("\n"));

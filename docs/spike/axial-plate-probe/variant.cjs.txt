@@ -1,0 +1,50 @@
+// usage: node variant.cjs <baseDir> <outDir> <json options>
+const fs=require("fs"),path=require("path");
+const [,, base, out, optJson]=process.argv;
+const o=Object.assign({N:10,L:0.381,ends:"patch",shape:"cosine",coolant:"const",avg:20000},JSON.parse(optJson||"{}"));
+fs.rmSync(out,{recursive:true,force:true});
+function cp(s,d){fs.mkdirSync(d,{recursive:true});for(const f of fs.readdirSync(s)){const a=path.join(s,f),b=path.join(d,f);fs.statSync(a).isDirectory()?cp(a,b):fs.copyFileSync(a,b);}}
+cp(base,out);
+const rd=f=>fs.readFileSync(path.join(out,f),"utf8"), wr=(f,t)=>fs.writeFileSync(path.join(out,f),t);
+// mesh: N layers, height L
+let b=rd("system/blockMeshDict");
+const Lmm=o.L*1000;
+b=b.replace(/\(([-0-9.e]+) ([-0-9.e]+) 1000\)/g,(m,x,y)=>`(${x} ${y} ${Lmm})`);
+b=b.replace(/(fuel|cladding) \((\d+) 1 1\)/g,(m,r,n)=>`${r} (${n} 1 ${o.N})`);
+if(o.ends==="patch") b=b.replace(/(fuelBottom|fuelTop|cladBottom|cladTop)\n    \{\n        type empty;/g,"$1\n    {\n        type patch;");
+wr("system/blockMeshDict",b);
+if(o.ends==="patch"){
+  let T=rd("0/T"); T=T.replace('    ".*Front|.*Back"','    ".*Bottom|.*Top"\n    {\n        type zeroGradient;\n    }\n    ".*Front|.*Back"'); wr("0/T",T);
+  let D=rd("0/D"); D=D.replace('    ".*Front|.*Back"','    ".*Bottom|.*Top"\n    {\n        type zeroGradient;\n    }\n    ".*Front|.*Back"'); wr("0/D",D);
+}
+// power shape
+let s=rd("constant/solverDict");
+let locs,data;
+if(o.shape==="cosine"){const n=20;locs=[];data=[];for(let i=0;i<=n;i++){const z=i/n;locs.push(z);data.push((Math.PI/2)*Math.cos(Math.PI*(z-0.5)));}}
+else {locs=[0,1];data=[1,1];}
+const num=x=>Number(x.toPrecision(10));
+{let I=0;for(let i=1;i<locs.length;i++)I+=0.5*(data[i]+data[i-1])*(locs[i]-locs[i-1]);for(let i=0;i<data.length;i++)data[i]/=I;}
+s=s.replace("axialProfile { type flat; }",`axialProfile { type constantTabulated; axialLocations (${locs.map(num).join(" ")}); data (${data.map(num).join(" ")}); axialInterpolationMethod linear; }`);
+s=s.replace(/lhgr\s+20000;/,`lhgr ${o.avg};`);
+if(o.sliceMapper) s=s.replace("sliceMapper             autoAxialSlices;",`sliceMapper ${o.sliceMapper};`);
+wr("constant/solverDict",s);
+// coolant profile
+if(o.coolant==="rise"){
+  let T=rd("0/T");
+  T=T.replace(/cladOuter\n    \{[\s\S]*?\n    \}/,`cladOuter
+    {
+        type timeDependentAxialProfileHTC;
+        axialProfileDict
+        {
+            timePoints (0 1e10);
+            axialLocations (0 ${o.zmax??1});
+            hData ((30000 30000)(30000 30000));
+            T0Data ((${o.Tin} ${o.Tout})(${o.Tin} ${o.Tout}));
+            timeInterpolationMethod linear;
+            axialInterpolationMethod linear;
+        }
+        value uniform ${o.Tin};
+    }`);
+  wr("0/T",T);
+}
+if(o.startUniform){let T=rd("0/T");T=T.replace(/internalField\s+nonuniform[\s\S]*?\n\)\s*\n?;/,`internalField uniform ${o.startUniform};`);wr("0/T",T);}

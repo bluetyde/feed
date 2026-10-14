@@ -1,0 +1,10 @@
+const fs=require("fs");const root="C:/Users/jwncr/Claude Code Test/fuel-performance-studio";
+const {validateCase}=require(root+"/dist/core/validate.js");const {quickLook}=require(root+"/dist/core/quickLook.js");
+const {rows}=require(__dirname+"/summ.cjs");
+const L=0.381,avg=20000,n=20;
+const locs=[],data=[];for(let i=0;i<=n;i++){locs.push(i/n);data.push(Math.cos(Math.PI*(i/n-0.5)));}
+let I=0;for(let i=1;i<=n;i++)I+=0.5*(data[i]+data[i-1])/n;const prof=z=>{const x=z/L*n;const i=Math.min(n-1,Math.floor(x));const f=x-i;return (data[i]*(1-f)+data[i+1]*f)/I;};
+const d=JSON.parse(fs.readFileSync(root+"/examples/synthetic-pin.json","utf8"));
+const out=[];
+for(const r of rows){d.power.linearHeatRate={value:avg*prof(r.z),unit:"W/m"};const t=quickLook(validateCase(d).normalized).temperatures;out.push([r.z,+t.centreT.toFixed(3),+r.centre.toFixed(3),+(r.centre-t.centreT).toFixed(3)]);}
+console.log(JSON.stringify(out));
