@@ -1,0 +1,246 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "ksu-triga-loss-of-pool",
+  "name": "K-State TRIGA hottest element: scram and loss of the pool water at 10 s (illustrative)",
+  "label": "synthetic",
+  "citation": "Starts from the K-State 1.25 MW hot-element case with the SAR film coefficient (see ksu-triga-1p25mw-film: radii Table 4.6, conductivities Tables 13.3 and 4.6, gap conductance Appendix A, q' from eq. 9, h from eq. 7). Everything after 10 s is ASSUMED, not from the SAR. The heat capacities (a transient needs them) are the ones of the ut-triga-pulse-4p40 case: U-ZrH from the UT-Austin SAR Table 4.1 and stainless steel from the K-State SAR Table 13.3; the same material family, a different reactor's table for the fuel.",
+  "description": "ILLUSTRATIVE, not a safety analysis. The pin runs at the SAR's 1.25 MW hottest-element state (steady start), then at 10 s the reactor scrams and the pool water is lost: the film coefficient falls from 57.7 kW/m2/K to 100 W/m2/K (air by natural convection, an ASSUMED round number; no radiation is modelled) between 10 and 11 s, and the heat rate falls to an ASSUMED 6.5 % (4.03 kW/m) at 10.5 s and then follows an assumed decay curve (2.5 kW/m at 100 s, 1.6 kW/m at 600 s). The pool-water temperature stays 20 C (the air). The case shows what the lost film does after a scram: the stored heat and the decay heat can no longer reach the pool, so the pin settles near 600 K and is still about 500 K ten minutes later, where with the pool kept it would be within about 55 K of the pool after one minute and a few kelvin after ten. Solid-cylinder model with the zirconium rod ignored; thermal only; the boundary history and the power history are inputs, FEED computes neither a decay curve nor a heat transfer coefficient. One axial slice at the maximum heat flux. No temperature limits are applied here (a limits set can be added in the editor).",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": false,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 18.669,
+      "unit": "mm"
+    }
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 20,
+      "unit": "degC"
+    },
+    "heatTransferCoefficient": {
+      "value": 57735,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "triga-uzrh-h16",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 18,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "K-State SAR 2004 Table 13.3 (18 W/m/K, all temperatures); UT-Austin SAR 2023 Table 4.1 (0.18 W/cm/K)"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "linear",
+          "a": {
+            "value": 900965,
+            "unit": "J/m3/K"
+          },
+          "b": {
+            "value": 4170,
+            "unit": "J/m3/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 273.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1273.15,
+              "unit": "K"
+            }
+          },
+          "source": "UT-Austin SAR Table 4.1: 2.04 + 0.00417 T[C] J/cm3/K, rewritten in kelvin (a = 2.04e6 - 4170 x 273.15). The SAR states no validity range; 0 to 1000 C is assumed to cover the pulse"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "ss304-k166",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 16.6,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 400,
+            "unit": "K"
+          },
+          "source": "K-State SAR 2004 Table 13.3 and Table 4.6 (16.6 W/m/K at 400 K)"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3768300,
+            "unit": "J/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "K-State SAR Table 13.3: 7900 kg/m3 x 477 J/kg/K at 300 K (515 J/kg/K at 400 K: the value rises 8% over 100 K, which matters little for a pulse this short)"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 2840,
+      "unit": "W/m2/K"
+    },
+    "source": "K-State SAR 2004 section 4.5.3 and Appendix A: effective gap resistance 500 Btu/h/ft2/F = 2840 W/m2/K"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 6
+  },
+  "transient": {
+    "powerHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 62.021,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 10,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 62.021,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 10.5,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 4.03,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 100,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 2.5,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 600,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 1.6,
+          "unit": "kW/m"
+        }
+      }
+    ],
+    "endTime": {
+      "value": 600,
+      "unit": "s"
+    },
+    "timeStep": {
+      "value": 0.1,
+      "unit": "s"
+    },
+    "outputs": 120,
+    "initialSteadyLinearHeatRate": {
+      "value": 62.021,
+      "unit": "kW/m"
+    },
+    "boundaryHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 20,
+          "unit": "degC"
+        },
+        "heatTransferCoefficient": {
+          "value": 57735,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 10,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 20,
+          "unit": "degC"
+        },
+        "heatTransferCoefficient": {
+          "value": 57735,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 11,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 20,
+          "unit": "degC"
+        },
+        "heatTransferCoefficient": {
+          "value": 100,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 600,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 20,
+          "unit": "degC"
+        },
+        "heatTransferCoefficient": {
+          "value": 100,
+          "unit": "W/m2/K"
+        }
+      }
+    ]
+  }
+}
