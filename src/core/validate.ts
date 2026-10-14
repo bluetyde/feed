@@ -77,6 +77,37 @@ export type BoundaryHistory =
   | { kind: "convective"; times: number[]; bulkTemperature: number[]; heatTransferCoefficient: number[] }
   | { kind: "surface-temperature"; times: number[]; surfaceTemperature: number[] };
 
+/**
+ * The first change of the boundary history that the saved outputs cannot see (plan 11, Codex review 2026-10-14): inside one interval between two outputs the history goes more than
+ * a tenth of its whole range beyond what its values at the two outputs show (a brief pulse in the coolant temperature, a film coefficient that dips and recovers). The checks compare
+ * OFFBEAT with the independent solution at the outputs only, so an event between them is judged by the writer's tests, not by the result; the warning says so and names the interval.
+ */
+export function unseenHistoryChange(h: BoundaryHistory, endTime: number, outputs: number): string | undefined {
+  const series: { name: string; values: number[] }[] = h.kind === "convective" ? [{ name: "bulk temperature", values: h.bulkTemperature }, { name: "film coefficient", values: h.heatTransferCoefficient }] : [{ name: "surface temperature", values: h.surfaceTemperature }];
+  for (const s of series) {
+    const range = Math.max(...s.values) - Math.min(...s.values);
+    if (!(range > 0)) continue;
+    const at = (t: number) => {
+      if (t <= h.times[0]!) return s.values[0]!;
+      for (let i = 1; i < h.times.length; i++) if (t <= h.times[i]!) return s.values[i - 1]! + ((s.values[i]! - s.values[i - 1]!) * (t - h.times[i - 1]!)) / (h.times[i]! - h.times[i - 1]!);
+      return s.values[s.values.length - 1]!;
+    };
+    for (let k = 0; k < outputs; k++) {
+      const a = (endTime * k) / outputs;
+      const b = (endTime * (k + 1)) / outputs;
+      const lo = Math.min(at(a), at(b));
+      const hi = Math.max(at(a), at(b));
+      for (let i = 0; i < h.times.length; i++) {
+        const t = h.times[i]!;
+        if (!(t > a && t < b)) continue;
+        const v = s.values[i]!;
+        if (v > hi + 0.1 * range || v < lo - 0.1 * range) return "the " + s.name + " reaches " + v + " at " + t + " s, between the outputs at " + a + " and " + b + " s, and is back within " + (0.1 * range).toPrecision(3) + " of the outputs' range at both ends";
+      }
+    }
+  }
+  return undefined;
+}
+
 /** A film coefficient below this is an adiabatic wall in everything but name; OFFBEAT accepts 0.001 (plan 11 B0). */
 export const HISTORY_HTC_MIN = 1e-3;
 export const HISTORY_HTC_MAX = 1e9;
@@ -372,6 +403,10 @@ export function validateCase(doc: unknown): ValidationResult {
           transient = undefined;
         }
       }
+    }
+    if (transient && transient.boundaryHistory) {
+      const unseen = unseenHistoryChange(transient.boundaryHistory, transient.endTime, transient.outputs);
+      if (unseen) issues.push({ code: "W_BOUNDARY_BETWEEN_OUTPUTS", severity: "warning", field: "/transient/boundaryHistory", message: unseen + ". The outputs of the run (and so the checks against the independent solution) cannot see it; add outputs, or accept that this part of the history is judged by the files FEED writes and not by the result." });
     }
     if (transient) {
       qPrime = Math.max(...transient.linearHeatRate);
