@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-lumped-film-step-energy-deposited",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-lumped-film-step.case.json",
+      "sha256": "78155f924c335460117876ac96734c4324c4b98f6a63e5f25eff29ebf6c98af4"
+    }
+  ],
+  "expected": {
+    "quantity": "energy_deposited",
+    "value": 12000,
+    "unit": "J/m"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0.000001
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The constant heat rate over the run: q' x t = 300 W/m x 40 s. A boundary history must not change the power bookkeeping.",
+    "check": "Trivial product; oracles/transient-case-reference.py integrates the tabulated history to the same number."
+  },
+  "coverage": {
+    "quantities": [
+      "energy_deposited"
+    ],
+    "domain": "synthetic pin with a conductivity of 400 W/m/K and a heat capacity of 3 MJ/m3/K (Biot about 0.001), 300 W/m from a uniform 600 K start, coolant at 600 K, film coefficient 500 W/m2/K falling to 100 between 10 and 10.05 s"
+  },
+  "toleranceHash": "649dc21be77e188cc1e4ee3d6afcac3172fa18be4a19a6e575f1ad2052338f91"
+}

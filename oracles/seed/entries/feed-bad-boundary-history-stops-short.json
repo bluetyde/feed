@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-boundary-history-stops-short",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-boundary-history-stops-short.case.json",
+      "sha256": "45f59b24e2c262865a159a038a2017e4d0efc67936baf302d6127e9edf048831"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_TIME"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a history that ends before the end time of the run. FEED must refuse it before any run; SEED reports E_TIME.",
+    "check": "FEED's schema vectors (schema/vectors/bad/boundary-history-stops-short.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "7269fb426a58daecb4642c3df647daa8ff7f96f1cfa987323e4b1bf5ca38981a"
+}
