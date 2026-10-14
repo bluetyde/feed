@@ -158,7 +158,10 @@ describe("the quick look of a stack", () => {
 });
 
 describe("nothing runs as one slice by mistake", () => {
-  it("the writer refuses a stack until A2, and says why", () => {
-    expect(() => writeOffbeatCase(norm(stack(cosine(0.381))))).toThrow(/axial stack.*milestone A2/);
+  it("the writer writes a stack as N layers (the stack's own tests are in stackResults), and a stack with a transient never reaches it (the validator refuses it)", () => {
+    expect(writeOffbeatCase(norm(stack(cosine(0.381)))).files["system/blockMeshDict"]).toMatch(/fuel \(20 1 10\)/);
+    const pulse = JSON.parse(readFileSync(join(root, "examples/synthetic-pulse.json"), "utf8"));
+    pulse.axial = cosine(0.381);
+    expect(validateCase(pulse).errors.map((e) => e.code)).toContain("E_UNSUPPORTED");
   });
 });

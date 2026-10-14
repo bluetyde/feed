@@ -7,6 +7,7 @@ import { MIN_STEADY_END_TIME, steadyEndTime } from "./steadyState";
 import { NFI_OXIDE_TO_HEAVY_METAL, NFI_PARAMETERS } from "./uo2Nfi";
 import { initialState } from "./transientResults";
 import { tableForSolver } from "./boundaryHistory";
+import { normalizedShape, sliceCase, sliceLoads } from "./axial";
 import { EffectiveSolid, effectiveMechanics } from "./mechanicalEval";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
@@ -25,6 +26,11 @@ export interface WrittenCase {
 export const WEDGE_ANGLE_DEG = 0.25;
 /** Axial height of the one-cell slice in mm (power is per metre of rod; OFFBEAT scales by the reference height). */
 export const SLICE_HEIGHT_MM = 1000;
+/** The height of the mesh in mm: the heated length of an axial stack, else the one-cell slice. */
+const heightMm = (c: NormalizedCase): number => (c.axial ? Number((c.axial.length * 1000).toPrecision(12)) : SLICE_HEIGHT_MM);
+/** The layers of each solid along the height: the stack's slices, else one. */
+const layers = (c: NormalizedCase): number => c.axial?.slices ?? 1;
+
 /** Density written for every material. OFFBEAT wants rho and a mass-based Cp; a transient's volumetric heat capacity c is carried as Cp = c / rho. */
 export const WRITER_DENSITY = 10000;
 /** Steady runs use an end time far beyond any thermal time constant: a short one leaves a heat-storage term (F0 note). */
@@ -66,7 +72,7 @@ function blockMeshDict(c: NormalizedCase): string {
       [xi, -yi, z1], [xo, -yo, z1], [xo, yo, z1], [xi, yi, z1],
     ];
   };
-  const v = [...block(c.fuelInnerRadius, c.fuelRadius, 0, SLICE_HEIGHT_MM), ...block(c.claddingInnerRadius, c.claddingOuterRadius, 0, SLICE_HEIGHT_MM)];
+  const v = [...block(c.fuelInnerRadius, c.fuelRadius, 0, heightMm(c)), ...block(c.claddingInnerRadius, c.claddingOuterRadius, 0, heightMm(c))];
   const verts = v.map((p) => `    (${p.map(num).join(" ")})`).join("\n");
   const face = (...i: number[]) => `            (${i.join(" ")})`;
   const patch = (name: string, type: string, faces: string, extra = "") =>
@@ -85,8 +91,8 @@ ${verts}
 
 blocks
 (
-    hex (0 1 2 3 4 5 6 7) fuel (${c.mesh.fuelCells} 1 1) simpleGrading (1 1 1)
-    hex (8 9 10 11 12 13 14 15) cladding (${c.mesh.claddingCells} 1 1) simpleGrading (1 1 1)
+    hex (0 1 2 3 4 5 6 7) fuel (${c.mesh.fuelCells} 1 ${layers(c)}) simpleGrading (1 1 1)
+    hex (8 9 10 11 12 13 14 15) cladding (${c.mesh.claddingCells} 1 ${layers(c)}) simpleGrading (1 1 1)
 );
 
 edges
@@ -248,6 +254,13 @@ gasPressure ${num(pressure)};
 `;
 }
 
+/** The axial power profile OFFBEAT is given: flat for one slice; for a stack the shape as a table normalised so that its integral over 0 to 1 is 1 (OFFBEAT aborts otherwise), the case's heat rate being the average. */
+function axialProfileText(c: NormalizedCase): string {
+  if (!c.axial) return "{ type flat; }";
+  const s = normalizedShape(c.axial);
+  return `{ type constantTabulated; axialLocations (${s.locations.map(num).join(" ")}); data (${s.data.map(num).join(" ")}); axialInterpolationMethod linear; }`;
+}
+
 function solverDict(c: NormalizedCase, kf: Conductivity, kc: Conductivity): string {
   const eff = effectiveMechanics(c);
   return `${FOAM_HEADER("dictionary", "solverDict", "constant")}
@@ -301,7 +314,7 @@ ${c.transient ? `    timePoints  (${[...c.transient.times, c.transient.times[c.t
     lhgr        (${[...c.transient.linearHeatRate, c.transient.linearHeatRate[c.transient.linearHeatRate.length - 1]!].map(num).join(" ")});
     timeInterpolationMethod linear;
 ` : `    lhgr        ${num(c.qPrime)};
-`}    axialProfile { type flat; }
+`}    axialProfile ${axialProfileText(c)};
     radialProfile { type flat; }
     materials ( fuel );
 }
@@ -341,7 +354,7 @@ function mechanicsMapping(c: NormalizedCase): { field: string; file: string; not
 /** The starting temperature: one number for the whole pin, or the temperature of every cell (the blockMesh order: fuel inner to outer, then cladding inner to outer) with the outer wall. */
 type StartField = { kind: "uniform"; T: number } | { kind: "field"; T: number[]; wall: number };
 
-function temperatureField(c: NormalizedCase, start: StartField): string {
+function temperatureField(c: NormalizedCase, start: StartField, runEnd: number): string {
   const uniform = start.kind === "uniform";
   const nf = c.mesh.fuelCells;
   const cells = start.kind === "field" ? start.T : [];
@@ -370,8 +383,36 @@ function temperatureField(c: NormalizedCase, start: StartField): string {
   const axial = `(0 ${num(SLICE_HEIGHT_MM / 1000)})`;
   const rows = (col: number[]) => "(" + col.map((v) => "(" + num(v) + " " + num(v) + ")").join(" ") + ")";
   const startWall = start.kind === "uniform" ? start.T : start.wall;
+  // an axial coolant table (a stack): heights in metres from the bottom (OFFBEAT's unit), the same row for both time points, which reach past the end of the run
+  const ab = c.axial?.boundary;
+  const heights = ab ? `(${ab.heights.map(num).join(" ")})` : "";
+  const axRows = (col: number[]) => `((${col.map(num).join(" ")}) (${col.map(num).join(" ")}))`;
+  const axTimes = `(0 ${num(2 * runEnd)})`;
   const outer =
-    hist && tab && hist.kind === "convective"
+    ab && ab.kind === "convective"
+      ? `type timeDependentAxialProfileHTC;
+        axialProfileDict
+        {
+            timePoints ${axTimes};
+            axialLocations ${heights};
+            hData ${axRows(ab.heatTransferCoefficient)};
+            T0Data ${axRows(ab.bulkTemperature)};
+            axialInterpolationMethod linear;
+            timeInterpolationMethod linear;
+        }
+        value uniform ${num(ab.bulkTemperature[0]!)};`
+      : ab
+      ? `type timeDependentAxialProfileT;
+        timeDependentProfile
+        {
+            timePoints ${axTimes};
+            axialLocations ${heights};
+            axialData ${axRows(ab.surfaceTemperature)};
+            axialInterpolationMethod linear;
+            timeInterpolationMethod linear;
+        }
+        value uniform ${num(ab.surfaceTemperature[0]!)};`
+      : hist && tab && hist.kind === "convective"
       ? `type timeDependentAxialProfileHTC;
         axialProfileDict
         {
@@ -540,8 +581,8 @@ relaxationFactors
  * both were checked against closed-form oracles in OFFBEAT.
  */
 export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
-  // plan 12: the validator accepts an axial stack (A1); the solver files do not carry it yet (A2). Refuse rather than run one slice at the average heat rate.
-  if (c.axial) throw new Error("The case is an axial stack. The case is valid, but its solver files are not written yet (plan 12, milestone A2), so the run is refused rather than run as one slice at the average heat rate.");
+  // plan 12: an axial stack is a steady case with N layers per solid (A2); a transient stack is not written (A3), the validator refuses it first
+  if (c.axial && c.transient) throw new Error("An axial stack with a transient is not written yet (plan 12, milestone A3).");
   const kf = c.fuelConductivity;
   const kc = c.claddingConductivity;
   const tr = c.transient;
@@ -552,7 +593,8 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
   // A steady case runs to an end time the pin's own time constants require (at least 5e7 s); the validator refuses what cannot settle.
   let steadyEnd = MIN_STEADY_END_TIME;
   if (!tr) {
-    const h = steadyEndTime(c);
+    // a stack: the end time the hottest slice (the most heat to settle) needs
+    const h = steadyEndTime(c.axial ? sliceCase(c, sliceLoads(c).reduce((m, l) => (l.linearHeatRate > m.linearHeatRate ? l : m))) : c);
     if (!h.ok) throw new Error("cannot write a steady case: " + h.message);
     steadyEnd = h.endTime;
   }
@@ -562,7 +604,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     "system/fvSchemes": fvSchemes,
     "system/fvSolution": fvSolutionText(c.mechanics !== undefined),
     "constant/solverDict": solverDict(c, kf, kc),
-    "0/T": temperatureField(c, start),
+    "0/T": temperatureField(c, start, tr ? tr.endTime : steadyEnd),
     "0/D": displacementField(c),
     ...(effectiveMechanics(c)?.internalPressure ? { "0/uniform/gapGas": gapGasFile(effectiveMechanics(c)!.internalPressure) } : {}),
     ...(c.burnup ? { "0/Bu": burnupField(c, c.burnup.value) } : {}),
@@ -577,6 +619,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     ...(c.fuelInnerRadius > 0 ? [{ field: "geometry.fuelInnerRadius", file: "system/blockMeshDict", note: "block 'fuel' inner radius (central hole); patch fuelInner, zeroGradient in 0/T (insulated) and 0/D" + hotNote("fuelInnerRadius", "fuel") }] : []),
     { field: "geometry.claddingInnerRadius", file: "system/blockMeshDict", note: "block 'cladding' inner radius" + hotNote("claddingInnerRadius", "cladding") },
     { field: "geometry.claddingOuterRadius", file: "system/blockMeshDict", note: "block 'cladding' outer radius" + hotNote("claddingOuterRadius", "cladding") },
+    ...(c.axial ? [{ field: "axial", file: "system/blockMeshDict, constant/solverDict, 0/T", note: "mesh: " + c.axial.slices + " layers per solid over " + heightMm(c) + " mm (the end faces stay empty); heatSourceOptions.axialProfile: the " + c.axial.shape.kind + " shape as a table normalised to an integral of 1 over 0 to 1, lhgr = the average heat rate " + c.qPrime + " W/m (OFFBEAT samples it at the cell centres)" + (c.axial.boundary ? "; cladOuter: the coolant table as " + (c.axial.boundary.kind === "convective" ? "timeDependentAxialProfileHTC" : "timeDependentAxialProfileT") + " with heights in metres from the bottom" : "; cladOuter: the case's own boundary on every layer") }] : []),
     { field: "mesh.fuelCells", file: "system/blockMeshDict" },
     { field: "mesh.claddingCells", file: "system/blockMeshDict" },
     ...(tr
@@ -609,5 +652,5 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
       ? { name: "initial temperature field", value: "steady state at " + (tr!.initial as { linearHeatRate: number }).linearHeatRate + " W/m, " + Math.min(...steadyStart.T).toFixed(2) + " to " + steadyStart.peak.toFixed(2) + " K", why: "the transient starts from the steady operating state of this pin at the stated heat rate (independent finite-volume solution, same mesh)" }
       : { name: "initial temperature", value: String(t0) + " K", why: tr ? "the transient's initial temperature, as given" : "starting field; the steady result does not depend on it" },
   ];
-  return { files, mapping, placeholders, choices: tr ? { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: tr.endTime, timeStep: tr.timeStep, steps: tr.steps, outputs: tr.outputs } : { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: SLICE_HEIGHT_MM, endTime: steadyEnd } };
+  return { files, mapping, placeholders, choices: tr ? { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: heightMm(c), endTime: tr.endTime, timeStep: tr.timeStep, steps: tr.steps, outputs: tr.outputs } : { wedgeAngleDeg: WEDGE_ANGLE_DEG, sliceHeightMm: heightMm(c), endTime: steadyEnd } };
 }

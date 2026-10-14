@@ -10,6 +10,7 @@ import { writeOffbeatCase } from "./caseWriter";
 import { judgeConvergence, judgeMechanicsConvergence, readCriterion, readMechanicsCriterion } from "./convergence";
 import { lastRelativeRate } from "./steadyState";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
+import { buildStackResults } from "./stackResults";
 import { IndependentHandle, IndependentRunner } from "./independentRunner";
 import { IndependentSet, buildTransientResults, TransientResultsRecord } from "./transientResults";
 import { Issue, validateCase } from "./validate";
@@ -433,7 +434,7 @@ export class RunManager {
       const mechanics = normalized.mechanics
         ? { mechanics: { D: read(join(nativeDir, "final", "D")), sigma: read(join(nativeDir, "final", "sigma")), sigmaCyl: read(join(nativeDir, "final", "sigmaCyl")), gapWidth: read(join(nativeDir, "final", "gapWidth")), interfaceP: read(join(nativeDir, "final", "interfaceP")) } }
         : {};
-      const results = buildResults(normalized, { T, C, ...extra, ...mechanics, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
+      const results = (normalized.axial ? buildStackResults : buildResults)(normalized, { T, C, ...extra, ...mechanics, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
       const unread = results.checks.find((c) => c.id === "mechanicsFields" && c.verdict !== "pass");
       if (unread) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "The solver output is not a complete result: " + unread.note, native });
       atomicWrite(join(dir, "results.json"), JSON.stringify(results, null, 2) + "\n");
