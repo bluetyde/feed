@@ -1201,5 +1201,203 @@
     "valid": false,
     "code": "E_UNSUPPORTED",
     "field": "/mechanics"
+  },
+  {
+    "file": "good/axial-cosine.json",
+    "valid": true
+  },
+  {
+    "file": "good/axial-table-shape-coolant-rise.json",
+    "valid": true
+  },
+  {
+    "file": "good/axial-prescribed-wall.json",
+    "valid": true
+  },
+  {
+    "file": "good/axial-flat-shape.json",
+    "valid": true
+  },
+  {
+    "file": "good/axial-shape-step-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_AXIAL_SHAPE_STEP"
+    ]
+  },
+  {
+    "file": "good/axial-short-pin-conduction-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_AXIAL_CONDUCTION"
+    ]
+  },
+  {
+    "file": "bad/axial-not-an-object.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/axial"
+  },
+  {
+    "file": "bad/axial-unknown-key.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/emissivity"
+  },
+  {
+    "file": "bad/axial-length-missing.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/length"
+  },
+  {
+    "file": "bad/axial-length-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/axial/length"
+  },
+  {
+    "file": "bad/axial-length-out-of-range.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/length"
+  },
+  {
+    "file": "bad/axial-slices-missing.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/slices"
+  },
+  {
+    "file": "bad/axial-slices-too-few.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/slices"
+  },
+  {
+    "file": "bad/axial-slices-too-many.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/slices"
+  },
+  {
+    "file": "bad/axial-slices-not-integer.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/slices"
+  },
+  {
+    "file": "bad/axial-shape-missing.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/powerShape"
+  },
+  {
+    "file": "bad/axial-shape-unknown-kind.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/powerShape"
+  },
+  {
+    "file": "bad/axial-shape-table-not-from-bottom.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/powerShape/points/0/position"
+  },
+  {
+    "file": "bad/axial-shape-table-stops-short.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/powerShape/points/1/position"
+  },
+  {
+    "file": "bad/axial-shape-table-unordered.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/powerShape/points/2/position"
+  },
+  {
+    "file": "bad/axial-shape-negative-power.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/powerShape/points/1/relativePower"
+  },
+  {
+    "file": "bad/axial-shape-all-zero.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/powerShape/points"
+  },
+  {
+    "file": "bad/axial-boundary-one-point.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/boundary"
+  },
+  {
+    "file": "bad/axial-boundary-not-from-bottom.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/boundary/0/height"
+  },
+  {
+    "file": "bad/axial-boundary-stops-short.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/boundary/1/height"
+  },
+  {
+    "file": "bad/axial-boundary-unordered.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/boundary/2/height"
+  },
+  {
+    "file": "bad/axial-boundary-zero-h.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/boundary/1/heatTransferCoefficient"
+  },
+  {
+    "file": "bad/axial-boundary-no-h.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/boundary/1"
+  },
+  {
+    "file": "bad/axial-boundary-form-differs-from-case.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/boundary"
+  },
+  {
+    "file": "bad/axial-boundary-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/axial/boundary/1/bulkTemperature"
+  },
+  {
+    "file": "bad/axial-with-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/axial"
+  },
+  {
+    "file": "bad/axial-with-mechanics.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/axial"
+  },
+  {
+    "file": "bad/axial-with-burnup.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/axial"
+  },
+  {
+    "file": "bad/axial-with-hot-dimensions.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/axial"
   }
 ]

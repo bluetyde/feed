@@ -540,6 +540,8 @@ relaxationFactors
  * both were checked against closed-form oracles in OFFBEAT.
  */
 export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
+  // plan 12: the validator accepts an axial stack (A1); the solver files do not carry it yet (A2). Refuse rather than run one slice at the average heat rate.
+  if (c.axial) throw new Error("The case is an axial stack. The case is valid, but its solver files are not written yet (plan 12, milestone A2), so the run is refused rather than run as one slice at the average heat rate.");
   const kf = c.fuelConductivity;
   const kc = c.claddingConductivity;
   const tr = c.transient;

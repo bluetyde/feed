@@ -476,5 +476,73 @@ bad("mechanics-with-burnup", "E_UNSUPPORTED", "/burnup", (c) => { mech(c); nfi(c
   add("bad", "mechanics-in-transient", c, { code: "E_UNSUPPORTED", field: "/mechanics" });
 }
 
+
+// ---- the axial stack (plan 12, A1): four good vectors and the refusals
+const axialBase = (over = {}) => ({ length: qv(0.381, "m"), slices: 10, powerShape: { kind: "cosine" }, ...over });
+const stack = (axial) => { const c = clone(); c.axial = axial; return c; };
+const bt = (z, Tb, h) => ({ height: qv(z, "m"), bulkTemperature: qv(Tb, "K"), heatTransferCoefficient: qv(h, "W/m2/K") });
+const wallPt = (z, T) => ({ height: qv(z, "m"), surfaceTemperature: qv(T, "K") });
+add("good", "axial-cosine", stack(axialBase()), {});
+add("good", "axial-table-shape-coolant-rise", stack(axialBase({ powerShape: { kind: "table", points: [[0, 0.4], [0.1, 0.9], [0.19, 1.3], [0.29, 1.0], [0.381, 0.5]].map(([z, r]) => ({ position: qv(z, "m"), relativePower: qv(r, "1") })) }, boundary: [bt(0, 573, 30000), bt(0.381, 633, 30000)] })), {});
+{
+  const c = stack(axialBase({ boundary: [wallPt(0, 573), wallPt(0.381, 613)] }));
+  delete c.boundary.bulkTemperature;
+  delete c.boundary.heatTransferCoefficient;
+  c.boundary.surfaceTemperature = qv(573, "K");
+  add("good", "axial-prescribed-wall", c, {});
+}
+add("good", "axial-flat-shape", stack(axialBase({ powerShape: { kind: "flat" }, slices: 5 })), {});
+add("good", "axial-shape-step-warning", stack(axialBase({ slices: 3 })), { warnings: ["W_AXIAL_SHAPE_STEP"] });
+add("good", "axial-short-pin-conduction-warning", stack(axialBase({ length: qv(0.05, "m"), slices: 20 })), { warnings: ["W_AXIAL_CONDUCTION"] });
+const badA = (name, code, field, axial, mutate) => { const c = stack(axial); if (mutate) mutate(c); add("bad", name, c, { code, field }); };
+bad("axial-not-an-object", "E_SCHEMA_INVALID", "/axial", (c) => (c.axial = [1, 2]));
+badA("axial-unknown-key", "E_AXIAL", "/axial/emissivity", axialBase({ emissivity: 0.8 }));
+badA("axial-length-missing", "E_AXIAL", "/axial/length", (() => { const a = axialBase(); delete a.length; return a; })());
+badA("axial-length-wrong-unit", "E_UNITS", "/axial/length", axialBase({ length: qv(0.381, "W/m") }));
+badA("axial-length-out-of-range", "E_AXIAL", "/axial/length", axialBase({ length: qv(381, "m") }));
+badA("axial-slices-missing", "E_AXIAL", "/axial/slices", (() => { const a = axialBase(); delete a.slices; return a; })());
+badA("axial-slices-too-few", "E_AXIAL", "/axial/slices", axialBase({ slices: 2 }));
+badA("axial-slices-too-many", "E_AXIAL", "/axial/slices", axialBase({ slices: 51 }));
+badA("axial-slices-not-integer", "E_AXIAL", "/axial/slices", axialBase({ slices: 10.5 }));
+badA("axial-shape-missing", "E_AXIAL", "/axial/powerShape", (() => { const a = axialBase(); delete a.powerShape; return a; })());
+badA("axial-shape-unknown-kind", "E_AXIAL", "/axial/powerShape", axialBase({ powerShape: { kind: "gaussian" } }));
+const tbl = (rows) => ({ kind: "table", points: rows.map(([z, r]) => ({ position: qv(z, "m"), relativePower: qv(r, "1") })) });
+badA("axial-shape-table-not-from-bottom", "E_AXIAL", "/axial/powerShape/points/0/position", axialBase({ powerShape: tbl([[0.05, 1], [0.381, 1]]) }));
+badA("axial-shape-table-stops-short", "E_AXIAL", "/axial/powerShape/points/1/position", axialBase({ powerShape: tbl([[0, 1], [0.3, 1]]) }));
+badA("axial-shape-table-unordered", "E_AXIAL", "/axial/powerShape/points/2/position", axialBase({ powerShape: tbl([[0, 1], [0.2, 1], [0.2, 1], [0.381, 1]]) }));
+badA("axial-shape-negative-power", "E_AXIAL", "/axial/powerShape/points/1/relativePower", axialBase({ powerShape: tbl([[0, 1], [0.2, -0.5], [0.381, 1]]) }));
+badA("axial-shape-all-zero", "E_AXIAL", "/axial/powerShape/points", axialBase({ powerShape: tbl([[0, 0], [0.381, 0]]) }));
+badA("axial-boundary-one-point", "E_AXIAL", "/axial/boundary", axialBase({ boundary: [bt(0, 573, 30000)] }));
+badA("axial-boundary-not-from-bottom", "E_AXIAL", "/axial/boundary/0/height", axialBase({ boundary: [bt(0.01, 573, 30000), bt(0.381, 600, 30000)] }));
+badA("axial-boundary-stops-short", "E_AXIAL", "/axial/boundary/1/height", axialBase({ boundary: [bt(0, 573, 30000), bt(0.3, 600, 30000)] }));
+badA("axial-boundary-unordered", "E_AXIAL", "/axial/boundary/2/height", axialBase({ boundary: [bt(0, 573, 30000), bt(0.2, 580, 30000), bt(0.2, 590, 30000), bt(0.381, 600, 30000)] }));
+badA("axial-boundary-zero-h", "E_AXIAL", "/axial/boundary/1/heatTransferCoefficient", axialBase({ boundary: [bt(0, 573, 30000), bt(0.381, 573, 0)] }));
+badA("axial-boundary-no-h", "E_AXIAL", "/axial/boundary/1", axialBase({ boundary: [bt(0, 573, 30000), { height: qv(0.381, "m"), bulkTemperature: qv(600, "K") }] }));
+badA("axial-boundary-form-differs-from-case", "E_AXIAL", "/axial/boundary", axialBase({ boundary: [wallPt(0, 573), wallPt(0.381, 600)] }));
+badA("axial-boundary-wrong-unit", "E_UNITS", "/axial/boundary/1/bulkTemperature", axialBase({ boundary: [bt(0, 573, 30000), { ...bt(0.381, 600, 30000), bulkTemperature: qv(600, "W/m") }] }));
+{
+  const c = pulse();
+  c.axial = axialBase();
+  add("bad", "axial-with-transient", c, { code: "E_UNSUPPORTED", field: "/axial" });
+}
+{
+  const c = mech(clone());
+  c.axial = axialBase();
+  add("bad", "axial-with-mechanics", c, { code: "E_UNSUPPORTED", field: "/axial" });
+}
+{
+  const c = clone();
+  nfi(c);
+  burnup(c);
+  c.axial = axialBase();
+  add("bad", "axial-with-burnup", c, { code: "E_UNSUPPORTED", field: "/axial" });
+}
+{
+  const c = clone();
+  hotSet(c, { value: 12, unit: "ppm/K" });
+  c.axial = axialBase();
+  add("bad", "axial-with-hot-dimensions", c, { code: "E_UNSUPPORTED", field: "/axial" });
+}
+
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 console.log(index.length + " vectors written");

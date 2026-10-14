@@ -15,6 +15,7 @@ import { effectiveMechanics } from "./mechanicalEval";
 import { HYDROGEN_RATIO_RANGE } from "./hydrogenPressure";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
+import { AXIAL_CONDUCTION_WARNING, AXIAL_STEP_WARNING, AxialSpec, axialConductionEstimate, parseAxial, sliceLoads } from "./axial";
 import { Dimension, toSI } from "./units";
 
 export interface Issue {
@@ -198,6 +199,8 @@ export interface NormalizedCase {
   mechanics?: MechanicsSpec;
   /** The mechanical property sets of both solids, present when each has a valid mechanical.elasticity and mechanical.thermalExpansion (a thermal run does not use them). */
   mechanical?: { fuel: MechanicalProps; cladding: MechanicalProps };
+  /** Present when the case is an axial stack (plan 12): `qPrime` is then the AVERAGE heat rate over the heated length and the slices take their own from the shape (src/core/axial.ts). */
+  axial?: AxialSpec;
 }
 
 export interface ValidationResult {
@@ -378,6 +381,14 @@ export function validateCase(doc: unknown): ValidationResult {
     if (c.hotDimensions !== undefined) err("E_UNSUPPORTED", "/hotDimensions", "a mechanics case computes the thermal expansion itself: hot dimensions would count it twice, so the two cannot be combined");
     if (c.burnup !== undefined) err("E_UNSUPPORTED", "/burnup", "mechanics with a burnup is not offered: the burnup conductivity is frozen and the mechanical response of burnt fuel (swelling, relocation) is not modelled");
   }
+  // The axial stack (plan 12, A1): steady cases only until the transient stack is built (A3); not combined with mechanics, hot dimensions or burnup.
+  const axialSpec = c.axial === undefined ? undefined : parseAxial(c.axial, boundary?.kind, err, qty);
+  if (c.axial !== undefined) {
+    if (isTransient) err("E_UNSUPPORTED", "/axial", "an axial stack with a transient is not offered yet (plan 12, milestone A3); use a steady case, or remove the axial section");
+    if (c.mechanics !== undefined) err("E_UNSUPPORTED", "/axial", "an axial stack with mechanics is not offered: the stress of each slice would need its own axial and contact inputs; remove one of them");
+    if (c.hotDimensions !== undefined) err("E_UNSUPPORTED", "/axial", "an axial stack with hot dimensions is not offered: each slice would have its own hot radii; remove one of them");
+    if (c.burnup !== undefined) err("E_UNSUPPORTED", "/axial", "an axial stack with a burnup is not offered: the burnup would be one number for every slice; remove one of them");
+  }
   if (c.hotDimensions !== undefined && isTransient) err("E_UNSUPPORTED", "/hotDimensions", "hot dimensions are for steady cases: in a transient the temperatures, and so the radii, change with time");
 
   // Transient: heat capacities of both solids and the time section.
@@ -464,6 +475,7 @@ export function validateCase(doc: unknown): ValidationResult {
       ...(mechanicsSpec ? { mechanics: mechanicsSpec } : {}),
       ...(mechFuel && mechCladding ? { mechanical: { fuel: mechFuel, cladding: mechCladding } } : {}),
       ...(fuelK.kind === "uo2-nfi" && burnupSpec ? { burnup: burnupSpec } : {}),
+      ...(axialSpec ? { axial: axialSpec } : {}),
     };
     // Hot dimensions: the radii above are cold; replace them with the radii each solid has at its own mean temperature (the temperatures and the radii are iterated together).
     if (hotSpec && !isTransient) {
@@ -499,6 +511,31 @@ export function validateCase(doc: unknown): ValidationResult {
     // A transient that starts from a steady operating state needs that state to exist and to lie where the heat capacity laws hold (the uniform start is checked above).
     const normalized = result.normalized;
     if (!normalized) return result;
+    if (normalized.axial) {
+      const loads = sliceLoads(normalized);
+      const peak = Math.max(...loads.map((l) => l.linearHeatRate));
+      if (peak > POWER_SANITY_MAX) {
+        result.warnings.push({ code: "W_POWER_RANGE", severity: "warning", field: "/power/linearHeatRate", message: "the hottest slice's linear heat rate " + peak.toFixed(0) + " W/m is above the sanity range (" + POWER_SANITY_MAX + " W/m); kept as given", unit: "W/m", range: [0, POWER_SANITY_MAX] });
+      }
+      // a shape that changes a great deal between two neighbouring slices is not resolved by this many slices
+      const q = loads.map((l) => l.linearHeatRate);
+      const big = Math.max(...q);
+      for (let i = 1; i < q.length; i++) {
+        if (big > 0 && Math.abs(q[i]! - q[i - 1]!) > AXIAL_STEP_WARNING * big) {
+          result.warnings.push({ code: "W_AXIAL_SHAPE_STEP", severity: "warning", field: "/axial/slices", message: "slices " + i + " and " + (i + 1) + " differ in heat rate by " + (100 * Math.abs(q[i]! - q[i - 1]!) / big).toFixed(0) + " % of the largest slice's (" + q[i - 1]!.toFixed(0) + " and " + q[i]!.toFixed(0) + " W/m): the shape is not resolved by " + normalized.axial.slices + " slices; use more slices or a gentler shape" });
+          break;
+        }
+      }
+      let est;
+      try {
+        est = axialConductionEstimate(normalized);
+      } catch (_e) {
+        est = undefined;
+      }
+      if (est && est.fraction > AXIAL_CONDUCTION_WARNING) {
+        result.warnings.push({ code: "W_AXIAL_CONDUCTION", severity: "warning", field: "/axial", message: "heat flow along the pin could change the temperatures by about " + (100 * est.fraction).toFixed(1) + " % of the largest rise (the solver includes it; FEED's one-dimensional checks per slice do not): the heated length is short for this shape and these conductivities" });
+      }
+    }
     const tn = normalized.transient;
     if (tn && tn.initial.kind === "steady") {
       const field = (() => {
