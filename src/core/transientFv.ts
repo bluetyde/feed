@@ -9,6 +9,7 @@
 
 import type { BoundaryValue } from "./boundaryHistory";
 import { Law, evaluate, primitive } from "./conductivity";
+import { geometryOf } from "./geometry";
 
 const TWO_PI = 2 * Math.PI;
 
@@ -18,6 +19,8 @@ export interface Linear {
 }
 
 export interface TransientPin {
+  /** A plate (a slab through its thickness, per unit height and width) instead of a pin: the coordinates below are then distances from the insulated mid-plane (src/core/geometry.ts). */
+  slab?: boolean;
   fuelInnerRadius: number;
   fuelRadius: number;
   claddingInnerRadius: number;
@@ -156,11 +159,12 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
   const r: number[] = [];
   for (let i = 0; i < nf; i++) r.push(0.5 * (faces[i]! + faces[i + 1]!));
   for (let i = 0; i < nc; i++) r.push(0.5 * (cfaces[i]! + cfaces[i + 1]!));
-  // cell volume per unit length of the full cylinder: pi (r_out^2 - r_in^2)
+  // cell volume per unit length of the full cylinder, pi (r_out^2 - r_in^2), or per unit height and width of the slab, x_out - x_in
+  const geo = geometryOf(p.slab);
   const vol: number[] = [];
-  for (let i = 0; i < nf; i++) vol.push(Math.PI * (faces[i + 1]! ** 2 - faces[i]! ** 2));
-  for (let i = 0; i < nc; i++) vol.push(Math.PI * (cfaces[i + 1]! ** 2 - cfaces[i]! ** 2));
-  const fuelArea = Math.PI * (p.fuelRadius ** 2 - p.fuelInnerRadius ** 2);
+  for (let i = 0; i < nf; i++) vol.push(geo.volume(faces[i]!, faces[i + 1]!));
+  for (let i = 0; i < nc; i++) vol.push(geo.volume(cfaces[i]!, cfaces[i + 1]!));
+  const fuelArea = geo.volume(p.fuelInnerRadius, p.fuelRadius);
   const share: number[] = vol.map((v, i) => (i < nf ? v / fuelArea : 0));
   const kOf = (i: number, T: number) => conductivityOf(p, i < nf, T);
 
@@ -171,16 +175,16 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
     for (let i = 0; i < n - 1; i++) {
       if (i !== nf - 1) {
         const k = 0.5 * (kOf(i, T[i]!) + kOf(i + 1, T[i + 1]!));
-        g.push((TWO_PI * k) / Math.log(r[i + 1]! / r[i]!));
+        g.push(geo.conductance(r[i]!, r[i + 1]!, k));
       } else {
-        const rF = Math.log(p.fuelRadius / r[i]!) / (TWO_PI * kOf(i, T[i]!));
-        const rGap = 1 / (TWO_PI * p.fuelRadius * p.gapConductance);
-        const rC = Math.log(r[i + 1]! / p.claddingInnerRadius) / (TWO_PI * kOf(i + 1, T[i + 1]!));
+        const rF = geo.resist(r[i]!, p.fuelRadius, kOf(i, T[i]!));
+        const rGap = 1 / (geo.area(p.fuelRadius) * p.gapConductance);
+        const rC = geo.resist(p.claddingInnerRadius, r[i + 1]!, kOf(i + 1, T[i + 1]!));
         g.push(1 / (rF + rGap + rC));
       }
     }
-    const rHalf = Math.log(p.claddingOuterRadius / r[n - 1]!) / (TWO_PI * kOf(n - 1, T[n - 1]!));
-    const gOut = b.kind === "convective" ? 1 / (rHalf + 1 / (TWO_PI * p.claddingOuterRadius * b.heatTransferCoefficient)) : 1 / rHalf;
+    const rHalf = geo.resist(r[n - 1]!, p.claddingOuterRadius, kOf(n - 1, T[n - 1]!));
+    const gOut = b.kind === "convective" ? 1 / (rHalf + 1 / (geo.area(p.claddingOuterRadius) * b.heatTransferCoefficient)) : 1 / rHalf;
     return { g, gOut };
   };
   const outerOf = (b: BoundaryValue) => (b.kind === "convective" ? b.bulkTemperature : b.surfaceTemperature);
@@ -201,8 +205,8 @@ export function solveTransientFv(p: TransientPin, o: FvOptions): FvTransient {
   /** Temperature of the outer boundary of the cladding, between the last cell and the coolant. */
   const wallOf = (Tc: number[], b: BoundaryValue) => {
     if (b.kind !== "convective") return outerOf(b);
-    const gHalf = (TWO_PI * kOf(n - 1, Tc[n - 1]!)) / Math.log(p.claddingOuterRadius / r[n - 1]!);
-    const gFilm = TWO_PI * p.claddingOuterRadius * b.heatTransferCoefficient;
+    const gHalf = geo.conductance(r[n - 1]!, p.claddingOuterRadius, kOf(n - 1, Tc[n - 1]!));
+    const gFilm = geo.area(p.claddingOuterRadius) * b.heatTransferCoefficient;
     return (gHalf * Tc[n - 1]! + gFilm * b.bulkTemperature) / (gHalf + gFilm);
   };
   if ((o.initialTemperature === undefined) === (o.initialField === undefined)) throw new Error("give exactly one of initialTemperature and initialField");
@@ -299,9 +303,10 @@ export function storedEnergy(p: TransientPin, T: number[], initial: number | num
   for (let i = 0; i <= nf; i++) faces.push(p.fuelInnerRadius + ((p.fuelRadius - p.fuelInnerRadius) * i) / nf);
   const cfaces: number[] = [];
   for (let i = 0; i <= nc; i++) cfaces.push(p.claddingInnerRadius + ((p.claddingOuterRadius - p.claddingInnerRadius) * i) / nc);
+  const geo = geometryOf(p.slab);
   let e = 0;
-  for (let i = 0; i < nf; i++) e += Math.PI * (faces[i + 1]! ** 2 - faces[i]! ** 2) * (enthalpyOf(p, true, T[i]!) - enthalpyOf(p, true, T0(i)));
-  for (let i = 0; i < nc; i++) e += Math.PI * (cfaces[i + 1]! ** 2 - cfaces[i]! ** 2) * (enthalpyOf(p, false, T[nf + i]!) - enthalpyOf(p, false, T0(nf + i)));
+  for (let i = 0; i < nf; i++) e += geo.volume(faces[i]!, faces[i + 1]!) * (enthalpyOf(p, true, T[i]!) - enthalpyOf(p, true, T0(i)));
+  for (let i = 0; i < nc; i++) e += geo.volume(cfaces[i]!, cfaces[i + 1]!) * (enthalpyOf(p, false, T[nf + i]!) - enthalpyOf(p, false, T0(nf + i)));
   return e;
 }
 

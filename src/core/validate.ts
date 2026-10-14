@@ -199,6 +199,8 @@ export interface NormalizedCase {
   mechanics?: MechanicsSpec;
   /** The mechanical property sets of both solids, present when each has a valid mechanical.elasticity and mechanical.thermalExpansion (a thermal run does not use them). */
   mechanical?: { fuel: MechanicalProps; cladding: MechanicalProps };
+  /** True for a plate (plan 12, A4): `fuelRadius` is then the half-thickness of the meat, `claddingInnerRadius` and `claddingOuterRadius` the distances of the cladding's faces from the insulated mid-plane, `qPrime` the heat rate per unit height and width. */
+  plate?: true;
   /** Present when the case is an axial stack (plan 12): `qPrime` is then the AVERAGE heat rate over the heated length and the slices take their own from the shape (src/core/axial.ts). */
   axial?: AxialSpec;
 }
@@ -271,11 +273,14 @@ export function validateCase(doc: unknown): ValidationResult {
   const isTransient = c.assumptions.steadyState === false;
   if (!isTransient && c.transient !== undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "the case has a transient section but assumptions.steadyState is true; set it to false to run the transient, or remove the section");
   if (isTransient && c.transient === undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "assumptions.steadyState is false, so the case needs a transient section (power history, end time, time step, outputs, initial temperature)");
-  if (c.assumptions.geometry !== "1D-radial") err("E_UNSUPPORTED", "/assumptions/geometry", "V1 supports geometry '1D-radial' only, got '" + String(c.assumptions.geometry) + "'");
+  const isPlate = c.geometry?.kind === "plate";
+  if (c.geometry?.kind !== undefined && c.geometry.kind !== "plate" && c.geometry.kind !== "pin") err("E_GEOMETRY", "/geometry/kind", "the geometry kind is 'pin' (the default) or 'plate', got '" + String(c.geometry.kind) + "'");
+  if (c.assumptions.geometry !== (isPlate ? "1D-slab" : "1D-radial")) err("E_UNSUPPORTED", "/assumptions/geometry", (isPlate ? "a plate is geometry '1D-slab'" : "V1 supports geometry '1D-radial' only") + ", got '" + String(c.assumptions.geometry) + "'");
   if (c.power?.radialShape !== undefined && c.power.radialShape !== "uniform") err("E_UNSUPPORTED", "/power/radialShape", "V1 supports a uniform radial power shape only");
 
   // Geometry
   const radius = (value: unknown, field: string, what: string): number | undefined => {
+    if (value === undefined) return undefined; // missing: already reported
     const v = qty(value, "length", field);
     if (v === undefined) return undefined;
     if (!(v > 0)) {
@@ -288,9 +293,38 @@ export function validateCase(doc: unknown): ValidationResult {
     }
     return v;
   };
-  const Rf = radius(c.geometry.fuelRadius, "/geometry/fuelRadius", "fuel radius");
-  const Rci = radius(c.geometry.claddingInnerRadius, "/geometry/claddingInnerRadius", "cladding inner radius");
-  const Rco = radius(c.geometry.claddingOuterRadius, "/geometry/claddingOuterRadius", "cladding outer radius");
+  let Rf: number | undefined;
+  let Rci: number | undefined;
+  let Rco: number | undefined;
+  if (isPlate) {
+    // a plate (plan 12, A4): the meat's half-thickness from the insulated mid-plane, the gap's thickness (zero allowed, as for a pin with an effective conductance) and the cladding's thickness
+    const PLATE_KEYS = ["kind", "fuelHalfThickness", "gapThickness", "claddingThickness"];
+    for (const k of Object.keys(c.geometry)) if (!PLATE_KEYS.includes(k)) err("E_GEOMETRY", "/geometry/" + k, "unknown key '" + k + "' for a plate (it has " + PLATE_KEYS.join(", ") + "); a plate has no radii and no central hole");
+    for (const k of PLATE_KEYS.slice(1)) if (c.geometry[k] === undefined) err("E_SCHEMA_INVALID", "/geometry/" + k, "missing: a plate needs fuelHalfThickness, gapThickness and claddingThickness");
+    const half = c.geometry.fuelHalfThickness === undefined ? undefined : radius(c.geometry.fuelHalfThickness, "/geometry/fuelHalfThickness", "fuel half-thickness");
+    const tc = c.geometry.claddingThickness === undefined ? undefined : radius(c.geometry.claddingThickness, "/geometry/claddingThickness", "cladding thickness");
+    let gap0: number | undefined;
+    if (c.geometry.gapThickness !== undefined) {
+      gap0 = qty(c.geometry.gapThickness, "length", "/geometry/gapThickness");
+      if (gap0 !== undefined && gap0 < 0) {
+        err("E_GEOMETRY", "/geometry/gapThickness", "the gap thickness cannot be negative (use 0 for no cold gap)", { unit: "m" });
+        gap0 = undefined;
+      }
+    }
+    if (half !== undefined) Rf = half;
+    if (half !== undefined && gap0 !== undefined) Rci = half + gap0;
+    if (Rci !== undefined && tc !== undefined) Rco = Rci + tc;
+    if (c.hotDimensions !== undefined) err("E_UNSUPPORTED", "/hotDimensions", "hot dimensions are for pins: the plate's expansion is not modelled");
+    if (c.mechanics !== undefined) err("E_UNSUPPORTED", "/mechanics", "mechanics is for pins: a plate has no thermo-elastic solution here");
+    if (c.burnup !== undefined) err("E_UNSUPPORTED", "/burnup", "a burnup is for pins in this release");
+    if (c.axial !== undefined) err("E_UNSUPPORTED", "/axial", "a plate stack along the height comes with milestone A5 of plan 12; use one slice of the plate, or remove the axial section");
+    if (c.transient?.pointKinetics !== undefined) err("E_UNSUPPORTED", "/transient/pointKinetics", "a generated pulse is for pins: its feedback is that of the pin's fuel");
+  } else {
+    for (const k of ["fuelRadius", "claddingInnerRadius", "claddingOuterRadius"]) if (c.geometry[k] === undefined) err("E_SCHEMA_INVALID", "/geometry/" + k, "missing: a pin needs fuelRadius, claddingInnerRadius and claddingOuterRadius");
+    Rf = radius(c.geometry.fuelRadius, "/geometry/fuelRadius", "fuel radius");
+    Rci = radius(c.geometry.claddingInnerRadius, "/geometry/claddingInnerRadius", "cladding inner radius");
+    Rco = radius(c.geometry.claddingOuterRadius, "/geometry/claddingOuterRadius", "cladding outer radius");
+  }
   // Optional central hole in the fuel. Its surface is treated as insulated (nothing is conducted into whatever fills it).
   let Rfi = 0;
   if ((c.geometry as Record<string, unknown>).fuelInnerRadius !== undefined) {
@@ -319,7 +353,7 @@ export function validateCase(doc: unknown): ValidationResult {
   } else {
     qPrime = positive(c.power.linearHeatRate, "linearPower", "/power/linearHeatRate", "linear heat rate", "W/m");
   }
-  if (!isTransient && qPrime !== undefined && qPrime > POWER_SANITY_MAX) {
+  if (!isTransient && !isPlate && qPrime !== undefined && qPrime > POWER_SANITY_MAX) {
     issues.push({ code: "W_POWER_RANGE", severity: "warning", field: "/power/linearHeatRate", message: "linear heat rate is above the sanity range (" + POWER_SANITY_MAX + " W/m); kept as given", unit: "W/m", range: [0, POWER_SANITY_MAX] });
   }
 
@@ -477,6 +511,7 @@ export function validateCase(doc: unknown): ValidationResult {
       ...(mechFuel && mechCladding ? { mechanical: { fuel: mechFuel, cladding: mechCladding } } : {}),
       ...(fuelK.kind === "uo2-nfi" && burnupSpec ? { burnup: burnupSpec } : {}),
       ...(axialSpec ? { axial: axialSpec } : {}),
+      ...(isPlate ? { plate: true as const } : {}),
     };
     // Hot dimensions: the radii above are cold; replace them with the radii each solid has at its own mean temperature (the temperatures and the radii are iterated together).
     if (hotSpec && !isTransient) {

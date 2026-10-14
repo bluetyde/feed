@@ -4,6 +4,7 @@
 
 import { limitChecks } from "./limits";
 import { closedForm, fuelTemperatureLaw } from "./closedForm";
+import { geometryOf } from "./geometry";
 import { evaluate, lawOf, primitive, rangeOf, solveHot } from "./conductivity";
 import { NFI_OXIDE_TO_HEAVY_METAL } from "./uo2Nfi";
 import { remainingChangeBound, STEADY_TOLERANCE } from "./steadyState";
@@ -291,21 +292,24 @@ export function finishResults(c: NormalizedCase, x: CellsContext): ResultsRecord
   if (clad.length >= 2) {
     const a = clad[0]!;
     const b = clad[1]!;
-    const qWall = (2 * Math.PI * (primitive(kc, a.T) - primitive(kc, b.T))) / Math.log(b.r / a.r);
+    const geo = geometryOf(c.plate);
+    // the flux through the wall between two cell centres: the difference of the conductivity integral over the layer's resistance factor (a cylinder: 2 pi / ln(r2 / r1); a slab: 1 / (x2 - x1))
+    const qWall = (primitive(kc, a.T) - primitive(kc, b.T)) / (geo.resist(a.r, b.r, 1));
     const rel = (qWall - c.qPrime) / c.qPrime;
     checks.push({ id: "energyBalance", label: "Energy balance (cladding wall flux vs input)", value: rel, unit: "relative", verdict: Math.abs(qWall - c.qPrime) <= BALANCE_TOLERANCE * c.qPrime + allow.flux ? "pass" : "fail", note: `flux from the two innermost cladding cells = ${qWall.toFixed(1)} W/m against ${c.qPrime} W/m; threshold ${BALANCE_TOLERANCE * 100}%` });
   }
 
   // Closed-form agreement (constant or linear conductivity), same discretization-error bound used for the finite-volume cross-check.
-  const filmDrop = c.boundary.kind === "convective" ? closedForm.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.boundary.heatTransferCoefficient) : 0;
+  const slab = c.plate === true;
+  const filmDrop = c.boundary.kind === "convective" ? (slab ? c.qPrime / c.boundary.heatTransferCoefficient : closedForm.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.boundary.heatTransferCoefficient)) : 0;
   const tOuter = c.boundary.kind === "convective" ? c.boundary.bulkTemperature + filmDrop : c.boundary.surfaceTemperature;
-  const claddingAt = (r: number) => solveHot(kc, tOuter, (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI));
+  const claddingAt = (r: number) => solveHot(kc, tOuter, slab ? c.qPrime * (c.claddingOuterRadius - r) : (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI));
   const tCladInner = claddingAt(c.claddingInnerRadius);
-  const tFuelSurface = tCladInner + closedForm.gapDeltaT(c.qPrime, c.fuelRadius, c.gapConductance);
+  const tFuelSurface = tCladInner + (slab ? c.qPrime / c.gapConductance : closedForm.gapDeltaT(c.qPrime, c.fuelRadius, c.gapConductance));
   // the hottest fuel point: the axis of solid fuel, or the surface of the central hole
-  const fuelDeltaT = fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, c.fuelInnerRadius === 0 ? 0 : c.fuelInnerRadius, tFuelSurface, c.fuelInnerRadius) - tFuelSurface;
+  const fuelDeltaT = fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, c.fuelInnerRadius === 0 ? 0 : c.fuelInnerRadius, tFuelSurface, c.fuelInnerRadius, slab) - tFuelSurface;
   const claddingDeltaT = tCladInner - tOuter;
-  const fuelErr = Math.max(...fuel.map((p) => Math.abs(p.T - fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, p.r, tFuelSurface, c.fuelInnerRadius))));
+  const fuelErr = Math.max(...fuel.map((p) => Math.abs(p.T - fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, p.r, tFuelSurface, c.fuelInnerRadius, slab))));
   const cladErr = Math.max(...clad.map((p) => Math.abs(p.T - claddingAt(p.r))));
   const fuelBound = (5 * fuelDeltaT) / (c.mesh.fuelCells * c.mesh.fuelCells) + allow.field;
   const cladBound = (5 * claddingDeltaT) / (c.mesh.claddingCells * c.mesh.claddingCells) + allow.field;

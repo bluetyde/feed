@@ -201,6 +201,12 @@ export async function checkAsync(doc: unknown, previewDeadlineMs = PREVIEW_DEADL
   return checkWith(v, external);
 }
 
+/** What the editor shows beside the case: the volumetric power, the gap, the heat flux at the outer surface and the pin's design numbers. A plate has the slab's (per unit height and width; the pin's design view does not apply). */
+function derivedOf(n: NormalizedCase, q: number) {
+  if (n.plate) return { volumetricPower: q / n.fuelRadius, gapThickness: n.claddingInnerRadius - n.fuelRadius, outerSurfaceHeatFlux: q, design: null };
+  return { volumetricPower: q / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)), gapThickness: n.claddingInnerRadius - n.fuelRadius, outerSurfaceHeatFlux: q / (2 * Math.PI * n.claddingOuterRadius), design: designOf(n) };
+}
+
 function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransient | null; skipped?: string }) {
   if (!v.normalized) return { ok: false, errors: v.errors, warnings: v.warnings };
   const n = v.normalized;
@@ -213,12 +219,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
       normalized: slim(n),
       transient: transientPreview(n.axial ? sliceCase(n, hottestLoad(n)) : n, external),
       ...(n.axial ? { axial: axialSummary(n) } : {}),
-      derived: {
-        volumetricPower: n.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
-        gapThickness: n.claddingInnerRadius - n.fuelRadius,
-        outerSurfaceHeatFlux: n.qPrime / (2 * Math.PI * n.claddingOuterRadius),
-        design: designOf(n),
-      },
+      derived: derivedOf(n, n.qPrime),
     };
   }
   const stack = axialSummary(n);
@@ -239,12 +240,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
     quick: look,
     profile: radialProfile(hot, look),
     ...(stack ? { axial: stack } : {}),
-    derived: {
-      volumetricPower: hot.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
-      gapThickness: n.claddingInnerRadius - n.fuelRadius,
-      outerSurfaceHeatFlux: hot.qPrime / (2 * Math.PI * n.claddingOuterRadius),
-      design: designOf(n),
-    },
+    derived: derivedOf(n, hot.qPrime),
   };
 }
 

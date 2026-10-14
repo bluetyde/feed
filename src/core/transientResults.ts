@@ -2,6 +2,7 @@
 // against an independent finite-volume solution (transientFv.ts) and against energy conservation. The record schema is
 // feed.results/0.2; the steady record (feed.results/0.1) is unchanged.
 
+import { geometryOf } from "./geometry";
 import { boundaryAtTime } from "./boundaryHistory";
 import { limitChecks } from "./limits";
 import { evaluate, lawOf, primitive, rangeOf } from "./conductivity";
@@ -110,6 +111,7 @@ export function pinOf(c: NormalizedCase, cellFactor = 1): TransientPin {
     return linearHeatRate[linearHeatRate.length - 1]!;
   };
   return {
+    ...(c.plate ? { slab: true } : {}),
     fuelInnerRadius: c.fuelInnerRadius,
     fuelRadius: c.fuelRadius,
     claddingInnerRadius: c.claddingInnerRadius,
@@ -283,7 +285,7 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const cells: TransientRadialCell[] = idx.map((i, j) => ({ r: r[i]!, region: j < nf ? "fuel" : "cladding" }));
   // The cell centres OFFBEAT writes are the volume centroids of the wedge cells; they must be where THIS case's mesh puts them, or the
   // profile, the stored energy and the independent comparison would all be about a different pin.
-  const centroid = (a: number, b: number) => ((2 / 3) * (b ** 3 - a ** 3)) / (b ** 2 - a ** 2);
+  const centroid = (a: number, b: number) => geometryOf(c.plate).centroid(a, b);
   const dFuel = (c.fuelRadius - c.fuelInnerRadius) / nf;
   const dClad = (c.claddingOuterRadius - c.claddingInnerRadius) / nc;
   cells.forEach((cell, j) => {
@@ -320,16 +322,17 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const pin = pinOf(c);
   const series: TransientSeries = { time: times, power: times.map((tt) => pin.power(tt)), deposited: times.map((tt) => depositedEnergy(t.times, t.linearHeatRate, tt)), peakT: [], fuelSurfaceCellT: [], claddingInnerCellT: [], claddingOuterWallT: walls, stored: [], rejected: [] };
   const hist = t.boundaryHistory;
+  const geo = geometryOf(c.plate);
   const outflow = (prof: number[], wall: number, at = 0) => {
     if (hist && hist.kind === "convective") {
       const b = boundaryAtTime(hist, at) as { heatTransferCoefficient: number; bulkTemperature: number };
-      return b.heatTransferCoefficient * 2 * Math.PI * c.claddingOuterRadius * (wall - b.bulkTemperature);
+      return b.heatTransferCoefficient * geo.area(c.claddingOuterRadius) * (wall - b.bulkTemperature);
     }
-    if (c.boundary.kind === "convective") return c.boundary.heatTransferCoefficient * 2 * Math.PI * c.claddingOuterRadius * (wall - c.boundary.bulkTemperature);
+    if (c.boundary.kind === "convective") return c.boundary.heatTransferCoefficient * geo.area(c.claddingOuterRadius) * (wall - c.boundary.bulkTemperature);
     const kk = lawOf(c.claddingConductivity);
     const Tl = prof[n - 1]!;
     // the heat through the last half cell: 2 pi (K(T_last) - K(T_wall)) / ln(Ro / r_last), K the primitive of k(T); for a linear law that is k at the mean temperature times the difference
-    return (2 * Math.PI * (primitive(kk, Tl) - primitive(kk, wall))) / Math.log(c.claddingOuterRadius / cells[n - 1]!.r);
+    return (primitive(kk, Tl) - primitive(kk, wall)) / geo.resist(cells[n - 1]!.r, c.claddingOuterRadius, 1);
   };
   let rej = 0;
   profiles.forEach((p, k) => {

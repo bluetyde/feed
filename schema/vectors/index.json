@@ -1433,5 +1433,91 @@
     "valid": false,
     "code": "E_UNSUPPORTED",
     "field": "/axial"
+  },
+  {
+    "file": "good/plate-steady.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-prescribed-wall.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-pulse.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-steady-start-boundary-history.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-no-cold-gap.json",
+    "valid": true
+  },
+  {
+    "file": "bad/plate-with-a-radius.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/fuelRadius"
+  },
+  {
+    "file": "bad/plate-with-a-hole.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/fuelInnerRadius"
+  },
+  {
+    "file": "bad/plate-missing-gap-thickness.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/geometry/gapThickness"
+  },
+  {
+    "file": "bad/plate-negative-gap-thickness.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/gapThickness"
+  },
+  {
+    "file": "bad/plate-zero-cladding-thickness.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/claddingThickness"
+  },
+  {
+    "file": "bad/plate-thickness-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/geometry/fuelHalfThickness"
+  },
+  {
+    "file": "bad/plate-assumed-radial.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/assumptions/geometry"
+  },
+  {
+    "file": "bad/plate-with-axial-stack.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/axial"
+  },
+  {
+    "file": "bad/pin-assumed-slab.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/assumptions/geometry"
+  },
+  {
+    "file": "bad/geometry-unknown-kind.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/kind"
+  },
+  {
+    "file": "bad/geometry-pin-missing-radius.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/geometry/claddingInnerRadius"
   }
 ]

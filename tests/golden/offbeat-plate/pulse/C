@@ -1,0 +1,107 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "0.10000000000000183742";
+    object      C;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 0 0 0 0 0];
+
+internalField   nonuniform List<vector> 
+26
+(
+(0.0001025 0 0.5)
+(0.0003075 0 0.5)
+(0.0005125 0 0.5)
+(0.0007175 -3.3825932e-17 0.5)
+(0.0009225 0 0.5)
+(0.0011275 0 0.5)
+(0.0013325 0 0.5)
+(0.0015375 0 0.5)
+(0.0017425 0 0.5)
+(0.0019475 0 0.5)
+(0.0021525 0 0.5)
+(0.0023575 0 0.5)
+(0.0025625 0 0.5)
+(0.0027675 0 0.5)
+(0.0029725 0 0.5)
+(0.0031775 0 0.5)
+(0.0033825 0 0.5)
+(0.0035875 0 0.5)
+(0.0037925 0 0.5)
+(0.0039975 0 0.5)
+(0.0042275 0 0.5)
+(0.0043225 0 0.5)
+(0.0044175 0 0.5)
+(0.0045125 0 0.5)
+(0.0046075 0 0.5)
+(0.0047025 0 0.5)
+)
+;
+
+boundaryField
+{
+    fuelBottom
+    {
+        type            empty;
+    }
+    fuelTop
+    {
+        type            empty;
+    }
+    fuelOuter
+    {
+        type            calculated;
+        value           uniform (0.0041 0 0.5);
+    }
+    fuelFront
+    {
+        type            empty;
+    }
+    fuelBack
+    {
+        type            empty;
+    }
+    cladBottom
+    {
+        type            empty;
+    }
+    cladTop
+    {
+        type            empty;
+    }
+    cladInner
+    {
+        type            calculated;
+        value           uniform (0.00418 0 0.5);
+    }
+    cladOuter
+    {
+        type            calculated;
+        value           uniform (0.00475 0 0.5);
+    }
+    cladFront
+    {
+        type            empty;
+    }
+    cladBack
+    {
+        type            empty;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //
