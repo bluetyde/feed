@@ -65,9 +65,12 @@ export function parseVectorField(text: string, name: string): number[][] {
   return rows;
 }
 
-/** `value uniform X` inside a named boundary patch block (the patch temperature the solver converged to). */
-export function parsePatchValue(text: string, patch: string): number | null {
-  // the patch's block, to its own closing brace: a boundary condition may hold a sub-dictionary (the time tables of timeDependentAxialProfileHTC), so the first closing brace is not the end
+/**
+ * The values of a named boundary patch block (the patch temperature the solver converged to), to the block's own closing brace: a boundary condition may hold a sub-dictionary
+ * (the time tables of timeDependentAxialProfileHTC), so the first closing brace is not the end. `value uniform X` is one value; `value nonuniform List<scalar> N(...)` is one per face
+ * (one per axial layer in a stack). Null when the patch or its value is not there or not finite.
+ */
+export function parsePatchValues(text: string, patch: string): number[] | null {
   const open = new RegExp(`\\b${patch}\\s*\\{`).exec(text);
   if (!open) return null;
   let depth = 1;
@@ -77,19 +80,24 @@ export function parsePatchValue(text: string, patch: string): number | null {
     else if (text[end] === "}") depth--;
   }
   if (depth !== 0) return null;
-  const block = [open[0], text.slice(open.index + open[0].length, end - 1)];
-  const uniform = /value\s+uniform\s+([-+.\deE]+)\s*;/.exec(block[1]!);
+  const block = text.slice(open.index + open[0].length, end - 1);
+  const uniform = /value\s+uniform\s+([-+.\deE]+)\s*;/.exec(block);
   if (uniform) {
     const x = Number(uniform[1]);
-    return Number.isFinite(x) ? x : null;
+    return Number.isFinite(x) ? [x] : null;
   }
-  const list = /value\s+nonuniform\s+List<scalar>\s*(\d+)\s*\(([^)]*)\)/.exec(block[1]!);
+  const list = /value\s+nonuniform\s+List<scalar>\s*(\d+)\s*\(([^)]*)\)/.exec(block);
   if (!list) return null;
   const vals = list[2]!.trim().split(/\s+/).filter(Boolean).map(Number);
   if (vals.length !== Number(list[1])) bad(`patch ${patch}: the value list declares ${list[1]} values but holds ${vals.length}`);
   if (!vals.every(Number.isFinite)) return null;
-  // one temperature for the patch is what a single-face wall holds; several equal values are the same wall
-  return vals[0]!;
+  return vals;
+}
+
+/** `value uniform X` inside a named boundary patch block: the one temperature a single-face wall holds (several equal values are the same wall; the first is returned). */
+export function parsePatchValue(text: string, patch: string): number | null {
+  const v = parsePatchValues(text, patch);
+  return v === null ? null : v[0]!;
 }
 
 export type CheckVerdict = "pass" | "fail" | "na";
@@ -215,6 +223,20 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   if (T.length !== expected) bad(`expected ${expected} cells (${c.mesh.fuelCells} fuel + ${c.mesh.claddingCells} cladding), found ${T.length}`);
   if (C.length !== T.length) bad(`T has ${T.length} cells but C has ${C.length}`);
   if (!(input.time > 0) || !Number.isFinite(input.time)) bad("final time is not a positive finite number");
+  const { radial, fuel, clad } = radialSplit(c, T, C);
+  // The final-time file must be whole: the boundary block follows the cell list, so a file cut short there is not accepted.
+  if (!/\bboundaryField\b/.test(input.T)) bad("field T has no boundaryField (the file is cut short)");
+  const wall = parsePatchValue(input.T, "cladOuter");
+  if (wall === null) bad("field T has no value for the cladOuter patch (the file is cut short or malformed)");
+  // last: the specific checks above give clearer messages; this one catches what they cannot (cut after the wall, in either file)
+  assertWholeFoamFile(input.T, "T");
+  assertWholeFoamFile(input.C, "C");
+
+  return finishResults(c, { T, radial, fuel, clad, wall, input });
+}
+
+/** The cells of one slice split into the fuel and the cladding by radius: every centre inside the pin and inside a solid, none in the central hole, positive temperatures, distinct radii. */
+export function radialSplit(c: NormalizedCase, T: number[], C: number[][]): { radial: RadialPoint[]; fuel: RadialPoint[]; clad: RadialPoint[] } {
   const r = C.map((p) => Math.hypot(p[0]!, p[1]!));
   const eps = 1e-9;
   r.forEach((x, i) => {
@@ -236,14 +258,30 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   for (const [name, pts] of [["fuel", fuel], ["cladding", clad]] as const) {
     for (let i = 1; i < pts.length; i++) if (!(pts[i]!.r - pts[i - 1]!.r > 1e-12)) bad(`two ${name} cells share a centre (r = ${pts[i]!.r} m): the cell centres are not distinct`);
   }
-  // The final-time file must be whole: the boundary block follows the cell list, so a file cut short there is not accepted.
-  if (!/\bboundaryField\b/.test(input.T)) bad("field T has no boundaryField (the file is cut short)");
-  const wall = parsePatchValue(input.T, "cladOuter");
-  if (wall === null) bad("field T has no value for the cladOuter patch (the file is cut short or malformed)");
-  // last: the specific checks above give clearer messages; this one catches what they cannot (cut after the wall, in either file)
-  assertWholeFoamFile(input.T, "T");
-  assertWholeFoamFile(input.C, "C");
+  return { radial, fuel, clad };
+}
 
+/** What a stack adds to the tolerances of a slice's checks: the estimated axial conduction, as K on a temperature field, W/m on a flux and K on the wall (src/core/stackResults.ts). */
+export interface SliceAllowance {
+  field: number;
+  flux: number;
+  wall: number;
+}
+
+export interface CellsContext {
+  T: number[];
+  radial: RadialPoint[];
+  fuel: RadialPoint[];
+  clad: RadialPoint[];
+  wall: number | null;
+  input: ParseInput;
+  allow?: SliceAllowance;
+}
+
+/** The checks and the record of one slice (or of the whole one-slice pin) from its cells: shared by buildResults and the stack's builder. */
+export function finishResults(c: NormalizedCase, x: CellsContext): ResultsRecord {
+  const { T, radial, fuel, clad, wall, input } = x;
+  const allow = x.allow ?? { field: 0, flux: 0, wall: 0 };
   // --- checks
   const kf = lawOf(c.fuelConductivity);
   const kc = lawOf(c.claddingConductivity);
@@ -255,7 +293,7 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
     const b = clad[1]!;
     const qWall = (2 * Math.PI * (primitive(kc, a.T) - primitive(kc, b.T))) / Math.log(b.r / a.r);
     const rel = (qWall - c.qPrime) / c.qPrime;
-    checks.push({ id: "energyBalance", label: "Energy balance (cladding wall flux vs input)", value: rel, unit: "relative", verdict: Math.abs(rel) <= BALANCE_TOLERANCE ? "pass" : "fail", note: `flux from the two innermost cladding cells = ${qWall.toFixed(1)} W/m against ${c.qPrime} W/m; threshold ${BALANCE_TOLERANCE * 100}%` });
+    checks.push({ id: "energyBalance", label: "Energy balance (cladding wall flux vs input)", value: rel, unit: "relative", verdict: Math.abs(qWall - c.qPrime) <= BALANCE_TOLERANCE * c.qPrime + allow.flux ? "pass" : "fail", note: `flux from the two innermost cladding cells = ${qWall.toFixed(1)} W/m against ${c.qPrime} W/m; threshold ${BALANCE_TOLERANCE * 100}%` });
   }
 
   // Closed-form agreement (constant or linear conductivity), same discretization-error bound used for the finite-volume cross-check.
@@ -269,13 +307,13 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   const claddingDeltaT = tCladInner - tOuter;
   const fuelErr = Math.max(...fuel.map((p) => Math.abs(p.T - fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, p.r, tFuelSurface, c.fuelInnerRadius))));
   const cladErr = Math.max(...clad.map((p) => Math.abs(p.T - claddingAt(p.r))));
-  const fuelBound = (5 * fuelDeltaT) / (c.mesh.fuelCells * c.mesh.fuelCells);
-  const cladBound = (5 * claddingDeltaT) / (c.mesh.claddingCells * c.mesh.claddingCells);
+  const fuelBound = (5 * fuelDeltaT) / (c.mesh.fuelCells * c.mesh.fuelCells) + allow.field;
+  const cladBound = (5 * claddingDeltaT) / (c.mesh.claddingCells * c.mesh.claddingCells) + allow.field;
   checks.push({ id: "closedFormFuel", label: "Fuel vs closed form (max deviation)", value: fuelErr, unit: "K", verdict: fuelErr < fuelBound ? "pass" : "fail", note: `bound 5 dT / N^2 = ${fuelBound.toFixed(3)} K for ${c.mesh.fuelCells} cells` });
   checks.push({ id: "closedFormCladding", label: "Cladding vs closed form (max deviation)", value: cladErr, unit: "K", verdict: cladErr < cladBound ? "pass" : "fail", note: `bound 5 dT / N^2 = ${cladBound.toFixed(3)} K for ${c.mesh.claddingCells} cells` });
   if (wall !== null) {
     const d = Math.abs(wall - tOuter);
-    checks.push({ id: "wallTemperature", label: "Outer wall temperature vs closed form", value: d, unit: "K", verdict: d < 0.05 ? "pass" : "fail", note: `solver ${wall} K, closed form ${tOuter.toFixed(3)} K; threshold 0.05 K` });
+    checks.push({ id: "wallTemperature", label: "Outer wall temperature vs closed form", value: d, unit: "K", verdict: d < 0.05 + allow.wall ? "pass" : "fail", note: `solver ${wall} K, closed form ${tOuter.toFixed(3)} K; threshold ${(0.05 + allow.wall).toPrecision(3)} K` });
   }
 
   // Property range: a conductivity law is used outside its stated range => the result is out-of-domain, never plain success.
@@ -352,6 +390,7 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
     ...(mechanics ? { mechanics } : {}),
   };
 }
+
 
 /** A scalar field that may be written compactly as `uniform X` (OFFBEAT does that when every cell is equal): expanded to n values. */
 function cellValues(text: string, name: string, n: number): number[] {
