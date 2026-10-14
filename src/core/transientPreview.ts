@@ -48,7 +48,8 @@ export function transientPreview(c: NormalizedCase, external?: { fv: FvTransient
   const adiabaticPeak = degree(law) > 1 ? solveHot(law, start, perVolume) : adiabaticTemperature(law[0]!, law[1] ?? 0, start, perVolume);
   let preview: TransientPreview["preview"] = null;
   let skipped: string | null = null;
-  if (previewTooBig(c)) skipped = "the preview would take too long for this mesh and number of steps; run the solver instead";
+  if (t.boundaryHistory) skipped = "the preview does not carry a boundary history yet (plan 11, milestone B2)";
+  else if (previewTooBig(c)) skipped = "the preview would take too long for this mesh and number of steps; run the solver instead";
   else if (external && external.fv === null) skipped = external.skipped ?? "the preview was not run";
   else {
     const fv = external?.fv ?? independentSolution(c);

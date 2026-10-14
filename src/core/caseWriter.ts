@@ -511,6 +511,8 @@ relaxationFactors
  * both were checked against closed-form oracles in OFFBEAT.
  */
 export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
+  // plan 11: the validator accepts a boundary history (B1); the solver files and the independent solution do not carry it yet (B2). Refuse rather than run with a constant boundary.
+  if (c.transient?.boundaryHistory) throw new Error("The case states a transient boundary history. The case is valid, but its solver files are not written yet (plan 11, milestone B2), so the run is refused rather than run with a constant boundary.");
   const kf = c.fuelConductivity;
   const kc = c.claddingConductivity;
   const tr = c.transient;
