@@ -24,6 +24,8 @@ export interface TransientPreview {
   /** The independent solution at the outputs, or null with the reason when it was not run. */
   preview: { time: number[]; power: number[]; peakT: number[]; fuelSurfaceCellT: number[]; claddingInnerCellT: number[]; claddingOuterT: number[] } | null;
   previewSkipped: string | null;
+  /** The case's boundary history in SI (times s, temperatures K, film coefficient W/m2/K) for the editor's plot, or null when the boundary is constant. */
+  boundaryHistory: NonNullable<NormalizedCase["transient"]>["boundaryHistory"] | null;
   note: string;
   /** Present when the power comes from point kinetics: the pulse's summary, and its curve for plotting. */
   generator: { summary: GeneratedPulse["summary"]; curve: { time: number[]; power: number[]; reactivity: number[]; fuelTemperature: number[] }; history: { time: number[]; linearHeatRate: number[] } } | null;
@@ -71,6 +73,7 @@ export function transientPreview(c: NormalizedCase, external?: { fv: FvTransient
     adiabaticPeak,
     preview,
     previewSkipped: skipped,
+    boundaryHistory: t.boundaryHistory ?? null,
     generator: t.generated ? { summary: t.generated.summary, curve: downsample(t.generated), history: { time: t.times, linearHeatRate: t.linearHeatRate } } : null,
     note: "The adiabatic peak is what the fuel reaches if no heat leaves; the real peak is lower when the pulse is long. The curve is an independent finite-volume preview, not the solver.",
   };

@@ -223,6 +223,7 @@ input.bad,select.bad{border-color:var(--err)}
         <div class="toolbar"><span id="rTitle" style="color:var(--text)">No run selected</span><div class="seg" role="group" aria-label="Plot"><button type="button" id="rCf" aria-pressed="true">Closed-form line</button></div><span class="readout" id="rReadout">Hover the profile</span></div>
         <div class="metrics" id="metrics"></div>
         <div class="vpwrap1"><canvas id="rprof" aria-label="Radial temperature profile of the selected run"></canvas></div>
+        <div class="vpwrap1 mechplot" id="rbndWrap" hidden><canvas id="rbnd" aria-label="The coolant boundary against time: bulk temperature or wall temperature, and film coefficient"></canvas></div>
         <div class="vpwrap1 mechplot" id="rmechWrap" hidden><canvas id="rmech" aria-label="Stress against radius of the selected run"></canvas></div>
         <div class="vpwrap1 mechplot" id="rdispWrap" hidden><canvas id="rdisp" aria-label="Radial displacement against radius of the selected run"></canvas></div>
       </div>
@@ -271,7 +272,7 @@ const ITEMS = [
   ["mechanics", "Mechanics", "Checks", ["/mechanics"]],
   ["limits", "Temperature limits", "Checks", ["/limits"]],
 ];
-const itemOf = (field) => { const f = (ITEMS.find((i) => i[3].some((p) => field === p || field.startsWith(p + "/"))) || [])[0]; return f || null; };
+const itemOf = (field) => { if (field === "/transient/boundaryHistory" || field.startsWith("/transient/boundaryHistory/")) return "boundary"; const f = (ITEMS.find((i) => i[3].some((p) => field === p || field.startsWith(p + "/"))) || [])[0]; return f || null; };
 
 /* ---- value helpers: read and write {value, unit} at a path of keys */
 const getp = (o, p) => p.reduce((a, k) => (a == null ? undefined : a[k]), o);
@@ -346,12 +347,13 @@ function renderProps() {
     p.append(sec("Form"));
     const row = el("div", "prow"); row.append(elt("label", "Boundary", { for: "bform" }));
     const sel = elt("select", "", { id: "bform" }); sel.append(elt("option", "Bulk temperature and h", { value: "convective" }), elt("option", "Prescribed surface temperature", { value: "surface" })); sel.value = form;
-    sel.addEventListener("change", () => { if (sel.value === "surface") { delete doc.boundary.bulkTemperature; delete doc.boundary.heatTransferCoefficient; doc.boundary.surfaceTemperature = { value: 600, unit: "K" }; } else { delete doc.boundary.surfaceTemperature; doc.boundary.bulkTemperature = { value: 573, unit: "K" }; doc.boundary.heatTransferCoefficient = { value: 30000, unit: "W/m2/K" }; } changed(true); });
+    sel.addEventListener("change", () => { if (doc.transient && doc.transient.boundaryHistory) { delete doc.transient.boundaryHistory; logText += "The boundary history was removed: it must be in the same form as the boundary." + String.fromCharCode(10); } if (sel.value === "surface") { delete doc.boundary.bulkTemperature; delete doc.boundary.heatTransferCoefficient; doc.boundary.surfaceTemperature = { value: 600, unit: "K" }; } else { delete doc.boundary.surfaceTemperature; doc.boundary.bulkTemperature = { value: 573, unit: "K" }; doc.boundary.heatTransferCoefficient = { value: 30000, unit: "W/m2/K" }; } changed(true); });
     row.append(sel); p.append(row);
     if (form === "surface") p.append(qField("T surface", ["boundary", "surfaceTemperature"], "temperature"));
     else p.append(qField("T bulk", ["boundary", "bulkTemperature"], "temperature"), qField("h", ["boundary", "heatTransferCoefficient"], "htc"));
     p.append(note("Bulk temperature alone is not a boundary condition: the coolant film needs a heat-transfer coefficient."));
     const gen = (result && result.errors || []).filter((i) => i.field === "/boundary"); if (gen.length) p.append(elt("div", gen.map((x) => x.message).join(" "), { class: "ferr" }));
+    if (isTransient()) renderBoundaryHistory(p, form);
   } else if (selected === "geometry") {
     p.append(sec("Radii"), qField("Fuel radius", ["geometry", "fuelRadius"], "length"), qField("Central hole (optional, insulated)", ["geometry", "fuelInnerRadius"], "length"), qField("Clad inner", ["geometry", "claddingInnerRadius"], "length"), qField("Clad outer", ["geometry", "claddingOuterRadius"], "length"));
     designView(p);
@@ -586,7 +588,7 @@ $("prof").addEventListener("mousemove", (e) => {
 $("prof").addEventListener("mouseleave", () => ($("readout").textContent = "Hover the profile for r and T"));
 
 /* ---- flow */
-function draw() { drawPin(); drawProfile(); }
+function draw() { drawPin(); drawProfile(); drawBoundaryHistoryPlot(); }
 function renderAll() { $("projName").textContent = doc ? doc.name + (doc.label ? " · " + doc.label : "") : ""; $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderProps(); renderOutput(); draw(); }
 async function runCheck(rebuildProps) {
   const my = ++seq;
@@ -596,6 +598,7 @@ async function runCheck(rebuildProps) {
   } catch (e) { result = { ok: false, errors: [{ code: "E_SERVER", severity: "error", field: "/", message: "Couldn't reach the server. Restart the app." }], warnings: [] }; }
   const active = document.activeElement; const keep = active && $("props").contains(active) && !rebuildProps ? active.id : null;
   $("caseBanner").textContent = doc && doc.mechanics ? ((result && result.mechanicsNote) || "Mechanics is on: a thermo-elastic result (linear elastic, no creep, plasticity or swelling). It does not say that anything fails or holds.") : "Thermal-only result. It says nothing about stress, failure or fuel integrity.";
+  if (doc && doc.transient && doc.transient.boundaryHistory) $("caseBanner").textContent = "The coolant side changes with time: a table this case states (an input), not a thermal-hydraulic calculation. " + $("caseBanner").textContent;
   $("burnupBanner").textContent = (result && result.burnupNote) || ""; $("burnupBanner").hidden = !(result && result.burnupNote);
   if (sweepFor !== "" && sweepFor !== JSON.stringify(doc)) { sweepData = null; sweepFor = ""; }
   $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderOutput(); draw();
@@ -1338,6 +1341,72 @@ function renderKineticsProps(p, t, info) {
     p.append(note("Generated pulse: peak <code>" + (S.peakPower / 1e6).toPrecision(4) + " MW" + "</code> (<code>" + (S.peakLinearHeatRate / 1e6).toPrecision(4) + " MW/m</code> in this pin) at <code>" + fmtT(S.timeOfPeak) + "</code>" + (S.fwhm !== null ? ", width at half maximum <code>" + fmtT(S.fwhm) + "</code>" : "") + ". Energy <code>" + (S.energyPerLength / 1e3).toFixed(2) + " kJ/m</code>; the fuel average rises <code>" + S.peakFuelRise.toFixed(1) + " K</code> if no heat leaves. " + (S.insertedDollars !== null ? "Inserted <code>$" + S.insertedDollars.toFixed(3) + "</code>. " : "") + "The history has <code>" + S.points + "</code> points (energy within <code>" + (S.energyError * 100).toFixed(3) + "%</code> of the integrated value)."));
   } else p.append(note("The pulse is generated when the inputs are complete and valid; the problems appear above and under Problems."));
 }
+/* ---- the coolant boundary as a table against time (plan 11) */
+function drawBoundaryHistory(canvas, h) {
+  const [x, w, ht] = sizeCanvas(canvas); x.clearRect(0, 0, w, ht);
+  if (!h) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show: the case is not valid yet", 14, ht / 2); return; }
+  const L = 58, Rr = 14, tmax = h.times[h.times.length - 1] || 1;
+  const degC = showDegC ? "°C" : "K";
+  const panels = h.kind === "convective"
+    ? [{ name: "T bulk", v: h.bulkTemperature.map(showT), unit: degC, color: "#52b8ff" }, { name: "h", v: h.heatTransferCoefficient, unit: "W/m²/K", color: "#f0a35e", log: Math.max(...h.heatTransferCoefficient) / Math.min(...h.heatTransferCoefficient) > 50 }]
+    : [{ name: "T wall", v: h.surfaceTemperature.map(showT), unit: degC, color: "#52b8ff" }];
+  const gap = 22, ph = (ht - 22 - gap * (panels.length - 1)) / panels.length;
+  x.font = "11px ui-monospace,Consolas,monospace";
+  panels.forEach((pn, k) => {
+    const top = 8 + k * (ph + gap), bot = top + ph - 14;
+    const vs = pn.log ? pn.v.map((v) => Math.log10(v)) : pn.v;
+    let lo = Math.min(...vs), hi = Math.max(...vs); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+    const X = (t) => L + (t / tmax) * (w - L - Rr), Y = (v) => bot - ((v - lo) / (hi - lo)) * (bot - top);
+    x.strokeStyle = "#31363d"; x.lineWidth = 1; x.beginPath(); x.moveTo(L, top); x.lineTo(L, bot); x.lineTo(w - Rr, bot); x.stroke();
+    const lab = (v) => (pn.log ? Math.pow(10, v) : v);
+    x.fillStyle = "#8c949e"; x.fillText(lab(hi - pad).toPrecision(4), 4, top + 8); x.fillText(lab(lo + pad).toPrecision(4), 4, bot);
+    x.fillStyle = pn.color; x.fillText(pn.name + " (" + pn.unit + (pn.log ? ", log" : "") + ")", L + 8, top + 10);
+    x.strokeStyle = pn.color; x.lineWidth = 1.6; x.beginPath();
+    h.times.forEach((t, i) => { const px = X(t), py = Y(vs[i]); if (i) x.lineTo(px, py); else x.moveTo(px, py); }); x.stroke();
+    x.fillStyle = pn.color; h.times.forEach((t, i) => { x.beginPath(); x.arc(X(t), Y(vs[i]), 2.4, 0, 7); x.fill(); });
+  });
+  x.fillStyle = "#8c949e";
+  for (let i = 0; i <= 4; i++) { const t = (tmax * i) / 4; x.fillText(t.toPrecision(3), L + (t / tmax) * (w - L - Rr) - 10, ht - 4); }
+  x.fillText("t (s)", w - 40, ht - 14);
+}
+function drawBoundaryHistoryPlot() {
+  const c = $("bhist"); if (!c) return;
+  drawBoundaryHistory(c, result && result.transient ? result.transient.boundaryHistory : null);
+}
+function renderBoundaryHistory(p, form) {
+  const t = doc.transient; const on = Array.isArray(t.boundaryHistory);
+  p.append(sec("Changes with time"));
+  const row = el("div", "prow"); row.append(elt("label", "Coolant side", { for: "bhOn" }));
+  const sel = elt("select", "", { id: "bhOn" });
+  sel.append(elt("option", "Constant for the run", { value: "off" }), elt("option", "A table against time", { value: "on" })); sel.value = on ? "on" : "off";
+  sel.addEventListener("change", () => {
+    if (sel.value === "on") {
+      const b = doc.boundary; const end = t.endTime ? { value: t.endTime.value, unit: t.endTime.unit } : { value: 1, unit: "s" };
+      const pt = (time) => (form === "surface" ? { time, surfaceTemperature: { ...b.surfaceTemperature } } : { time, bulkTemperature: { ...b.bulkTemperature }, heatTransferCoefficient: { ...b.heatTransferCoefficient } });
+      t.boundaryHistory = [pt({ value: 0, unit: end.unit }), pt(end)];
+    } else delete t.boundaryHistory;
+    changed(true);
+  });
+  row.append(sel); p.append(row);
+  if (!on) { p.append(note("The bulk temperature and the film coefficient above hold for the whole run. A table lets them change: a loss of cooling, a pump coastdown, a quench. Values are straight lines between points and act from the end of each time step.")); return; }
+  for (const g of (result && result.errors || [])) if (g.field === "/transient/boundaryHistory") p.append(elt("div", g.message, { class: "ferr" }));
+  for (const g of (result && result.warnings || [])) if (g.field === "/transient/boundaryHistory") p.append(note("<b>Warning:</b> " + String(g.message).replace(/</g, "&lt;")));
+  t.boundaryHistory.forEach((_, i) => {
+    const base = ["transient", "boundaryHistory", i];
+    if (form === "surface") p.append(qField("t" + (i + 1), base.concat("time"), "time"), qField("T wall" + (i + 1), base.concat("surfaceTemperature"), "temperature"));
+    else p.append(qField("t" + (i + 1), base.concat("time"), "time"), qField("T bulk" + (i + 1), base.concat("bulkTemperature"), "temperature"), qField("h" + (i + 1), base.concat("heatTransferCoefficient"), "htc"));
+  });
+  const bar = el("div", "prow note");
+  const add = elt("button", "Add point", { class: "tbtn", type: "button" });
+  add.addEventListener("click", () => { const h = t.boundaryHistory, last = h[h.length - 1]; const copy = JSON.parse(JSON.stringify(last)); copy.time = { value: (last.time.value || 0) * 1.5 || 1, unit: last.time.unit }; h.push(copy); changed(true); });
+  const rem = elt("button", "Remove last", { class: "tbtn", type: "button" });
+  rem.addEventListener("click", () => { if (t.boundaryHistory.length > 2) { t.boundaryHistory.pop(); changed(true); } });
+  bar.append(add, rem); p.append(bar);
+  const wrap = el("div", "vpwrap1"); wrap.style.cssText = "flex:none;height:230px;margin:8px 0";
+  wrap.append(elt("canvas", "", { id: "bhist", "aria-label": "The coolant boundary against time, from the table above" })); p.append(wrap);
+  p.append(note("The first point is at time 0 and the last at or after the end time. A step is two points a time step apart. " + (startsSteady() ? "This run starts from the steady state of the boundary above, so the first point must equal it. " : "") + "Between two saved outputs a brief change is not seen by the checks (the validator warns). The table is an input: FEED does not compute a boiling curve or a flow."));
+  requestAnimationFrame(drawBoundaryHistoryPlot);
+}
 function renderTransientProps(p) {
   const t = doc.transient || {};
   const initialKind = el("div", "prow"); initialKind.append(elt("label", "Starts from", { for: "initialKind" }));
@@ -1629,12 +1698,15 @@ function renderResults() {
   $("rTitle").textContent = d ? (d.record.caseName || d.record.caseId) + " · " + d.record.id : "No run selected";
   const pr = $("props"); pr.replaceChildren(); $("propSub").textContent = d ? "Run " + d.record.id : "";
   $("rmechWrap").hidden = true; $("rdispWrap").hidden = true;
+  const bh = d && d.normalized && d.normalized.transient && d.normalized.transient.boundaryHistory;
+  $("rbndWrap").hidden = !bh; if (bh) requestAnimationFrame(() => drawBoundaryHistory($("rbnd"), bh));
   if (!d) { drawGeneric($("rprof"), null); $("rBanner").hidden = true; return; }
   const rec = d.record;
   $("rBanner").hidden = false;
   const ood = d.results && d.results.domain && d.results.domain.verdict === "out-of-domain";
   $("rBanner").textContent = d.results ? (ood ? "OUT OF PROPERTY RANGE: a conductivity law was used outside the range it is stated for, so this is not a valid result. " : "") + d.results.thermalOnly : "No result: this run is " + rec.state + ".";
   const warns = (d.manifest && d.manifest.warnings) || [];
+  if (d.results && d.normalized && d.normalized.transient && d.normalized.transient.boundaryHistory) $("rBanner").textContent = "The coolant side changed with time (a table the case stated, not a calculation). " + $("rBanner").textContent;
   if (d.results && warns.length) $("rBanner").textContent += "  WARNING at run time: " + warns.map((w) => w.code + " (" + w.message + ")").join("; ");
   $("rBanner").style.color = ood ? "var(--err)" : ""; $("rBanner").style.background = ood ? "rgba(240,117,117,.12)" : "";
   if (d.results && d.results.kind === "transient") { renderTransientResults(d, m); }
