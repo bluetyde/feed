@@ -1393,6 +1393,12 @@
     "valid": true
   },
   {
+    "file": "bad/axial-steady-start-peak-slice-outside-heat-capacity-range.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/initialSteadyLinearHeatRate"
+  },
+  {
     "file": "bad/axial-with-point-kinetics.json",
     "valid": false,
     "code": "E_UNSUPPORTED",

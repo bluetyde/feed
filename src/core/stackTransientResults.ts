@@ -41,8 +41,8 @@ export interface StackTransientRecord extends TransientResultsRecord {
     /** The slice with the hottest peak over the run: the record's own series, profiles, summary and cells are that slice's. */
     hottest: number;
     conduction: { fraction: number } | null;
-    /** What was added to each slice's tolerances: a fraction of the slice's rise on the cross-check, and (relative to the slice's own power, scaled by the shape) on the energy balance. */
-    allowance: { fraction: number; energy: number };
+    /** What was added to each slice's tolerances: kelvin on the cross-check, and on the energy balance a fraction of the slice's own energy (this is for the slice of the largest factor; the others scale with the ratio of the largest factor to their own). */
+    allowance: { field: number; energy: number };
   };
 }
 
@@ -82,15 +82,22 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
   const summary = axialSummary(c)!;
   const fraction = summary.conduction?.fraction ?? 0;
   const maxFactor = Math.max(...loads.map((l) => l.factor));
-  // the allowance on the cross-check is a fraction of each slice's own rise (the transient's rise is the independent solution's, not the steady one at the history's peak)
+  // The axial conduction is an effect of the whole pin: it is a fraction of the LARGEST rise of any slice (as for the steady stack), not of the slice's own, which is small at an end.
+  // The rise of a slice is the independent solution's peak over the whole run above its coolant (a steady start's peak and a pulse's included); the steady-state estimate of the
+  // fraction is used. A stack that starts from a steady state starts every slice at its own one-dimensional steady state and the solver's coupled state differs from it by the
+  // axial conduction, so the run relaxes toward it: that is part of what the allowance covers (measured, docs/axial-stack.md).
   const widen = AXIAL_TOLERANCE_FACTOR * fraction;
+  const solutions = sets ?? computeIndependentStack(c);
+  const refOf = (b: NormalizedCase["boundary"]) => (b.kind === "convective" ? b.bulkTemperature : b.surfaceTemperature);
+  const largestRise = Math.max(...solutions.map((s, k) => Math.max(...s.fv.trace!.peakByStep) - refOf(loads[k]!.boundary)));
+  const field = widen * Math.max(largestRise, 1);
 
   const recs: TransientResultsRecord[] = [];
   for (let k = 0; k < N; k++) {
     const sc = sliceCase(c, loads[k]!);
-    const allow: TransientAllowance = { fraction: widen, energy: loads[k]!.factor > 0 ? (AXIAL_TOLERANCE_FACTOR * fraction * maxFactor) / loads[k]!.factor : 0 };
+    const allow: TransientAllowance = { field, energy: loads[k]!.factor > 0 ? (AXIAL_TOLERANCE_FACTOR * fraction * maxFactor) / loads[k]!.factor : 0 };
     const Ck = foamVector([...fi(k), ...ci(k)].map((i) => C[i]!));
-    recs.push(buildTransientResults(sc, { C: Ck, fields: perSliceFields[k]! }, sets?.[k], allow));
+    recs.push(buildTransientResults(sc, { C: Ck, fields: perSliceFields[k]! }, solutions[k], allow));
   }
 
   const ids: string[] = [];
@@ -123,7 +130,7 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
     value: fraction,
     unit: "relative",
     verdict: "na",
-    note: summary.conduction ? `the steady estimate is ${(fraction * 100).toPrecision(3)} % of the largest rise (src/core/axial.ts); the per-slice cross-check is widened by ${AXIAL_TOLERANCE_FACTOR} times it as a fraction of the slice's rise, and the per-slice energy balance by ${AXIAL_TOLERANCE_FACTOR} times it as a fraction of the slice's own power (the end slices make little heat and take a larger share). A transient's axial flow is not larger than the steady one for the same shape, but it was measured on the real solver only in the tests of docs/axial-stack.md` : "no estimate could be made; the per-slice tolerances are the one-dimensional ones",
+    note: summary.conduction ? `the steady estimate is ${(fraction * 100).toPrecision(3)} % of the largest rise (src/core/axial.ts); the per-slice cross-check is widened by ${AXIAL_TOLERANCE_FACTOR} times it as a fraction of the largest rise of any slice (${field.toPrecision(3)} K), and the per-slice energy balance by ${AXIAL_TOLERANCE_FACTOR} times it as a fraction of the slice's own power (the end slices make little heat and take a larger share). A transient's axial flow is not larger than the steady one for the same shape, but it was measured on the real solver only in the tests of docs/axial-stack.md` : "no estimate could be made; the per-slice tolerances are the one-dimensional ones",
   });
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value})`);
 
@@ -140,6 +147,6 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
     checks,
     domain: { verdict: findings.length ? "out-of-domain" : "in-domain", findings },
     thermalOnly: THERMAL_ONLY_TEXT + " " + STACK_TEXT,
-    axial: { length: a.length, slices, hottest, conduction: summary.conduction ? { fraction } : null, allowance: { fraction: widen, energy: widen } },
+    axial: { length: a.length, slices, hottest, conduction: summary.conduction ? { fraction } : null, allowance: { field, energy: widen } },
   };
 }

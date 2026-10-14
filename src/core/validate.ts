@@ -566,7 +566,7 @@ export function validateCase(doc: unknown): ValidationResult {
           const hi = Math.max(...part);
           if (lo < cp.range[0] || hi > cp.range[1]) {
             result.ok = false;
-            result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/transient/initialSteadyLinearHeatRate", message: "the steady state at " + tn.initial.linearHeatRate + " W/m puts the " + region + " at " + lo.toFixed(0) + " to " + hi.toFixed(0) + " K, outside the stated range of its heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", unit: "K", range: cp.range });
+            result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/transient/initialSteadyLinearHeatRate", message: "the steady state at " + tn.initial.linearHeatRate + " W/m" + (n.axial ? " on average (each slice starts at its own: up to " + (tn.initial.linearHeatRate * Math.max(...sliceLoads(n).map((l) => l.factor))).toFixed(0) + " W/m)" : "") + " puts the " + region + " at " + lo.toFixed(0) + " to " + hi.toFixed(0) + " K, outside the stated range of its heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", unit: "K", range: cp.range });
             delete result.normalized;
             break;
           }
