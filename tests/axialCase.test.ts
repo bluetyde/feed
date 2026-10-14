@@ -57,6 +57,21 @@ describe("what each slice is given", () => {
     const flat = sliceLoads(norm(stack({ length: q(1, "m"), slices: 5, powerShape: { kind: "flat" } }))).map((l) => l.linearHeatRate);
     flat.forEach((x) => expect(x).toBeCloseTo(20000, 6));
   });
+  it("a shape that is not symmetric keeps its orientation: the bottom of the table is the bottom of the pin, and the mirrored shape gives the mirrored loads (a symmetric case cannot show a flip)", () => {
+    const ramp = (rows: number[][]) => ({ length: q(1, "m"), slices: 5, powerShape: { kind: "table", points: rows.map(([z, r]) => ({ position: q(z!, "m"), relativePower: q(r!, "1") })) } });
+    const up = sliceLoads(norm(stack(ramp([[0, 0.5], [1, 1.5]])))).map((l) => l.linearHeatRate);
+    const down = sliceLoads(norm(stack(ramp([[0, 1.5], [1, 0.5]])))).map((l) => l.linearHeatRate);
+    expect(up[0]!).toBeLessThan(up[4]!);
+    expect(down[0]!).toBeGreaterThan(down[4]!);
+    up.forEach((x, k) => expect(x).toBeCloseTo(down[4 - k]!, 6));
+  });
+  it("the conduction estimate sees a spike in the shape wherever it is, including the last interior slice, and a mirrored shape gives the same estimate", () => {
+    const spike = (zs: number[]) => ({ length: q(1, "m"), slices: 10, powerShape: { kind: "table", points: zs.map((z, i) => ({ position: q(z, "m"), relativePower: q([1, 1, 3, 1, 1][i]!, "1") })) } });
+    const nearTop = axialConductionEstimate(norm(stack(spike([0, 0.75, 0.85, 0.95, 1]))))!.fraction;
+    const nearBottom = axialConductionEstimate(norm(stack(spike([0, 0.05, 0.15, 0.25, 1]))))!.fraction;
+    expect(nearTop).toBeGreaterThan(0);
+    expect(Math.abs(nearTop / nearBottom - 1)).toBeLessThan(1e-9);
+  });
   it("a coolant table is interpolated at the slice centres, in metres from the bottom; without one every slice has the case's own boundary", () => {
     const withTable = norm(stack({ ...cosine(0.381), boundary: [{ height: q(0, "m"), bulkTemperature: q(573, "K"), heatTransferCoefficient: q(30000, "W/m2/K") }, { height: q(0.381, "m"), bulkTemperature: q(673, "K"), heatTransferCoefficient: q(30000, "W/m2/K") }] }));
     sliceLoads(withTable).forEach((l, k) => {
