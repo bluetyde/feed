@@ -308,6 +308,8 @@ export function normalizedShape(a: AxialSpec): { locations: number[]; data: numb
 export interface SliceLoad {
   index: number;
   height: number;
+  /** The shape at the slice's centre relative to the average (the normalised table interpolated there): the factor on every heat rate of the case. */
+  factor: number;
   linearHeatRate: number;
   boundary: NormalizedCase["boundary"];
 }
@@ -319,11 +321,12 @@ export function sliceLoads(c: NormalizedCase): SliceLoad[] {
   const out: SliceLoad[] = [];
   for (let k = 0; k < a.slices; k++) {
     const z = ((k + 0.5) * a.length) / a.slices;
-    const q = c.qPrime * interpolate(shape.locations, shape.data, z / a.length);
+    const factor = interpolate(shape.locations, shape.data, z / a.length);
+    const q = c.qPrime * factor;
     let boundary: NormalizedCase["boundary"] = c.boundary;
     const b = a.boundary;
     if (b) boundary = b.kind === "convective" ? { kind: "convective", bulkTemperature: interpolate(b.heights, b.bulkTemperature, z), heatTransferCoefficient: interpolate(b.heights, b.heatTransferCoefficient, z) } : { kind: "surface-temperature", surfaceTemperature: interpolate(b.heights, b.surfaceTemperature, z) };
-    out.push({ index: k, height: z, linearHeatRate: q, boundary });
+    out.push({ index: k, height: z, factor, linearHeatRate: q, boundary });
   }
   return out;
 }
@@ -331,7 +334,15 @@ export function sliceLoads(c: NormalizedCase): SliceLoad[] {
 /** The case of one slice: the same pin with the slice's heat rate and coolant, and no axial section (what a one-dimensional solution is given). */
 export function sliceCase(c: NormalizedCase, load: SliceLoad): NormalizedCase {
   const { axial: _axial, ...rest } = c;
-  return { ...rest, qPrime: load.linearHeatRate, boundary: load.boundary };
+  const t = c.transient;
+  // a transient stack: the slice's power history is the case's (average) history times the slice's factor, and a steady start is at the slice's own heat rate
+  const transient = t ? { ...t, linearHeatRate: t.linearHeatRate.map((x) => x * load.factor), initial: t.initial.kind === "steady" ? { kind: "steady" as const, linearHeatRate: t.initial.linearHeatRate * load.factor } : t.initial } : undefined;
+  return { ...rest, qPrime: load.linearHeatRate, boundary: load.boundary, ...(transient ? { transient } : {}) };
+}
+
+/** The slice with the largest heat rate: the one a single-slice preview or an end time is judged on. */
+export function hottestLoad(c: NormalizedCase): SliceLoad {
+  return sliceLoads(c).reduce((m, l) => (l.linearHeatRate > m.linearHeatRate ? l : m));
 }
 
 export interface AxialEstimate {

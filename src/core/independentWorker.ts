@@ -2,6 +2,8 @@
 // off the server's thread and posts the answer once. Nothing else lives here: the numerics are in transientResults.ts and transientFv.ts.
 
 import { parentPort, workerData } from "worker_threads";
+import { hottestLoad, sliceCase } from "./axial";
+import { computeIndependentStack } from "./stackTransientResults";
 import { computeIndependent, independentSolution } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
@@ -14,7 +16,7 @@ interface Job {
 const job = workerData as Job;
 const t0 = Date.now();
 try {
-  const set = job.what === "full" ? computeIndependent(job.c) : { fv: independentSolution(job.c) };
+  const set = job.what === "full" ? (job.c.axial ? computeIndependentStack(job.c) : computeIndependent(job.c)) : { fv: independentSolution(job.c.axial ? sliceCase(job.c, hottestLoad(job.c)) : job.c) };
   parentPort!.postMessage({ ok: true, set, ms: Date.now() - t0 });
 } catch (e) {
   parentPort!.postMessage({ ok: false, message: String((e as Error).message), ms: Date.now() - t0 });

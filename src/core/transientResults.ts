@@ -245,7 +245,13 @@ export function downsample(g: GeneratedPulse) {
   return { time: pick(g.trace.time), power: pick(g.trace.power), reactivity: pick(g.trace.reactivity), fuelTemperature: pick(g.trace.fuelTemperature) };
 }
 
-export function buildTransientResults(c: NormalizedCase, input: TransientInput, independent?: IndependentSet): TransientResultsRecord {
+/** What a stack adds to the tolerances of one slice's transient checks for the axial conduction (src/core/stackTransientResults.ts): a fraction of the slice's rise on the cross-check and a relative amount on the energy balance. */
+export interface TransientAllowance {
+  fraction: number;
+  energy: number;
+}
+
+export function buildTransientResults(c: NormalizedCase, input: TransientInput, independent?: IndependentSet, allow?: TransientAllowance): TransientResultsRecord {
   const tr = c.transient;
   if (!tr || !c.fuelHeatCapacity || !c.claddingHeatCapacity) bad("the case is not a transient");
   const t = tr!;
@@ -366,7 +372,7 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
     const worst = hist
       ? historyEnergyWorst(series.deposited, series.stored, series.rejected)
       : Math.max(...times.map((_, j) => (throughput(j) > 0 ? Math.abs(series.deposited[j]! - series.stored[j]! - series.rejected[j]!) / throughput(j) : 0)));
-    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the ${hist ? "largest of the energy deposited, rejected and stored anywhere in the run (a boundary history: the energies can cross zero, and the heat leaving can change within a few steps between outputs)" : steadyStart ? "largest of the energy deposited, rejected and stored so far (the run starts from a steady operating state)" : "energy deposited so far"}. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
+    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE + (allow?.energy ?? 0) ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${(100 * (ENERGY_BALANCE_TOLERANCE + (allow?.energy ?? 0))).toPrecision(3)}% of the ${hist ? "largest of the energy deposited, rejected and stored anywhere in the run (a boundary history: the energies can cross zero, and the heat leaving can change within a few steps between outputs)" : steadyStart ? "largest of the energy deposited, rejected and stored so far (the run starts from a steady operating state)" : "energy deposited so far"}. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
   }
 
   // independent solution: same mesh and step (cross-check), double mesh (spatial error of the independent solution), half step (time error)
@@ -429,8 +435,8 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const field = hist ? fieldTimeError(fv, fvh, init) : { err: 0, scale: 0 };
   const fieldErr = field.err;
   const fieldScale = field.scale;
-  const crossBound = Math.min(CROSS_CHECK_SPATIAL_FACTOR * spatial, CROSS_CHECK_RISE_FRACTION * Math.max(scaleRise, 1)) + CROSS_CHECK_FLOOR;
-  checks.push({ id: "crossCheckFv", label: "OFFBEAT vs the independent finite-volume solution (max cell deviation)", value: cross, unit: "K", verdict: cross <= crossBound ? "pass" : "fail", note: `largest at t = ${crossAt} s; bound ${crossBound.toFixed(3)} K = min(${CROSS_CHECK_SPATIAL_FACTOR} x ${spatial.toFixed(3)} K [the independent solution's own change when its cells are halved], ${CROSS_CHECK_RISE_FRACTION * 100}% of the peak rise) + ${CROSS_CHECK_FLOOR} K` });
+  const crossBound = Math.min(CROSS_CHECK_SPATIAL_FACTOR * spatial, CROSS_CHECK_RISE_FRACTION * Math.max(scaleRise, 1)) + CROSS_CHECK_FLOOR + (allow?.fraction ?? 0) * Math.max(scaleRise, 1);
+  checks.push({ id: "crossCheckFv", label: "OFFBEAT vs the independent finite-volume solution (max cell deviation)", value: cross, unit: "K", verdict: cross <= crossBound ? "pass" : "fail", note: `largest at t = ${crossAt} s; bound ${crossBound.toFixed(3)} K = min(${CROSS_CHECK_SPATIAL_FACTOR} x ${spatial.toFixed(3)} K [the independent solution's own change when its cells are halved], ${CROSS_CHECK_RISE_FRACTION * 100}% of the peak rise) + ${CROSS_CHECK_FLOOR} K${allow && allow.fraction > 0 ? ` + ${((allow.fraction) * Math.max(scaleRise, 1)).toPrecision(3)} K for the heat flow along the pin (an axial stack: ${(allow.fraction * 100).toPrecision(3)} % of the rise)` : ""}` });
   // the independent run with half the step shows how much the time stepping (first order, as OFFBEAT's) is worth
   const timeBound = TIME_STEP_TOLERANCE * Math.max(scaleRise, 1);
   const fieldBound = TIME_STEP_TOLERANCE * Math.max(fieldScale, 1);

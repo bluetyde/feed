@@ -9,7 +9,7 @@ import { createServer, IncomingMessage, ServerResponse } from "http";
 import { AddressInfo } from "net";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
-import { axialSummary, sliceCase, sliceLoads } from "../core/axial";
+import { axialSummary, hottestLoad, sliceCase, sliceLoads } from "../core/axial";
 import { quickLook, radialProfile } from "../core/quickLook";
 import { projectRoot, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
@@ -194,7 +194,8 @@ export async function checkAsync(doc: unknown, previewDeadlineMs = PREVIEW_DEADL
   const v = validateCase(doc);
   let external: { fv: FvTransient | null; skipped?: string } | undefined;
   if (v.normalized?.transient && !previewTooBig(v.normalized)) {
-    const o = await independent.start(v.normalized, { what: "single", deadlineMs: previewDeadlineMs, supersede: true }).done;
+    // a stack's preview is the hottest slice's
+    const o = await independent.start(v.normalized.axial ? sliceCase(v.normalized, hottestLoad(v.normalized)) : v.normalized, { what: "single", deadlineMs: previewDeadlineMs, supersede: true }).done;
     external = o.ok ? { fv: (o.set as { fv: FvTransient }).fv } : { fv: null, skipped: o.reason === "superseded" ? "a newer edit replaced this preview before it started" : "the preview was skipped: " + o.message };
   }
   return checkWith(v, external);
@@ -210,7 +211,8 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
       errors: v.errors,
       warnings: v.warnings,
       normalized: slim(n),
-      transient: transientPreview(n, external),
+      transient: transientPreview(n.axial ? sliceCase(n, hottestLoad(n)) : n, external),
+      ...(n.axial ? { axial: axialSummary(n) } : {}),
       derived: {
         volumetricPower: n.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
         gapThickness: n.claddingInnerRadius - n.fuelRadius,

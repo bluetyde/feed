@@ -11,6 +11,7 @@ import { judgeConvergence, judgeMechanicsConvergence, readCriterion, readMechani
 import { lastRelativeRate } from "./steadyState";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
 import { buildStackResults } from "./stackResults";
+import { buildStackTransientResults } from "./stackTransientResults";
 import { IndependentHandle, IndependentRunner } from "./independentRunner";
 import { IndependentSet, buildTransientResults, TransientResultsRecord } from "./transientResults";
 import { Issue, validateCase } from "./validate";
@@ -421,7 +422,7 @@ export class RunManager {
         }
         if (!ind.ok) return fail({ code: "E_VERIFY_INCOMPLETE", message: "The solver finished, but its result could not be verified: " + ind.message + ". Without the independent cross-check and time-step error the result is not accepted. Use a coarser mesh or a longer time step, or raise the deadline; the solver's own output is in the run folder.", native });
         r.notes.push(`The independent finite-volume runs took ${(ind.ms / 1000).toFixed(1)} s in ${ind.mode === "worker" ? "a worker thread" : "the server's own thread (no compiled worker was found, so no deadline applied)"}.`);
-        const tr = buildTransientResults(normalized, { C, fields }, ind.set as IndependentSet);
+        const tr = normalized.axial ? buildStackTransientResults(normalized, { C, fields }, ind.set as IndependentSet[]) : buildTransientResults(normalized, { C, fields }, ind.set as IndependentSet);
         atomicWrite(join(dir, "results.json"), JSON.stringify(tr, null, 2) + "\n");
         r.headline = { centreCellT: tr.summary.maxT, claddingOuterWallT: tr.series.claddingOuterWallT[tr.series.claddingOuterWallT.length - 1]!, transient: true };
         r.state = "completed";
