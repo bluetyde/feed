@@ -142,3 +142,21 @@ describe.skipIf(!solverOn)("the checks fail when the history the result is judge
     expect(held.checks.find((c) => c.id === "crossCheckFv")!.verdict, "the first level held").toBe("fail");
   }, 300_000);
 });
+
+describe.skipIf(!solverOn)("the time-step check looks at every cell and the wall (Codex review 2026-10-14)", () => {
+  it("a brief dip of the wall temperature on a hot pin: the hottest cell hardly moves between the step and half the step, the cladding does, and the check fails with the field named", async () => {
+    const d = JSON.parse(readFileSync(join(root, "examples/synthetic-pulse.json"), "utf8"));
+    d.boundary = { surfaceTemperature: q(900, "K") };
+    d.mesh = { fuelCells: 20, claddingCells: 6 };
+    d.transient = {
+      powerHistory: [{ time: q(0, "s"), linearHeatRate: q(20, "kW/m") }, { time: q(20, "s"), linearHeatRate: q(20, "kW/m") }],
+      endTime: q(20, "s"), timeStep: q(1, "s"), outputs: 20, initialSteadyLinearHeatRate: q(20, "kW/m"),
+      boundaryHistory: [0, 9, 10, 11, 20].map((s) => ({ time: q(s, "s"), surfaceTemperature: q(s === 10 ? 800 : 900, "K") })),
+    };
+    const { res } = await run(d);
+    const c = res.checks.find((x) => x.id === "timeStep")!;
+    expect(c.verdict).toBe("fail");
+    expect(c.note).toMatch(/every cell and the outer wall are compared at each output too: at most [\d.]+ K, threshold 2% of the largest excursion of any cell \(2\.00 K\)/);
+    expect(c.note).toMatch(/the peak changes by at most 2\.\d+ K/);
+  }, 300_000);
+});

@@ -86,3 +86,21 @@ describe("the time-step check over every cell and the wall", () => {
     expect(f.err).toBe(0);
   });
 });
+
+describe("fieldTimeError by hand", () => {
+  const st = (T: number[], wall: number) => ({ time: 0, T, deposited: 0, rejected: 0, wall });
+  const run = (states: ReturnType<typeof st>[]) => ({ r: [], states }) as any;
+  it("takes the largest difference over the cells and the wall, and the largest excursion of any cell or the wall from its start", () => {
+    const init = { T: [600, 600, 600], wall: 600 };
+    const coarse = run([st([600, 600, 600], 600), st([650, 640, 610], 620)]);
+    const fine = run([st([600, 600, 600], 600), st([649, 643, 611], 600)]);
+    const f = fieldTimeError(coarse, fine, init);
+    expect(f.err).toBe(20); // the wall: 620 against 600
+    expect(f.scale).toBe(50); // the first cell: 650 against 600
+    // a cell difference larger than the wall's
+    const fine2 = run([st([600, 600, 600], 600), st([640, 643, 611], 619)]);
+    expect(fieldTimeError(coarse, fine2, init).err).toBe(10);
+    // a wall excursion larger than any cell's
+    expect(fieldTimeError(run([st([600, 600, 600], 600), st([601, 601, 601], 900)]), fine, init).scale).toBe(300);
+  });
+});
