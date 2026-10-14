@@ -1,0 +1,319 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "synthetic-coastdown",
+  "name": "Synthetic pin: loss of pumping with a scram (illustrative numbers, not a real fuel design)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": false,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.18,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 300,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the adiabatic-limit oracle"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 15,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 2.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the oracle"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 6
+  },
+  "description": "The synthetic pin at a steady 20 kW/m with its 300 K coolant at 30 kW/m2/K (the starting state is that steady state). At 2 s the pumps trip: the flow coasts down with a 5 s half time, so the film coefficient follows flow^0.8 (ASSUMED exponent, the usual turbulent-flow scaling) down to a floor of 15 % of its value (natural circulation, also ASSUMED), and the coolant temperature rises 60 K over the minute (the heat is carried off more slowly). The reactor scrams at 3 s: the heat rate falls to an ASSUMED 7 % in 1 s and then decays (1.2 kW/m at 20 s, 0.6 kW/m at 60 s). The history is a handful of straight pieces through those assumed curves, not a thermal-hydraulic calculation. Synthetic heat capacities; thermal only; the power and boundary histories are inputs.",
+  "transient": {
+    "powerHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 20,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 3,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 20,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 4,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 1.4,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 20,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 1.2,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 60,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 0.6,
+          "unit": "kW/m"
+        }
+      }
+    ],
+    "endTime": {
+      "value": 60,
+      "unit": "s"
+    },
+    "timeStep": {
+      "value": 0.05,
+      "unit": "s"
+    },
+    "outputs": 60,
+    "initialSteadyLinearHeatRate": {
+      "value": 20,
+      "unit": "kW/m"
+    },
+    "boundaryHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 300,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 30000.0,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 2,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 300,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 30000.0,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 4,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 302.07,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 24032.1,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 6,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 304.14,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 19251.4,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 8,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 306.21,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 15421.7,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 12,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 310.34,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 9896.3,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 20,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 318.62,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 4500.0,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 30,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 328.97,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 4500.0,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 45,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 344.48,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 4500.0,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 60,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 360,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 4500.0,
+          "unit": "W/m2/K"
+        }
+      }
+    ]
+  }
+}

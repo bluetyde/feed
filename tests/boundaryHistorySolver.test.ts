@@ -116,6 +116,31 @@ describe.skipIf(!solverOn)("a transient with a changing boundary through the rea
     const { res } = await run(d);
     expect(failing(res)).toEqual([]);
   }, 300_000);
+
+  const quench = (outputs: number) => {
+    const d = JSON.parse(readFileSync(join(root, "examples/synthetic-pulse.json"), "utf8"));
+    d.mesh = { fuelCells: 20, claddingCells: 6 };
+    d.boundary = { bulkTemperature: q(600, "K"), heatTransferCoefficient: q(100, "W/m2/K") };
+    d.transient = {
+      powerHistory: [{ time: q(0, "s"), linearHeatRate: q(0, "W/m") }, { time: q(60, "s"), linearHeatRate: q(0, "W/m") }],
+      endTime: q(60, "s"), timeStep: q(0.05, "s"), outputs, initialTemperature: q(1000, "K"),
+      boundaryHistory: [pt(0, 600, 100), pt(20, 600, 100), pt(21, 300, 20000), pt(60, 300, 20000)],
+    };
+    return d;
+  };
+
+  it("a quench: a hot unheated pin cooled slowly then flooded (the film coefficient rises 200-fold and the coolant is cold); every check passes and the pin ends near the coolant", async () => {
+    const d = quench(120);
+    const { res } = await run(d);
+    expect(failing(res)).toEqual([]);
+    expect(res.series.peakT[res.series.peakT.length - 1]!).toBeLessThan(330);
+    expect(res.series.peakT[Math.round(res.series.peakT.length / 4)]!).toBeGreaterThan(800);
+  }, 300_000);
+
+  it("the same quench with only 60 outputs (the film steps inside one 1 s interval and the wall falls between two outputs): the energy balance cannot be closed from the outputs and says so, which is the limit documented", async () => {
+    const { res } = await run(quench(60));
+    expect(failing(res).map((s) => s.split(" ")[0])).toEqual(["energyBalance"]);
+  }, 300_000);
 });
 
 describe.skipIf(!solverOn)("the checks fail when the history the result is judged against is not the one that was run", () => {
