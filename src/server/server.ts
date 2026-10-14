@@ -9,6 +9,7 @@ import { createServer, IncomingMessage, ServerResponse } from "http";
 import { AddressInfo } from "net";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
+import { axialSummary, sliceCase, sliceLoads } from "../core/axial";
 import { quickLook, radialProfile } from "../core/quickLook";
 import { projectRoot, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
@@ -218,7 +219,10 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
       },
     };
   }
-  const look = quickLook(n);
+  const stack = axialSummary(n);
+  // a stack: the quick look and the profile are those of the hottest slice (one-dimensional closed form, no axial conduction); the per-slice table is in `axial`
+  const hot = stack ? sliceCase(n, sliceLoads(n)[stack.hottest]!) : n;
+  const look = quickLook(hot);
   const eff = effectiveMechanics(n);
   return {
     ok: true,
@@ -231,11 +235,12 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
     // what a burnup result is and is not, for the banner while the case is edited (the same words as in every result)
     ...(n.burnup ? { burnupNote: burnupText(n.burnup.value) } : {}),
     quick: look,
-    profile: radialProfile(n, look),
+    profile: radialProfile(hot, look),
+    ...(stack ? { axial: stack } : {}),
     derived: {
-      volumetricPower: n.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
+      volumetricPower: hot.qPrime / (Math.PI * (n.fuelRadius ** 2 - n.fuelInnerRadius ** 2)),
       gapThickness: n.claddingInnerRadius - n.fuelRadius,
-      outerSurfaceHeatFlux: n.qPrime / (2 * Math.PI * n.claddingOuterRadius),
+      outerSurfaceHeatFlux: hot.qPrime / (2 * Math.PI * n.claddingOuterRadius),
       design: designOf(n),
     },
   };
