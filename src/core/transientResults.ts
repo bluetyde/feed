@@ -201,6 +201,36 @@ export function computeIndependent(c: NormalizedCase): IndependentSet {
 }
 
 /**
+ * The worst relative gap of the energy balance with a boundary history, against the largest energy exchanged ANYWHERE in the run. The stored and the rejected energy can pass through
+ * zero (a pin that cools then warms) and the heat leaving can change within a few steps between outputs (the trapezoid of that interval misses up to half of its exchange), so a
+ * gap is not judged against the energy exchanged at that moment. A local gross bound was tried (the Codex review of 2026-10-14 asked for one) and cannot be told from that
+ * unresolved jump by energy alone (an early gap of the size of the early exchange is exactly what a jump inside the first output interval looks like); a wrong early FIELD is caught
+ * by the cross-check, which compares every cell at every output, not by this balance.
+ */
+export function historyEnergyWorst(deposited: number[], stored: number[], rejected: number[]): number {
+  const whole = Math.max(...deposited.map((d, j) => Math.max(d, Math.abs(rejected[j]!), Math.abs(stored[j]!))));
+  if (!(whole > 0)) return 0;
+  return Math.max(...deposited.map((d, j) => Math.abs(d - stored[j]! - rejected[j]!) / whole));
+}
+
+/** The step against half step difference over every cell and the outer wall at each output, and the largest excursion of any cell or the wall from its start (the scale of its bound). */
+export function fieldTimeError(fv: FvTransient, fvh: FvTransient, init: { T: number[]; wall: number }): { err: number; scale: number } {
+  let err = 0;
+  let scale = 0;
+  fv.states.forEach((s, j) => {
+    const sf = fvh.states[j];
+    if (!sf) return;
+    s.T.forEach((x, i) => {
+      err = Math.max(err, Math.abs(x - sf.T[i]!));
+      scale = Math.max(scale, Math.abs(x - init.T[i]!));
+    });
+    err = Math.max(err, Math.abs(s.wall - sf.wall));
+    scale = Math.max(scale, Math.abs(s.wall - init.wall));
+  });
+  return { err, scale };
+}
+
+/**
  * Build the transient results record. Throws ResultsError for anything that is not a complete, finite, consistent set of fields:
  * wrong cell count or write times, non-finite or non-positive temperatures, a file cut short, a missing wall value.
  */
@@ -328,14 +358,14 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   // From a uniform start the balance is judged against the energy deposited so far. From a steady operating state the heat made and the heat leaving are both large and
   // nearly equal (and a shutdown deposits nothing), so it is judged against the largest of the energy deposited, rejected and stored so far.
   const steadyStart = t.initial.kind === "steady" || hist !== undefined;
-  const instantThroughput = (j: number) => Math.max(series.deposited[j]!, Math.abs(series.rejected[j]!), Math.abs(series.stored[j]!));
   // With a boundary history the stored and the rejected energy can pass through zero (a pin that cools and then warms), and the heat leaving can jump within a few steps while the
   // outputs are seconds apart (a wall that starts to move: the trapezoid of the first interval misses half of it). The gap is then judged against the largest energy exchanged
   // anywhere in the run, not the value at that moment.
-  const wholeRun = hist ? Math.max(...series.time.map((_, i) => instantThroughput(i))) : 0;
-  const throughput = (j: number) => (hist ? wholeRun : steadyStart ? Math.max(series.deposited[j]!, series.rejected[j]!, Math.abs(series.stored[j]!)) : series.deposited[j]!);
+  const throughput = (j: number) => (hist ? 1 : steadyStart ? Math.max(series.deposited[j]!, series.rejected[j]!, Math.abs(series.stored[j]!)) : series.deposited[j]!);
   if (throughput(k) > 0) {
-    const worst = Math.max(...times.map((_, j) => (throughput(j) > 0 ? Math.abs(series.deposited[j]! - series.stored[j]! - series.rejected[j]!) / throughput(j) : 0)));
+    const worst = hist
+      ? historyEnergyWorst(series.deposited, series.stored, series.rejected)
+      : Math.max(...times.map((_, j) => (throughput(j) > 0 ? Math.abs(series.deposited[j]! - series.stored[j]! - series.rejected[j]!) / throughput(j) : 0)));
     checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the ${hist ? "largest of the energy deposited, rejected and stored anywhere in the run (a boundary history: the energies can cross zero, and the heat leaving can change within a few steps between outputs)" : steadyStart ? "largest of the energy deposited, rejected and stored so far (the run starts from a steady operating state)" : "energy deposited so far"}. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
   }
 
@@ -394,11 +424,18 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const coarse = fv.trace!.peakByStep;
   const fine = fvh.trace!.peakByStep;
   for (let j = 0; j < coarse.length; j++) timeErr = Math.max(timeErr, Math.abs(coarse[j]! - fine[2 * j]!));
+  // A boundary history can act on the cladding while the hottest cell, in the fuel, hardly moves: the step against half step difference is then also taken over every cell and the
+  // outer wall at each output, against the largest excursion of any cell from its start (Codex review 2026-10-14).
+  const field = hist ? fieldTimeError(fv, fvh, init) : { err: 0, scale: 0 };
+  const fieldErr = field.err;
+  const fieldScale = field.scale;
   const crossBound = Math.min(CROSS_CHECK_SPATIAL_FACTOR * spatial, CROSS_CHECK_RISE_FRACTION * Math.max(scaleRise, 1)) + CROSS_CHECK_FLOOR;
   checks.push({ id: "crossCheckFv", label: "OFFBEAT vs the independent finite-volume solution (max cell deviation)", value: cross, unit: "K", verdict: cross <= crossBound ? "pass" : "fail", note: `largest at t = ${crossAt} s; bound ${crossBound.toFixed(3)} K = min(${CROSS_CHECK_SPATIAL_FACTOR} x ${spatial.toFixed(3)} K [the independent solution's own change when its cells are halved], ${CROSS_CHECK_RISE_FRACTION * 100}% of the peak rise) + ${CROSS_CHECK_FLOOR} K` });
   // the independent run with half the step shows how much the time stepping (first order, as OFFBEAT's) is worth
   const timeBound = TIME_STEP_TOLERANCE * Math.max(scaleRise, 1);
-  checks.push({ id: "timeStep", label: "Time-stepping error of the peak temperature (step vs half step)", value: timeErr, unit: "K", verdict: timeErr <= timeBound ? "pass" : "fail", note: `the peak changes by at most ${timeErr.toFixed(3)} K, at any step of the run, when the step is halved; threshold ${TIME_STEP_TOLERANCE * 100}% of the peak rise (${timeBound.toFixed(2)} K). If it fails, shorten the time step` });
+  const fieldBound = TIME_STEP_TOLERANCE * Math.max(fieldScale, 1);
+  const timeOk = timeErr <= timeBound && (!hist || fieldErr <= fieldBound);
+  checks.push({ id: "timeStep", label: "Time-stepping error of the peak temperature (step vs half step)", value: hist ? Math.max(timeErr, fieldErr) : timeErr, unit: "K", verdict: timeOk ? "pass" : "fail", note: `the peak changes by at most ${timeErr.toFixed(3)} K, at any step of the run, when the step is halved; threshold ${TIME_STEP_TOLERANCE * 100}% of the peak rise (${timeBound.toFixed(2)} K).${hist ? ` With a boundary history every cell and the outer wall are compared at each output too: at most ${fieldErr.toFixed(3)} K, threshold ${TIME_STEP_TOLERANCE * 100}% of the largest excursion of any cell (${fieldBound.toFixed(2)} K).` : ""} If it fails, shorten the time step` });
 
   if (c.boundary.kind === "surface-temperature") {
     const wanted = (tt: number) => (hist && hist.kind === "surface-temperature" ? (boundaryAtTime(hist, tt) as { surfaceTemperature: number }).surfaceTemperature : (c.boundary as { surfaceTemperature: number }).surfaceTemperature);
