@@ -180,3 +180,4 @@ Where fuel comes from (decided with the user 2026-10-05): presets, shared materi
 ## Done
 
 - [x] 2026-09-30: Planning skeleton, first plan and suite integration links (Codex).
+- [ ] 2026-10-14: **axial stack (1.5D), a 3D view of it, and plate geometry planned** ([plan 12](docs/plans/12-axial-stack-and-plate.md)): N radial slices along the pin with an axial power shape and a coolant profile as inputs, no heat flow between slices (the neglected term measured once); a rotatable 3D rendering of the stack labelled as 1.5D; a plate as a slab through its thickness and as a stack. Milestones A0 probe (can OFFBEAT run a plate? the plan stops there for the user's decision if not) to A9 examples. Nothing built.
