@@ -2,6 +2,7 @@
 // against an independent finite-volume solution (transientFv.ts) and against energy conservation. The record schema is
 // feed.results/0.2; the steady record (feed.results/0.1) is unchanged.
 
+import { boundaryAtTime } from "./boundaryHistory";
 import { limitChecks } from "./limits";
 import { evaluate, lawOf, primitive, rangeOf } from "./conductivity";
 import { GeneratedPulse } from "./pointKinetics";
@@ -125,6 +126,7 @@ export function pinOf(c: NormalizedCase, cellFactor = 1): TransientPin {
     fuelCLaw: heatCapacityLaw(c.fuelHeatCapacity),
     claddingCLaw: heatCapacityLaw(c.claddingHeatCapacity),
     boundary: c.boundary.kind === "convective" ? { kind: "convective", bulkTemperature: c.boundary.bulkTemperature, heatTransferCoefficient: c.boundary.heatTransferCoefficient } : { kind: "surface-temperature", surfaceTemperature: c.boundary.surfaceTemperature },
+    ...(c.transient?.boundaryHistory ? { boundaryAt: (tt: number) => boundaryAtTime(c.transient!.boundaryHistory!, tt) } : {}),
     power,
   };
 }
@@ -145,7 +147,8 @@ export function initialState(c: NormalizedCase, cellFactor = 1): InitialState {
   const n = nf + c.mesh.claddingCells * cellFactor;
   if (t.initial.kind === "uniform") {
     const T0 = t.initial.temperature;
-    return { T: new Array<number>(n).fill(T0), wall: c.boundary.kind === "surface-temperature" ? c.boundary.surfaceTemperature : T0, peak: T0, fuelPeak: T0 };
+    const b0 = t.boundaryHistory ? boundaryAtTime(t.boundaryHistory, 0) : c.boundary;
+    return { T: new Array<number>(n).fill(T0), wall: b0.kind === "surface-temperature" ? b0.surfaceTemperature : T0, peak: T0, fuelPeak: T0 };
   }
   const s = steadyFv(pinOf(c, cellFactor), t.initial.linearHeatRate);
   return { T: s.T, wall: s.wall, peak: maxOf(s.T), fuelPeak: maxOf(s.T.slice(0, nf)) };
@@ -280,7 +283,12 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   // --- series
   const pin = pinOf(c);
   const series: TransientSeries = { time: times, power: times.map((tt) => pin.power(tt)), deposited: times.map((tt) => depositedEnergy(t.times, t.linearHeatRate, tt)), peakT: [], fuelSurfaceCellT: [], claddingInnerCellT: [], claddingOuterWallT: walls, stored: [], rejected: [] };
-  const outflow = (prof: number[], wall: number) => {
+  const hist = t.boundaryHistory;
+  const outflow = (prof: number[], wall: number, at = 0) => {
+    if (hist && hist.kind === "convective") {
+      const b = boundaryAtTime(hist, at) as { heatTransferCoefficient: number; bulkTemperature: number };
+      return b.heatTransferCoefficient * 2 * Math.PI * c.claddingOuterRadius * (wall - b.bulkTemperature);
+    }
     if (c.boundary.kind === "convective") return c.boundary.heatTransferCoefficient * 2 * Math.PI * c.claddingOuterRadius * (wall - c.boundary.bulkTemperature);
     const kk = lawOf(c.claddingConductivity);
     const Tl = prof[n - 1]!;
@@ -293,7 +301,20 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
     series.fuelSurfaceCellT.push(p[nf - 1]!);
     series.claddingInnerCellT.push(p[nf]!);
     series.stored.push(storedEnergy(pin, p, t.initial.kind === "uniform" ? t.initial.temperature : init.T));
-    if (k > 0) rej += 0.5 * (outflow(profiles[k - 1]!, walls[k - 1]!) + outflow(p, walls[k]!)) * (times[k]! - times[k - 1]!);
+    if (k > 0 && hist && hist.kind === "convective") {
+      // a film coefficient that changes between two outputs: the wall temperature is taken linear between them and the heat h(t) A (wall - T_bulk(t)) is integrated finely (Simpson), so
+      // a step in the film between outputs is not lost to the trapezoid of the two output values
+      const t0 = times[k - 1]!;
+      const t1 = times[k]!;
+      const NSUB = 400;
+      let acc = 0;
+      for (let s = 0; s <= NSUB; s++) {
+        const at = t0 + ((t1 - t0) * s) / NSUB;
+        const w = walls[k - 1]! + ((walls[k]! - walls[k - 1]!) * (at - t0)) / (t1 - t0);
+        acc += (s === 0 || s === NSUB ? 1 : s % 2 ? 4 : 2) * outflow(p, w, at);
+      }
+      rej += (acc * (t1 - t0)) / (3 * NSUB);
+    } else if (k > 0) rej += 0.5 * (outflow(profiles[k - 1]!, walls[k - 1]!, times[k - 1]!) + outflow(p, walls[k]!, times[k]!)) * (times[k]! - times[k - 1]!);
     series.rejected.push(rej);
   });
 
@@ -306,11 +327,16 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const k = times.length - 1;
   // From a uniform start the balance is judged against the energy deposited so far. From a steady operating state the heat made and the heat leaving are both large and
   // nearly equal (and a shutdown deposits nothing), so it is judged against the largest of the energy deposited, rejected and stored so far.
-  const steadyStart = t.initial.kind === "steady";
-  const throughput = (j: number) => (steadyStart ? Math.max(series.deposited[j]!, series.rejected[j]!, Math.abs(series.stored[j]!)) : series.deposited[j]!);
+  const steadyStart = t.initial.kind === "steady" || hist !== undefined;
+  const instantThroughput = (j: number) => Math.max(series.deposited[j]!, Math.abs(series.rejected[j]!), Math.abs(series.stored[j]!));
+  // With a boundary history the stored and the rejected energy can pass through zero (a pin that cools and then warms), and the heat leaving can jump within a few steps while the
+  // outputs are seconds apart (a wall that starts to move: the trapezoid of the first interval misses half of it). The gap is then judged against the largest energy exchanged
+  // anywhere in the run, not the value at that moment.
+  const wholeRun = hist ? Math.max(...series.time.map((_, i) => instantThroughput(i))) : 0;
+  const throughput = (j: number) => (hist ? wholeRun : steadyStart ? Math.max(series.deposited[j]!, series.rejected[j]!, Math.abs(series.stored[j]!)) : series.deposited[j]!);
   if (throughput(k) > 0) {
     const worst = Math.max(...times.map((_, j) => (throughput(j) > 0 ? Math.abs(series.deposited[j]! - series.stored[j]! - series.rejected[j]!) / throughput(j) : 0)));
-    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the ${steadyStart ? "largest of the energy deposited, rejected and stored so far (the run starts from a steady operating state)" : "energy deposited so far"}. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
+    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the ${hist ? "largest of the energy deposited, rejected and stored anywhere in the run (a boundary history: the energies can cross zero, and the heat leaving can change within a few steps between outputs)" : steadyStart ? "largest of the energy deposited, rejected and stored so far (the run starts from a steady operating state)" : "energy deposited so far"}. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
   }
 
   // independent solution: same mesh and step (cross-check), double mesh (spatial error of the independent solution), half step (time error)
@@ -320,7 +346,9 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   // The thresholds below are fractions of how far the pin's temperatures move. From a uniform start that is the rise; from a steady operating state the
   // peak may hardly rise (a hold, a scram) while the whole field changes, so the scale is the peak ever reached above the coolant (or prescribed wall) temperature.
   const outerRef = c.boundary.kind === "convective" ? c.boundary.bulkTemperature : c.boundary.surfaceTemperature;
-  const scaleRise = t.initial.kind === "steady" ? Math.max(peakRise, init.peak + peakRise - outerRef) : peakRise;
+  const baseScale = t.initial.kind === "steady" ? Math.max(peakRise, init.peak + peakRise - outerRef) : peakRise;
+  // a changing boundary can only cool the pin or warm it with no heat source at all: the scale is then the largest excursion of the peak from its start, up or down
+  const scaleRise = hist ? Math.max(baseScale, init.peak - minOf(fv.trace!.peakByStep), maxOf(fv.trace!.peakByStep) - init.peak) : baseScale;
   const volumeWeights = (cellsPerRegion: number, rIn: number, rOut: number) => {
     const faces = Array.from({ length: cellsPerRegion + 1 }, (_, i) => rIn + ((rOut - rIn) * i) / cellsPerRegion);
     return faces;
@@ -373,8 +401,9 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   checks.push({ id: "timeStep", label: "Time-stepping error of the peak temperature (step vs half step)", value: timeErr, unit: "K", verdict: timeErr <= timeBound ? "pass" : "fail", note: `the peak changes by at most ${timeErr.toFixed(3)} K, at any step of the run, when the step is halved; threshold ${TIME_STEP_TOLERANCE * 100}% of the peak rise (${timeBound.toFixed(2)} K). If it fails, shorten the time step` });
 
   if (c.boundary.kind === "surface-temperature") {
-    const d = maxOf(walls.map((w) => Math.abs(w - (c.boundary as { surfaceTemperature: number }).surfaceTemperature)));
-    checks.push({ id: "wallTemperature", label: "Outer wall temperature vs the prescribed value", value: d, unit: "K", verdict: d < 0.05 ? "pass" : "fail", note: "threshold 0.05 K at every output" });
+    const wanted = (tt: number) => (hist && hist.kind === "surface-temperature" ? (boundaryAtTime(hist, tt) as { surfaceTemperature: number }).surfaceTemperature : (c.boundary as { surfaceTemperature: number }).surfaceTemperature);
+    const d = maxOf(walls.map((w, j) => Math.abs(w - wanted(times[j]!))));
+    checks.push({ id: "wallTemperature", label: "Outer wall temperature vs the prescribed value", value: d, unit: "K", verdict: d < 0.05 ? "pass" : "fail", note: "threshold 0.05 K at every output" + (hist ? " (against the boundary history at each output time)" : "") });
   }
 
   // a pulse generated by point kinetics: its feedback used the fuel's temperature if the heat stayed where it was made; the real pin conducts it away,

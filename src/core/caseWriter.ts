@@ -6,6 +6,7 @@
 import { MIN_STEADY_END_TIME, steadyEndTime } from "./steadyState";
 import { NFI_OXIDE_TO_HEAVY_METAL, NFI_PARAMETERS } from "./uo2Nfi";
 import { initialState } from "./transientResults";
+import { tableForSolver } from "./boundaryHistory";
 import { EffectiveSolid, effectiveMechanics } from "./mechanicalEval";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
@@ -364,8 +365,36 @@ function temperatureField(c: NormalizedCase, start: StartField): string {
         value           ${copy(near)};
     }
 `;
+  const hist = c.transient?.boundaryHistory;
+  const tab = hist ? tableForSolver(hist, c.transient!.endTime, c.transient!.timeStep) : undefined;
+  const axial = `(0 ${num(SLICE_HEIGHT_MM / 1000)})`;
+  const rows = (col: number[]) => "(" + col.map((v) => "(" + num(v) + " " + num(v) + ")").join(" ") + ")";
+  const startWall = start.kind === "uniform" ? start.T : start.wall;
   const outer =
-    c.boundary.kind === "convective"
+    hist && tab && hist.kind === "convective"
+      ? `type timeDependentAxialProfileHTC;
+        axialProfileDict
+        {
+            timePoints (${tab.times.map(num).join(" ")});
+            axialLocations ${axial};
+            hData ${rows(tab.columns[0]!)};
+            T0Data ${rows(tab.columns[1]!)};
+            axialInterpolationMethod linear;
+            timeInterpolationMethod linear;
+        }
+        value uniform ${num(startWall)};`
+      : hist && tab
+      ? `type timeDependentAxialProfileT;
+        timeDependentProfile
+        {
+            timePoints (${tab.times.map(num).join(" ")});
+            axialLocations ${axial};
+            axialData ${rows(tab.columns[0]!)};
+            axialInterpolationMethod linear;
+            timeInterpolationMethod linear;
+        }
+        value uniform ${num(startWall)};`
+      : c.boundary.kind === "convective"
       ? `type convectiveHTC;
         T0 uniform ${num(c.boundary.bulkTemperature)};
         h uniform ${num(c.boundary.heatTransferCoefficient)};
@@ -511,8 +540,6 @@ relaxationFactors
  * both were checked against closed-form oracles in OFFBEAT.
  */
 export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
-  // plan 11: the validator accepts a boundary history (B1); the solver files and the independent solution do not carry it yet (B2). Refuse rather than run with a constant boundary.
-  if (c.transient?.boundaryHistory) throw new Error("The case states a transient boundary history. The case is valid, but its solver files are not written yet (plan 11, milestone B2), so the run is refused rather than run with a constant boundary.");
   const kf = c.fuelConductivity;
   const kc = c.claddingConductivity;
   const tr = c.transient;
@@ -566,6 +593,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
     ...(c.mechanics ? mechanicsMapping(c) : []),
     ...(c.burnup ? [{ field: "burnup", file: "0/Bu", note: "burnup constant; Bu = " + c.burnup.value + " MWd/kgHM x 1000 x 0.881 = " + num(c.burnup.value * 1000 * NFI_OXIDE_TO_HEAVY_METAL) + " MWd/t of oxide in every fuel cell, 0 in the cladding (the model divides by its own 0.881); source: " + c.burnup.source }] : []),
     { field: "boundary", file: "0/T", note: c.boundary.kind === "convective" ? "cladOuter convectiveHTC (T0, h)" : "cladOuter fixedValue" },
+    ...(c.transient?.boundaryHistory ? [{ field: "transient.boundaryHistory", file: "0/T", note: "cladOuter " + (c.transient.boundaryHistory.kind === "convective" ? "timeDependentAxialProfileHTC (hData, T0Data)" : "timeDependentAxialProfileT (timeDependentProfile.axialData)") + ", " + c.transient.boundaryHistory.times.length + " points, linear in time, two equal axial columns; the case's own boundary is the value before the first point (the steady start). OFFBEAT applies the value of the end of each step. One flat point is appended beyond the end time when the last point is not strictly after it: OFFBEAT aborts on a time equal to its last point" }] : []),
   ];
   const placeholders: WrittenCase["placeholders"] = [
     tr

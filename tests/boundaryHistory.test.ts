@@ -139,26 +139,56 @@ describe("refusals", () => {
   });
 });
 
-describe("until the solver carries it (plan 11 B2)", () => {
-  it("the writer refuses the case rather than write a constant boundary, and a run is not started", () => {
-    const n = validateCase(good()).normalized!;
-    expect(() => writeOffbeatCase(n)).toThrow(/boundary history.*not written yet/);
-    const mgr = new RunManager({ runsRoot: mkdtempSync(join(tmpdir(), "feed-bh-")), backend: new FakeBackend("good") });
-    const s = mgr.start(good());
-    expect(s.ok).toBe(false);
-    expect(!s.ok && s.message).toMatch(/plan 11/);
+describe("what the writer gives OFFBEAT and what the editor's check shows (plan 11 B2)", () => {
+  it("a convective history becomes timeDependentAxialProfileHTC with the tables, two equal axial columns and one flat point past the end time", () => {
+    const w = writeOffbeatCase(validateCase(good()).normalized!);
+    const T = w.files["0/T"]!;
+    expect(T).toMatch(/type\s+timeDependentAxialProfileHTC;/);
+    expect(T).toMatch(/timePoints \(0 0\.04 0\.05 0\.1 0\.1001\);/);
+    expect(T).toMatch(/axialLocations \(0 1\);/);
+    expect(T).toMatch(/hData \(\(30000 30000\) \(30000 30000\) \(1000 1000\) \(1000 1000\) \(1000 1000\)\);/);
+    expect(T).toMatch(/T0Data \(\(300 300\) \(300 300\) \(300 300\) \(300 300\) \(300 300\)\);/);
+    expect(T).toMatch(/timeInterpolationMethod linear;/);
+    expect(T).not.toMatch(/type\s+convectiveHTC;/);
+    expect(w.mapping.find((m) => m.field === "transient.boundaryHistory")!.note).toMatch(/timeDependentAxialProfileHTC.*5 points|4 points/);
   });
-  it("the editor's check accepts it and says the preview does not carry it, in both the sync and the worker path", async () => {
+  it("a prescribed-wall history becomes timeDependentAxialProfileT with its own keywords (timeDependentProfile, axialData)", () => {
+    const d = withHistory([{ time: q(0, "ms"), surfaceTemperature: q(300, "K") }, { time: q(100, "ms"), surfaceTemperature: q(400, "K") }]);
+    d.boundary = { surfaceTemperature: q(300, "K") };
+    const T = writeOffbeatCase(validateCase(d).normalized!).files["0/T"]!;
+    expect(T).toMatch(/type\s+timeDependentAxialProfileT;/);
+    expect(T).toMatch(/timeDependentProfile\s*\{/);
+    expect(T).toMatch(/axialData \(\(300 300\) \(400 400\) \(400 400\)\);/);
+    expect(T).not.toMatch(/axialProfileDict/);
+  });
+  it("a history that reaches past the end time needs no extra point", () => {
+    const T = writeOffbeatCase(validateCase(withHistory([conv(0, 300, 30000), conv(150, 300, 1000)])).normalized!).files["0/T"]!;
+    expect(T).toMatch(/timePoints \(0 0\.15\);/);
+  });
+  it("the writer's other files do not depend on the history, and a run is started", () => {
+    const a = writeOffbeatCase(validateCase(pulse()).normalized!);
+    const b = writeOffbeatCase(validateCase(good()).normalized!);
+    for (const f of ["system/blockMeshDict", "system/controlDict", "constant/solverDict", "system/fvSolution"]) expect(b.files[f], f).toBe(a.files[f]);
+    const mgr = new RunManager({ runsRoot: mkdtempSync(join(tmpdir(), "feed-bh-")), backend: new FakeBackend("good") });
+    expect(mgr.start(good()).ok).toBe(true);
+  });
+  it("the editor's check runs the independent preview with the history, in both the sync and the worker path", async () => {
     const a: any = check(good());
     expect(a.ok).toBe(true);
-    expect(a.transient.preview).toBeNull();
-    expect(a.transient.previewSkipped).toMatch(/does not carry a boundary history yet/);
+    expect(a.transient.previewSkipped).toBeNull();
+    const times: number[] = a.transient.preview.time;
+    const peak: number[] = a.transient.preview.claddingOuterT;
+    // the film coefficient falls at 40 to 50 ms: the outer wall differs from the same case without a history
+    const plain: any = check(pulse());
+    expect(peak[peak.length - 1]).toBeGreaterThan(plain.transient.preview.claddingOuterT[peak.length - 1]);
+    expect(times.length).toBe(plain.transient.preview.time.length);
     const b: any = await checkAsync(good());
-    expect(b.transient.previewSkipped).toMatch(/does not carry a boundary history yet/);
+    b.transient.preview.claddingOuterT.forEach((x: number, i: number) => expect(Math.abs(x - peak[i]!)).toBeLessThan(1e-6));
   });
-  it("a case without a history is written exactly as before (the thermal files)", () => {
+  it("a case without a history is written exactly as before", () => {
     const a = writeOffbeatCase(validateCase(pulse()).normalized!);
     expect(a.files["0/T"]).toMatch(/type\s+convectiveHTC;/);
     expect(a.files["0/T"]).not.toMatch(/timeDependentAxialProfile/);
+    expect(a.mapping.map((m) => m.field)).not.toContain("transient.boundaryHistory");
   });
 });
