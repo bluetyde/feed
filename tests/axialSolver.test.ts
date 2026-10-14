@@ -98,6 +98,14 @@ describe.skipIf(!solverOn)("an axial stack through the real solver (needs FEED_S
     res.axial.slices.forEach((s) => expect(Math.abs(s.claddingOuterWallT! - (573 + 60 * (s.height / 0.381))), "slice " + s.index).toBeLessThan(0.1));
   }, 300_000);
 
+  it("a short pin, where the axial conduction is large: the checks pass only because their tolerance includes the estimate of it (the golden output is kept to show that)", async () => {
+    const { res } = await run(stack(cosine(0.06, 12)), GOLDEN ? join(GOLDEN, "short") : undefined);
+    expect(failing(res)).toEqual([]);
+    expect(res.axial.conduction!.fraction).toBeGreaterThan(0.02);
+    // the measured difference from the one-dimensional closed form is several times what the mesh alone allows (5 dT / N^2 is 2 to 14 K here)
+    expect(res.checks.find((c) => c.id === "closedFormFuel")!.value!).toBeGreaterThan(5);
+  }, 300_000);
+
   it("a control: five equal slices (a flat shape and a flat coolant) give every slice the temperatures of the one-slice pin at the same heat rate", async () => {
     const { res } = await run(stack({ length: q(0.5, "m"), slices: 5, powerShape: { kind: "flat" } }));
     expect(failing(res)).toEqual([]);
