@@ -1377,10 +1377,38 @@
     "field": "/axial/boundary/1/bulkTemperature"
   },
   {
-    "file": "bad/axial-with-transient.json",
+    "file": "good/axial-transient-pulse.json",
+    "valid": true
+  },
+  {
+    "file": "good/axial-transient-steady-start.json",
+    "valid": true
+  },
+  {
+    "file": "good/axial-transient-boundary-history.json",
+    "valid": true
+  },
+  {
+    "file": "good/axial-transient-coolant-table.json",
+    "valid": true
+  },
+  {
+    "file": "bad/axial-with-point-kinetics.json",
     "valid": false,
     "code": "E_UNSUPPORTED",
     "field": "/axial"
+  },
+  {
+    "file": "bad/axial-coolant-table-with-boundary-history.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/axial/boundary"
+  },
+  {
+    "file": "bad/axial-transient-too-much-work.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/timeStep"
   },
   {
     "file": "bad/axial-with-mechanics.json",

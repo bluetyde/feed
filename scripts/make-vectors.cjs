@@ -520,10 +520,46 @@ badA("axial-boundary-zero-h", "E_AXIAL", "/axial/boundary/1/heatTransferCoeffici
 badA("axial-boundary-no-h", "E_AXIAL", "/axial/boundary/1", axialBase({ boundary: [bt(0, 573, 30000), { height: qv(0.381, "m"), bulkTemperature: qv(600, "K") }] }));
 badA("axial-boundary-form-differs-from-case", "E_AXIAL", "/axial/boundary", axialBase({ boundary: [wallPt(0, 573), wallPt(0.381, 600)] }));
 badA("axial-boundary-wrong-unit", "E_UNITS", "/axial/boundary/1/bulkTemperature", axialBase({ boundary: [bt(0, 573, 30000), { ...bt(0.381, 600, 30000), bulkTemperature: qv(600, "W/m") }] }));
+// a transient on a stack (plan 12 A3): the power history is the average, each slice takes its factor of it
 {
   const c = pulse();
   c.axial = axialBase();
-  add("bad", "axial-with-transient", c, { code: "E_UNSUPPORTED", field: "/axial" });
+  add("good", "axial-transient-pulse", c, {});
+}
+{
+  const c = pulse();
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyLinearHeatRate = { value: 20, unit: "kW/m" };
+  c.axial = axialBase();
+  add("good", "axial-transient-steady-start", c, {});
+}
+{
+  const c = withHistory(convHistory());
+  c.axial = axialBase();
+  add("good", "axial-transient-boundary-history", c, {});
+}
+{
+  const c = pulse();
+  c.axial = axialBase({ boundary: [bt(0, 300, 30000), bt(0.381, 330, 30000)] });
+  add("good", "axial-transient-coolant-table", c, {});
+}
+{
+  const c = kin();
+  c.axial = axialBase();
+  add("bad", "axial-with-point-kinetics", c, { code: "E_UNSUPPORTED", field: "/axial" });
+}
+{
+  const c = withHistory(convHistory());
+  c.axial = axialBase({ boundary: [bt(0, 300, 30000), bt(0.381, 330, 30000)] });
+  add("bad", "axial-coolant-table-with-boundary-history", c, { code: "E_UNSUPPORTED", field: "/axial/boundary" });
+}
+{
+  const c = pulse();
+  c.transient.timeStep = qv(0.001, "ms");
+  c.transient.endTime = qv(100, "ms");
+  c.transient.outputs = 20;
+  c.axial = axialBase({ slices: 50 });
+  add("bad", "axial-transient-too-much-work", c, { code: "E_TIME", field: "/transient/timeStep" });
 }
 {
   const c = mech(clone());

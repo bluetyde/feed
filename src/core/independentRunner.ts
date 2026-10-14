@@ -12,13 +12,15 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { Worker } from "worker_threads";
 import { FvTransient } from "./transientFv";
+import { hottestLoad, sliceCase } from "./axial";
+import { computeIndependentStack } from "./stackTransientResults";
 import { IndependentSet, computeIndependent } from "./transientResults";
 import { independentSolution } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
 export type IndependentWhat = "full" | "single";
 export type IndependentOutcome =
-  | { ok: true; what: "full"; set: IndependentSet; mode: "worker" | "in-process"; ms: number }
+  | { ok: true; what: "full"; set: IndependentSet | IndependentSet[]; mode: "worker" | "in-process"; ms: number }
   | { ok: true; what: "single"; set: { fv: FvTransient }; mode: "worker" | "in-process"; ms: number }
   | { ok: false; reason: "deadline" | "cancelled" | "superseded" | "worker-failed"; message: string; ms: number };
 
@@ -173,7 +175,7 @@ export class IndependentRunner {
     setImmediate(() => {
       if (j.settled) return;
       try {
-        const set = j.what === "full" ? computeIndependent(j.c) : { fv: independentSolution(j.c) };
+        const set = j.what === "full" ? (j.c.axial ? computeIndependentStack(j.c) : computeIndependent(j.c)) : { fv: independentSolution(j.c.axial ? sliceCase(j.c, hottestLoad(j.c)) : j.c) };
         this.settle(j, { ok: true, what: j.what, set, mode: "in-process", ms: Date.now() - j.started! } as IndependentOutcome);
       } catch (e) {
         this.settle(j, { ok: false, reason: "worker-failed", message: "the independent solution failed: " + String((e as Error).message), ms: Date.now() - j.started! });

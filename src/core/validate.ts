@@ -15,7 +15,7 @@ import { effectiveMechanics } from "./mechanicalEval";
 import { HYDROGEN_RATIO_RANGE } from "./hydrogenPressure";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
-import { AXIAL_CONDUCTION_WARNING, AXIAL_STEP_WARNING, AxialSpec, axialConductionEstimate, parseAxial, sliceLoads } from "./axial";
+import { AXIAL_CONDUCTION_WARNING, AXIAL_STEP_WARNING, AxialSpec, axialConductionEstimate, parseAxial, sliceCase, sliceLoads } from "./axial";
 import { Dimension, toSI } from "./units";
 
 export interface Issue {
@@ -384,7 +384,8 @@ export function validateCase(doc: unknown): ValidationResult {
   // The axial stack (plan 12, A1): steady cases only until the transient stack is built (A3); not combined with mechanics, hot dimensions or burnup.
   const axialSpec = c.axial === undefined ? undefined : parseAxial(c.axial, boundary?.kind, err, qty);
   if (c.axial !== undefined) {
-    if (isTransient) err("E_UNSUPPORTED", "/axial", "an axial stack with a transient is not offered yet (plan 12, milestone A3); use a steady case, or remove the axial section");
+    if (isTransient && c.transient?.pointKinetics !== undefined) err("E_UNSUPPORTED", "/axial", "an axial stack with a point-kinetics pulse is not offered: the pulse is generated from one fuel temperature; give a power history, or remove the axial section");
+    if (isTransient && axialSpec?.boundary !== undefined && c.transient?.boundaryHistory !== undefined) err("E_UNSUPPORTED", "/axial/boundary", "an axial coolant table together with a boundary history is not offered: give the coolant as a table against height or against time, not both (a history alone applies to every slice equally)");
     if (c.mechanics !== undefined) err("E_UNSUPPORTED", "/axial", "an axial stack with mechanics is not offered: the stress of each slice would need its own axial and contact inputs; remove one of them");
     if (c.hotDimensions !== undefined) err("E_UNSUPPORTED", "/axial", "an axial stack with hot dimensions is not offered: each slice would have its own hot radii; remove one of them");
     if (c.burnup !== undefined) err("E_UNSUPPORTED", "/axial", "an axial stack with a burnup is not offered: the burnup would be one number for every slice; remove one of them");
@@ -450,9 +451,9 @@ export function validateCase(doc: unknown): ValidationResult {
 
   if (transient) {
     const m = c.mesh as { fuelCells?: number; claddingCells?: number };
-    const work = ((m.fuelCells ?? 0) + (m.claddingCells ?? 0)) * transient.steps;
+    const work = ((m.fuelCells ?? 0) + (m.claddingCells ?? 0)) * transient.steps * (axialSpec?.slices ?? 1);
     if (work > MAX_TRANSIENT_WORK) {
-      err("E_TIME", "/transient/timeStep", "cells x steps = " + work + " exceeds the budget of " + MAX_TRANSIENT_WORK + " (" + transient.steps + " steps on " + ((m.fuelCells ?? 0) + (m.claddingCells ?? 0)) + " cells); use a coarser mesh or a longer step", { unit: "s" });
+      err("E_TIME", "/transient/timeStep", "cells x steps" + (axialSpec ? " x slices" : "") + " = " + work + " exceeds the budget of " + MAX_TRANSIENT_WORK + " (" + transient.steps + " steps on " + ((m.fuelCells ?? 0) + (m.claddingCells ?? 0)) + " cells" + (axialSpec ? " in each of " + axialSpec.slices + " slices" : "") + "); use a coarser mesh, fewer slices or a longer step", { unit: "s" });
       transient = undefined;
     }
   }
@@ -514,7 +515,7 @@ export function validateCase(doc: unknown): ValidationResult {
     if (normalized.axial) {
       const loads = sliceLoads(normalized);
       const peak = Math.max(...loads.map((l) => l.linearHeatRate));
-      if (peak > POWER_SANITY_MAX) {
+      if (peak > POWER_SANITY_MAX && !normalized.transient) {
         result.warnings.push({ code: "W_POWER_RANGE", severity: "warning", field: "/power/linearHeatRate", message: "the hottest slice's linear heat rate " + peak.toFixed(0) + " W/m is above the sanity range (" + POWER_SANITY_MAX + " W/m); kept as given", unit: "W/m", range: [0, POWER_SANITY_MAX] });
       }
       // a shape that changes a great deal between two neighbouring slices is not resolved by this many slices
@@ -540,6 +541,13 @@ export function validateCase(doc: unknown): ValidationResult {
     if (tn && tn.initial.kind === "steady") {
       const field = (() => {
         try {
+          if (normalized.axial) {
+            // a stack starts every slice at its own steady state; the heat capacity ranges are checked over all of them (fuel cells of every slice, then cladding cells)
+            const sts = sliceLoads(normalized).map((l) => initialState(sliceCase(normalized, l)));
+            const nf0 = normalized.mesh.fuelCells;
+            const T = [...sts.flatMap((s) => s.T.slice(0, nf0)), ...sts.flatMap((s) => s.T.slice(nf0))];
+            return { T, wall: sts[0]!.wall, peak: Math.max(...sts.map((s) => s.peak)), fuelPeak: Math.max(...sts.map((s) => s.fuelPeak)) };
+          }
           return initialState(normalized);
         } catch (e) {
           result.ok = false;
@@ -550,7 +558,7 @@ export function validateCase(doc: unknown): ValidationResult {
       })();
       const n = result.normalized;
       if (field && n) {
-        const nf = n.mesh.fuelCells;
+        const nf = n.mesh.fuelCells * (n.axial?.slices ?? 1);
         for (const [region, cp, from, to] of [["fuel", n.fuelHeatCapacity, 0, nf], ["cladding", n.claddingHeatCapacity, nf, field.T.length]] as const) {
           if (!cp || cp.kind === "constant") continue;
           const part = field.T.slice(from, to);

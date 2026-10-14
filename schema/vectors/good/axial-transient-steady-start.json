@@ -1,6 +1,6 @@
 {
   "schema": "feed.case/0.1",
-  "caseId": "axial-with-transient",
+  "caseId": "axial-transient-steady-start",
   "name": "Synthetic pulse: a 10 ms triangular power pulse on a cold pin (illustrative numbers, not a real fuel design)",
   "label": "synthetic",
   "assumptions": {
@@ -159,9 +159,9 @@
       "unit": "ms"
     },
     "outputs": 20,
-    "initialTemperature": {
-      "value": 300,
-      "unit": "K"
+    "initialSteadyLinearHeatRate": {
+      "value": 20,
+      "unit": "kW/m"
     }
   },
   "axial": {

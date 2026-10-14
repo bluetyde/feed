@@ -7,7 +7,7 @@ import { MIN_STEADY_END_TIME, steadyEndTime } from "./steadyState";
 import { NFI_OXIDE_TO_HEAVY_METAL, NFI_PARAMETERS } from "./uo2Nfi";
 import { initialState } from "./transientResults";
 import { tableForSolver } from "./boundaryHistory";
-import { normalizedShape, sliceCase, sliceLoads } from "./axial";
+import { hottestLoad, normalizedShape, sliceCase, sliceLoads } from "./axial";
 import { EffectiveSolid, effectiveMechanics } from "./mechanicalEval";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
@@ -380,7 +380,7 @@ function temperatureField(c: NormalizedCase, start: StartField, runEnd: number):
 `;
   const hist = c.transient?.boundaryHistory;
   const tab = hist ? tableForSolver(hist, c.transient!.endTime, c.transient!.timeStep) : undefined;
-  const axial = `(0 ${num(SLICE_HEIGHT_MM / 1000)})`;
+  const axial = `(0 ${num(heightMm(c) / 1000)})`;
   const rows = (col: number[]) => "(" + col.map((v) => "(" + num(v) + " " + num(v) + ")").join(" ") + ")";
   const startWall = start.kind === "uniform" ? start.T : start.wall;
   // an axial coolant table (a stack): heights in metres from the bottom (OFFBEAT's unit), the same row for both time points, which reach past the end of the run
@@ -454,7 +454,7 @@ boundaryField
         type            wedge;
         value           ${copy(mean)};
     }
-${inner}${gap("fuelOuter", cells[nf - 1] ?? 0)}${gap("cladInner", cells[nf] ?? 0)}    cladOuter
+${inner}${gap("fuelOuter", cells[nf - 1] ?? 0)}${gap("cladInner", cells[nf * layers(c)] ?? 0)}    cladOuter
     {
         ${outer}
     }
@@ -581,20 +581,28 @@ relaxationFactors
  * both were checked against closed-form oracles in OFFBEAT.
  */
 export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
-  // plan 12: an axial stack is a steady case with N layers per solid (A2); a transient stack is not written (A3), the validator refuses it first
-  if (c.axial && c.transient) throw new Error("An axial stack with a transient is not written yet (plan 12, milestone A3).");
   const kf = c.fuelConductivity;
   const kc = c.claddingConductivity;
   const tr = c.transient;
   // The starting field: a uniform temperature (a steady case: the coolant or prescribed wall, which the result does not depend on), or a transient's steady operating state.
-  const steadyStart = tr !== undefined && tr.initial.kind === "steady" ? initialState(c) : undefined;
+  // A stack starts every slice at its own steady state, written for all cells in the mesh's order (every fuel layer, then every cladding layer).
+  const steadyStart =
+    tr !== undefined && tr.initial.kind === "steady"
+      ? c.axial
+        ? (() => {
+            const sts = sliceLoads(c).map((l) => initialState(sliceCase(c, l)));
+            const nf0 = c.mesh.fuelCells;
+            return { T: [...sts.flatMap((s) => s.T.slice(0, nf0)), ...sts.flatMap((s) => s.T.slice(nf0))], wall: sts[0]!.wall, peak: Math.max(...sts.map((s) => s.peak)), fuelPeak: Math.max(...sts.map((s) => s.fuelPeak)) };
+          })()
+        : initialState(c)
+      : undefined;
   const t0 = tr ? (tr.initial.kind === "uniform" ? tr.initial.temperature : steadyStart!.peak) : c.boundary.kind === "convective" ? c.boundary.bulkTemperature : c.boundary.surfaceTemperature;
   const start: StartField = steadyStart ? { kind: "field", T: steadyStart.T, wall: steadyStart.wall } : { kind: "uniform", T: t0 };
   // A steady case runs to an end time the pin's own time constants require (at least 5e7 s); the validator refuses what cannot settle.
   let steadyEnd = MIN_STEADY_END_TIME;
   if (!tr) {
     // a stack: the end time the hottest slice (the most heat to settle) needs
-    const h = steadyEndTime(c.axial ? sliceCase(c, sliceLoads(c).reduce((m, l) => (l.linearHeatRate > m.linearHeatRate ? l : m))) : c);
+    const h = steadyEndTime(c.axial ? sliceCase(c, hottestLoad(c)) : c);
     if (!h.ok) throw new Error("cannot write a steady case: " + h.message);
     steadyEnd = h.endTime;
   }
