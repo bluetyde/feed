@@ -8,6 +8,7 @@ import { NFI_OXIDE_TO_HEAVY_METAL, NFI_PARAMETERS } from "./uo2Nfi";
 import { initialState } from "./transientResults";
 import { tableForSolver } from "./boundaryHistory";
 import { hottestLoad, normalizedShape, sliceCase, sliceLoads } from "./axial";
+import { PLATE_WIDTH_M } from "./geometry";
 import { EffectiveSolid, effectiveMechanics } from "./mechanicalEval";
 import { Conductivity, HeatCapacity, NormalizedCase } from "./validate";
 
@@ -65,7 +66,11 @@ function blockMeshDict(c: NormalizedCase): string {
   const cx = Math.cos(half) * corr;
   const sy = Math.sin(half) * corr;
   const mm = (r: number) => r * 1000;
+  // a plate (plan 12, A4): a Cartesian block, x from the insulated mid-plane, one metre wide in y; the side faces are `empty` (nothing varies across the width), as the end faces are
+  const halfWidth = (PLATE_WIDTH_M * 1000) / 2;
+  const sides = c.plate ? "empty" : "wedge";
   const block = (ri: number, ro: number, z0: number, z1: number) => {
+    if (c.plate) return [[mm(ri), -halfWidth, z0], [mm(ro), -halfWidth, z0], [mm(ro), halfWidth, z0], [mm(ri), halfWidth, z0], [mm(ri), -halfWidth, z1], [mm(ro), -halfWidth, z1], [mm(ro), halfWidth, z1], [mm(ri), halfWidth, z1]];
     const xi = mm(ri) * cx, yi = mm(ri) * sy, xo = mm(ro) * cx, yo = mm(ro) * sy;
     return [
       [xi, -yi, z0], [xo, -yo, z0], [xo, yo, z0], [xi, yi, z0],
@@ -104,14 +109,14 @@ boundary
 ${patch("fuelBottom", "empty", face(0, 3, 2, 1))}
 ${patch("fuelTop", "empty", face(4, 5, 6, 7))}
 ${fuelInnerPatch}${patch("fuelOuter", "regionCoupledOFFBEAT", face(1, 2, 6, 5), coupled("fuelOuter", "cladInner", true))}
-${patch("fuelFront", "wedge", face(0, 1, 5, 4))}
-${patch("fuelBack", "wedge", face(3, 7, 6, 2))}
+${patch("fuelFront", sides, face(0, 1, 5, 4))}
+${patch("fuelBack", sides, face(3, 7, 6, 2))}
 ${patch("cladBottom", "empty", face(8, 11, 10, 9))}
 ${patch("cladTop", "empty", face(12, 13, 14, 15))}
 ${patch("cladInner", "regionCoupledOFFBEAT", face(8, 12, 15, 11), coupled("cladInner", "fuelOuter", false))}
 ${patch("cladOuter", "patch", face(9, 10, 14, 13))}
-${patch("cladFront", "wedge", face(8, 9, 13, 12))}
-${patch("cladBack", "wedge", face(11, 15, 14, 10))}
+${patch("cladFront", sides, face(8, 9, 13, 12))}
+${patch("cladBack", sides, face(11, 15, 14, 10))}
 );
 
 mergePatchPairs
@@ -284,7 +289,7 @@ sliceMapper             autoAxialSlices;
 globalOptions
 {
     pinDirection            (0 0 1);
-    reactorType             "LWR";
+${c.plate ? "    angularFraction         1;\n" : ""}    reactorType             "LWR";
 }
 
 thermalSolverOptions
@@ -451,7 +456,7 @@ boundaryField
 {
     ".*Front|.*Back"
     {
-        type            wedge;
+        type            ${c.plate ? "empty" : "wedge"};
         value           ${copy(mean)};
     }
 ${inner}${gap("fuelOuter", cells[nf - 1] ?? 0)}${gap("cladInner", cells[nf * layers(c)] ?? 0)}    cladOuter
@@ -470,7 +475,7 @@ boundaryField
 {
     ".*Front|.*Back"
     {
-        type            wedge;
+        type            ${c.plate ? "empty" : "wedge"};
     }
     cladOuter
     {
@@ -623,6 +628,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
   const hotNote = (key: "fuelRadius" | "fuelInnerRadius" | "claddingInnerRadius" | "claddingOuterRadius", solid: "fuel" | "cladding"): string =>
     c.hot ? "; HOT value: the case's " + (c.hot.cold[key] * 1e3).toPrecision(8) + " mm expanded by " + c.hot[solid].factor.toPrecision(8) + " (docs/hot-dimensions.md)" : "";
   const mapping: WrittenCase["mapping"] = [
+    ...(c.plate ? [{ field: "geometry", file: "system/blockMeshDict, constant/solverDict, 0/T, 0/D", note: "a plate: a Cartesian mesh, the meat from the insulated mid-plane x = 0 (no patch there: the face is a default `empty` face, no heat crosses it) to " + (c.fuelRadius * 1000) + " mm, the gap, and the cladding to " + (c.claddingOuterRadius * 1000) + " mm; one metre wide in y (the side and end faces are `empty`); angularFraction 1 because there is no wedge; lhgr is the heat per metre of height per metre of width" }] : []),
     { field: "geometry.fuelRadius", file: "system/blockMeshDict", note: "block 'fuel' outer radius (mm), wedge " + WEDGE_ANGLE_DEG + " deg" + hotNote("fuelRadius", "fuel") },
     ...(c.fuelInnerRadius > 0 ? [{ field: "geometry.fuelInnerRadius", file: "system/blockMeshDict", note: "block 'fuel' inner radius (central hole); patch fuelInner, zeroGradient in 0/T (insulated) and 0/D" + hotNote("fuelInnerRadius", "fuel") }] : []),
     { field: "geometry.claddingInnerRadius", file: "system/blockMeshDict", note: "block 'cladding' inner radius" + hotNote("claddingInnerRadius", "cladding") },

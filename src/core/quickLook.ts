@@ -20,6 +20,7 @@ export interface QuickLook {
 
 export function quickLook(c: NormalizedCase): QuickLook {
   const temperatures = compositeLaw({
+    slab: c.plate,
     qPrime: c.qPrime,
     fuelK: lawOf(c.fuelConductivity),
     fuelRadius: c.fuelRadius,
@@ -58,11 +59,11 @@ export function radialProfile(c: NormalizedCase, look: QuickLook, n = 40): Profi
   const ck = lawOf(c.claddingConductivity);
   for (let i = 0; i <= n; i++) {
     const r = c.fuelInnerRadius + ((c.fuelRadius - c.fuelInnerRadius) * i) / n;
-    out.push({ r, T: fuelTemperatureLaw(fk, c.qPrime, c.fuelRadius, r, look.temperatures.fuelSurfaceT, c.fuelInnerRadius), region: "fuel" });
+    out.push({ r, T: fuelTemperatureLaw(fk, c.qPrime, c.fuelRadius, r, look.temperatures.fuelSurfaceT, c.fuelInnerRadius, c.plate === true), region: "fuel" });
   }
   for (let i = 0; i <= n; i++) {
     const r = c.claddingInnerRadius + ((c.claddingOuterRadius - c.claddingInnerRadius) * i) / n;
-    const integral = (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI);
+    const integral = c.plate ? c.qPrime * (c.claddingOuterRadius - r) : (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI);
     out.push({ r, T: solveHot(ck, look.temperatures.claddingOuterT, integral), region: "cladding" });
   }
   return out;

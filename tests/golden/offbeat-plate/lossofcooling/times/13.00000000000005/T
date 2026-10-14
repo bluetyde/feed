@@ -1,0 +1,125 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "13.000000000000049738";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+26
+(
+328.11446
+328.10028
+328.07193
+328.02941
+327.97274
+327.90192
+327.81698
+327.71791
+327.60474
+327.47745
+327.33605
+327.18052
+327.01081
+326.82689
+326.62869
+326.41611
+326.18903
+325.94732
+325.6908
+325.41926
+324.42322
+324.3985
+324.37566
+324.35467
+324.33555
+324.31829
+)
+;
+
+boundaryField
+{
+    fuelBottom
+    {
+        type            empty;
+    }
+    fuelTop
+    {
+        type            empty;
+    }
+    fuelOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 325.27587;
+        alpha           uniform 5000;
+    }
+    fuelFront
+    {
+        type            empty;
+    }
+    fuelBack
+    {
+        type            empty;
+    }
+    cladBottom
+    {
+        type            empty;
+    }
+    cladTop
+    {
+        type            empty;
+    }
+    cladInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 324.43651;
+        alpha           uniform 5000;
+    }
+    cladOuter
+    {
+        type            timeDependentAxialProfileHTC;
+        axialProfileDict 
+        {
+            timePoints      ( 0 2 3 60 60.05 );
+            axialLocations  ( 0 1 );
+            hData           ( ( 30000 30000 ) ( 30000 30000 ) ( 100 100 ) ( 100 100 ) ( 100 100 ) );
+            T0Data          ( ( 300 300 ) ( 300 300 ) ( 300 300 ) ( 300 300 ) ( 300 300 ) );
+            axialInterpolationMethod linear;
+            timeInterpolationMethod linear;
+        }
+;
+        T0              uniform 300;
+        h               uniform 100;
+        value           uniform 324.3106;
+    }
+    cladFront
+    {
+        type            empty;
+    }
+    cladBack
+    {
+        type            empty;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

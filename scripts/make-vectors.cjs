@@ -589,5 +589,41 @@ badA("axial-boundary-wrong-unit", "E_UNITS", "/axial/boundary/1/bulkTemperature"
   add("bad", "axial-with-hot-dimensions", c, { code: "E_UNSUPPORTED", field: "/axial" });
 }
 
+
+// ---- the plate (plan 12, A4): a slab through its thickness, the pin's numbers as thicknesses
+const asPlate = (c) => {
+  c.assumptions.geometry = "1D-slab";
+  c.geometry = { kind: "plate", fuelHalfThickness: qv(4.1, "mm"), gapThickness: qv(0.08, "mm"), claddingThickness: qv(0.57, "mm") };
+  return c;
+};
+add("good", "plate-steady", asPlate(clone()), {});
+{
+  const c = asPlate(clone());
+  delete c.boundary.bulkTemperature;
+  delete c.boundary.heatTransferCoefficient;
+  c.boundary.surfaceTemperature = qv(600, "K");
+  add("good", "plate-prescribed-wall", c, {});
+}
+add("good", "plate-pulse", asPlate(pulse()), {});
+{
+  const c = asPlate(pulse());
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyLinearHeatRate = qv(20, "kW/m");
+  c.transient.boundaryHistory = convHistory();
+  add("good", "plate-steady-start-boundary-history", c, {});
+}
+add("good", "plate-no-cold-gap", (() => { const c = asPlate(clone()); c.geometry.gapThickness = qv(0, "mm"); return c; })(), {});
+const badP = (name, code, field, mutate) => { const c = asPlate(clone()); mutate(c); add("bad", name, c, { code, field }); };
+badP("plate-with-a-radius", "E_GEOMETRY", "/geometry/fuelRadius", (c) => (c.geometry.fuelRadius = qv(4.1, "mm")));
+badP("plate-with-a-hole", "E_GEOMETRY", "/geometry/fuelInnerRadius", (c) => (c.geometry.fuelInnerRadius = qv(1, "mm")));
+badP("plate-missing-gap-thickness", "E_SCHEMA_INVALID", "/geometry/gapThickness", (c) => delete c.geometry.gapThickness);
+badP("plate-negative-gap-thickness", "E_GEOMETRY", "/geometry/gapThickness", (c) => (c.geometry.gapThickness = qv(-0.1, "mm")));
+badP("plate-zero-cladding-thickness", "E_GEOMETRY", "/geometry/claddingThickness", (c) => (c.geometry.claddingThickness = qv(0, "mm")));
+badP("plate-thickness-wrong-unit", "E_UNITS", "/geometry/fuelHalfThickness", (c) => (c.geometry.fuelHalfThickness = qv(4.1, "W/m")));
+badP("plate-assumed-radial", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-radial"));
+badP("plate-with-axial-stack", "E_UNSUPPORTED", "/axial", (c) => (c.axial = axialBase()));
+bad("pin-assumed-slab", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-slab"));
+bad("geometry-unknown-kind", "E_GEOMETRY", "/geometry/kind", (c) => (c.geometry.kind = "disc"));
+bad("geometry-pin-missing-radius", "E_SCHEMA_INVALID", "/geometry/claddingInnerRadius", (c) => delete c.geometry.claddingInnerRadius);
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 console.log(index.length + " vectors written");

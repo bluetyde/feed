@@ -26,6 +26,7 @@
 // The horizon in 1 is a NECESSARY condition (continuous-time decay; implicit Euler with small steps decays more slowly, with large
 // steps faster). The drift bound in 2 is the certificate.
 
+import { geometryOf } from "./geometry";
 import type { NormalizedCase, Conductivity } from "./validate";
 import { compositeLaw } from "./closedForm";
 import { lawOf, minimum } from "./conductivity";
@@ -65,23 +66,24 @@ export function timeScale(n: NormalizedCase): TimeScale {
   const ri = n.fuelInnerRadius;
   const Rci = n.claddingInnerRadius;
   const Rco = n.claddingOuterRadius;
-  const rGap = 1 / (TWO_PI * Rf * n.gapConductance);
-  const rClad = Math.log(Rco / Rci) / (TWO_PI * kc);
-  const rFilm = n.boundary.kind === "convective" ? 1 / (TWO_PI * Rco * n.boundary.heatTransferCoefficient) : 0;
+  const geo = geometryOf(n.plate);
+  const rGap = 1 / (geo.area(Rf) * n.gapConductance);
+  const rClad = geo.resist(Rci, Rco, kc);
+  const rFilm = n.boundary.kind === "convective" ? 1 / (geo.area(Rco) * n.boundary.heatTransferCoefficient) : 0;
   let sum = 0;
   let total = 0;
   let min = Infinity;
   const cell = (r0: number, r1: number, resistance: (rc: number) => number) => {
-    const c = STEADY_PSEUDO_HEAT_CAPACITY * Math.PI * (r1 * r1 - r0 * r0); // per unit length
-    const rc = (2 / 3) * ((r1 ** 3 - r0 ** 3) / (r1 * r1 - r0 * r0)); // volume centroid of the wedge cell, as OFFBEAT reports its centres
+    const c = STEADY_PSEUDO_HEAT_CAPACITY * geo.volume(r0, r1); // per unit length (a plate: per unit height and width)
+    const rc = geo.centroid(r0, r1); // where OFFBEAT reports the cell's centre (the wedge cell's volume centroid, or the middle of a slab cell)
     sum += c * resistance(rc);
     total += c;
     if (c < min) min = c;
   };
   const dF = (Rf - ri) / n.mesh.fuelCells;
-  for (let j = 0; j < n.mesh.fuelCells; j++) cell(ri + j * dF, ri + (j + 1) * dF, (rc) => Math.log(Rf / rc) / (TWO_PI * kf) + rGap + rClad + rFilm);
+  for (let j = 0; j < n.mesh.fuelCells; j++) cell(ri + j * dF, ri + (j + 1) * dF, (rc) => geo.resist(rc, Rf, kf) + rGap + rClad + rFilm);
   const dC = (Rco - Rci) / n.mesh.claddingCells;
-  for (let j = 0; j < n.mesh.claddingCells; j++) cell(Rci + j * dC, Rci + (j + 1) * dC, (rc) => Math.log(Rco / rc) / (TWO_PI * kc) + rFilm);
+  for (let j = 0; j < n.mesh.claddingCells; j++) cell(Rci + j * dC, Rci + (j + 1) * dC, (rc) => geo.resist(rc, Rco, kc) + rFilm);
   return { tauBound: TAU_SAFETY * sum, capacityRatio: Math.sqrt(total / min), cells: n.mesh.fuelCells + n.mesh.claddingCells };
 }
 
@@ -89,6 +91,7 @@ export function timeScale(n: NormalizedCase): TimeScale {
 export function initialDeviationBound(n: NormalizedCase): number {
   const t0 = n.boundary.kind === "convective" ? n.boundary.bulkTemperature : n.boundary.surfaceTemperature;
   const comp = compositeLaw({
+    slab: n.plate,
     qPrime: n.qPrime,
     fuelK: lawOf(n.fuelConductivity),
     fuelRadius: n.fuelRadius,

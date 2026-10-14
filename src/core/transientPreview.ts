@@ -43,7 +43,7 @@ export function previewTooBig(c: NormalizedCase): boolean {
 export function transientPreview(c: NormalizedCase, external?: { fv: FvTransient | null; skipped?: string }): TransientPreview {
   const t = c.transient!;
   const energy = depositedEnergy(t.times, t.linearHeatRate, t.endTime);
-  const perVolume = energy / (Math.PI * (c.fuelRadius ** 2 - c.fuelInnerRadius ** 2));
+  const perVolume = energy / (c.plate ? c.fuelRadius : Math.PI * (c.fuelRadius ** 2 - c.fuelInnerRadius ** 2));
   const cp = c.fuelHeatCapacity!;
   const law = heatCapacityLaw(cp);
   const start = initialState(c).fuelPeak;

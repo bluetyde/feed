@@ -25,8 +25,11 @@
     },
     "geometry": {
       "type": "object",
-      "required": ["fuelRadius", "claddingInnerRadius", "claddingOuterRadius"],
       "properties": {
+        "kind": { "type": "string" },
+        "fuelHalfThickness": { "$ref": "#/$defs/quantity" },
+        "gapThickness": { "$ref": "#/$defs/quantity" },
+        "claddingThickness": { "$ref": "#/$defs/quantity" },
         "fuelRadius": { "$ref": "#/$defs/quantity" },
         "fuelInnerRadius": { "$ref": "#/$defs/quantity" },
         "claddingInnerRadius": { "$ref": "#/$defs/quantity" },

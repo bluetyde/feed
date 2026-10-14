@@ -127,6 +127,8 @@ export function compositeLinearK(c: CompositeLinearInput, impl: ClosedFormImpl =
 }
 
 export interface CompositeLawInput {
+  /** A plate: every layer is a slab, the heat rate is per unit height and width, the coordinates are distances from the insulated mid-plane (src/core/geometry.ts). */
+  slab?: boolean;
   qPrime: number;
   fuelK: Law;
   fuelRadius: number;
@@ -140,6 +142,7 @@ export interface CompositeLawInput {
 
 /** The same series as compositeLinearK for ANY conductivity law (constant, linear, quadratic, cubic): the conductivity integral of each solid solved by solveHot. */
 export function compositeLaw(c: CompositeLawInput): CompositeResult {
+  if (c.slab) return compositeSlab(c);
   const filmDeltaT = c.boundary.kind === "convective" ? closedForm.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.boundary.hFilm) : 0;
   const claddingOuterT = c.boundary.kind === "convective" ? c.boundary.bulkTemperature + filmDeltaT : c.boundary.surfaceTemperature;
   const claddingInnerT = solveHot(c.claddingK, claddingOuterT, closedForm.claddingConductivityIntegral(c.qPrime, c.claddingInnerRadius, c.claddingOuterRadius));
@@ -149,8 +152,29 @@ export function compositeLaw(c: CompositeLawInput): CompositeResult {
   return { filmDeltaT, claddingDeltaT: claddingInnerT - claddingOuterT, gapDeltaT, fuelDeltaT: centreT - fuelSurfaceT, claddingOuterT, claddingInnerT, fuelSurfaceT, centreT };
 }
 
-/** Fuel temperature at radius r for any conductivity law, given the fuel surface temperature (and the hole radius, if any). */
-export function fuelTemperatureLaw(k: Law, qPrime: number, fuelRadius: number, r: number, surfaceT: number, fuelInnerRadius = 0): number {
+/**
+ * The plate: heat made uniformly in a meat of half-thickness L (an insulated plane at x = 0), q' per unit height and width, so a flux q' leaves through every layer to the coolant.
+ * The film drops q'/h, the cladding of thickness t has the conductivity integral q' t, the gap q'/h_gap, and the meat from x to its surface q' (L^2 - x^2) / (2 L) (the heat made
+ * between 0 and x is q' x / L, so k dT/dx = -q' x / L). Plain slab results, none of the pin's.
+ */
+export function compositeSlab(c: CompositeLawInput): CompositeResult {
+  const filmDeltaT = c.boundary.kind === "convective" ? c.qPrime / c.boundary.hFilm : 0;
+  const claddingOuterT = c.boundary.kind === "convective" ? c.boundary.bulkTemperature + filmDeltaT : c.boundary.surfaceTemperature;
+  const claddingInnerT = solveHot(c.claddingK, claddingOuterT, c.qPrime * (c.claddingOuterRadius - c.claddingInnerRadius));
+  const gapDeltaT = c.qPrime / c.hGap;
+  const fuelSurfaceT = claddingInnerT + gapDeltaT;
+  const centreT = solveHot(c.fuelK, fuelSurfaceT, slabFuelIntegral(c.qPrime, c.fuelRadius, 0));
+  return { filmDeltaT, claddingDeltaT: claddingInnerT - claddingOuterT, gapDeltaT, fuelDeltaT: centreT - fuelSurfaceT, claddingOuterT, claddingInnerT, fuelSurfaceT, centreT };
+}
+
+/** The conductivity integral of the meat from x to its surface at L: q' (L^2 - x^2) / (2 L). */
+export function slabFuelIntegral(qPrime: number, L: number, x: number): number {
+  return (qPrime * (L * L - x * x)) / (2 * L);
+}
+
+/** Fuel temperature at radius r for any conductivity law, given the fuel surface temperature (and the hole radius, if any). For a plate, r is the distance x from the insulated plane and the hole is not offered. */
+export function fuelTemperatureLaw(k: Law, qPrime: number, fuelRadius: number, r: number, surfaceT: number, fuelInnerRadius = 0, slab = false): number {
+  if (slab) return solveHot(k, surfaceT, slabFuelIntegral(qPrime, fuelRadius, r));
   return solveHot(k, surfaceT, (qPrime * annulusShape(r, fuelRadius, fuelInnerRadius)) / FOUR_PI);
 }
 
