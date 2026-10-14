@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-synthetic-lumped-coastdown-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/synthetic-lumped-coastdown.case.json",
+      "sha256": "a3304cb86f46023efccf5d5591e9b199706ebc6ceec1d76a4b813b4b35c2e733"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 682.7699,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.72,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "A lumped body started at its steady state T_b + q'/(h A) and then cooled less and less well: the same ODE through a film history that falls in a straight line over ten seconds. Heat capacity per metre 206.404 J/m/K, outer surface 29.8451 mm2/mm. The pin warms monotonically, so the largest peak is the value at 40 s: 682.7699 K from 611.1688 K. The tolerance is 1 % of the rise, fixed before any run (first-order step error 0.4 % at most, the lumped approximation, the 0.05 s the solver applies the new film value late).",
+    "check": "Second method: FEED's independent finite-volume solution of the full pin with the history (src/core/transientFv.ts, tests/transientFvBoundary.test.ts, exact lumped solutions) and the real solver through tests/seedOracleBoundaryHistory.test.ts; the history is written to OFFBEAT as timeDependentAxialProfileHTC and judged by FEED's own cross-check in docs/boundary-history.md."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "synthetic pin with a conductivity of 400 W/m/K and a heat capacity of 3 MJ/m3/K (Biot about 0.01), 1 kW/m started from its own steady state at a film coefficient of 3000 W/m2/K, coolant 600 K, the film coefficient decaying linearly to 300 between 5 and 15 s"
+  },
+  "toleranceHash": "f350d85047c078d12f670bebc0f81ce89136e8690235820105d36a2e18e0b9d3"
+}

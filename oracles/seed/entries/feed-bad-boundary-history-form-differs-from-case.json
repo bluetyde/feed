@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-boundary-history-form-differs-from-case",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-boundary-history-form-differs-from-case.case.json",
+      "sha256": "0382355f9327cb0489b600b6305129ce1d025b8bcb2ca9bf241b762e616a16ac"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_BOUNDARY_INCOMPLETE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a history in the surface-temperature form for a case whose boundary is convective. FEED must refuse it before any run; SEED reports E_BOUNDARY_INCOMPLETE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/boundary-history-form-differs-from-case.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "5a4b66deed753e1891dfb13b27e64a4e9a31756f2aa28a39a0ccea0a6e87fb74"
+}

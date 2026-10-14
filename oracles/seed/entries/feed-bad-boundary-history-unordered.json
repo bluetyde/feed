@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-boundary-history-unordered",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-boundary-history-unordered.case.json",
+      "sha256": "7aeb8d909b44c95c708964e12dbab9e5fd4e72b491b31043b8184eb581c4d5e2"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_TIME"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: history times that do not increase strictly. FEED must refuse it before any run; SEED reports E_TIME.",
+    "check": "FEED's schema vectors (schema/vectors/bad/boundary-history-unordered.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "7269fb426a58daecb4642c3df647daa8ff7f96f1cfa987323e4b1bf5ca38981a"
+}

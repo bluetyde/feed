@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-boundary-history-steady-start-differs",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-boundary-history-steady-start-differs.case.json",
+      "sha256": "1e00087c64adaa2d252dae7d2880c51db6c7b5d9cf293737afcc254030be484f"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_TRANSIENT_INCOMPLETE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a run that starts from the steady state of its boundary whose history begins at a different boundary, so the start would not be steady. FEED must refuse it before any run; SEED reports E_TRANSIENT_INCOMPLETE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/boundary-history-steady-start-differs.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "6962f8d2193d1a973d02e0134d5028bf5ae68221664944f8fa9036b176ed82d8"
+}

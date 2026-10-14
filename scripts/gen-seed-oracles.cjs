@@ -902,6 +902,139 @@ for (const b of MECH_BAD) {
   mechBad++;
 }
 
+// ---- a coolant side that changes with time (plan 11 B5). A pin with a conductivity of 400 W/m/K in both solids has a Biot number of about 0.001 for a film coefficient of 100 W/m2/K, so it is
+// a lumped body to within a small fraction of a kelvin: C dT/dt = q' - h(t) A (T - T_b(t)), C the heat capacity per metre of fuel and cladding, A the outer surface per metre. The expected
+// value is that ODE integrated here by classical RK4 (step 1 ms) through the history as written, with nothing from FEED's src/core. The hottest cell of the mesh is above the mean by
+// q'/(4 pi k) (0.06 K at 300 W/m), far below the tolerance, which is 1 % of the rise, fixed before any run from the first-order error of the 0.05 s step against a time constant of at least 12 s
+// (0.4 %) and the lumped approximation. Each case warms monotonically, so the largest peak over the run is the value at the end time (checked below).
+let tvbGood = 0;
+const TVB = { k: 400, c: 3e6, fuelCells: 10, claddingCells: 4, dt: 0.05, endT: 40 };
+function tvbCase(name, title, q, history, start) {
+  const doc = load("examples/synthetic-pulse.json");
+  doc.caseId = name;
+  doc.name = title;
+  doc.boundary = { bulkTemperature: { ...history[0].bulkTemperature }, heatTransferCoefficient: { ...history[0].heatTransferCoefficient } };
+  doc.gap.conductance = { value: 1e6, unit: "W/m2/K" };
+  doc.mesh = { fuelCells: TVB.fuelCells, claddingCells: TVB.claddingCells };
+  for (const m of ["fuel", "cladding"]) {
+    doc.materials[m].sets["thermal.conductivity"].value = { value: TVB.k, unit: "W/m/K" };
+    doc.materials[m].sets["thermal.volumetricHeatCapacity"].value = { value: TVB.c / 1e6, unit: "MJ/m3/K" };
+  }
+  doc.transient = { powerHistory: [{ time: { value: 0, unit: "s" }, linearHeatRate: { value: q, unit: "W/m" } }, { time: { value: TVB.endT, unit: "s" }, linearHeatRate: { value: q, unit: "W/m" } }], endTime: { value: TVB.endT, unit: "s" }, timeStep: { value: TVB.dt, unit: "s" }, outputs: 40, ...start, boundaryHistory: history };
+  return doc;
+}
+function tvbLumped(doc, T0) {
+  const R = (x) => si(x);
+  const Rf = R(doc.geometry.fuelRadius), Rci = R(doc.geometry.claddingInnerRadius), Rco = R(doc.geometry.claddingOuterRadius);
+  const C = TVB.c * (Math.PI * Rf * Rf + Math.PI * (Rco * Rco - Rci * Rci));
+  const A = 2 * Math.PI * Rco;
+  const q = si(doc.transient.powerHistory[0].linearHeatRate);
+  const H = doc.transient.boundaryHistory.map((p) => ({ t: p.time.value, Tb: si(p.bulkTemperature), h: si(p.heatTransferCoefficient) }));
+  const at = (t, key) => {
+    if (t <= H[0].t) return H[0][key];
+    for (let i = 1; i < H.length; i++) if (t <= H[i].t) return H[i - 1][key] + ((H[i][key] - H[i - 1][key]) * (t - H[i - 1].t)) / (H[i].t - H[i - 1].t);
+    return H[H.length - 1][key];
+  };
+  const f = (t, T) => (q - at(t, "h") * A * (T - at(t, "Tb"))) / C;
+  let T = T0, t = 0, Tmax = T0;
+  const dt = 1e-3;
+  while (t < TVB.endT - 1e-9) {
+    const k1 = f(t, T), k2 = f(t + dt / 2, T + (dt / 2) * k1), k3 = f(t + dt / 2, T + (dt / 2) * k2), k4 = f(t + dt, T + dt * k3);
+    T += (dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
+    t += dt;
+    Tmax = Math.max(Tmax, T);
+  }
+  if (Math.abs(Tmax - T) > 1e-9) throw new Error(doc.caseId + ": the lumped temperature is not monotone, the largest peak is not the final value");
+  return { T, C, A, q, H0: H[0] };
+}
+const tvbPt = (t, Tb, h) => ({ time: { value: t, unit: "s" }, bulkTemperature: { value: Tb, unit: "K" }, heatTransferCoefficient: { value: h, unit: "W/m2/K" } });
+const TVB_CASES = [
+  {
+    name: "synthetic-lumped-film-step",
+    title: "Synthetic pin, 300 W/m, the film coefficient falls from 500 to 100 W/m2/K at 10 s (illustrative numbers)",
+    q: 300,
+    history: [tvbPt(0, 600, 500), tvbPt(10, 600, 500), tvbPt(10.05, 600, 100), tvbPt(40, 600, 100)],
+    start: { initialTemperature: { value: 600, unit: "K" } },
+    T0: () => 600,
+    domain: "synthetic pin with a conductivity of 400 W/m/K and a heat capacity of 3 MJ/m3/K (Biot about 0.001), 300 W/m from a uniform 600 K start, coolant at 600 K, film coefficient 500 W/m2/K falling to 100 between 10 and 10.05 s",
+    text: "A lumped body: C dT/dt = q' - h(t) A (T - T_b), integrated by RK4 through the film history as written (h linear between its points, the 0.05 s fall included).",
+  },
+  {
+    name: "synthetic-lumped-bulk-ramp",
+    title: "Synthetic pin, no power, the coolant warms from 600 to 900 K over 40 s (illustrative numbers)",
+    q: 0,
+    history: [tvbPt(0, 600, 500), tvbPt(40, 900, 500)],
+    start: { initialTemperature: { value: 600, unit: "K" } },
+    T0: () => 600,
+    domain: "synthetic pin with a conductivity of 400 W/m/K and a heat capacity of 3 MJ/m3/K (Biot about 0.005), no power, uniform 600 K start, film coefficient 500 W/m2/K, coolant ramping linearly from 600 to 900 K over 40 s",
+    text: "A lumped body following a ramp in the coolant temperature: C dT/dt = -h A (T - T_b(t)) with T_b linear; the answer lags the ramp by the time constant C / (h A) times its slope, and RK4 reproduces it.",
+  },
+  {
+    name: "synthetic-lumped-coastdown",
+    title: "Synthetic pin, 1 kW/m from its steady state, the film coefficient decays from 3000 to 300 W/m2/K between 5 and 15 s (illustrative numbers)",
+    q: 1000,
+    history: [tvbPt(0, 600, 3000), tvbPt(5, 600, 3000), tvbPt(15, 600, 300), tvbPt(40, 600, 300)],
+    start: { initialSteadyLinearHeatRate: { value: 1, unit: "kW/m" } },
+    T0: (L) => L.H0.Tb + L.q / (L.H0.h * L.A),
+    domain: "synthetic pin with a conductivity of 400 W/m/K and a heat capacity of 3 MJ/m3/K (Biot about 0.01), 1 kW/m started from its own steady state at a film coefficient of 3000 W/m2/K, coolant 600 K, the film coefficient decaying linearly to 300 between 5 and 15 s",
+    text: "A lumped body started at its steady state T_b + q'/(h A) and then cooled less and less well: the same ODE through a film history that falls in a straight line over ten seconds.",
+  },
+];
+for (const c of TVB_CASES) {
+  const doc = tvbCase(c.name, c.title, c.q, c.history, c.start);
+  const probe = tvbLumped(doc, 600);
+  const T0 = c.T0(probe);
+  const L = tvbLumped(doc, T0);
+  const rise = L.T - T0;
+  if (!(Math.abs(rise) > 20)) throw new Error(c.name + ": the rise is too small to test anything: " + rise);
+  const rel = writeCase(c.name, doc);
+  const tol = Number((0.01 * Math.abs(rise)).toFixed(2));
+  entry({
+    id: "feed-" + c.name + "-temperature-peak-max",
+    tag: "good",
+    casePath: rel,
+    expected: { quantity: "temperature_peak_max", value: round(L.T, 4), unit: "K" },
+    tolerance: { abs: tol, rel: 0 },
+    source: { kind: "analytic", text: c.text + " Heat capacity per metre " + round(L.C, 3) + " J/m/K, outer surface " + round(L.A * 1e3, 4) + " mm2/mm. The pin warms monotonically, so the largest peak is the value at 40 s: " + round(L.T, 4) + " K from " + round(T0, 4) + " K. The tolerance is 1 % of the rise, fixed before any run (first-order step error 0.4 % at most, the lumped approximation, the 0.05 s the solver applies the new film value late).", check: "Second method: FEED's independent finite-volume solution of the full pin with the history (src/core/transientFv.ts, tests/transientFvBoundary.test.ts, exact lumped solutions) and the real solver through tests/seedOracleBoundaryHistory.test.ts; the history is written to OFFBEAT as timeDependentAxialProfileHTC and judged by FEED's own cross-check in docs/boundary-history.md." },
+    coverage: { quantities: ["temperature_peak_max"], domain: c.domain },
+  });
+  tvbGood++;
+  if (c.name === "synthetic-lumped-film-step") {
+    entry({
+      id: "feed-" + c.name + "-energy-deposited",
+      tag: "good",
+      casePath: rel,
+      expected: { quantity: "energy_deposited", value: round(c.q * TVB.endT, 3), unit: "J/m" },
+      tolerance: { abs: 0, rel: 1e-6 },
+      source: { kind: "analytic", text: "The constant heat rate over the run: q' x t = 300 W/m x 40 s. A boundary history must not change the power bookkeeping.", check: "Trivial product; oracles/transient-case-reference.py integrates the tabulated history to the same number." },
+      coverage: { quantities: ["energy_deposited"], domain: c.domain },
+    });
+    tvbGood++;
+  }
+}
+
+// the refusals of the history: FEED's vectors, each with the code the validator gives first
+const TVB_BAD = [
+  { file: "boundary-history-unordered", code: "E_TIME", what: "history times that do not increase strictly" },
+  { file: "boundary-history-zero-h", code: "E_OUT_OF_RANGE", what: "a film coefficient of zero in the history (an adiabatic wall is not accepted; the least is 0.001 W/m2/K)" },
+  { file: "boundary-history-form-differs-from-case", code: "E_BOUNDARY_INCOMPLETE", what: "a history in the surface-temperature form for a case whose boundary is convective" },
+  { file: "boundary-history-steady-start-differs", code: "E_TRANSIENT_INCOMPLETE", what: "a run that starts from the steady state of its boundary whose history begins at a different boundary, so the start would not be steady" },
+  { file: "boundary-history-stops-short", code: "E_TIME", what: "a history that ends before the end time of the run" },
+];
+let tvbBad = 0;
+for (const b of TVB_BAD) {
+  const rel = writeCase("bad-" + b.file, load("schema/vectors/bad/" + b.file + ".json"));
+  entry({
+    id: "feed-bad-" + b.file,
+    tag: "bad-input",
+    casePath: rel,
+    expected: { refusalCode: b.code },
+    source: { kind: "hand", text: "A case with one fault: " + b.what + ". FEED must refuse it before any run; SEED reports " + b.code + ".", check: "FEED's schema vectors (schema/vectors/bad/" + b.file + ".json) assert the same code in FEED's own test suite." },
+    coverage: { quantities: ["case-validation"], domain: "FEED case validation" },
+  });
+  tvbBad++;
+}
+
 write(
   path.join(out, "README.md"),
   [
@@ -911,10 +1044,10 @@ write(
     "Expected values are the closed-form series solution computed by the generator, never the output of a solver run. A tolerance is part of the",
     "entry's hash: changing it needs a new `entryVersion` made by a human.",
     "",
-    (good + transientGood + kineticsGood + limitGood + gaGood + mechGood) + " good entries (steady: peak, outer-wall temperature, flux and energy balance over eight pins, two of them with a cubic and a tabulated fuel conductivity; pulses: adiabatic peak and energy deposited over four tabulated-power cases, two generated by point kinetics, and a steady-start hold; mechanics: displacements, axial stress, a closing gap, a gas pressure, the hydrogen pressure and a stress-limit margin), " + (BAD.length + mechBad) + " bad-input entries, " + (2 + mechKnown) + " known-limit entries.",
+    (good + transientGood + kineticsGood + limitGood + gaGood + mechGood + tvbGood) + " good entries (steady: peak, outer-wall temperature, flux and energy balance over eight pins, two of them with a cubic and a tabulated fuel conductivity; pulses: adiabatic peak and energy deposited over four tabulated-power cases, two generated by point kinetics, and a steady-start hold; mechanics: displacements, axial stress, a closing gap, a gas pressure, the hydrogen pressure and a stress-limit margin; a coolant side that changes with time: three lumped pins with a film step, a ramp in the coolant temperature and a decaying film, and the energy of the first), " + (BAD.length + mechBad + tvbBad) + " bad-input entries, " + (2 + mechKnown) + " known-limit entries.",
     "All cases use the mesh " + MESH.fuelCells + "/" + MESH.claddingCells + " (fuel/cladding cells), except the mechanics cases, which use " + MECH_MESH.fuelCells + "/" + MECH_MESH.claddingCells + " (see the generator). The peak is the first fuel cell centre of that mesh.",
-    "Pulse entries test the adiabatic limit only: heat leaving the fuel during a long transient has no entry here (FEED checks it against its own independent solution). Mechanics (plan 09 M6) is covered by the entries named feed-mechanics-*: free thermal expansion, an axially fixed solid, a closing gap, a gas pressure, the hydrogen pressure, a stress-limit margin, one known limit (a soft fuel) and six refusals. Not covered: stress of a real design, a central hole whose surface is not insulated, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
+    "Pulse entries test the adiabatic limit only: heat leaving the fuel during a long transient has no entry here (FEED checks it against its own independent solution). Mechanics (plan 09 M6) is covered by the entries named feed-mechanics-*: free thermal expansion, an axially fixed solid, a closing gap, a gas pressure, the hydrogen pressure, a stress-limit margin, one known limit (a soft fuel) and six refusals. A boundary history (plan 11) is covered by the entries named feed-synthetic-lumped-* (peak against an RK4 lumped solution, tolerance 1 % of the rise) and five refusals (feed-bad-boundary-history-*); a violent change between two saved outputs is not covered. Not covered: stress of a real design, a central hole whose surface is not insulated, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
     "",
   ].join(NL)
 );
-console.log("wrote " + (good + transientGood + kineticsGood + limitGood + gaGood + mechGood) + " good, " + (BAD.length + mechBad) + " bad-input and " + (2 + mechKnown) + " known-limit entries to " + out);
+console.log("wrote " + (good + transientGood + kineticsGood + limitGood + gaGood + mechGood + tvbGood) + " good, " + (BAD.length + mechBad + tvbBad) + " bad-input and " + (2 + mechKnown) + " known-limit entries to " + out);

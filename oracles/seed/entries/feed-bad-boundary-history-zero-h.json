@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-boundary-history-zero-h",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-boundary-history-zero-h.case.json",
+      "sha256": "2517464339c146fab52f7fb8ce64c493630bced03153e3994c72e085a9a013f7"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_OUT_OF_RANGE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a film coefficient of zero in the history (an adiabatic wall is not accepted; the least is 0.001 W/m2/K). FEED must refuse it before any run; SEED reports E_OUT_OF_RANGE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/boundary-history-zero-h.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "e05860386a107c17b68ea7591afc5a14d460746119a0fd4fae416450bb1dc06e"
+}
