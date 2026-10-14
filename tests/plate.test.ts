@@ -9,7 +9,8 @@ import { lawOf } from "../src/core/conductivity";
 import { writeOffbeatCase } from "../src/core/caseWriter";
 import { geometryOf } from "../src/core/geometry";
 import { quickLook, radialProfile } from "../src/core/quickLook";
-import { steadyEndTime } from "../src/core/steadyState";
+import { STEADY_PSEUDO_HEAT_CAPACITY, TAU_SAFETY, initialDeviationBound, steadyEndTime, timeScale } from "../src/core/steadyState";
+import { check } from "../src/server/server";
 import { solveTransientFv } from "../src/core/transientFv";
 import { initialState, pinOf } from "../src/core/transientResults";
 import { validateCase } from "../src/core/validate";
@@ -230,9 +231,50 @@ describe("the time scale of a plate", () => {
     weak.boundary.heatTransferCoefficient = q(1e-3, "W/m2/K");
     const w = steadyEndTime(norm(weak));
     expect(w.ok && base.ok && w.endTime >= base.endTime).toBe(true);
+    // the Elmore sum of the plate, written out here with the slab's resistances (an independent formula): each cell's capacity times the resistance from its centre to the coolant
+    const n = norm(plate());
+    const kf = 3, kc = 15, hGap = 5000, h = 30000;
+    const L = n.fuelRadius, Rci = n.claddingInnerRadius, Rco = n.claddingOuterRadius;
+    const rGap = 1 / hGap, rClad = (Rco - Rci) / kc, rFilm = 1 / h;
+    let sum = 0;
+    let total = 0;
+    let min = Infinity;
+    for (let j = 0; j < 20; j++) {
+      const dx = L / 20;
+      const xc = (j + 0.5) * dx;
+      const c = STEADY_PSEUDO_HEAT_CAPACITY * dx;
+      sum += c * ((L - xc) / kf + rGap + rClad + rFilm);
+      total += c;
+      min = Math.min(min, c);
+    }
+    for (let j = 0; j < 6; j++) {
+      const dx = (Rco - Rci) / 6;
+      const xc = Rci + (j + 0.5) * dx;
+      const c = STEADY_PSEUDO_HEAT_CAPACITY * dx;
+      sum += c * ((Rco - xc) / kc + rFilm);
+      total += c;
+      min = Math.min(min, c);
+    }
+    const ts = timeScale(n);
+    expect(ts.tauBound / (TAU_SAFETY * sum)).toBeCloseTo(1, 12);
+    expect(ts.capacityRatio / Math.sqrt(total / min)).toBeCloseTo(1, 12);
+    // the initial deviation is the slab's centre above the coolant, 19.093 K, not a cylinder's hundreds
+    expect(initialDeviationBound(n)).toBeCloseTo(592.09333 - 573, 4);
     const g = geometryOf(true);
     expect(g.resist(1, 3, 2)).toBe(1);
     expect(g.volume(1, 3)).toBe(2);
+  });
+});
+
+describe("the editor's check of a plate", () => {
+  it("shows the slab's derived numbers: the volumetric power q / L, the heat flux through the face q, no pin design", () => {
+    const r: any = check(plate());
+    expect(r.ok).toBe(true);
+    expect(r.derived.volumetricPower).toBeCloseTo(20000 / 4.1e-3, 3);
+    expect(r.derived.outerSurfaceHeatFlux).toBe(20000);
+    expect(r.derived.design).toBeNull();
+    expect(r.derived.gapThickness).toBeCloseTo(0.08e-3, 12);
+    expect(r.quick.temperatures.centreT).toBeCloseTo(592.0933333, 6);
   });
 });
 
