@@ -99,6 +99,18 @@ describe("real OFFBEAT output of a stack, read layer by layer", () => {
     expect([4, 5]).toContain(judge(cos).axial.hottest);
     expect(judge(rise).axial.hottest).toBeGreaterThanOrEqual(5);
   });
+  it("a short pin (0.06 m, 12 slices), where the axial conduction is 4 % of the rise: the real output differs from the one-dimensional closed form by tens of kelvin, which the widened tolerance covers; without the allowance the checks would fail", () => {
+    const s = g("short");
+    const r = judge(s);
+    expect(r.checks.filter((c) => c.verdict === "fail")).toEqual([]);
+    const fuel = r.checks.find((c) => c.id === "closedFormFuel")!;
+    expect(fuel.value!).toBeGreaterThan(30);
+    expect(fuel.value!).toBeLessThan(r.axial.allowance.field);
+    // the estimate is of the size of the measured difference (44.7 K measured at the end slice, 45 K estimated for the peak rise)
+    expect(r.axial.conduction!.fraction * 1141).toBeGreaterThan(0.7 * fuel.value!);
+    expect(r.axial.conduction!.fraction * 1141).toBeLessThan(1.6 * fuel.value!);
+    expect(r.axial.allowance.flux).toBeGreaterThan(1000);
+  });
   it("the heat of the whole pin balances to 1e-4: the end faces carry nothing, whatever the axial conduction does", () => {
     const t = judge(cos).checks.find((c) => c.id === "energyBalanceTotal")!;
     expect(Math.abs(t.value!)).toBeLessThan(1e-4);
