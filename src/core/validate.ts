@@ -68,7 +68,19 @@ export interface NormalizedTransient {
   /** Present when the history comes from point kinetics: the validated inputs and, once the case is normalized, the generated pulse (times and linearHeatRate are then its thinned history). */
   kinetics?: KineticsSpec;
   generated?: GeneratedPulse;
+  /** The coolant side as a table against time (plan 11): present when the case states `transient.boundaryHistory`; linear between points, applied at the end of each step. */
+  boundaryHistory?: BoundaryHistory;
 }
+
+/** The outer boundary of a transient as tables against time: the same form as the case's own boundary (convective, or a prescribed wall). Times start at 0 and reach the end time. */
+export type BoundaryHistory =
+  | { kind: "convective"; times: number[]; bulkTemperature: number[]; heatTransferCoefficient: number[] }
+  | { kind: "surface-temperature"; times: number[]; surfaceTemperature: number[] };
+
+/** A film coefficient below this is an adiabatic wall in everything but name; OFFBEAT accepts 0.001 (plan 11 B0). */
+export const HISTORY_HTC_MIN = 1e-3;
+export const HISTORY_HTC_MAX = 1e9;
+export const HISTORY_TEMPERATURE_MAX = 1e4;
 
 /** Limits on the time grid; beyond them a case is refused, not truncated. */
 export const MAX_STEPS = 100000;
@@ -345,6 +357,22 @@ export function validateCase(doc: unknown): ValidationResult {
     fuelCp = heatCapacity(c.materials.fuel, "fuel", err, qty);
     claddingCp = heatCapacity(c.materials.cladding, "cladding", err, qty);
     if (c.transient !== undefined) transient = parseTransient(c.transient, err, qty);
+    if (transient && transient.boundaryHistory && boundary) {
+      const hist = transient.boundaryHistory;
+      if (hist.kind !== boundary.kind) {
+        err("E_BOUNDARY_INCOMPLETE", "/transient/boundaryHistory", "the boundary history is in the " + hist.kind + " form but the case's own boundary is " + boundary.kind + ": use the same form in both");
+        transient = undefined;
+      } else if (transient.initial.kind === "steady") {
+        // the run starts at the steady state of the case's own boundary; a history that begins elsewhere would not be starting from that state
+        const same = hist.kind === "convective" && boundary.kind === "convective"
+          ? Math.abs(hist.bulkTemperature[0]! - boundary.bulkTemperature) <= 1e-9 * boundary.bulkTemperature && Math.abs(hist.heatTransferCoefficient[0]! - boundary.heatTransferCoefficient) <= 1e-9 * boundary.heatTransferCoefficient
+          : hist.kind === "surface-temperature" && boundary.kind === "surface-temperature" && Math.abs(hist.surfaceTemperature[0]! - boundary.surfaceTemperature) <= 1e-9 * boundary.surfaceTemperature;
+        if (!same) {
+          err("E_TRANSIENT_INCOMPLETE", "/transient/boundaryHistory/0", "the run starts at the steady state of the case's own boundary, so the history's value at time 0 must equal it (bulk temperature, heat-transfer coefficient or surface temperature); otherwise start from a uniform temperature");
+          transient = undefined;
+        }
+      }
+    }
     if (transient) {
       qPrime = Math.max(...transient.linearHeatRate);
       // the heat capacity laws must hold at a uniform starting temperature (a steady start is checked below, on its field), and the work must fit the budget
@@ -1569,16 +1597,92 @@ function parseTransient(t: Record<string, any>, err: ErrFn, qty: QtyFn): Normali
           }
         }
         if (endTime !== undefined && times[times.length - 1]! < endTime * (1 - 1e-12)) bad("E_TIME", "/transient/powerHistory", "the power history ends at " + times[times.length - 1] + " s, before the end time " + endTime + " s; give the power over the whole run");
-        // all zero is a mistake from a uniform start (nothing is heated), but a shutdown from a steady operating state (a scram) is a real case
-        if (!(Math.max(...lhgr) > 0) && !(t.initialSteadyLinearHeatRate !== undefined && t.initialSteadyLinearHeatRate !== null)) bad("E_OUT_OF_RANGE", "/transient/powerHistory", "the power history is zero everywhere");
+        // all zero is a mistake from a uniform start (nothing is heated), but a shutdown from a steady operating state (a scram) is a real case, and so is a hot pin cooling or warming through a stated boundary history
+        if (!(Math.max(...lhgr) > 0) && !(t.initialSteadyLinearHeatRate !== undefined && t.initialSteadyLinearHeatRate !== null) && t.boundaryHistory === undefined) bad("E_OUT_OF_RANGE", "/transient/powerHistory", "the power history is zero everywhere");
       } else ok = false;
     }
   } else if (hist !== undefined) {
     bad("E_SCHEMA_INVALID", "/transient/powerHistory", "the power history is a list of {time, linearHeatRate} points");
   }
+  let boundaryHistory: BoundaryHistory | undefined;
+  if (t.boundaryHistory !== undefined) {
+    boundaryHistory = parseBoundaryHistory(t.boundaryHistory, err, qty, endTime);
+    if (boundaryHistory === undefined) ok = false;
+  }
   const initial: NormalizedTransient["initial"] | undefined = initialTemperature !== undefined ? { kind: "uniform", temperature: initialTemperature } : initialQ !== undefined ? { kind: "steady", linearHeatRate: initialQ } : undefined;
   if (!ok || endTime === undefined || timeStep === undefined || initial === undefined || typeof outputs !== "number" || times.length < 2) return undefined;
-  return { times, linearHeatRate: lhgr, endTime, timeStep, steps, outputs, initial, ...(kinetics ? { kinetics } : {}) };
+  return { times, linearHeatRate: lhgr, endTime, timeStep, steps, outputs, initial, ...(kinetics ? { kinetics } : {}), ...(boundaryHistory ? { boundaryHistory } : {}) };
+}
+
+/**
+ * The coolant side as tables against time (plan 11 B1): points {time, bulkTemperature, heatTransferCoefficient} for a convective case or {time, surfaceTemperature} for a prescribed wall,
+ * every point of the same form. Linear between points; OFFBEAT applies the value at the end of each step (found in B0), and the independent solution has to do the same. Nothing
+ * is defaulted: the first point is at time 0 and the last reaches the end time (the writer adds the flat point OFFBEAT needs beyond it).
+ */
+function parseBoundaryHistory(raw: unknown, err: ErrFn, qty: QtyFn, endTime: number | undefined): BoundaryHistory | undefined {
+  const base = "/transient/boundaryHistory";
+  let ok = true;
+  const bad = (code: string, field: string, message: string, extra: Partial<Issue> = {}) => {
+    ok = false;
+    err(code, field, message, extra);
+  };
+  if (!Array.isArray(raw)) {
+    err("E_SCHEMA_INVALID", base, "the boundary history is a list of points: {time, bulkTemperature, heatTransferCoefficient} or {time, surfaceTemperature}");
+    return undefined;
+  }
+  if (raw.length < 2) return void err("E_TIME", base, "the boundary history needs at least two points");
+  if (raw.length > MAX_HISTORY_POINTS) return void err("E_TIME", base, "the boundary history has " + raw.length + " points; the maximum is " + MAX_HISTORY_POINTS);
+  const times: number[] = [];
+  const bulk: number[] = [];
+  const h: number[] = [];
+  const wall: number[] = [];
+  let kind: "convective" | "surface-temperature" | undefined;
+  raw.forEach((p: unknown, i: number) => {
+    const f = base + "/" + i;
+    if (!isObject(p)) return bad("E_SCHEMA_INVALID", f, "each point is {time, bulkTemperature, heatTransferCoefficient} or {time, surfaceTemperature}");
+    const isWall = p.surfaceTemperature !== undefined;
+    const isConv = p.bulkTemperature !== undefined || p.heatTransferCoefficient !== undefined;
+    const allowed = isWall ? ["time", "surfaceTemperature"] : ["time", "bulkTemperature", "heatTransferCoefficient"];
+    if (isWall && isConv) return bad("E_BOUNDARY_INCOMPLETE", f, "a point gives the boundary in two forms; choose bulk temperature with a heat-transfer coefficient, or a surface temperature");
+    for (const k of Object.keys(p)) if (!allowed.includes(k)) bad("E_SCHEMA_INVALID", f + "/" + k, "unknown key '" + k + "' (a " + (isWall ? "prescribed-wall" : "convective") + " point has " + allowed.join(", ") + ")");
+    const here = isWall ? "surface-temperature" : "convective";
+    if (!isWall && !isConv) return bad("E_BOUNDARY_INCOMPLETE", f, "a point needs bulkTemperature with heatTransferCoefficient, or surfaceTemperature");
+    if (kind === undefined) kind = here;
+    else if (kind !== here) return bad("E_BOUNDARY_INCOMPLETE", f, "the points of a boundary history are all of one form; this one is " + here + " and the first was " + kind);
+    if (p.time === undefined) return bad("E_PROP_MISSING", f + "/time", "a point needs its time");
+    const tt = qty(p.time, "time", f + "/time");
+    if (tt === undefined) return void (ok = false);
+    if (isWall) {
+      if (p.surfaceTemperature === undefined) return;
+      const w = qty(p.surfaceTemperature, "temperature", f + "/surfaceTemperature");
+      if (w === undefined) return void (ok = false);
+      if (!(w > 0 && w <= HISTORY_TEMPERATURE_MAX)) return bad("E_OUT_OF_RANGE", f + "/surfaceTemperature", "the surface temperature is above 0 K and at most " + HISTORY_TEMPERATURE_MAX + " K", { unit: "K" });
+      times.push(tt);
+      wall.push(w);
+    } else {
+      if (p.bulkTemperature === undefined) return bad("E_BOUNDARY_INCOMPLETE", f + "/bulkTemperature", "a heat-transfer coefficient alone is not a boundary condition; a convective point also needs the bulk temperature");
+      if (p.heatTransferCoefficient === undefined) return bad("E_BOUNDARY_INCOMPLETE", f + "/heatTransferCoefficient", "bulk temperature alone is not a boundary condition; a convective point also needs a heat-transfer coefficient");
+      const tb = qty(p.bulkTemperature, "temperature", f + "/bulkTemperature");
+      const hh = qty(p.heatTransferCoefficient, "htc", f + "/heatTransferCoefficient");
+      if (tb === undefined || hh === undefined) return void (ok = false);
+      if (!(tb > 0 && tb <= HISTORY_TEMPERATURE_MAX)) return bad("E_OUT_OF_RANGE", f + "/bulkTemperature", "the bulk temperature is above 0 K and at most " + HISTORY_TEMPERATURE_MAX + " K", { unit: "K" });
+      if (!(hh >= HISTORY_HTC_MIN && hh <= HISTORY_HTC_MAX)) return bad("E_OUT_OF_RANGE", f + "/heatTransferCoefficient", "the heat-transfer coefficient is from " + HISTORY_HTC_MIN + " to " + HISTORY_HTC_MAX + " W/m2/K (a lost coolant is a small positive value, not zero)", { unit: "W/m2/K" });
+      times.push(tt);
+      bulk.push(tb);
+      h.push(hh);
+    }
+  });
+  if (!ok || kind === undefined) return undefined;
+  if (times[0] !== 0) bad("E_TIME", base + "/0/time", "the boundary history must start at time 0");
+  for (let i = 1; i < times.length; i++) {
+    if (!(times[i]! > times[i - 1]!)) {
+      bad("E_TIME", base + "/" + i + "/time", "history times must increase strictly");
+      break;
+    }
+  }
+  if (endTime !== undefined && times[times.length - 1]! < endTime * (1 - 1e-12)) bad("E_TIME", base, "the boundary history ends at " + times[times.length - 1] + " s, before the end time " + endTime + " s; give a point at or after the end time (the last value is not held)");
+  if (!ok) return undefined;
+  return kind === "convective" ? { kind, times, bulkTemperature: bulk, heatTransferCoefficient: h } : { kind, times, surfaceTemperature: wall };
 }
 
 /** The point-kinetics section: the reactivity, the neutronics constants, the feedback and the pin's share of the power. Nothing is defaulted. */

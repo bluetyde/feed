@@ -192,7 +192,7 @@ export function check(doc: unknown) {
 export async function checkAsync(doc: unknown, previewDeadlineMs = PREVIEW_DEADLINE_MS) {
   const v = validateCase(doc);
   let external: { fv: FvTransient | null; skipped?: string } | undefined;
-  if (v.normalized?.transient && !previewTooBig(v.normalized)) {
+  if (v.normalized?.transient && !v.normalized.transient.boundaryHistory && !previewTooBig(v.normalized)) {
     const o = await independent.start(v.normalized, { what: "single", deadlineMs: previewDeadlineMs, supersede: true }).done;
     external = o.ok ? { fv: (o.set as { fv: FvTransient }).fv } : { fv: null, skipped: o.reason === "superseded" ? "a newer edit replaced this preview before it started" : "the preview was skipped: " + o.message };
   }

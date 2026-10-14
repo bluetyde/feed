@@ -434,6 +434,100 @@
     "valid": true
   },
   {
+    "file": "good/pulse-boundary-history.json",
+    "valid": true
+  },
+  {
+    "file": "good/pulse-boundary-history-wall.json",
+    "valid": true
+  },
+  {
+    "file": "good/pulse-boundary-history-no-power.json",
+    "valid": true
+  },
+  {
+    "file": "good/pulse-boundary-history-steady-start.json",
+    "valid": true
+  },
+  {
+    "file": "bad/boundary-history-not-a-list.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/transient/boundaryHistory"
+  },
+  {
+    "file": "bad/boundary-history-one-point.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/boundaryHistory"
+  },
+  {
+    "file": "bad/boundary-history-not-from-zero.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/boundaryHistory/0/time"
+  },
+  {
+    "file": "bad/boundary-history-unordered.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/boundaryHistory/2/time"
+  },
+  {
+    "file": "bad/boundary-history-stops-short.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/boundaryHistory"
+  },
+  {
+    "file": "bad/boundary-history-zero-h.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/boundaryHistory/1/heatTransferCoefficient"
+  },
+  {
+    "file": "bad/boundary-history-no-h.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/transient/boundaryHistory/1/heatTransferCoefficient"
+  },
+  {
+    "file": "bad/boundary-history-mixed-forms.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/transient/boundaryHistory/1"
+  },
+  {
+    "file": "bad/boundary-history-both-forms-in-a-point.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/transient/boundaryHistory/0"
+  },
+  {
+    "file": "bad/boundary-history-unknown-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/transient/boundaryHistory/1/emissivity"
+  },
+  {
+    "file": "bad/boundary-history-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/transient/boundaryHistory/1/bulkTemperature"
+  },
+  {
+    "file": "bad/boundary-history-form-differs-from-case.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/transient/boundaryHistory"
+  },
+  {
+    "file": "bad/boundary-history-steady-start-differs.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/boundaryHistory/0"
+  },
+  {
     "file": "bad/transient-initial-both.json",
     "valid": false,
     "code": "E_TRANSIENT_INCOMPLETE",

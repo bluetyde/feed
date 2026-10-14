@@ -224,6 +224,48 @@ bad("unsupported-closed-gap", "E_UNSUPPORTED", "/gap/model", (c) => {
   c.transient.initialSteadyLinearHeatRate = { value: 20, unit: "kW/m" };
   add("good", "pulse-steady-start", c, {});
 }
+// ---- a boundary that changes with time (plan 11 B1)
+const qv = (v, u) => ({ value: v, unit: u });
+const convPoint = (ms, Tb, h) => ({ time: qv(ms, "ms"), bulkTemperature: qv(Tb, "K"), heatTransferCoefficient: qv(h, "W/m2/K") });
+const convHistory = () => [convPoint(0, 300, 30000), convPoint(40, 300, 30000), convPoint(50, 300, 1000), convPoint(100, 300, 1000)];
+const withHistory = (hist) => { const c = pulse(); c.transient.boundaryHistory = hist; return c; };
+add("good", "pulse-boundary-history", withHistory(convHistory()), {});
+{
+  const c = withHistory([{ time: qv(0, "ms"), surfaceTemperature: qv(300, "K") }, { time: qv(100, "ms"), surfaceTemperature: qv(400, "K") }]);
+  c.boundary = { surfaceTemperature: qv(300, "K") };
+  add("good", "pulse-boundary-history-wall", c, {});
+}
+{
+  // a hot pin cooling: no heat source at all is allowed when the boundary history is stated
+  const c = withHistory(convHistory());
+  c.transient.powerHistory = [{ time: qv(0, "ms"), linearHeatRate: qv(0, "W/m") }, { time: qv(100, "ms"), linearHeatRate: qv(0, "W/m") }];
+  c.transient.initialTemperature = qv(800, "K");
+  add("good", "pulse-boundary-history-no-power", c, {});
+}
+{
+  // a steady start: the history begins at the case's own boundary
+  const c = withHistory(convHistory());
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyLinearHeatRate = qv(20, "kW/m");
+  add("good", "pulse-boundary-history-steady-start", c, {});
+}
+badT("boundary-history-not-a-list", "E_SCHEMA_INVALID", "/transient/boundaryHistory", (c) => (c.transient.boundaryHistory = { time: 0 }));
+badT("boundary-history-one-point", "E_TIME", "/transient/boundaryHistory", (c) => (c.transient.boundaryHistory = [convPoint(0, 300, 30000)]));
+badT("boundary-history-not-from-zero", "E_TIME", "/transient/boundaryHistory/0/time", (c) => (c.transient.boundaryHistory = [convPoint(10, 300, 30000), convPoint(100, 300, 1000)]));
+badT("boundary-history-unordered", "E_TIME", "/transient/boundaryHistory/2/time", (c) => (c.transient.boundaryHistory = [convPoint(0, 300, 30000), convPoint(50, 300, 30000), convPoint(50, 300, 1000), convPoint(100, 300, 1000)]));
+badT("boundary-history-stops-short", "E_TIME", "/transient/boundaryHistory", (c) => (c.transient.boundaryHistory = [convPoint(0, 300, 30000), convPoint(60, 300, 1000)]));
+badT("boundary-history-zero-h", "E_OUT_OF_RANGE", "/transient/boundaryHistory/1/heatTransferCoefficient", (c) => (c.transient.boundaryHistory = [convPoint(0, 300, 30000), convPoint(100, 300, 0)]));
+badT("boundary-history-no-h", "E_BOUNDARY_INCOMPLETE", "/transient/boundaryHistory/1/heatTransferCoefficient", (c) => (c.transient.boundaryHistory = [convPoint(0, 300, 30000), { time: qv(100, "ms"), bulkTemperature: qv(300, "K") }]));
+badT("boundary-history-mixed-forms", "E_BOUNDARY_INCOMPLETE", "/transient/boundaryHistory/1", (c) => (c.transient.boundaryHistory = [convPoint(0, 300, 30000), { time: qv(100, "ms"), surfaceTemperature: qv(300, "K") }]));
+badT("boundary-history-both-forms-in-a-point", "E_BOUNDARY_INCOMPLETE", "/transient/boundaryHistory/0", (c) => (c.transient.boundaryHistory = [{ ...convPoint(0, 300, 30000), surfaceTemperature: qv(300, "K") }, convPoint(100, 300, 30000)]));
+badT("boundary-history-unknown-key", "E_SCHEMA_INVALID", "/transient/boundaryHistory/1/emissivity", (c) => (c.transient.boundaryHistory = [convPoint(0, 300, 30000), { ...convPoint(100, 300, 30000), emissivity: 0.8 }]));
+badT("boundary-history-wrong-unit", "E_UNITS", "/transient/boundaryHistory/1/bulkTemperature", (c) => (c.transient.boundaryHistory = [convPoint(0, 300, 30000), { ...convPoint(100, 300, 30000), bulkTemperature: qv(300, "W/m") }]));
+badT("boundary-history-form-differs-from-case", "E_BOUNDARY_INCOMPLETE", "/transient/boundaryHistory", (c) => (c.transient.boundaryHistory = [{ time: qv(0, "ms"), surfaceTemperature: qv(300, "K") }, { time: qv(100, "ms"), surfaceTemperature: qv(400, "K") }]));
+badT("boundary-history-steady-start-differs", "E_TRANSIENT_INCOMPLETE", "/transient/boundaryHistory/0", (c) => {
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyLinearHeatRate = qv(20, "kW/m");
+  c.transient.boundaryHistory = [convPoint(0, 350, 30000), convPoint(100, 350, 1000)];
+});
 badT("transient-initial-both", "E_TRANSIENT_INCOMPLETE", "/transient/initialSteadyLinearHeatRate", (c) => (c.transient.initialSteadyLinearHeatRate = { value: 20, unit: "kW/m" }));
 badT("transient-initial-neither", "E_TRANSIENT_INCOMPLETE", "/transient/initialTemperature", (c) => delete c.transient.initialTemperature);
 const badS = (name, code, field, mutate) =>
