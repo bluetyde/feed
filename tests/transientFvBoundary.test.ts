@@ -157,4 +157,13 @@ describe("conservation and the unchanged case", () => {
     const hist = validateCase(raw).normalized!;
     expect(initialState(hist).T).toEqual(initialState(plain).T);
   });
+  it("a uniform start with a prescribed wall begins at the history's value at time 0, not the case's own wall temperature", () => {
+    const raw = JSON.parse(readFileSync(join(root, "examples/synthetic-pulse.json"), "utf8"));
+    raw.boundary = { surfaceTemperature: q(600, "K") };
+    raw.transient.boundaryHistory = [{ time: q(0, "ms"), surfaceTemperature: q(700, "K") }, { time: q(100, "ms"), surfaceTemperature: q(800, "K") }];
+    const c = validateCase(raw).normalized!;
+    expect(initialState(c).wall).toBe(700);
+    delete raw.transient.boundaryHistory;
+    expect(initialState(validateCase(raw).normalized!).wall).toBe(600);
+  });
 });
