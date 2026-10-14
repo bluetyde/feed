@@ -1,0 +1,90 @@
+import { mkdtempSync, readFileSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
+import { it } from "vitest";
+import { RunManager } from "../src/core/runManager";
+import { WslBackend } from "../src/core/wslBackend";
+
+const root = join(__dirname, "..");
+const q = (value: number, unit: string) => ({ value, unit });
+const END = 40;
+function base() {
+  const d = JSON.parse(readFileSync(join(root, "examples", "synthetic-pulse.json"), "utf8"));
+  d.boundary = { bulkTemperature: q(600, "K"), heatTransferCoefficient: q(500, "W/m2/K") };
+  d.gap.conductance = q(1e6, "W/m2/K");
+  d.mesh = { fuelCells: 10, claddingCells: 4 };
+  for (const m of ["fuel", "cladding"]) {
+    d.materials[m].sets["thermal.conductivity"].value = q(100, "W/m/K");
+    d.materials[m].sets["thermal.volumetricHeatCapacity"].value = q(3, "MJ/m3/K");
+  }
+  d.transient = { powerHistory: [{ time: q(0, "s"), linearHeatRate: q(5, "W/m") }, { time: q(END, "s"), linearHeatRate: q(5, "W/m") }], endTime: q(END, "s"), timeStep: q(Number(process.env.DT ?? 0.05), "s"), outputs: 20, initialTemperature: q(800, "K") };
+  return d;
+}
+const Rf = 4.1e-3, Rci = 4.18e-3, Rco = 4.75e-3;
+const Cp = 3e6 * (Math.PI * Rf * Rf + Math.PI * (Rco * Rco - Rci * Rci));
+const A = 2 * Math.PI * Rco;
+/** Lumped: C dT/dt = -h A (T - Tb(t)), RK4 with a small step; the film is the only resistance (Bi is 0.02). */
+function lumped(h: (t: number) => number, Tb: (t: number) => number, T0: number, times: number[]) {
+  let T = T0, t = 0;
+  const f = (tt: number, TT: number) => (5 - h(tt) * A * (TT - Tb(tt))) / Cp;
+  const out: number[] = [];
+  const dt = 1e-3;
+  for (const target of times) {
+    while (t < target - 1e-12) {
+      const k1 = f(t, T), k2 = f(t + dt / 2, T + (dt / 2) * k1), k3 = f(t + dt / 2, T + (dt / 2) * k2), k4 = f(t + dt, T + dt * k3);
+      T += (dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
+      t += dt;
+    }
+    out.push(T);
+  }
+  return out;
+}
+function discrete(h: (t: number) => number, dt: number, level: string, times: number[]) {
+  let T = 800;
+  const byTime: Record<string, number> = {};
+  for (let n = 1; n <= Math.round(END / dt); n++) {
+    const hh = level === "new" ? h(n * dt) : h((n - 1) * dt);
+    T = (T + (dt / Cp) * (5 + hh * A * 600)) / (1 + (dt * hh * A) / Cp);
+    byTime[(n * dt).toFixed(3)] = T;
+  }
+  return times.map((x) => byTime[x.toFixed(3)] ?? NaN);
+}
+const cases: Record<string, { times: number[]; h: number[]; T0: number[]; hf: (t: number) => number; Tf: (t: number) => number; method?: string }> = {
+  control: { times: [0, END], h: [500, 500], T0: [600, 600], hf: () => 500, Tf: () => 600 },
+  step: { times: [0, 10, 10.05, END], h: [500, 500, 100, 100], T0: [600, 600, 600, 600], hf: (t) => (t < 10 ? 500 : t > 10.05 ? 100 : 500 - (400 * (t - 10)) / 0.05), Tf: () => 600 },
+  ramp: { times: [0, END], h: [500, 500], T0: [600, 900], hf: () => 500, Tf: (t) => 600 + (300 * t) / END },
+  short: { times: [0, 30], h: [500, 500], T0: [600, 600], hf: () => 500, Tf: () => 600 },
+  sharp: { times: [0, 10, 10.0001, END], h: [500, 500, 100, 100], T0: [600, 600, 600, 600], hf: (t) => (t < 10.0001 ? 500 : 100), Tf: () => 600 },
+  wall: { times: [0, 42], h: [1, 1], T0: [600, 600], hf: () => 1, Tf: () => 600 },
+  tiny: { times: [0, 10, 10.05, END], h: [500, 500, 0.001, 0.001], T0: [600, 600, 600, 600], hf: (t) => (t < 10 ? 500 : 0.001), Tf: () => 600 },
+};
+it("probe", async () => {
+  const out: any = { Cp };
+  const which = (process.env.CASES ?? "control,step,ramp,short,tiny").split(",");
+  for (const name of which) {
+    const c = cases[name]!;
+    process.env.PROBE_BC = name === "control" ? "" : JSON.stringify({ times: c.times, h: c.h, T0: c.T0, ...(name === "wall" ? { wall: [600, 900] } : {}) });
+    const runsRoot = mkdtempSync(join(tmpdir(), "feed-b0-"));
+    const mgr = new RunManager({ runsRoot, backend: new WslBackend(), timeoutMs: 280000 });
+    const bd = base(); if (name === "wall") bd.boundary = { surfaceTemperature: q(600, "K") };
+    const s = mgr.start(bd) as any; if (!s.ok) { writeFileSync(process.env.TEMP + "/b0.json", JSON.stringify(s, null, 1)); throw new Error("refused"); }
+    const rec = await mgr.done(s.id);
+    if (rec.state !== "completed") {
+      const { readdirSync, statSync } = await import("fs");
+      const walk = (d: string): string[] => readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
+      const files = walk(runsRoot).filter((f) => f.endsWith("/T") || f.endsWith(String.fromCharCode(92) + "T"));
+      const NLC = String.fromCharCode(10);
+      writeFileSync(process.env.TEMP + "/b0-T-" + name + ".txt", files.join(NLC) + NLC + "=====" + NLC + (files.length ? readFileSync(files[files.length - 1]!, "utf8").slice(-1800) : ""));
+    }
+    const res: any = rec.state === "completed" ? mgr.results(s.id) : undefined;
+    const ser = res?.series;
+    const times: number[] = ser?.time ?? [];
+    const peak: number[] = ser?.peakT ?? ser?.maxT ?? [];
+    const ref = name === "wall" ? times.map((x) => 600 + (300 * x) / 42) : lumped(c.hf, c.Tf, 800, times);
+    const dtv = Number(process.env.DT ?? 0.05);
+    const dNew = discrete(c.hf, dtv, "new", times), dOld = discrete(c.hf, dtv, "old", times);
+    const dev = times.map((t, i) => ({ t, solver: +(peak[i] ?? NaN).toFixed(3), lumped: +ref[i]!.toFixed(3), dNew: +dNew[i]!.toFixed(3), dOld: +dOld[i]!.toFixed(3) }));
+    out[name] = { state: rec.state, failure: rec.failure ? JSON.stringify(rec.failure).slice(0, 400) : undefined, keys: ser ? Object.keys(ser) : undefined, checks: res?.checks.map((x: any) => x.id + ":" + x.verdict), maxDev: dev.length ? Math.max(...dev.map((d) => Math.abs(d.solver - d.lumped))) : null, samples: dev.filter((_, i) => i % 2 === 1) };
+  }
+  writeFileSync(process.env.TEMP + "/b0.json", JSON.stringify(out, null, 1));
+}, 1800000);

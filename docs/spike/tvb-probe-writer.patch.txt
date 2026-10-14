@@ -1,0 +1,38 @@
+diff --git a/src/core/caseWriter.ts b/src/core/caseWriter.ts
+index d894491..ade780a 100644
+--- a/src/core/caseWriter.ts
++++ b/src/core/caseWriter.ts
+@@ -364,8 +364,31 @@ function temperatureField(c: NormalizedCase, start: StartField): string {
+         value           ${copy(near)};
+     }
+ `;
+-  const outer =
+-    c.boundary.kind === "convective"
++  const probe = process.env.PROBE_BC ? JSON.parse(process.env.PROBE_BC) : undefined;
++  const outer = probe && probe.wall
++    ? `type timeDependentAxialProfileT;
++        timeDependentProfile
++        {
++            timePoints (${probe.times.join(" ")});
++            axialLocations (0 1);
++            axialData (${probe.wall.map((v: number) => "(" + v + " " + v + ")").join(" ")});
++            axialInterpolationMethod linear;
++            timeInterpolationMethod linear;
++        }
++        value uniform ${num(c.boundary.kind === "surface-temperature" ? c.boundary.surfaceTemperature : 600)};`
++    : probe
++    ? `type timeDependentAxialProfileHTC;
++        axialProfileDict
++        {
++            timePoints (${probe.times.join(" ")});
++            axialLocations (0 1);
++            hData (${probe.h.map((v: number) => "(" + v + " " + v + ")").join(" ")});
++            T0Data (${probe.T0.map((v: number) => "(" + v + " " + v + ")").join(" ")});
++            axialInterpolationMethod "linear";
++            timeInterpolationMethod "${probe.method ?? "linear"}";
++        }
++        value uniform ${num(start.kind === "uniform" ? start.T : start.wall)};`
++    : c.boundary.kind === "convective"
+       ? `type convectiveHTC;
+         T0 uniform ${num(c.boundary.bulkTemperature)};
+         h uniform ${num(c.boundary.heatTransferCoefficient)};
