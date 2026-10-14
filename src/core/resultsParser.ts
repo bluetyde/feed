@@ -67,8 +67,17 @@ export function parseVectorField(text: string, name: string): number[][] {
 
 /** `value uniform X` inside a named boundary patch block (the patch temperature the solver converged to). */
 export function parsePatchValue(text: string, patch: string): number | null {
-  const block = new RegExp(`\\b${patch}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`).exec(text);
-  if (!block) return null;
+  // the patch's block, to its own closing brace: a boundary condition may hold a sub-dictionary (the time tables of timeDependentAxialProfileHTC), so the first closing brace is not the end
+  const open = new RegExp(`\\b${patch}\\s*\\{`).exec(text);
+  if (!open) return null;
+  let depth = 1;
+  let end = open.index + open[0].length;
+  for (; end < text.length && depth > 0; end++) {
+    if (text[end] === "{") depth++;
+    else if (text[end] === "}") depth--;
+  }
+  if (depth !== 0) return null;
+  const block = [open[0], text.slice(open.index + open[0].length, end - 1)];
   const uniform = /value\s+uniform\s+([-+.\deE]+)\s*;/.exec(block[1]!);
   if (uniform) {
     const x = Number(uniform[1]);

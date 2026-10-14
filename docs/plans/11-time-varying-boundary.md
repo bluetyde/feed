@@ -1,6 +1,6 @@
 # Plan 11: A boundary that changes with time
 
-Status: planned 2026-10-12, on the user's word ("yes plan the time-varying boundary"), after an outside test of the suite (`suite-test-ne360`, finding F17) could ask only how fast a plate heats up with its cooling lost, because FEED's film coefficient and bulk temperature are constants for a run. Extends the thermal transients of [plan 08](08-transients.md). Nothing here is built.
+Status: planned 2026-10-12, B0 (the probe) done 2026-10-14 ([findings](../spike/tvb-probe.md)), on the user's word ("yes plan the time-varying boundary"), after an outside test of the suite (`suite-test-ne360`, finding F17) could ask only how fast a plate heats up with its cooling lost, because FEED's film coefficient and bulk temperature are constants for a run. Extends the thermal transients of [plan 08](08-transients.md). Nothing here is built.
 
 ## What it adds, and what it does not
 
@@ -51,10 +51,14 @@ Each milestone ends with the whole suite green and the earlier oracles unchanged
 
 ## Honest unknowns
 
-- Whether OFFBEAT's tabulated boundary treats `h` and `T0` at the new time level (implicit) or the old one; the independent solution must do the same or the cross-check is off by a step. The probe settles it.
-- How a very small `h` interacts with OFFBEAT's convergence criterion for the temperature (a nearly adiabatic wall makes the steady-state test meaningless, but a transient has no steady test; the per-step convergence record is what is judged).
+- ~~Whether OFFBEAT's tabulated boundary treats `h` and `T0` at the new time level or the old one~~: **settled in B0, the new level** (the independent solution must use the boundary at the end of the step).
+- ~~A very small `h`~~: **settled in B0**: 0.001 W/m2/K runs and converges. Whether exactly zero is allowed is a validator choice for B1.
 - Whether the slab-like use that prompted this (a plate cooled on one face) needs anything more than this plan gives: it does not, apart from the geometry, which stays out of scope.
 
 ## Estimate
 
 Four to six sessions, honestly uncertain: B0 and B1 one, B2 one or two, B3 one, B4 one, B5 one. The risk is B2 (the independent solution and its bookkeeping), as it was in plan 08.
+
+## B0 record (2026-10-14)
+
+Done, gate met: [docs/spike/tvb-probe.md](../spike/tvb-probe.md). In short: OFFBEAT's tabulated boundaries reproduce a lumped case as well as the constant one (within 1.2 K of 800, the baseline of the lumped model), apply the boundary at the new time level, need the table to reach strictly past the end time (a value equal to the last point aborts), accept a film coefficient of 0.001, and the prescribed-wall form (`timeDependentAxialProfileT`, keywords `timeDependentProfile` and `axialData`, not the documented ones) works. FEED's patch-value reader needed one fix (done, tested). Open for B1: whether zero power is allowed with a boundary history, and whether h = 0 is.
