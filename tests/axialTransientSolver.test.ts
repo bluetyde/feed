@@ -75,6 +75,21 @@ describe.skipIf(!solverOn)("a transient on an axial stack through the real solve
     expect(res.checks.find((c) => c.id === "energyBalanceTotal")!.verdict).toBe("pass");
   }, 600_000);
 
+  it("a pulse on a short operating stack (0.06 m, 12 slices), where the axial conduction is 4 % of the rise: the checks pass with their allowance (golden output kept)", async () => {
+    const d = example("synthetic-pulse-operating");
+    d.axial = cosine(0.06, 12);
+    const { res } = await run(d, GOLDEN ? join(GOLDEN, "short") : undefined);
+    expect(failing(res)).toEqual([]);
+    expect(res.axial.conduction!.fraction).toBeGreaterThan(0.02);
+  }, 600_000);
+
+  it("a pump coastdown over 60 s on a short stack (0.06 m, 12 slices), long enough for heat to flow along the pin: the checks pass with their allowance (golden output kept)", async () => {
+    const d = example("synthetic-coastdown");
+    d.axial = cosine(0.06, 12);
+    const { res } = await run(d, GOLDEN ? join(GOLDEN, "shortcool") : undefined);
+    expect(failing(res)).toEqual([]);
+  }, 600_000);
+
   it("a control: five equal slices (a flat shape) give every slice the history of the one-slice pin at the same power", async () => {
     const flat = example("synthetic-pulse-operating");
     flat.axial = { length: q(0.5, "m"), slices: 5, powerShape: { kind: "flat" } };

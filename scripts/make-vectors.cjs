@@ -544,6 +544,15 @@ badA("axial-boundary-wrong-unit", "E_UNITS", "/axial/boundary/1/bulkTemperature"
   add("good", "axial-transient-coolant-table", c, {});
 }
 {
+  // the average heat rate has a steady state inside the heat capacity's stated range, the peak slice (1.57 times as much) does not
+  const c = pulse();
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyLinearHeatRate = { value: 20, unit: "kW/m" };
+  c.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: { value: 0.9, unit: "MJ/m3/K" }, b: { value: 0.00417, unit: "MJ/m3/K2" }, validRange: { min: { value: 250, unit: "K" }, max: { value: 1200, unit: "K" } }, source: "synthetic: shaped like U-ZrH" };
+  c.axial = axialBase();
+  add("bad", "axial-steady-start-peak-slice-outside-heat-capacity-range", c, { code: "E_OUT_OF_RANGE", field: "/transient/initialSteadyLinearHeatRate" });
+}
+{
   const c = kin();
   c.axial = axialBase();
   add("bad", "axial-with-point-kinetics", c, { code: "E_UNSUPPORTED", field: "/axial" });

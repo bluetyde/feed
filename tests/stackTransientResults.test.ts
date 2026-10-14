@@ -121,11 +121,24 @@ describe("real OFFBEAT output of a transient stack, read slice by slice", () => 
     // the asymmetric shape has more power at the top
     expect(judge(asym).axial.hottest).toBeGreaterThan(5);
   });
-  it("the whole pin's energy balances, and the allowance is a fraction of each slice's rise", () => {
+  it("a short stack (0.06 m, 12 slices), where the heat flow along the pin is large: over 60 s of a coastdown the real output differs from the independent solution by tens of kelvin at the end slice (it starts from the one-dimensional steady states and relaxes toward the solver's coupled one), which the widened tolerance covers; without the allowance the cross-check fails", () => {
+    const s = g("shortcool");
+    const r = judge(s);
+    expect(r.checks.filter((c) => c.verdict === "fail")).toEqual([]);
+    const cross = r.checks.find((c) => c.id === "crossCheckFv")!;
+    expect(cross.value!).toBeGreaterThan(10);
+    expect(cross.value!).toBeLessThan(r.axial.allowance.field);
+    // a pulse on the short stack is over in 0.1 s, before heat can flow along the pin: it passes with a deviation of a degree or two, and the allowance is loose there (a stated limit)
+    const p = judge(g("short"));
+    expect(p.checks.filter((c) => c.verdict === "fail")).toEqual([]);
+    expect(p.checks.find((c) => c.id === "crossCheckFv")!.value!).toBeLessThan(5);
+  });
+  it("the whole pin's energy balances, and the allowance is a fraction of the largest rise of any slice", () => {
     const r = judge(pulse);
     expect(r.checks.find((c) => c.id === "energyBalanceTotal")!.value!).toBeLessThan(0.03);
-    expect(r.axial.allowance.fraction).toBeGreaterThan(0);
-    expect(r.axial.allowance.fraction).toBeLessThan(0.01);
+    expect(r.axial.allowance.field).toBeGreaterThan(1);
+    expect(r.axial.allowance.field).toBeLessThan(10);
+    expect(r.axial.allowance.energy).toBeLessThan(0.01);
     // the cross-check bound of the worst slice includes the allowance
     expect(r.checks.find((c) => c.id === "crossCheckFv")!.note).toMatch(/for the heat flow along the pin \(an axial stack/);
   });
@@ -135,6 +148,7 @@ describe("real OFFBEAT output of a transient stack, read slice by slice", () => 
     expect(m.checks.find((c) => c.id === "energyBalance")!.verdict).toBe("fail");
     const p = judge(asym, (n) => (n.transient.linearHeatRate = n.transient.linearHeatRate.map((x: number) => x * 1.2)));
     expect(p.checks.find((c) => c.id === "crossCheckFv")!.verdict).toBe("fail");
+    expect(p.checks.find((c) => c.id === "energyBalanceTotal")!.verdict, "20 % more power: the whole pin does not balance").toBe("fail");
     const h = judge(cool, (n) => (n.transient.boundaryHistory.heatTransferCoefficient = n.transient.boundaryHistory.heatTransferCoefficient.map((x: number) => x * 0.5)));
     expect(h.checks.find((c) => c.id === "crossCheckFv")!.verdict, "half the film coefficient").toBe("fail");
   });

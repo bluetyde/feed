@@ -245,9 +245,9 @@ export function downsample(g: GeneratedPulse) {
   return { time: pick(g.trace.time), power: pick(g.trace.power), reactivity: pick(g.trace.reactivity), fuelTemperature: pick(g.trace.fuelTemperature) };
 }
 
-/** What a stack adds to the tolerances of one slice's transient checks for the axial conduction (src/core/stackTransientResults.ts): a fraction of the slice's rise on the cross-check and a relative amount on the energy balance. */
+/** What a stack adds to the tolerances of one slice's transient checks for the axial conduction (src/core/stackTransientResults.ts): kelvin on the cross-check and a relative amount on the energy balance. */
 export interface TransientAllowance {
-  fraction: number;
+  field: number;
   energy: number;
 }
 
@@ -435,8 +435,8 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const field = hist ? fieldTimeError(fv, fvh, init) : { err: 0, scale: 0 };
   const fieldErr = field.err;
   const fieldScale = field.scale;
-  const crossBound = Math.min(CROSS_CHECK_SPATIAL_FACTOR * spatial, CROSS_CHECK_RISE_FRACTION * Math.max(scaleRise, 1)) + CROSS_CHECK_FLOOR + (allow?.fraction ?? 0) * Math.max(scaleRise, 1);
-  checks.push({ id: "crossCheckFv", label: "OFFBEAT vs the independent finite-volume solution (max cell deviation)", value: cross, unit: "K", verdict: cross <= crossBound ? "pass" : "fail", note: `largest at t = ${crossAt} s; bound ${crossBound.toFixed(3)} K = min(${CROSS_CHECK_SPATIAL_FACTOR} x ${spatial.toFixed(3)} K [the independent solution's own change when its cells are halved], ${CROSS_CHECK_RISE_FRACTION * 100}% of the peak rise) + ${CROSS_CHECK_FLOOR} K${allow && allow.fraction > 0 ? ` + ${((allow.fraction) * Math.max(scaleRise, 1)).toPrecision(3)} K for the heat flow along the pin (an axial stack: ${(allow.fraction * 100).toPrecision(3)} % of the rise)` : ""}` });
+  const crossBound = Math.min(CROSS_CHECK_SPATIAL_FACTOR * spatial, CROSS_CHECK_RISE_FRACTION * Math.max(scaleRise, 1)) + CROSS_CHECK_FLOOR + (allow?.field ?? 0);
+  checks.push({ id: "crossCheckFv", label: "OFFBEAT vs the independent finite-volume solution (max cell deviation)", value: cross, unit: "K", verdict: cross <= crossBound ? "pass" : "fail", note: `largest at t = ${crossAt} s; bound ${crossBound.toFixed(3)} K = min(${CROSS_CHECK_SPATIAL_FACTOR} x ${spatial.toFixed(3)} K [the independent solution's own change when its cells are halved], ${CROSS_CHECK_RISE_FRACTION * 100}% of the peak rise) + ${CROSS_CHECK_FLOOR} K${allow && allow.field > 0 ? ` + ${allow.field.toPrecision(3)} K for the heat flow along the pin (an axial stack)` : ""}` });
   // the independent run with half the step shows how much the time stepping (first order, as OFFBEAT's) is worth
   const timeBound = TIME_STEP_TOLERANCE * Math.max(scaleRise, 1);
   const fieldBound = TIME_STEP_TOLERANCE * Math.max(fieldScale, 1);
