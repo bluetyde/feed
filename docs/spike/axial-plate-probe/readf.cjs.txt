@@ -1,0 +1,13 @@
+const fs=require("fs");
+function internal(file,vec){const t=fs.readFileSync(file,"utf8");const m=t.match(/internalField\s+nonuniform\s+List<(?:scalar|vector)>\s*\n?(\d+)\s*\n?\(([\s\S]*?)\n\)\s*;/);if(!m)return null;const n=+m[1];const body=m[2].trim().split("\n");return body.map(l=>vec?l.replace(/[()]/g,"").trim().split(/\s+/).map(Number):Number(l));}
+module.exports={internal};
+if(require.main===module){
+ const dir=process.argv[2];const T=internal(dir+"/result/T",false),C=internal(dir+"/result/C",true);
+ console.log("cells",T.length,C.length);
+ const nz=+process.argv[3], nr=T.length/nz;
+ console.log("nr",nr);
+ // order check: print first cells' z
+ const out=[];
+ for(let k=0;k<nz;k++){const idx=[];for(let i=0;i<T.length;i++){}}
+ console.log(T.slice(0,3),C.slice(0,3),C.slice(nr,nr+2));
+}

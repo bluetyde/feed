@@ -1,0 +1,28 @@
+// usage: node plate.cjs <baseAnnularDir> <outDir> <json>   plate: meat x in [0,tf], gap, cladding x in [ci,co]; symmetry (adiabatic) plane at x=0; mm
+const fs=require("fs"),path=require("path");
+const [,, base, out, optJson]=process.argv;
+const o=Object.assign({tf:4.1,ci:4.18,co:4.75,w:1000,H:1000,lhgr:20000,startUniform:null,nf:20,nc:6},JSON.parse(optJson||"{}"));
+fs.rmSync(out,{recursive:true,force:true});
+function cp(s,d){fs.mkdirSync(d,{recursive:true});for(const f of fs.readdirSync(s)){const a=path.join(s,f),b=path.join(d,f);fs.statSync(a).isDirectory()?cp(a,b):fs.copyFileSync(a,b);}}
+cp(base,out);
+const rd=f=>fs.readFileSync(path.join(out,f),"utf8"), wr=(f,t)=>fs.writeFileSync(path.join(out,f),t);
+let b=rd("system/blockMeshDict");
+const blk=(x0,x1)=>[[x0,-o.w/2,0],[x1,-o.w/2,0],[x1,o.w/2,0],[x0,o.w/2,0],[x0,-o.w/2,o.H],[x1,-o.w/2,o.H],[x1,o.w/2,o.H],[x0,o.w/2,o.H]];
+const v=[...blk(0,o.tf),...blk(o.ci,o.co)].map(p=>"    ("+p.join(" ")+")").join("\n");
+b=b.replace(/vertices\n\([\s\S]*?\n\);/,"vertices\n(\n"+v+"\n);");
+b=b.replace(/fuel \(\d+ 1 1\)/,`fuel (${o.nf} 1 1)`).replace(/cladding \(\d+ 1 1\)/,`cladding (${o.nc} 1 1)`);
+b=b.replace(/type wedge;/g,"type empty;");
+wr("system/blockMeshDict",b);
+for(const f of ["0/T","0/D"]){let t=rd(f);t=t.replace(/type\s+wedge;/g,"type empty;");wr(f,t);}
+let s=rd("constant/solverDict");
+s=s.replace(/lhgr\s+[0-9.e+]+;/,`lhgr ${o.lhgr};`);
+if(o.sliceMapper) s=s.replace(/sliceMapper\s+\w+;/,`sliceMapper ${o.sliceMapper};`);
+if(o.reactor) s=s.replace(/reactorType\s+"?\w+"?;/,`reactorType "${o.reactor}";`);
+wr("constant/solverDict",s);
+{let t=rd("constant/solverDict");t=t.replace(/pinDirection\s+\(0 0 1\);/,`pinDirection (0 0 1);\n    angularFraction ${o.angularFraction??1};`);wr("constant/solverDict",t);}
+if(o.N&&o.N>1){
+  let m=rd("system/blockMeshDict");m=m.replace(/fuel \((\d+) 1 1\)/,(x,n)=>`fuel (${n} 1 ${o.N})`).replace(/cladding \((\d+) 1 1\)/,(x,n)=>`cladding (${n} 1 ${o.N})`);wr("system/blockMeshDict",m);
+  const n=20,locs=[],data=[];for(let i=0;i<=n;i++){locs.push(i/n);data.push(Math.cos(Math.PI*(i/n-0.5)));}
+  let I=0;for(let i=1;i<=n;i++)I+=0.5*(data[i]+data[i-1])/n;for(let i=0;i<=n;i++)data[i]/=I;
+  let t=rd("constant/solverDict");t=t.replace("axialProfile { type flat; }",`axialProfile { type constantTabulated; axialLocations (${locs.join(" ")}); data (${data.map(x=>Number(x.toPrecision(10))).join(" ")}); axialInterpolationMethod linear; }`);wr("constant/solverDict",t);
+}

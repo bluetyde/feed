@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# usage: runprobe.sh <variantDirInDistro-as-/mnt/c path> <name>
+set +eu
+source /opt/openfoam9/etc/bashrc
+set +e
+SRC="$1"; NAME="$2"; RUN="$HOME/spike/a0/$NAME"
+rm -rf "$RUN"; mkdir -p "$RUN"; cp -r "$SRC"/. "$RUN"/; cd "$RUN" || exit 3
+timeout 120 blockMesh > log.blockMesh 2>&1; echo "blockMesh $?"
+timeout 900 offbeat > log.offbeat 2>&1; echo "offbeat $?"
+final=$(ls -d [0-9]* 2>/dev/null | sort -g | tail -1); echo "final $final"
+postProcess -func writeCellCentres -latestTime > log.cc 2>&1
+mkdir -p "$SRC/result"; cp "$final/T" "$final/C" "$SRC/result/" 2>/dev/null; cp log.blockMesh log.offbeat "$SRC/result/"
+for d in $(ls -d [0-9]* | sort -g); do [ "$d" = 0 ] && continue; mkdir -p "$SRC/result/times/$d"; cp "$d/T" "$SRC/result/times/$d/"; done 2>/dev/null
+tail -5 log.offbeat
