@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# T0 step 1: the shipped OFFBEAT tutorial generic_TRISO_1D, run as it is (read-only copy of the source tree, runs in ~/spike/t0/asis)
+set +eu
+source /opt/openfoam9/etc/bashrc
+set +e
+SRC=/home/feed/OpenFOAM/feed-9/applications/solvers/offbeat/Cases/testCases/generic_TRISO_1D
+RUN="$HOME/spike/t0/asis"
+rm -rf "$RUN"; mkdir -p "$RUN"; cp -r "$SRC"/. "$RUN"/; cd "$RUN" || exit 3
+rm -rf Output
+grep -E "endTime|deltaT|writeInterval|startTime|adjust|maxDeltaT" system/controlDict
+ls system
+s=$(date +%s.%N)
+timeout 120 blockMesh > log.blockMesh 2>&1; echo "blockMesh $?"
+[ -f system/changeDictionaryDict ] && { timeout 120 changeDictionary > log.changeDict 2>&1; echo "changeDictionary $?"; }
+s2=$(date +%s.%N)
+timeout 1500 offbeat > log.offbeat 2>&1; echo "offbeat exit $?"
+e=$(date +%s.%N)
+echo "mesh $(echo "$s2 - $s" | bc) s, offbeat $(echo "$e - $s2" | bc) s"
+ls -d [0-9]* | sort -g | tr '\n' ' '; echo
+tail -15 log.offbeat

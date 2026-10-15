@@ -1,0 +1,106 @@
+"""T0 analysis: read OFFBEAT's T, C, cellZones of a thermal-only particle run and compare with closed forms.
+usage: python analyze.py <dir with T C cellZones> [kKernel] [vhgr W/m3] [Tout K]
+Layers (um, from sphereDict): kernel radius 251, buffer 95, IPyC 41, SiC 35, OPyC 40. Constant k per shell from solverDict.
+"""
+import re, sys, math
+
+d = sys.argv[1]
+kK = float(sys.argv[2]) if len(sys.argv) > 2 else None
+q = float(sys.argv[3]) if len(sys.argv) > 3 else 3e9
+RK, tB, tI, tS, tO = 251e-6, 95e-6, 41e-6, 35e-6, 40e-6
+K = {"Buffer": 0.5, "IPyC": 4.0, "SiC": 13.9, "OPyC": 4.0}
+edges = {"Kernel": (0, RK)}
+r = RK
+for n, t in (("Buffer", tB), ("IPyC", tI), ("SiC", tS), ("OPyC", tO)):
+    edges[n] = (r, r + t)
+    r += t
+ROUT = r
+
+
+def blocks(path):
+    txt = open(path).read()
+    return txt
+
+
+def vec_list(txt):
+    m = re.search(r"internalField\s+nonuniform\s+List<vector>\s*\n?(\d+)\s*\n\(", txt)
+    n = int(m.group(1))
+    body = txt[m.end():]
+    vs = re.findall(r"\(([-\d.eE+]+) ([-\d.eE+]+) ([-\d.eE+]+)\)", body)[:n]
+    return [tuple(map(float, v)) for v in vs]
+
+
+def scal_list(txt):
+    m = re.search(r"internalField\s+nonuniform\s+List<scalar>\s*\n?(\d+)\s*\n\(", txt)
+    n = int(m.group(1))
+    body = txt[m.end():]
+    return [float(x) for x in body.split(")")[0].split()[:n]]
+
+
+def zones(txt):
+    out = {}
+    for m in re.finditer(r"\n\s*(\w+)\s*\n\s*\{\s*type\s+cellZone;.*?cellLabels\s+List<label>\s*(?:\d+\s*)?\(([^)]*)\)", txt, re.S):
+        out[m.group(1)] = [int(x) for x in m.group(2).split()]
+    return out
+
+
+T = scal_list(open(d + "/T").read())
+C = vec_list(open(d + "/C").read())
+Z = zones(open(d + "/cellZones").read())
+print("cells", len(T), {k: len(v) for k, v in Z.items()})
+# the mesh is a wedge: radial coordinate = the point's distance from the origin of the sphere
+rad = [math.sqrt(c[0] ** 2 + c[1] ** 2 + c[2] ** 2) for c in C]
+order = sorted(range(len(T)), key=lambda i: rad[i])
+zone_of = {}
+for n, ids in Z.items():
+    for i in ids:
+        zone_of[i] = n
+P = 4.0 / 3.0 * math.pi * RK ** 3 * q
+print("power per particle (W) %.6g" % P)
+# outer boundary temperature = temperature extrapolated, but fixedValue outer: read from boundaryField value is not parsed here; use arg
+Tout = float(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] != "-" else None
+HG = float(sys.argv[5]) if len(sys.argv) > 5 else None
+rg = edges["Buffer"][1]
+gapdT = (P / (4 * math.pi * rg ** 2)) / HG if HG else 0.0
+print("gap dT (K) from the stated conductance:", gapdT)
+print("%-8s %12s %12s %12s" % ("zone", "r (um)", "T OFFBEAT", "T closed"))
+rows = []
+for i in order:
+    rows.append((zone_of.get(i, "?"), rad[i], T[i]))
+# closed form from the outermost cell using the solver's outer temperature as reference: shell-by-shell
+if Tout is None:
+    Tout = T[order[-1]] - P / (4 * math.pi * K["OPyC"]) * (1 / rad[order[-1]] - 1 / ROUT)
+    print("Tout inferred from the outermost cell:", Tout)
+
+
+def closed(rr, zone):
+    # temperature at radius rr in the shell `zone`, constant k shells, kernel with constant k kK, gaps ignored (hGap known only from the solution)
+    t = Tout
+    for n in ("OPyC", "SiC", "IPyC", "Buffer"):
+        a, b = edges[n]
+        if n == "Buffer":
+            t += gapdT
+        if zone == n:
+            return t + P / (4 * math.pi * K[n]) * (1 / rr - 1 / b)
+        t += P / (4 * math.pi * K[n]) * (1 / a - 1 / b)
+    if zone == "Kernel" and kK:
+        Rk = RK
+        qk = q
+        return t + qk / (6 * kK) * (Rk ** 2 - rr ** 2)
+    return float("nan")
+
+
+maxdev = {}
+for n, rr, tt in rows:
+    c = closed(rr, n)
+    if not math.isnan(c):
+        maxdev[n] = max(maxdev.get(n, 0), abs(c - tt))
+for n, rr, tt in rows[:: max(1, len(rows) // 14)]:
+    print("%-8s %12.3f %12.4f %12.4f" % (n, rr * 1e6, tt, closed(rr, n)))
+print("max |OFFBEAT - closed| per zone (K):", {k: round(v, 4) for k, v in maxdev.items()})
+# the buffer-IPyC jump: last buffer cell, first IPyC cell
+b = [r for r in rows if r[0] == "Buffer"]
+ip = [r for r in rows if r[0] == "IPyC"]
+if b and ip:
+    print("buffer last cell r=%.3f um T=%.4f ; IPyC first cell r=%.3f um T=%.4f" % (b[-1][1] * 1e6, b[-1][2], ip[0][1] * 1e6, ip[0][2]))
+print("kernel centre-ish cell r=%.3f um T=%.4f ; surface cell T=%.4f" % (rows[0][1] * 1e6, rows[0][2], [r for r in rows if r[0] == "Kernel"][-1][2]))

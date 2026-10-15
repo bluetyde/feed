@@ -1,0 +1,8 @@
+# T0 variant edits (run inside the case copy): constant-k kernel (k 3, Cp 300), the gap as resistiveGap with a fixed conductance (as FEED's pin writer does), no gas model
+sed -i 's/^gapGas .*/gapGas                  none;/' constant/solverDict
+sed -i 's/conductivityModel       UO2MATPRO;/conductivityModel       constant;/; s/heatCapacityModel       UO2MATPRO;/heatCapacityModel       constant;/' constant/solverDict
+sed -i '0,/emissivity emissivity \[0 0 0 0 0\]   0.0;/s//emissivity emissivity [0 0 0 0 0]   0.0;\n    k k [1 1 3 -1 0] 3.0;\n    Cp Cp [0 2 -2 -1 0] 300.0;/' constant/solverDict
+HG=${HGAP:-1.5e5}
+sed -i 's/type            trisoGap;/type            resistiveGap;/; /roughness /d; /jumpDistance /d; /relax  /d' 0/T
+sed -i "s/kappa           k;/kappa           k;\n      alpha           uniform $HG;/" 0/T
+grep -n -A8 "bufferOuter" 0/T | head -14

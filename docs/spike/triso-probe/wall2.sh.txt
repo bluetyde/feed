@@ -1,0 +1,2 @@
+n=$1; d=$(ls -d /home/feed/spike/t0/$n/[0-9]* | sort -g | tail -1)
+echo "$n last=$(basename $d)"; sed -n '/boundaryField/,$p' $d/T | grep -A9 -E "^    (outer|bufferOuter|ipycInner)" | grep -E "value" | tr -s ' ' | tr '\n' ' '; echo

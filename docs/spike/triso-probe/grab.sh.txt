@@ -1,0 +1,9 @@
+# usage: grab.sh <name> <timeDir>  -> copies T, C, and cellZones info to scratchpad/t0/<name>
+source /opt/openfoam9/etc/bashrc
+cd /home/feed/spike/t0/$1
+postProcess -func writeCellCentres -time $2 > log.cc 2>&1
+OUT="$(dirname "$0")/t0/$1"; mkdir -p "$OUT"
+cp $2/T $2/C "$OUT"/ 2>&1
+cp constant/polyMesh/cellZones "$OUT"/ 2>/dev/null || cp constant/referenceMesh/polyMesh/cellZones "$OUT"/ 2>/dev/null
+cp constant/polyMesh/points "$OUT"/ 2>/dev/null
+ls "$OUT"; tail -3 log.cc
