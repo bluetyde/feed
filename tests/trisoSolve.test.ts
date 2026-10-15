@@ -203,6 +203,11 @@ describe("the finite-volume solution, steady", () => {
     const n = n0();
     expect(() => steadyTrisoFv(trisoModelOf(n), -1)).toThrow(RangeError);
     expect(() => steadyTrisoFv(trisoModelOf(n), NaN)).toThrow(RangeError);
+    // a conductivity that falls to zero before the heat is carried: there is no steady state, and the message says where
+    const m = trisoModelOf(n);
+    m.laws[0] = [3000, -2.9];
+    expect(() => steadyTrisoFv(m, 0.5)).toThrow(/not positive at/);
+    expect(steadyTrisoFv(m, 0.04).T[0]!).toBeGreaterThan(1000);
   });
 });
 
@@ -388,6 +393,16 @@ describe("the time scale and the steady end time", () => {
     const ts = trisoTimeScale(n);
     expect(ts.tauBound).toBeCloseTo(TAU_SAFETY * sum, 10);
     expect(ts.cells).toBe(12);
+    // the factor that turns the bound into a max-norm horizon: the root of the total capacity over the smallest cell's
+    const caps: number[] = [];
+    n.cells.forEach((cells, ri) => {
+      for (let j = 0; j < cells; j++) {
+        const x0 = b[ri]! + ((b[ri + 1]! - b[ri]!) * j) / cells;
+        const x1 = b[ri]! + ((b[ri + 1]! - b[ri]!) * (j + 1)) / cells;
+        caps.push(STEADY_PSEUDO_HEAT_CAPACITY * ((4 / 3) * PI * (x1 ** 3 - x0 ** 3)));
+      }
+    });
+    expect(ts.capacityRatio).toBeCloseTo(Math.sqrt(caps.reduce((a, c) => a + c, 0) / Math.min(...caps)), 9);
   });
   it("bounds the slowest decay of the particle from above: the finite-volume field decays no more slowly than the bound says, and not absurdly faster", () => {
     const n = norm(particle());
@@ -412,11 +427,21 @@ describe("the time scale and the steady end time", () => {
       expect(h.tauBound).toBeLessThan(1e3); // a particle settles in seconds; the floor is the pin's
     }
     expect(trisoInitialDeviationBound(n)).toBeCloseTo(trisoClosedForm(n).centreT - 1000, 9);
+    // a particle that hardly warms starts within a kelvin of its steady state: the bound has a floor of 1 K
+    const cold = particle();
+    cold.power = { particlePower: q(1e-9, "W") };
+    expect(trisoInitialDeviationBound(norm(cold))).toBe(1);
     const bad = { ...n, gapConductance: NaN };
     const hb = trisoSteadyEndTime(bad);
     expect(hb.ok).toBe(false);
     if (!hb.ok) expect(hb.message).toContain("not a finite number");
     expect(MAX_STEADY_END_TIME).toBeGreaterThan(MIN_STEADY_END_TIME);
+    // a gap so weak that the particle could not settle within the longest run FEED allows is refused by the validator, with the reason
+    const slow = particle();
+    slow.gap.conductance = q(1e-12, "W/m2/K");
+    const v = validateCase(slow);
+    expect(v.errors.map((e) => e.code + " " + e.field)).toEqual(["E_TIME /assumptions/steadyState"]);
+    expect(v.errors[0]!.message).toContain("slowest thermal time constant");
   });
   it("is bigger with a weaker gap and with a convective film, as the physics says", () => {
     const base = trisoTimeScale(norm(particle())).tauBound;
