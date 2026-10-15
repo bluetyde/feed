@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# T0 step 2: a thermal-only variant of the shipped tutorial. usage: run-variant.sh <name> [extra sed script file]
+# edits only a COPY under ~/spike/t0/<name>; the OFFBEAT source tree is never touched
+set +eu
+source /opt/openfoam9/etc/bashrc
+set +e
+NAME="$1"; EXTRA="$2"
+SRC=/home/feed/OpenFOAM/feed-9/applications/solvers/offbeat/Cases/testCases/generic_TRISO_1D
+RUN="$HOME/spike/t0/$NAME"
+rm -rf "$RUN"; mkdir -p "$RUN"; cp -r "$SRC"/. "$RUN"/; cd "$RUN" || exit 3
+rm -rf Output
+sed -i 's/^mechanicsSolver .*/mechanicsSolver         fromLatestTime;/' constant/solverDict
+sed -i 's/^fgr .*/fgr                     none;/' constant/solverDict
+sed -i 's/timePoints  (0.0 3600 49996400 5e7);/timePoints  (0.0 1e9);/; s/vhgr        (0.0 3e9  3e9      0.0);/vhgr        (3e9 3e9);/' constant/solverDict
+sed -i 's/^endTime .*/endTime         20;/; s/^writeInterval .*/writeInterval   5;/' system/controlDict
+[ -n "$EXTRA" ] && [ -f "$EXTRA" ] && bash "$EXTRA"
+timeout 120 blockMesh > log.blockMesh 2>&1; echo "blockMesh $?"
+s=$(date +%s.%N)
+timeout 900 offbeat > log.offbeat 2>&1; echo "offbeat exit $?"
+e=$(date +%s.%N); echo "offbeat $(echo "$e - $s" | bc) s"
+ls -d [0-9]* | sort -g | tr '\n' ' '; echo
+grep -n -i "error\|abort\|fatal" log.offbeat | head -5
+tail -8 log.offbeat | cut -c1-200

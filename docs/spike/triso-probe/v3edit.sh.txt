@@ -1,0 +1,3 @@
+bash "$(dirname "$0")/v2edit.sh" > /dev/null
+sed -i '/^    outer/,/}/ s/type            fixedValue;/type            convectiveHTC;\n        T0              uniform 900;\n        h               uniform 2000;/' 0/T
+grep -n -A7 "^    outer" 0/T

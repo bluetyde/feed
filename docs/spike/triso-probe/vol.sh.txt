@@ -1,0 +1,4 @@
+source /opt/openfoam9/etc/bashrc
+cd /home/feed/spike/t0/m4
+postProcess -func writeCellVolumes -time 2e+01 > log.vol 2>&1
+OUT="$(dirname "$0")/t0/m4"; cp 2e+01/V "$OUT"/ ; tail -2 log.vol

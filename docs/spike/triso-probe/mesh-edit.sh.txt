@@ -1,0 +1,14 @@
+# T0 mesh study: v2 edits, then scale every layer's cell count by $MESHF and regenerate the blockMeshDict with OFFBEAT's own sphereMaker.py (probe only: not copied into FEED)
+bash "$(dirname "$0")/v2edit.sh" > /dev/null
+python3 - <<PY
+import re, os
+f = float(os.environ.get("MESHF", "1"))
+t = open("sphereDict").read()
+def sc(m):
+    return m.group(1) + str(max(2, int(round(int(m.group(2)) * f)))) + ","
+t = re.sub(r"('mesh\w+':\s+)(\d+),", sc, t)
+open("sphereDict", "w").write(t)
+PY
+grep "'mesh" sphereDict
+python3 sphereMaker.py > log.sphereMaker 2>&1; echo "sphereMaker $?"; tail -2 log.sphereMaker
+cp blockMeshDict system/blockMeshDict

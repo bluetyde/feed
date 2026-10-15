@@ -1,0 +1,2 @@
+bash "$(dirname "$0")/mesh-edit.sh" > /dev/null
+sed -i '/^    outer/,/}/ s/type            fixedValue;/type            convectiveHTC;\n        T0              uniform 900;\n        h               uniform 2000;/' 0/T
