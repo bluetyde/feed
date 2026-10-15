@@ -5,7 +5,7 @@ import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { writeOffbeatCase } from "../core/caseWriter";
-import { validateCase } from "../core/validate";
+import { unrunnableErrors, validateCase } from "../core/validate";
 
 function main(argv: string[]): number {
   const [casePath, outDir] = argv;
@@ -16,7 +16,7 @@ function main(argv: string[]): number {
   const doc = JSON.parse(readFileSync(casePath, "utf8"));
   const v = validateCase(doc);
   if (!v.normalized) {
-    for (const e of v.errors) console.error(e.code + " " + e.field + ": " + e.message);
+    for (const e of unrunnableErrors(v)) console.error(e.code + " " + e.field + ": " + e.message);
     return 1;
   }
   const out = resolve(outDir);

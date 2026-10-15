@@ -625,5 +625,115 @@ badP("plate-with-axial-stack", "E_UNSUPPORTED", "/axial", (c) => (c.axial = axia
 bad("pin-assumed-slab", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-slab"));
 bad("geometry-unknown-kind", "E_GEOMETRY", "/geometry/kind", (c) => (c.geometry.kind = "disc"));
 bad("geometry-pin-missing-radius", "E_SCHEMA_INVALID", "/geometry/claddingInnerRadius", (c) => delete c.geometry.claddingInnerRadius);
+// ---- the coated particle (plan 13, T1): a sphere of a kernel and coating layers, the dimensions of OpenMC Studio's illustrative example, FEED's own conductivities (synthetic)
+const kConst = (k, T, why) => ({ model: "constant", value: qv(k, "W/m/K"), referenceTemperature: qv(T, "K"), source: "synthetic: " + why });
+const trisoMat = (id, k, T) => ({ materialId: id, revision: 1, sets: { "thermal.conductivity": kConst(k, T, "chosen for the closed-form oracle, not a sourced property") } });
+const trisoBase = () => ({
+  schema: "feed.case/0.1",
+  caseId: "triso",
+  name: "Synthetic coated particle (illustrative numbers, not a real fuel design)",
+  label: "synthetic",
+  assumptions: { thermalOnly: true, steadyState: true, geometry: "1D-sphere" },
+  geometry: {
+    kind: "triso",
+    kernelRadius: qv(250, "um"),
+    layers: [
+      { name: "buffer", thickness: qv(100, "um") },
+      { name: "ipyc", thickness: qv(40, "um") },
+      { name: "sic", thickness: qv(35, "um") },
+      { name: "opyc", thickness: qv(35, "um") },
+    ],
+  },
+  power: { kernelPowerDensity: qv(600, "MW/m3") },
+  boundary: { surfaceTemperature: qv(1000, "K") },
+  materials: {
+    kernel: trisoMat("synthetic-kernel", 3, 1000),
+    buffer: trisoMat("synthetic-buffer", 0.5, 1000),
+    ipyc: trisoMat("synthetic-ipyc", 4, 1000),
+    sic: trisoMat("synthetic-sic", 13.9, 1000),
+    opyc: trisoMat("synthetic-opyc", 4, 1000),
+  },
+  gap: { model: "constant-conductance", conductance: qv(1.5e5, "W/m2/K"), source: "synthetic: chosen for the closed-form oracle" },
+  mesh: { kernelCells: 12, bufferCells: 12, ipycCells: 12, sicCells: 16, opycCells: 12 },
+});
+add("good", "triso-steady", trisoBase(), {});
+{
+  const c = trisoBase();
+  c.power = { particlePower: qv(0.04, "W") };
+  add("good", "triso-particle-power", c, {});
+}
+{
+  const c = trisoBase();
+  c.power = { compactPowerDensity: qv(10, "W/cm3"), packingFraction: qv(35, "%") };
+  add("good", "triso-compact", c, {});
+}
+{
+  const c = trisoBase();
+  c.boundary = { bulkTemperature: qv(900, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") };
+  add("good", "triso-convective-outside", c, {});
+}
+{
+  const c = trisoBase();
+  c.geometry.layers = c.geometry.layers.slice(0, 2);
+  delete c.materials.sic;
+  delete c.materials.opyc;
+  delete c.mesh.sicCells;
+  delete c.mesh.opycCells;
+  add("good", "triso-two-layers", c, {});
+}
+{
+  const c = trisoBase();
+  c.geometry.kernelRadius = qv(0.25, "mm");
+  c.geometry.layers[0].thickness = qv(0.1, "mm");
+  add("good", "triso-lengths-in-mm", c, {});
+}
+{
+  const c = trisoBase();
+  c.power = { compactPowerDensity: qv(10, "W/cm3"), packingFraction: qv(0.68, "1") };
+  add("good", "triso-packing-warning", c, { warnings: ["W_PACKING_FRACTION"] });
+}
+{
+  const c = trisoBase();
+  c.gap.conductance = qv(5e5, "W/m2/K");
+  add("good", "triso-gap-contact-warning", c, { warnings: ["W_GAP_CONTACT"] });
+}
+{
+  const c = trisoBase();
+  c.power = { kernelPowerDensity: qv(20000, "MW/m3") };
+  add("good", "triso-power-warning", c, { warnings: ["W_POWER_RANGE"] });
+}
+const badTr = (name, code, field, mutate) => { const c = trisoBase(); mutate(c); add("bad", name, c, { code, field }); };
+badTr("triso-linear-heat-rate", "E_UNSUPPORTED", "/power/linearHeatRate", (c) => (c.power = { linearHeatRate: qv(20, "kW/m") }));
+badTr("triso-two-power-forms", "E_SCHEMA_INVALID", "/power", (c) => (c.power.particlePower = qv(0.04, "W")));
+badTr("triso-no-power", "E_SCHEMA_INVALID", "/power", (c) => (c.power = {}));
+badTr("triso-compact-without-packing", "E_PROP_MISSING", "/power/packingFraction", (c) => (c.power = { compactPowerDensity: qv(10, "W/cm3") }));
+badTr("triso-packing-without-compact", "E_UNSUPPORTED", "/power/packingFraction", (c) => (c.power.packingFraction = qv(0.35, "1")));
+badTr("triso-packing-too-dense", "E_OUT_OF_RANGE", "/power/packingFraction", (c) => (c.power = { compactPowerDensity: qv(10, "W/cm3"), packingFraction: qv(0.8, "1") }));
+badTr("triso-packing-zero", "E_OUT_OF_RANGE", "/power/packingFraction", (c) => (c.power = { compactPowerDensity: qv(10, "W/cm3"), packingFraction: qv(0, "1") }));
+badTr("triso-power-wrong-unit", "E_UNITS", "/power/particlePower", (c) => (c.power = { particlePower: qv(0.04, "W/m") }));
+badTr("triso-layers-out-of-order", "E_GEOMETRY", "/geometry/layers/0/name", (c) => c.geometry.layers.reverse());
+badTr("triso-one-layer", "E_GEOMETRY", "/geometry/layers", (c) => (c.geometry.layers = c.geometry.layers.slice(0, 1)));
+badTr("triso-five-layers", "E_GEOMETRY", "/geometry/layers", (c) => c.geometry.layers.push({ name: "opyc", thickness: qv(10, "um") }));
+badTr("triso-missing-kernel-radius", "E_SCHEMA_INVALID", "/geometry/kernelRadius", (c) => delete c.geometry.kernelRadius);
+badTr("triso-negative-thickness", "E_GEOMETRY", "/geometry/layers/1/thickness", (c) => (c.geometry.layers[1].thickness = qv(-40, "um")));
+badTr("triso-thickness-wrong-unit", "E_UNITS", "/geometry/layers/0/thickness", (c) => (c.geometry.layers[0].thickness = qv(100, "W")));
+badTr("triso-with-a-pin-radius", "E_GEOMETRY", "/geometry/fuelRadius", (c) => (c.geometry.fuelRadius = qv(4.1, "mm")));
+badTr("triso-layer-with-extra-key", "E_GEOMETRY", "/geometry/layers/2/density", (c) => (c.geometry.layers[2].density = 3.2));
+badTr("triso-material-missing", "E_SCHEMA_INVALID", "/materials/sic", (c) => delete c.materials.sic);
+badTr("triso-material-for-absent-layer", "E_GEOMETRY", "/materials/opyc", (c) => { c.geometry.layers = c.geometry.layers.slice(0, 3); delete c.mesh.opycCells; });
+badTr("triso-material-without-conductivity", "E_PROP_MISSING", "/materials/buffer/sets/thermal.conductivity", (c) => delete c.materials.buffer.sets["thermal.conductivity"]);
+badTr("triso-pin-material-names", "E_GEOMETRY", "/materials/fuel", (c) => (c.materials.fuel = trisoMat("synthetic-fuel", 3, 1000)));
+badTr("triso-with-mechanics", "E_UNSUPPORTED", "/mechanics", (c) => (c.mechanics = {}));
+badTr("triso-with-axial-stack", "E_UNSUPPORTED", "/axial", (c) => (c.axial = axialBase()));
+badTr("triso-transient", "E_UNSUPPORTED", "/assumptions/steadyState", (c) => (c.assumptions.steadyState = false));
+badTr("triso-assumed-radial", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-radial"));
+badTr("triso-closed-gap", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "closed" }));
+badTr("triso-no-boundary", "E_BOUNDARY_INCOMPLETE", "/boundary", (c) => (c.boundary = {}));
+badTr("triso-mesh-kernel-low", "E_MESH", "/mesh/kernelCells", (c) => (c.mesh.kernelCells = 2));
+badTr("triso-mesh-layer-missing", "E_SCHEMA_INVALID", "/mesh/sicCells", (c) => delete c.mesh.sicCells);
+badTr("triso-mesh-pin-keys", "E_SCHEMA_INVALID", "/mesh/fuelCells", (c) => (c.mesh.fuelCells = 20));
+bad("pin-missing-fuel-material", "E_SCHEMA_INVALID", "/materials/fuel", (c) => delete c.materials.fuel);
+bad("pin-missing-cladding-cells", "E_SCHEMA_INVALID", "/mesh/claddingCells", (c) => delete c.mesh.claddingCells);
+
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 console.log(index.length + " vectors written");

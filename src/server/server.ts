@@ -11,7 +11,7 @@ import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { axialSummary, hottestLoad, sliceCase, sliceLoads } from "../core/axial";
 import { quickLook, radialProfile } from "../core/quickLook";
-import { projectRoot, validateCase } from "../core/validate";
+import { projectRoot, unrunnableErrors, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
 import { resultsToCsv, transientResultsToCsv } from "../core/exportResults";
@@ -208,7 +208,7 @@ function derivedOf(n: NormalizedCase, q: number) {
 }
 
 function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransient | null; skipped?: string }) {
-  if (!v.normalized) return { ok: false, errors: v.errors, warnings: v.warnings };
+  if (!v.normalized) return { ok: false, errors: unrunnableErrors(v), warnings: v.warnings };
   const n = v.normalized;
   if (n.transient) {
     // A transient has no closed-form profile: the quick look is the independent finite-volume preview (not the solver).

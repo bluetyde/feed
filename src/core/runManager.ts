@@ -14,7 +14,7 @@ import { buildStackResults } from "./stackResults";
 import { buildStackTransientResults } from "./stackTransientResults";
 import { IndependentHandle, IndependentRunner } from "./independentRunner";
 import { IndependentSet, buildTransientResults, TransientResultsRecord } from "./transientResults";
-import { Issue, validateCase } from "./validate";
+import { Issue, unrunnableErrors, validateCase } from "./validate";
 
 export type RunState = "queued" | "running" | "completed" | "failed" | "cancelled" | "interrupted";
 
@@ -185,7 +185,7 @@ export class RunManager {
   /** Validate the case, snapshot it with hashes, queue the run. Invalid cases are not queued. */
   start(doc: unknown): { ok: true; id: string } | { ok: false; errors: Issue[]; message?: string } {
     const v = validateCase(doc);
-    if (!v.normalized) return { ok: false, errors: v.errors };
+    if (!v.normalized) return { ok: false, errors: unrunnableErrors(v) };
     let written;
     try {
       written = writeOffbeatCase(v.normalized);

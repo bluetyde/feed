@@ -29,7 +29,7 @@ describe("case vectors", () => {
       const r = validateCase(read("schema/vectors/" + v.file));
       expect(r.errors).toEqual([]);
       expect(r.ok).toBe(true);
-      expect(r.normalized).toBeDefined();
+      expect(r.normalized ?? r.triso).toBeDefined();
       expect(r.warnings.map((w) => w.code)).toEqual(v.warnings ?? []);
     });
   }
