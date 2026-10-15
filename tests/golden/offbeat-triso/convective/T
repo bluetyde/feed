@@ -1,0 +1,137 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "1e+05";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+64
+(
+985.216
+985.091
+984.811
+984.382
+983.805
+983.081
+982.211
+981.194
+980.031
+978.722
+977.267
+975.666
+972.723
+968.991
+965.477
+962.163
+959.031
+956.068
+953.26
+950.596
+948.064
+945.654
+943.359
+941.17
+939.196
+939.086
+938.977
+938.871
+938.766
+938.664
+938.563
+938.465
+938.368
+938.273
+938.18
+938.088
+938.058
+938.042
+938.026
+938.01
+937.994
+937.978
+937.962
+937.947
+937.932
+937.917
+937.902
+937.887
+937.873
+937.858
+937.844
+937.83
+937.805
+937.733
+937.661
+937.59
+937.521
+937.452
+937.385
+937.319
+937.253
+937.189
+937.125
+937.063
+)
+;
+
+boundaryField
+{
+    front
+    {
+        type            wedge;
+    }
+    back
+    {
+        type            wedge;
+    }
+    top
+    {
+        type            wedge;
+    }
+    bottom
+    {
+        type            wedge;
+    }
+    outer
+    {
+        type            convectiveHTC;
+        h               uniform 2000;
+        T0              uniform 900;
+        value           uniform 937.032;
+    }
+    bufferOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 940.133;
+        alpha           uniform 150000;
+    }
+    ipycInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 939.253;
+        alpha           uniform 150000;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

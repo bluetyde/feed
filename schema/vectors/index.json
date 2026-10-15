@@ -1740,6 +1740,12 @@
     "field": "/mesh/fuelCells"
   },
   {
+    "file": "bad/triso-conductivity-reaches-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials"
+  },
+  {
     "file": "bad/pin-missing-fuel-material.json",
     "valid": false,
     "code": "E_SCHEMA_INVALID",
