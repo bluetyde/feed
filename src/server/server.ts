@@ -11,6 +11,7 @@ import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { axialSummary, hottestLoad, sliceCase, sliceLoads } from "../core/axial";
 import { quickLook, radialProfile } from "../core/quickLook";
+import { trisoDerived, trisoQuickLook } from "../core/trisoSolve";
 import { projectRoot, unrunnableErrors, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
@@ -208,7 +209,10 @@ function derivedOf(n: NormalizedCase, q: number) {
 }
 
 function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransient | null; skipped?: string }) {
-  if (!v.normalized) return { ok: false, errors: unrunnableErrors(v), warnings: v.warnings };
+  if (!v.normalized) {
+    // a coated particle is checked and its closed form shown, but nothing runs it yet (the error says so)
+    return { ok: false, errors: unrunnableErrors(v), warnings: v.warnings, ...(v.triso ? { triso: { quick: trisoQuickLook(v.triso), derived: trisoDerived(v.triso) } } : {}) };
+  }
   const n = v.normalized;
   if (n.transient) {
     // A transient has no closed-form profile: the quick look is the independent finite-volume preview (not the solver).

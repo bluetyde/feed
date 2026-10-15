@@ -732,6 +732,10 @@ badTr("triso-no-boundary", "E_BOUNDARY_INCOMPLETE", "/boundary", (c) => (c.bound
 badTr("triso-mesh-kernel-low", "E_MESH", "/mesh/kernelCells", (c) => (c.mesh.kernelCells = 2));
 badTr("triso-mesh-layer-missing", "E_SCHEMA_INVALID", "/mesh/sicCells", (c) => delete c.mesh.sicCells);
 badTr("triso-mesh-pin-keys", "E_SCHEMA_INVALID", "/mesh/fuelCells", (c) => (c.mesh.fuelCells = 20));
+badTr("triso-conductivity-reaches-zero", "E_OUT_OF_RANGE", "/materials", (c) => {
+  c.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: qv(3, "W/m/K"), b: qv(-0.002, "W/m/K2"), validRange: { min: qv(500, "K"), max: qv(1400, "K") }, source: "synthetic: positive over its range, zero at 1500 K, where this power takes the kernel" };
+  c.power = { kernelPowerDensity: qv(30000, "MW/m3") };
+});
 bad("pin-missing-fuel-material", "E_SCHEMA_INVALID", "/materials/fuel", (c) => delete c.materials.fuel);
 bad("pin-missing-cladding-cells", "E_SCHEMA_INVALID", "/mesh/claddingCells", (c) => delete c.mesh.claddingCells);
 
