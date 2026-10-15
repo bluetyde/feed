@@ -1,0 +1,81 @@
+# Plan 13: A TRISO fuel particle (a sphere), a compact or pebble around it, and a population of particles
+
+Status: planned 2026-10-15, on the user's word ("plan it out"), after the question "what about spherical fuel like TRISO". **Nothing here is built, and nothing has been run.** What the plan says about OFFBEAT comes from reading its shipped files in the `feed-solver` distro (marked "read"); every such statement is re-checked by the T0 probe before the code depends on it. Follows [plan 12](12-axial-stack-and-plate.md), whose geometry kernel (`src/core/geometry.ts`) gets a third shape.
+
+## What it adds, and what it does not
+
+FEED today is a pin (a cylinder) or, since plan 12 A4, a plate (a slab), each with fuel, one gap and one cladding. Three things are added:
+
+1. **One particle.** A sphere of five concentric regions: the fuel kernel (UO2 or UCO), the porous carbon buffer, the inner pyrolytic carbon (IPyC), the silicon carbide (SiC) and the outer pyrolytic carbon (OPyC), with a gas gap between the buffer and the IPyC. Heat is generated in the kernel and leaves through the layers to a matrix temperature at the outside. The answer is the kernel temperature, the temperature drop across each layer, and the margins against limits. **Thermal only** in the first version (see decision D1).
+2. **A compact or a pebble around it.** The packing fraction turns a power density of the compact (or of a pebble's fuelled zone) into a power per particle, and an optional matrix shell sized from the packing fraction carries the particle's outside temperature from the compact's local temperature. A pebble is itself a sphere (fuelled zone plus an unfuelled graphite shell, a helium film outside) so it reuses the same kernel.
+3. **A population.** Particles are not identical (kernel size, layer thickness, local power and temperature all spread). The plan adds a way to run many sampled particles and report the spread of the kernel temperature, **not** a failure probability (that needs mechanics, decision D1).
+
+It does **not** add (first version): stress in the SiC, the swelling and creep of the pyrolytic carbon, fission-gas or CO pressure, a failure probability, kernel migration (amoeba effect), or a core-scale or block-scale temperature field. Those are the physics that decide whether a TRISO particle fails; thermal-only says how hot it is, not whether it survives. The page, the banner and the results say so on screen.
+
+## What OFFBEAT already has (read, not run)
+
+OFFBEAT's own shipped files in the distro contain a TRISO model, so the solver side is not the unknown it was for the plate:
+- A tutorial case `generic_TRISO_1D`: a 1D spherical particle built as a thin "double wedge" mesh (a 2 degree wedge, `sphereMaker.py` writes the `blockMeshDict`), five cell zones named Kernel, Buffer, IPyC, SiC, OPyC; the radial direction is x. The shipped dimensions (radius or thickness in micrometres, kernel 251, buffer 95, IPyC 41, SiC 35, OPyC 40) are the usual generic particle.
+- A special boundary type `trisoGap` on the buffer's outer face and the IPyC's inner face (heat across the buffer-IPyC gap, with a roughness and a jump distance), a TRISO version of the gas-gap model (inner volume, CO production by a named model, buffer porosity), `timeDependentVhgr` as the heat source (a table of volumetric power against time, kernel only), SCIANTIX for fission gas, and the outer face as a fixed temperature.
+- The materials for the layers: UO2 correlations (MATPRO conductivity and heat capacity), a constant-property buffer, a PyC with swelling and creep correlations, a constant-property SiC.
+- A directory of numbered benchmark cases `Verification/trisoBenchmarks` (cases 1 to 13) that the manual says are the IAEA CRP-6 TRISO benchmark cases: 1 to 4 elastic, 5 to 8 with creep and swelling, 9 to 13 with fission gas and the TRISO gap model.
+- Licence: OFFBEAT is GPL-3.0 and FEED is MIT. FEED runs OFFBEAT as a separate program and already writes its own case files; **no OFFBEAT file or script (including `sphereMaker.py`) is copied into FEED**. FEED writes its own mesh from the geometry formulae.
+
+What this means: a thermal-only particle is probably a smaller job than the plate was (a writer for a spherical mesh, a case with a layer list, a results reader), and the mechanical version is **supported by the solver** but is a scope decision, not a coding one.
+
+## Where the packing fraction lives
+
+The user's point: OpenMC can model a packing fraction (a random or lattice packing of particles in a compact), OpenMC Studio cannot. So:
+- FEED takes the packing fraction as an **input number** on the compact (or the pebble's fuelled zone), together with either the compact's power density (W/m3) or the power per particle (W). Particle power = compact power density x particle volume / packing fraction, where the particle volume is the volume of one whole particle (kernel to OPyC). The kernel's volumetric power follows from it.
+- The **power itself** is what OpenMC provides: a fission power tally over the kernels of a compact, divided by the particle count. The existing transfer request (`transferRequest.ts`, a power per region) is the way; whether it needs a per-particle or per-compact variant is decided in T6 after reading what OpenMC Studio's export can carry.
+- A **consistency check across apps** (does FEED's packing fraction equal the one in the OpenMC model) is not possible while Studio cannot express a packing fraction. FEED warns that the number is the user's, not checked. A note to the OpenMC Studio side (a TRISO / packing feature) is optional and **not posted** unless the user says so.
+
+## The batch idea (SEED), and what is realistic
+
+The user's thought: a particle might be possible, and SEED would batch-run all the particles. Two facts shape the answer:
+- **Not all of them.** A reactor core holds billions of particles. What is run is a **sample** of the population, drawn from stated distributions (kernel diameter, each layer's thickness, local power factor, local matrix temperature), and the answer is the spread (mean, high percentile, maximum of the sample) of the kernel temperature. For thermal-only the independent solution of one particle is a few milliseconds, so FEED itself can do thousands of samples in its worker; **no solver run is needed per particle**.
+- **SEED's place** is the real solver. A handful of sampled particles (the hot one, the average, the extremes, as the 9 representative cases of the 72 pins) are run through OFFBEAT to check that FEED's independent solution holds across the spread. That is a set of cases and a comparison, which is what SEED does. **Read before the request:** SEED's current study and replay format (not read in this session); nothing is pushed to SEED without the user's word, a CLAIM and a log entry.
+
+## Decisions (to confirm or change)
+
+- **D1. Thermal only, or mechanics.** Recommendation: **thermal only first** (T0 to T6). It keeps FEED's stated scope (thermo-elastic and thermal; no irradiation creep, swelling or fission-gas release), it needs no new material models, and it is useful (kernel temperature, layer drops, a population spread). A later plan can add the SiC stress, the PyC swelling and creep, the gas pressure and a failure fraction through OFFBEAT's own models, with the IAEA CRP-6 cases as the oracle; that plan would also need irradiation-dependent material sets, which the project materials do not have today. **This is the user's call.**
+- **D2. The case format.** `geometry.kind: "triso"` with `layers: [{ name, thickness, material }]` in order from the kernel out (kernel given as a radius), the buffer-IPyC gap as `gap` (a width and a gas), `assumptions.geometry: "1D-sphere"`. Layers are named so a person can leave out the OPyC or the buffer (OFFBEAT's own script allows part of the stack, except the kernel without the buffer); the validator bounds the list (the first is the kernel; at most 6 regions).
+- **D3. The outside boundary.** A matrix temperature (fixed) first, as OFFBEAT's tutorial does; a matrix shell with an effective conductivity and a coolant film as the compact-scale option (T4).
+- **D4. The buffer-IPyC gap.** In an irradiated particle the buffer shrinks away from the IPyC and the gap can dominate the kernel temperature; fresh, there is none. The gap width is an **input** (micrometres), not computed (computing it is the mechanical model). The validator warns that a thermal-only particle with no gap understates the kernel temperature of an irradiated one.
+- **D5. Compact and pebble scale (T4).** Homogenised fuelled zone with an effective conductivity from the matrix conductivity and the packing fraction (a stated mixture law, to be chosen and checked in T4 against a resolved model, since the choice moves the result by percent). A prismatic block (compact in a graphite block with coolant channels) is **out**.
+
+## Verification (written before the code)
+
+- **The kernel parabola.** Uniform heat in the kernel, the layers as conducting shells, a fixed outside temperature: the kernel centre rises by q'''R^2/(6k) above the kernel surface, and each shell drops by P/(4 pi k) x (1/r1 - 1/r2). Both are closed forms with no shared code; the sum of the drops is the whole rise.
+- **Energy balance.** The heat leaving the outside equals the power generated, to the mesh bound; the particle volume used for the per-particle power is the volume of the whole sphere (a test with a wrong, kernel-only volume must fail).
+- **Packing fraction arithmetic.** A hand-computed case (a stated compact power density, packing fraction and particle size give a stated power per particle and kernel power density) and the inverse; a packing fraction of 0 or above the random-packing limit (about 0.64 for random close packing; a stated bound, to be fixed in T1) is refused.
+- **The finite-volume solution against the exact series** for the transient (a sphere's eigenfunctions, sin(lambda r)/r), and the conservation to 1e-9 as for the pin and the plate.
+- **The real solver against the closed form** on a thermal-only run (the T0 and T3 gate), including the effect of the wedge mesh (the writer's mesh volume equals the sphere's, or the difference is stated and bounded).
+- **Negative tests:** layers in the wrong order, a buffer given the SiC's conductivity, a swapped gap and a particle read as a pin each fail a check; a population with a fixed seed gives the same sample twice and a different one with another seed.
+- **The population:** the sampled mean of the kernel temperature against the value of the mean particle plus the Jensen correction (computed by quadrature in the test), and the sample's percentile against a sorted list done by hand.
+
+Tolerances are fixed in the tests before the first run, as in plans 09, 11 and 12.
+
+## Milestones
+
+| | Work | Gate |
+|---|---|---|
+| **T0 Probe** | Through the real OFFBEAT, the shipped tutorial first as it is (mechanics, TRISO gap, SCIANTIX on): run time, exit code, what it writes. Then a thermal-only variant: can the mechanics solver and the gas models be switched off and the gap kept; a constant heat source; what the `trisoGap` boundary does with a stated gap width and with none; how a steady state is asked for (OFFBEAT is a transient code); the **wedge mesh**: does the sum of cell volumes equal the sphere's, and what a coarse mesh does to the kernel temperature (a mesh study per layer); what the results parser must read (cell zones, patches); cost per particle. Findings and the throw-away scripts in `docs/spike/`. | Every unknown above written down with numbers; the kernel temperature of the thermal-only run against the closed form. If OFFBEAT cannot run a thermal-only particle, the plan stops and goes to the user (the fallback is an independent-only particle, which loses the second-method check). |
+| **T1 Case and validator** | The sphere in the geometry kernel (area, resistance, conductance, volume, centroid), `geometry.kind: "triso"` with its layers, the gap, the outside temperature, the power (per particle, per kernel volume, or a compact power density with a packing fraction), refusals (mechanics, burnup, hot dimensions, axial stack, plate keys) and the warnings (no gap, packing fraction out of range, a layer far thinner than its neighbours' mesh), 15 to 25 vectors. | A pin and a plate are byte-identical to today; every refusal has a bad vector. |
+| **T2 Independent solutions** | Closed forms (layered sphere, kernel parabola, temperature-dependent conductivity by the existing integral), the finite-volume solution on the sphere kernel (steady and transient), the quick look and the editor's derived numbers (power per particle, kernel power density, particle volume, time scale). | The verification list above for the independent side passes; the pin's and plate's results unchanged to the last digit. |
+| **T3 Real solver** | Writer for the spherical mesh and the five zones, steady and transient runs, the results reader and the per-layer checks, goldens in `tests/golden/offbeat-triso`, gated tests. | The closed-form comparisons pass on the real solver for a steady particle, a particle with a gap, a pulse and a loss of the outside temperature. |
+| **T4 Compact or pebble scale** | The packing fraction on a compact (a pin whose fuel is the homogenised compact, the particle's outside temperature taken from the compact's local temperature at a stated radius), and the pebble (a sphere with a fuelled zone, an unfuelled shell and a film). The mixture law chosen and tested against a resolved model. | A hand-checked compact; the mixture law's error stated; a pebble against the sphere closed form. |
+| **T5 Editor and view** | A particle section in the editor (the layer table, the gap, the packing fraction), a results view per layer; the cut-away sphere in the 3D view once plan 12 A7 exists (one renderer, a sphere in place of a cylinder). | A person can build the generic particle in the editor and read the layer drops; the view labels it "1D, spherically symmetric". |
+| **T6 Population and SEED** | The sampler (distributions of kernel radius, each thickness, a power factor, a matrix temperature; a seed; a size), the batch through the independent solver in FEED's worker, the spread reported. The oracle entries for the real solver (a handful of representative sampled particles) and the request to SEED, after reading SEED's study format; the transfer from OpenMC (power per particle). | The population checks above; a SEED request written (nothing pushed) with the per-layer quantity named as new for SEED. |
+| **T7 Examples and docs** | The generic particle (the dimensions of OFFBEAT's tutorial are the common generic ones; FEED's example uses its own values and states the source), a compact, a pebble, a sampled population; `docs/triso.md`. | Each example passes every check on the real solver. |
+| **T8 Mechanics (only if D1 says so)** | A separate plan: SiC stress, PyC swelling and creep, gas pressure, a failure fraction, the CRP-6 cases as the oracle. | Not started. |
+
+## Order and cost
+
+T0 first and alone: it decides whether the rest is a writer or a fallback. T1 and T2 are independent of OFFBEAT and can follow it at once; T3 needs T0. Plan 12's A5 to A9 are not blocked and are not blocking (the only shared piece is the 3D renderer, T5 after A7). Rough size against the earlier plans: T0 to T3 is about the size of plan 12's A4 (the plate) plus a layer list; T4 and T6 are new ground (a mixture law and a sampler).
+
+## Open items (not decisions of this plan)
+
+- The user's calls stay as before: public release, the history rewrite for the account name, the thermo-elastic scope (D1 is the same question for spheres).
+- OpenMC Studio has no packing fraction; whether to ask for one is the user's call.
+- Not read yet: SEED's study and replay format, OpenMC Studio's export of a power tally.
