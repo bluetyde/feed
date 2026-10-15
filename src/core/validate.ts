@@ -17,7 +17,7 @@ import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./po
 import { fuelMean, initialState } from "./transientResults";
 import { AXIAL_CONDUCTION_WARNING, AXIAL_STEP_WARNING, AxialSpec, axialConductionEstimate, parseAxial, sliceCase, sliceLoads } from "./axial";
 import { Dimension, toSI } from "./units";
-import { trisoClosedForm, trisoSteadyEndTime } from "./trisoSolve";
+import { trisoSteadyEndTime } from "./trisoSolve";
 import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, parseTrisoGeometry, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
 
 export interface Issue {
@@ -815,8 +815,7 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
     const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells };
     // The temperatures come from integrating each conductivity: a law that is positive over its stated range can still reach zero further out, where the particle runs; and a steady run has to be able to settle
     try {
-      trisoClosedForm(triso);
-      const h = trisoSteadyEndTime(triso);
+      const h = trisoSteadyEndTime(triso); // integrates the closed form (and so finds a conductivity that reaches zero) and bounds the time scale
       if (!h.ok) {
         result.ok = false;
         result.errors.push({ code: "E_TIME", severity: "error", field: "/assumptions/steadyState", message: "this case cannot be run as a steady case: " + h.message });

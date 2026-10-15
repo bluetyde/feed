@@ -1740,6 +1740,12 @@
     "field": "/mesh/fuelCells"
   },
   {
+    "file": "bad/triso-too-slow-to-settle.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/assumptions/steadyState"
+  },
+  {
     "file": "bad/triso-conductivity-reaches-zero.json",
     "valid": false,
     "code": "E_OUT_OF_RANGE",
