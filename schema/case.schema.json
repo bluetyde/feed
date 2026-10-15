@@ -33,13 +33,19 @@
         "fuelRadius": { "$ref": "#/$defs/quantity" },
         "fuelInnerRadius": { "$ref": "#/$defs/quantity" },
         "claddingInnerRadius": { "$ref": "#/$defs/quantity" },
-        "claddingOuterRadius": { "$ref": "#/$defs/quantity" }
+        "claddingOuterRadius": { "$ref": "#/$defs/quantity" },
+        "kernelRadius": { "$ref": "#/$defs/quantity" },
+        "layers": { "type": "array" }
       }
     },
     "power": {
       "type": "object",
       "properties": {
         "linearHeatRate": { "$ref": "#/$defs/quantity" },
+        "particlePower": { "$ref": "#/$defs/quantity" },
+        "kernelPowerDensity": { "$ref": "#/$defs/quantity" },
+        "compactPowerDensity": { "$ref": "#/$defs/quantity" },
+        "packingFraction": { "$ref": "#/$defs/quantity" },
         "radialShape": { "type": "string" }
       }
     },
@@ -64,10 +70,14 @@
     },
     "materials": {
       "type": "object",
-      "required": ["fuel", "cladding"],
       "properties": {
         "fuel": { "$ref": "#/$defs/materialRef" },
-        "cladding": { "$ref": "#/$defs/materialRef" }
+        "cladding": { "$ref": "#/$defs/materialRef" },
+        "kernel": { "$ref": "#/$defs/materialRef" },
+        "buffer": { "$ref": "#/$defs/materialRef" },
+        "ipyc": { "$ref": "#/$defs/materialRef" },
+        "sic": { "$ref": "#/$defs/materialRef" },
+        "opyc": { "$ref": "#/$defs/materialRef" }
       }
     },
     "gap": {
@@ -81,7 +91,6 @@
     },
     "mesh": {
       "type": "object",
-      "required": ["fuelCells", "claddingCells"],
       "properties": {
         "fuelCells": { "type": "integer" },
         "claddingCells": { "type": "integer" }

@@ -1,7 +1,7 @@
 {
   "E_SCHEMA_INVALID": { "severity": "error", "meaning": "document does not satisfy the case schema (structure, missing section, wrong type)" },
   "E_UNITS": { "severity": "error", "meaning": "quantity has no unit, an unknown unit, a unit of the wrong dimension, or a non-finite value" },
-  "E_GEOMETRY": { "severity": "error", "meaning": "radius not positive, or fuel, cladding inner and cladding outer radii out of order" },
+  "E_GEOMETRY": { "severity": "error", "meaning": "radius not positive, or fuel, cladding inner and cladding outer radii out of order; for a plate or a coated particle an unknown key, a negative gap, layers out of their order or of the wrong number, or a material for a region the particle does not have" },
   "E_OUT_OF_RANGE": { "severity": "error", "meaning": "a value is outside the range the model can accept (non-positive power, conductivity, temperature, coefficient; reference outside a property range; a steady starting state that does not exist or lies outside a heat capacity range)" },
   "E_PROP_MISSING": { "severity": "error", "meaning": "a property the chosen model needs is absent; names the property and the model" },
   "E_BOUNDARY_INCOMPLETE": { "severity": "error", "meaning": "coolant boundary missing a datum (bulk temperature without coefficient, or the reverse), absent, or specified in two forms" },
@@ -14,6 +14,8 @@
   "E_KINETICS": { "severity": "error", "meaning": "the point-kinetics generator cannot produce a power history: the pulse does not happen inside the run, the integration fails or needs too many steps, or the history cannot be written within its point budget" },
   "W_AXIAL_SHAPE_STEP": { "severity": "warning", "meaning": "the heat rate changes by more than 40 % of the largest slice's between two neighbouring slices: the shape is not resolved by this many slices" },
   "W_AXIAL_CONDUCTION": { "severity": "warning", "meaning": "the estimated effect of heat flow along the pin exceeds 2 % of the largest rise (short heated length, steep shape or highly conducting solids); the solver includes it and the one-dimensional checks per slice do not" },
+  "W_PACKING_FRACTION": { "severity": "warning", "meaning": "a coated particle's packing fraction is above 0.64, random close packing of equal spheres: the particles would have to lie in an ordered arrangement (plan 13)" },
+  "W_GAP_CONTACT": { "severity": "warning", "meaning": "a coated particle's gap conductance is above 3e5 W/m2/K, a buffer in contact with the next layer: an irradiated particle usually has a gap, so the kernel temperature is understated (plan 13)" },
   "W_POWER_RANGE": { "severity": "warning", "meaning": "linear heat rate above the sanity range; not clamped, not an error" },
   "W_ELASTICITY_RANGE": { "severity": "warning", "meaning": "a solid's temperatures leave the range its Young's modulus law is stated for; the modulus is applied beyond it as given, and the warning says where" },
   "W_EXPANSION_RANGE": { "severity": "warning", "meaning": "a solid's temperatures leave the range its linear expansion coefficient is stated for; the formula is applied beyond it as given, and the warning says where" }

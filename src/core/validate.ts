@@ -17,6 +17,7 @@ import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./po
 import { fuelMean, initialState } from "./transientResults";
 import { AXIAL_CONDUCTION_WARNING, AXIAL_STEP_WARNING, AxialSpec, axialConductionEstimate, parseAxial, sliceCase, sliceLoads } from "./axial";
 import { Dimension, toSI } from "./units";
+import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, parseTrisoGeometry, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
 
 export interface Issue {
   code: string;
@@ -211,6 +212,8 @@ export interface ValidationResult {
   warnings: Issue[];
   /** Present only when ok. */
   normalized?: NormalizedCase;
+  /** Present instead of `normalized` when ok and the case is a coated particle (plan 13): its own normalised form. Nothing runs it yet (T2: the independent solution, T3: the solver). */
+  triso?: NormalizedTriso;
 }
 
 /** Heat rate above which a warning is raised (W/m). Sanity range, not a limit. */
@@ -265,6 +268,14 @@ export function validateCase(doc: unknown): ValidationResult {
     return v;
   };
 
+  // A coated particle (plan 13) has its own sections and its own normalised form
+  if (c.geometry?.kind === "triso") return validateTriso(c, issues, err, qty, positive);
+
+  // A pin or a plate has a fuel and a cladding and a fuel and a cladding mesh (the schema leaves them optional because a particle has other regions)
+  for (const k of ["fuel", "cladding"]) if (!isObject(c.materials[k])) err("E_SCHEMA_INVALID", "/materials/" + k, "missing: the " + k + " material (an object with a materialId, a revision and sets)");
+  for (const k of ["fuelCells", "claddingCells"]) if (!isObject(c.mesh) || c.mesh[k] === undefined) err("E_SCHEMA_INVALID", "/mesh/" + k, "missing: the number of " + (k === "fuelCells" ? "fuel" : "cladding") + " cells");
+  if (issues.length > 0) return finish(issues);
+
   // Scope of V1
   // A case either is thermal-only or asks for mechanics, which needs its section (docs/plans/09-mechanics.md M2); irradiation is not offered.
   if (c.mechanics !== undefined && c.assumptions.thermalOnly !== false) err("E_SCHEMA_INVALID", "/assumptions/thermalOnly", "a case with a mechanics section is not thermal-only: set assumptions.thermalOnly to false");
@@ -274,7 +285,7 @@ export function validateCase(doc: unknown): ValidationResult {
   if (!isTransient && c.transient !== undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "the case has a transient section but assumptions.steadyState is true; set it to false to run the transient, or remove the section");
   if (isTransient && c.transient === undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "assumptions.steadyState is false, so the case needs a transient section (power history, end time, time step, outputs, initial temperature)");
   const isPlate = c.geometry?.kind === "plate";
-  if (c.geometry?.kind !== undefined && c.geometry.kind !== "plate" && c.geometry.kind !== "pin") err("E_GEOMETRY", "/geometry/kind", "the geometry kind is 'pin' (the default) or 'plate', got '" + String(c.geometry.kind) + "'");
+  if (c.geometry?.kind !== undefined && c.geometry.kind !== "plate" && c.geometry.kind !== "pin") err("E_GEOMETRY", "/geometry/kind", "the geometry kind is 'pin' (the default), 'plate' or 'triso', got '" + String(c.geometry.kind) + "'");
   if (c.assumptions.geometry !== (isPlate ? "1D-slab" : "1D-radial")) err("E_UNSUPPORTED", "/assumptions/geometry", (isPlate ? "a plate is geometry '1D-slab'" : "V1 supports geometry '1D-radial' only") + ", got '" + String(c.assumptions.geometry) + "'");
   if (c.power?.radialShape !== undefined && c.power.radialShape !== "uniform") err("E_UNSUPPORTED", "/power/radialShape", "V1 supports a uniform radial power shape only");
 
@@ -358,42 +369,10 @@ export function validateCase(doc: unknown): ValidationResult {
   }
 
   // Gap
-  let hGap: number | undefined;
-  const gap = c.gap as Record<string, unknown>;
-  if (gap.model === "constant-conductance") {
-    if (gap.conductance === undefined) err("E_PROP_MISSING", "/gap/conductance", "the constant-conductance gap model needs the gap conductance (W/m2/K)");
-    else hGap = positive(gap.conductance, "htc", "/gap/conductance", "gap conductance", "W/m2/K");
-    if (typeof gap.source !== "string" || gap.source.trim() === "") err("E_PROP_MISSING", "/gap/source", "the gap conductance needs a stated source");
-  } else if (gap.model === "closed" || gap.model === "contact") {
-    err("E_UNSUPPORTED", "/gap/model", "a closed or contacting gap needs mechanics to know the contact state; V1 requires an explicit gap conductance");
-  } else if (gap.model === "gas-gap") {
-    err("E_UNSUPPORTED", "/gap/model", "the solver's gas-gap model is planned after V1; use 'constant-conductance'");
-  } else {
-    err("E_UNSUPPORTED", "/gap/model", "unknown gap model '" + String(gap.model) + "'");
-  }
+  const hGap = parseGap(c.gap as Record<string, unknown>, err, positive);
 
   // Boundary: exactly one complete form
-  const b = c.boundary as Record<string, unknown>;
-  const hasBulk = b.bulkTemperature !== undefined;
-  const hasH = b.heatTransferCoefficient !== undefined;
-  const hasSurface = b.surfaceTemperature !== undefined;
-  let boundary: NormalizedCase["boundary"] | undefined;
-  if ((hasBulk || hasH) && hasSurface) {
-    err("E_BOUNDARY_INCOMPLETE", "/boundary", "the coolant boundary is given in two forms; choose either bulk temperature with a heat-transfer coefficient, or a prescribed surface temperature");
-  } else if (hasSurface) {
-    const ts = positive(b.surfaceTemperature, "temperature", "/boundary/surfaceTemperature", "surface temperature", "K");
-    if (ts !== undefined) boundary = { kind: "surface-temperature", surfaceTemperature: ts };
-  } else if (hasBulk || hasH) {
-    if (!hasH) err("E_BOUNDARY_INCOMPLETE", "/boundary/heatTransferCoefficient", "bulk temperature alone is not a boundary condition; a convective boundary also needs the heat-transfer coefficient", { unit: "W/m2/K" });
-    else if (!hasBulk) err("E_BOUNDARY_INCOMPLETE", "/boundary/bulkTemperature", "a heat-transfer coefficient alone is not a boundary condition; a convective boundary also needs the bulk temperature", { unit: "K" });
-    else {
-      const tb = positive(b.bulkTemperature, "temperature", "/boundary/bulkTemperature", "bulk temperature", "K");
-      const h = positive(b.heatTransferCoefficient, "htc", "/boundary/heatTransferCoefficient", "heat-transfer coefficient", "W/m2/K");
-      if (tb !== undefined && h !== undefined) boundary = { kind: "convective", bulkTemperature: tb, heatTransferCoefficient: h };
-    }
-  } else {
-    err("E_BOUNDARY_INCOMPLETE", "/boundary", "no coolant boundary given; provide bulk temperature with a heat-transfer coefficient, or a prescribed surface temperature");
-  }
+  const boundary = parseBoundary(c.boundary as Record<string, unknown>, err, positive);
 
   // Materials: a thermal model needs a thermal conductivity set. Composition and density do not satisfy it.
   const burnupSpec = c.burnup === undefined ? undefined : parseBurnup(c.burnup, err, qty);
@@ -712,6 +691,146 @@ export function validateMaterial(region: "fuel" | "cladding", material: unknown)
   if (sets["thermal.volumetricHeatCapacity"] !== undefined) heatCapacity(material, region, err as ErrFn, qty);
   mechanicalSets(material, region, err as ErrFn, qty, false);
   return finish(issues);
+}
+
+type PositiveFn = (value: unknown, dim: Dimension, field: string, what: string, unit: string) => number | undefined;
+
+/** The gap section: only a stated constant conductance with its source (a closed or contacting gap needs mechanics; the solver's gas-gap model comes later). */
+function parseGap(gap: Record<string, unknown>, err: ErrFn, positive: PositiveFn): number | undefined {
+  let hGap: number | undefined;
+  if (gap.model === "constant-conductance") {
+    if (gap.conductance === undefined) err("E_PROP_MISSING", "/gap/conductance", "the constant-conductance gap model needs the gap conductance (W/m2/K)");
+    else hGap = positive(gap.conductance, "htc", "/gap/conductance", "gap conductance", "W/m2/K");
+    if (typeof gap.source !== "string" || gap.source.trim() === "") err("E_PROP_MISSING", "/gap/source", "the gap conductance needs a stated source");
+  } else if (gap.model === "closed" || gap.model === "contact") {
+    err("E_UNSUPPORTED", "/gap/model", "a closed or contacting gap needs mechanics to know the contact state; V1 requires an explicit gap conductance");
+  } else if (gap.model === "gas-gap") {
+    err("E_UNSUPPORTED", "/gap/model", "the solver's gas-gap model is planned after V1; use 'constant-conductance'");
+  } else {
+    err("E_UNSUPPORTED", "/gap/model", "unknown gap model '" + String(gap.model) + "'");
+  }
+  return hGap;
+}
+
+/** The coolant boundary: exactly one complete form, a bulk temperature with a heat-transfer coefficient or a prescribed surface temperature. */
+function parseBoundary(b: Record<string, unknown>, err: ErrFn, positive: PositiveFn): NormalizedCase["boundary"] | undefined {
+  const hasBulk = b.bulkTemperature !== undefined;
+  const hasH = b.heatTransferCoefficient !== undefined;
+  const hasSurface = b.surfaceTemperature !== undefined;
+  let boundary: NormalizedCase["boundary"] | undefined;
+  if ((hasBulk || hasH) && hasSurface) {
+    err("E_BOUNDARY_INCOMPLETE", "/boundary", "the coolant boundary is given in two forms; choose either bulk temperature with a heat-transfer coefficient, or a prescribed surface temperature");
+  } else if (hasSurface) {
+    const ts = positive(b.surfaceTemperature, "temperature", "/boundary/surfaceTemperature", "surface temperature", "K");
+    if (ts !== undefined) boundary = { kind: "surface-temperature", surfaceTemperature: ts };
+  } else if (hasBulk || hasH) {
+    if (!hasH) err("E_BOUNDARY_INCOMPLETE", "/boundary/heatTransferCoefficient", "bulk temperature alone is not a boundary condition; a convective boundary also needs the heat-transfer coefficient", { unit: "W/m2/K" });
+    else if (!hasBulk) err("E_BOUNDARY_INCOMPLETE", "/boundary/bulkTemperature", "a heat-transfer coefficient alone is not a boundary condition; a convective boundary also needs the bulk temperature", { unit: "K" });
+    else {
+      const tb = positive(b.bulkTemperature, "temperature", "/boundary/bulkTemperature", "bulk temperature", "K");
+      const h = positive(b.heatTransferCoefficient, "htc", "/boundary/heatTransferCoefficient", "heat-transfer coefficient", "W/m2/K");
+      if (tb !== undefined && h !== undefined) boundary = { kind: "convective", bulkTemperature: tb, heatTransferCoefficient: h };
+    }
+  } else {
+    err("E_BOUNDARY_INCOMPLETE", "/boundary", "no coolant boundary given; provide bulk temperature with a heat-transfer coefficient, or a prescribed surface temperature");
+  }
+  return boundary;
+}
+
+/**
+ * A coated particle (plan 13, T1): a sphere of a kernel and two to four coating layers, thermal and steady only. It has its own normalised form (`triso` on the result); a pin's sections
+ * that have no meaning for it (mechanics, burnup, hot dimensions, an axial stack, limits, a transient) are refused by name, not ignored.
+ */
+function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty: QtyFn, positive: PositiveFn): ValidationResult {
+  const warn = (code: string, field: string, message: string, extra: Record<string, unknown> = {}) => issues.push({ code, severity: "warning", field, message, ...extra } as Issue);
+  if (c.assumptions.geometry !== "1D-sphere") err("E_UNSUPPORTED", "/assumptions/geometry", "a particle is geometry '1D-sphere', got '" + String(c.assumptions.geometry) + "'");
+  if (c.assumptions.thermalOnly !== true) err("E_UNSUPPORTED", "/assumptions/thermalOnly", "a particle is thermal only: its mechanics (the stress in the SiC, the swelling and creep of the carbon, the gas pressure) are decision D1 of plan 13 and not offered");
+  if (c.assumptions.steadyState !== true) err("E_UNSUPPORTED", "/assumptions/steadyState", "a particle is steady only in this release: its transient comes with milestone T2 of plan 13");
+  if (c.transient !== undefined) err("E_UNSUPPORTED", "/transient", "a particle transient comes with milestone T2 of plan 13; remove the section");
+  for (const [key, why] of [
+    ["mechanics", "a particle has no mechanics here"],
+    ["hotDimensions", "hot dimensions are for pins"],
+    ["burnup", "a burnup is for pins in this release"],
+    ["axial", "an axial stack is for pins and plates"],
+    ["limits", "temperature limits for the layers of a particle come with milestone T3 of plan 13"],
+  ] as const) {
+    if (c[key] !== undefined) err("E_UNSUPPORTED", "/" + key, why + "; remove the section");
+  }
+  const radius = (value: unknown, field: string, what: string): number | undefined => {
+    const v = qty(value, "length", field);
+    if (v === undefined) return undefined;
+    if (!(v > 0)) {
+      err("E_GEOMETRY", field, what + " must be positive", { unit: "m" });
+      return undefined;
+    }
+    if (v < RADIUS_MIN || v > RADIUS_MAX) {
+      err("E_GEOMETRY", field, what + " " + v + " m is outside " + RADIUS_MIN + " to " + RADIUS_MAX + " m; check the units", { unit: "m" });
+      return undefined;
+    }
+    return v;
+  };
+  const geo = parseTrisoGeometry(c.geometry, radius, err);
+  const names: string[] = geo ? geo.layers.map((l) => l.name) : [];
+  const volumes = geo ? particleVolumes(geo.kernelRadius, geo.outerRadius) : undefined;
+  const powerRaw: Record<string, unknown> = isObject(c.power) ? c.power : {};
+  let power: ReturnType<typeof parseTrisoPower>;
+  if (volumes) power = parseTrisoPower(powerRaw, volumes, err, qty, warn);
+  else if (powerRaw.linearHeatRate !== undefined) err("E_UNSUPPORTED", "/power/linearHeatRate", "a particle's power is per particle, per kernel volume or per compact volume; the linear heat rate is for pins");
+  const hGap = parseGap(c.gap as Record<string, unknown>, err, positive);
+  if (hGap !== undefined && hGap > GAP_CONTACT_CONDUCTANCE) {
+    warn("W_GAP_CONTACT", "/gap/conductance", "a gap conductance of " + hGap.toExponential(2) + " W/m2/K is a buffer in contact with the next layer (OFFBEAT's own gap model gives about " + GAP_CONTACT_CONDUCTANCE.toExponential(0) + " for a zero-width gap): an irradiated particle usually has a gap, so this understates the kernel temperature", { unit: "W/m2/K" });
+  }
+  const boundary = parseBoundary(c.boundary as Record<string, unknown>, err, positive);
+  // the materials: one for the kernel and one for each layer, named like them; a thermal conductivity set each (a particle has no burnup, so the burnup-dependent law is refused)
+  const materials: Record<string, unknown> = isObject(c.materials) ? c.materials : {};
+  const wanted = ["kernel", ...names];
+  // (with an unreadable geometry the layers are not known, so no material is judged against them: one fault, one code)
+  if (geo) {
+    for (const k of Object.keys(materials)) {
+      if (!wanted.includes(k)) err("E_GEOMETRY", "/materials/" + k, "'" + k + "' is not a region of this particle (its materials are " + wanted.join(", ") + ")");
+    }
+  }
+  const kernelRef = materials.kernel;
+  let kernelK: Conductivity | undefined;
+  if (isObject(kernelRef)) kernelK = conductivity(kernelRef, "kernel", err, qty);
+  else err("E_SCHEMA_INVALID", "/materials/kernel", "missing: the kernel's material (an object with a materialId, a revision and sets)");
+  const layerK: (Conductivity | undefined)[] = names.map((n) => {
+    const m = materials[n];
+    if (!isObject(m)) {
+      err("E_SCHEMA_INVALID", "/materials/" + n, "missing: the material of the " + n + " layer (an object with a materialId, a revision and sets)");
+      return undefined;
+    }
+    return conductivity(m, n, err, qty);
+  });
+  const regionK: [string, Conductivity | undefined][] = [["kernel", kernelK], ...names.map((n, i): [string, Conductivity | undefined] => [n, layerK[i]])];
+  for (const [n, k] of regionK) {
+    if (k && k.kind === "uo2-nfi") err("E_UNSUPPORTED", "/materials/" + n + "/sets/thermal.conductivity/model", "the burnup-dependent uo2-nfi law is for pins; a particle has no burnup in this release");
+  }
+  const cells = geo && isObject(c.mesh) ? parseTrisoMesh(c.mesh, names, err) : undefined;
+  const result = finish(issues);
+  if (result.ok && geo && power && hGap !== undefined && boundary && kernelK && layerK.every((k) => k !== undefined) && cells) {
+    let r = geo.kernelRadius;
+    const layers: TrisoLayer[] = geo.layers.map((l, i) => {
+      const inner = r;
+      r += l.thickness;
+      return { name: l.name, innerRadius: inner, outerRadius: r, conductivity: layerK[i]! };
+    });
+    result.triso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells };
+  } else if (result.ok) {
+    // everything was accepted but a piece did not come out: say so rather than return a case that is neither valid nor refused
+    result.ok = false;
+    result.errors.push({ code: "E_SCHEMA_INVALID", severity: "error", field: "/", message: "the particle case could not be normalised" });
+  }
+  return result;
+}
+
+/**
+ * The errors to give for a result that has no `normalized` case: its own, or, for a coated particle that validated (its form is `triso`), the statement that nothing runs it yet. A caller
+ * that needs a pin or a plate and finds none uses this, so a valid particle is never answered with an empty list of problems.
+ */
+export function unrunnableErrors(v: ValidationResult): Issue[] {
+  if (v.errors.length > 0 || !v.triso) return v.errors;
+  return [{ code: "E_UNSUPPORTED", severity: "error", field: "/geometry/kind", message: "a coated particle case is valid, but nothing runs it yet: its independent solution (T2), the solver (T3) and the editor (T5) are milestones of plan 13" }];
 }
 
 function finish(issues: Issue[]): ValidationResult {

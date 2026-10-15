@@ -1,0 +1,168 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "triso-with-mechanics",
+  "name": "Synthetic coated particle (illustrative numbers, not a real fuel design)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-sphere"
+  },
+  "geometry": {
+    "kind": "triso",
+    "kernelRadius": {
+      "value": 250,
+      "unit": "um"
+    },
+    "layers": [
+      {
+        "name": "buffer",
+        "thickness": {
+          "value": 100,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "ipyc",
+        "thickness": {
+          "value": 40,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "sic",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "opyc",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      }
+    ]
+  },
+  "power": {
+    "kernelPowerDensity": {
+      "value": 600,
+      "unit": "MW/m3"
+    }
+  },
+  "boundary": {
+    "surfaceTemperature": {
+      "value": 1000,
+      "unit": "K"
+    }
+  },
+  "materials": {
+    "kernel": {
+      "materialId": "synthetic-kernel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "buffer": {
+      "materialId": "synthetic-buffer",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 0.5,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "ipyc": {
+      "materialId": "synthetic-ipyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "sic": {
+      "materialId": "synthetic-sic",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 13.9,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "opyc": {
+      "materialId": "synthetic-opyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 150000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "kernelCells": 12,
+    "bufferCells": 12,
+    "ipycCells": 12,
+    "sicCells": 16,
+    "opycCells": 12
+  },
+  "mechanics": {}
+}

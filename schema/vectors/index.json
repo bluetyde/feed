@@ -1519,5 +1519,236 @@
     "valid": false,
     "code": "E_SCHEMA_INVALID",
     "field": "/geometry/claddingInnerRadius"
+  },
+  {
+    "file": "good/triso-steady.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-particle-power.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-compact.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-convective-outside.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-two-layers.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-lengths-in-mm.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-packing-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_PACKING_FRACTION"
+    ]
+  },
+  {
+    "file": "good/triso-gap-contact-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_GAP_CONTACT"
+    ]
+  },
+  {
+    "file": "good/triso-power-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_POWER_RANGE"
+    ]
+  },
+  {
+    "file": "bad/triso-linear-heat-rate.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/power/linearHeatRate"
+  },
+  {
+    "file": "bad/triso-two-power-forms.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/power"
+  },
+  {
+    "file": "bad/triso-no-power.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/power"
+  },
+  {
+    "file": "bad/triso-compact-without-packing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/power/packingFraction"
+  },
+  {
+    "file": "bad/triso-packing-without-compact.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/power/packingFraction"
+  },
+  {
+    "file": "bad/triso-packing-too-dense.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/power/packingFraction"
+  },
+  {
+    "file": "bad/triso-packing-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/power/packingFraction"
+  },
+  {
+    "file": "bad/triso-power-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/power/particlePower"
+  },
+  {
+    "file": "bad/triso-layers-out-of-order.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/layers/0/name"
+  },
+  {
+    "file": "bad/triso-one-layer.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/layers"
+  },
+  {
+    "file": "bad/triso-five-layers.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/layers"
+  },
+  {
+    "file": "bad/triso-missing-kernel-radius.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/geometry/kernelRadius"
+  },
+  {
+    "file": "bad/triso-negative-thickness.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/layers/1/thickness"
+  },
+  {
+    "file": "bad/triso-thickness-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/geometry/layers/0/thickness"
+  },
+  {
+    "file": "bad/triso-with-a-pin-radius.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/fuelRadius"
+  },
+  {
+    "file": "bad/triso-layer-with-extra-key.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/layers/2/density"
+  },
+  {
+    "file": "bad/triso-material-missing.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/materials/sic"
+  },
+  {
+    "file": "bad/triso-material-for-absent-layer.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/materials/opyc"
+  },
+  {
+    "file": "bad/triso-material-without-conductivity.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/buffer/sets/thermal.conductivity"
+  },
+  {
+    "file": "bad/triso-pin-material-names.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/materials/fuel"
+  },
+  {
+    "file": "bad/triso-with-mechanics.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics"
+  },
+  {
+    "file": "bad/triso-with-axial-stack.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/axial"
+  },
+  {
+    "file": "bad/triso-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/assumptions/steadyState"
+  },
+  {
+    "file": "bad/triso-assumed-radial.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/assumptions/geometry"
+  },
+  {
+    "file": "bad/triso-closed-gap.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/gap/model"
+  },
+  {
+    "file": "bad/triso-no-boundary.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/boundary"
+  },
+  {
+    "file": "bad/triso-mesh-kernel-low.json",
+    "valid": false,
+    "code": "E_MESH",
+    "field": "/mesh/kernelCells"
+  },
+  {
+    "file": "bad/triso-mesh-layer-missing.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mesh/sicCells"
+  },
+  {
+    "file": "bad/triso-mesh-pin-keys.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mesh/fuelCells"
+  },
+  {
+    "file": "bad/pin-missing-fuel-material.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/materials/fuel"
+  },
+  {
+    "file": "bad/pin-missing-cladding-cells.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mesh/claddingCells"
   }
 ]

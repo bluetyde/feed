@@ -1,7 +1,7 @@
 // Quantity parsing: every physical input is {value, unit}; the unit must belong to the expected dimension.
 // SI is used inside the app (docs/ARCHITECTURE.md, Conventions).
 
-export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "expansion" | "expansionPerK" | "pressure" | "pressurePerK" | "burnup" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction";
+export type Dimension = "length" | "temperature" | "linearPower" | "conductivity" | "conductivityPerK" | "htc" | "time" | "volumetricHeatCapacity" | "volumetricHeatCapacityPerK" | "volumetricHeatCapacityPerK2" | "conductivityPerK2" | "conductivityPerK3" | "expansion" | "expansionPerK" | "pressure" | "pressurePerK" | "burnup" | "power" | "reactivity" | "reactivityPerK" | "reactivityPerK2" | "rate" | "fraction" | "powerDensity";
 
 interface UnitDef {
   dim: Dimension;
@@ -13,6 +13,9 @@ const UNITS: Record<string, UnitDef> = {
   m: { dim: "length", scale: 1 },
   cm: { dim: "length", scale: 1e-2 },
   mm: { dim: "length", scale: 1e-3 },
+  // micrometres, the unit of a coated particle (plan 13); written with the ASCII u or the micro sign
+  um: { dim: "length", scale: 1e-6 },
+  "µm": { dim: "length", scale: 1e-6 },
   K: { dim: "temperature", scale: 1 },
   degC: { dim: "temperature", scale: 1, offset: 273.15 },
   "W/m": { dim: "linearPower", scale: 1 },
@@ -68,6 +71,11 @@ const UNITS: Record<string, UnitDef> = {
   "dk/k/K2": { dim: "reactivityPerK2", scale: 1 },
   "pcm/K2": { dim: "reactivityPerK2", scale: 1e-5 },
   "1/s": { dim: "rate", scale: 1 },
+  // volumetric power (a particle's kernel, a compact), plan 13
+  "W/m3": { dim: "powerDensity", scale: 1 },
+  "kW/m3": { dim: "powerDensity", scale: 1e3 },
+  "MW/m3": { dim: "powerDensity", scale: 1e6 },
+  "W/cm3": { dim: "powerDensity", scale: 1e6 },
   "1": { dim: "fraction", scale: 1 },
   "%": { dim: "fraction", scale: 0.01 },
 };
@@ -96,6 +104,7 @@ export const SI_UNIT: Record<Dimension, string> = {
   reactivityPerK2: "dk/k/K2",
   rate: "1/s",
   fraction: "1",
+  powerDensity: "W/m3",
 };
 
 /** A value in SI as a number in `unit` (the inverse of toSI), to 12 significant digits so that 0.0041 m is 4.1 mm and not 4.1000000000000005. Undefined for an unknown unit or one of another dimension. */
