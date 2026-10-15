@@ -266,9 +266,8 @@ describe("what the particle case refuses", () => {
     delete noK.materials.sic.sets["thermal.conductivity"];
     expect(codes(noK)).toEqual(["E_PROP_MISSING /materials/sic/sets/thermal.conductivity"]);
     const nfi = particle();
-    nfi.materials.kernel.sets["thermal.conductivity"] = { model: "uo2-nfi", densityFraction: q(95, "%"), gadolinia: q(0, "%"), validRange: { min: q(500, "K"), max: q(3000, "K") }, source: "synthetic: a burnup law, which a particle does not have" };
-    expect(codes(nfi).every((c) => c.startsWith("E_"))).toBe(true);
-    expect(validateCase(nfi).ok).toBe(false);
+    nfi.materials.kernel.sets["thermal.conductivity"] = { model: "uo2-nfi", densityFraction: q(95, "%"), source: "NUREG/CR-7024 Eq. 2.3-10 and 2.3-11 (FRAPCON-3.4 modified NFI)" };
+    expect(codes(nfi)).toEqual(["E_UNSUPPORTED /materials/kernel/sets/thermal.conductivity/model"]);
   });
   it("refuses every pin section that has no meaning for a particle, each by its own name", () => {
     for (const [key, value] of [["mechanics", {}], ["hotDimensions", {}], ["burnup", {}], ["axial", {}], ["limits", [{ name: "a" }]]] as const) {

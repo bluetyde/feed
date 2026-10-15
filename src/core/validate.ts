@@ -781,7 +781,7 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
     warn("W_GAP_CONTACT", "/gap/conductance", "a gap conductance of " + hGap.toExponential(2) + " W/m2/K is a buffer in contact with the next layer (OFFBEAT's own gap model gives about " + GAP_CONTACT_CONDUCTANCE.toExponential(0) + " for a zero-width gap): an irradiated particle usually has a gap, so this understates the kernel temperature", { unit: "W/m2/K" });
   }
   const boundary = parseBoundary(c.boundary as Record<string, unknown>, err, positive);
-  // the materials: one for the kernel and one for each layer, named like them; a thermal conductivity set each (a particle has no burnup, so the burnup-dependent law is refused)
+  // the materials: one for the kernel and one for each layer, named like them; a thermal conductivity set each (conductivity() itself refuses the burnup-dependent UO2 law for any region but a pin's fuel)
   const materials: Record<string, unknown> = isObject(c.materials) ? c.materials : {};
   const wanted = ["kernel", ...names];
   // (with an unreadable geometry the layers are not known, so no material is judged against them: one fault, one code)
@@ -802,10 +802,6 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
     }
     return conductivity(m, n, err, qty);
   });
-  const regionK: [string, Conductivity | undefined][] = [["kernel", kernelK], ...names.map((n, i): [string, Conductivity | undefined] => [n, layerK[i]])];
-  for (const [n, k] of regionK) {
-    if (k && k.kind === "uo2-nfi") err("E_UNSUPPORTED", "/materials/" + n + "/sets/thermal.conductivity/model", "the burnup-dependent uo2-nfi law is for pins; a particle has no burnup in this release");
-  }
   const cells = geo && isObject(c.mesh) ? parseTrisoMesh(c.mesh, names, err) : undefined;
   const result = finish(issues);
   if (result.ok && geo && power && hGap !== undefined && boundary && kernelK && layerK.every((k) => k !== undefined) && cells) {
