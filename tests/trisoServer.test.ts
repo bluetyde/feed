@@ -110,9 +110,9 @@ describe("a particle through the server", () => {
       expect(j.error).toMatch(/pins and plates/);
     }
   });
-  it("the page shows a particle as a note and a plain results card, not through the pin's views (their guards are in the page's text)", () => {
+  it("the page shows a particle through its own views, not the pin's (their guards are in the page's text; the editor is tests/particleEditor.test.ts)", () => {
     const html = readFileSync(join(root, "src", "web", "index.html"), "utf8");
-    expect(html).toContain("I_PARTICLE");
+    expect(html).not.toContain("I_PARTICLE");
     expect(html).toContain('d.results.kind === "triso"');
     expect(html).toContain('d.normalized.kind === "triso"');
   });
