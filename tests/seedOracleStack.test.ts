@@ -311,7 +311,7 @@ describe.skipIf(!SAVED)("saved real OFFBEAT output of the stack entries, read ba
   it("read against a stack that was not run, the saved output fails a check and misses the entry (the shape read from the top; the coolant not warming)", () => {
     const x = readGolden("stack-skewed-pin");
     const n = JSON.parse(JSON.stringify(x.n));
-    n.axial.powerShape.points = n.axial.powerShape.points.map((p: any, i: number, a: any[]) => ({ position: p.position, relativePower: a[a.length - 1 - i].relativePower }));
+    n.axial.shape.relative = [...n.axial.shape.relative].reverse();
     expect(failingIds(buildStackResults(n, { T: x.T, C: x.C, time: 5e7 })).length).toBeGreaterThan(0);
     const y = readGolden("stack-warming-coolant-pin");
     const m = JSON.parse(JSON.stringify(y.n));
