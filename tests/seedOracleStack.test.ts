@@ -159,8 +159,21 @@ describe("the steady stack entries: the reference by hand, FEED's own per-slice 
       const hot = s.hottest;
       const cold = centres.indexOf(Math.min(...centres));
       const up = (x: number) => Math.max(0.05, Math.ceil(x / 0.05 - 1e-6) * 0.05);
-      expect(Math.abs(e[0]!.tolerance.abs - up(terms(hot))), "peak tolerance").toBeLessThan(0.051);
-      expect(Math.abs(e[2]!.tolerance.abs - up(terms(cold))), "coolest tolerance").toBeLessThan(0.051);
+      // the three terms the entry states in its own text are FEED's within 2 %, and its tolerance is their sum rounded UP to 0.05 K
+      for (const [x, k] of [[e[0]!, hot], [e[2]!, cold]] as const) {
+        const text: string = x.source.text;
+        const mesh = Number(/100\^2 = ([\d.]+) K/.exec(text)![1]);
+        const allow = Number(/above its coolant\) = ([\d.]+) K/.exec(text)![1]);
+        const table = COSINE.has(name) ? Number(/rise of [\d.]+ K = ([\d.]+) K; rounded/.exec(text)![1]) : 0;
+        expect(Math.abs(mesh - (5 * centresFuelRise(n, k)) / 1e4), x.oracleId + " mesh").toBeLessThan(0.02 * mesh + 0.002);
+        expect(Math.abs(allow - 3 * est.fraction * peakRise), x.oracleId + " allowance").toBeLessThan(0.02 * allow + 0.002);
+        expect(Math.abs(table - tableTerm(k)), x.oracleId + " table").toBeLessThan(0.02 * table + 0.002);
+        const sum = mesh + allow + table;
+        expect(x.tolerance.abs, x.oracleId + " sum " + sum).toBeGreaterThanOrEqual(Math.max(0.05, sum) - 0.003);
+        expect(x.tolerance.abs, x.oracleId + " sum " + sum).toBeLessThan(Math.max(0.05, sum) + 0.0502);
+        expect(Math.abs(x.tolerance.abs / 0.05 - Math.round(x.tolerance.abs / 0.05)), x.oracleId + " a multiple of 0.05").toBeLessThan(1e-9);
+      }
+      void up;
       // the entry is not looser than the allowance FEED's own check applies (3 estimates of the largest rise) and not by more than the mesh and table terms
       expect(e[0]!.tolerance.abs).toBeGreaterThanOrEqual(3 * est.fraction * peakRise);
       expect(e[0]!.tolerance.abs).toBeLessThan(3 * est.fraction * peakRise + 2);
@@ -255,8 +268,14 @@ describe("the transient stack entries", () => {
       expect([4, 5]).toContain(hot);
       const ex = exchangeAllowances(n, sol, sliceLoads(n))!;
       // FEED applies this allowance (twice its bound) to the cross-check of the slice; the entry's tolerance contains it, plus 1 % of the rise and the internal rise
-      expect(e.tolerance.abs).toBeGreaterThanOrEqual(ex.field[hot]! * 0.7);
-      expect(e.tolerance.abs).toBeLessThan(ex.field[hot]! + 0.01 * (peak - 600) + 1.5 + 0.5);
+      // the tolerance is 1 % of the rise, FEED's own exchange allowance of the slice (twice its bound) and the internal rise of the hottest cell above the lumped mean, worked out here
+      // by hand at the middle slice's heat rate (pi/2 cos(0.05 pi) of the average), rounded up to 0.05 K
+      const qMid = (name.includes("plate") ? 50000 : 1000) * (Math.PI / 2) * Math.cos(0.05 * Math.PI);
+      const internal = name.includes("plate") ? qMid * (4.1e-3 / (2 * 400) + 1 / 1e6 + 0.57e-3 / 400) : qMid * (1 / (4 * Math.PI * 400) + 1 / (2 * Math.PI * 4.1e-3 * 1e6) + Math.log(4.75 / 4.18) / (2 * Math.PI * 400));
+      const start = Math.max(...sol[hot]!.fv.states[0]!.T);
+      const sum = 0.01 * (peak - start) + ex.field[hot]! + internal;
+      expect(e.tolerance.abs, name + " sum " + sum).toBeGreaterThanOrEqual(sum - 0.01);
+      expect(e.tolerance.abs, name + " sum " + sum).toBeLessThanOrEqual(sum + 0.07);
       const held = JSON.parse(JSON.stringify(d));
       held.transient.boundaryHistory = held.transient.boundaryHistory.map((p: any) => ({ ...p, heatTransferCoefficient: held.transient.boundaryHistory[0].heatTransferCoefficient }));
       const hp = Math.max(...computeIndependentStack(norm(held)).map((s) => Math.max(...s.fv.states.map((st) => Math.max(...st.T)))));
