@@ -36,6 +36,12 @@ One check per rule, in order: `temperatureLimit1`, `temperatureLimit2`, ... The 
 
 Through the real solver: the K-State hot element at 1.25 MW is 783.7 K at its hottest (margin 639 K to the 1150 °C rule; the 950 °C rule is not in force, the cladding is 317 K); the UT-Austin $4.40 pulse (illustrative numbers) reaches 1097.5 K, a margin of 325.7 K, decided from the independent solution's steps.
 
+## A coated particle's regions (plan 13, T3 stage 2)
+
+A particle case takes `limits` too: `src/core/trisoLimits.ts` (the arithmetic and the checks), `parseTrisoLimits` in `src/core/triso.ts`; tests `tests/trisoLimits.test.ts` (18, ungated), `tests/trisoSolver.test.ts` (`FEED_SOLVER=1`), the `triso-limit-*` vectors. A rule has the same four keys (`name`, `region`, `maxTemperature`, `source`) and the same bounds (1 to 10 rules, 0 K to 10000 K, a unique name, a source); the **region is `kernel` or one of the layers the particle has** (`buffer`, `ipyc`, `sic`, `opyc`). `fuel` and `cladding` are a pin's and are refused (`E_SCHEMA_INVALID` at the region); a layer the particle does not have is `E_GEOMETRY` at the region; `whileCladding` has no meaning (a particle has no cladding) and is `E_UNSUPPORTED` at the key. FEED has no limits of its own for a particle either: the vectors' numbers are synthetic and say so.
+
+The checks are the pin's: `temperatureLimit1`, `temperatureLimit2`, ..., the value the smallest margin (the limit minus the hottest **cell** of the region, K), pass at zero or more. A steady result is one moment. **A cell's value understates its region's hottest point** by up to half a cell's drop (the buffer's first cell is 2.1 K below its inner face on 12 cells for a 36 K drop; the kernel's first cell 0.12 K below its centre), so a small margin is a reason to refine the mesh; the check's note says so. A pulse (stage 3) takes the worse of the solver's outputs and every step of the independent solution, as the pin does.
+
 ## Not done
 
 - Cladding temperature limits other than what a case states (the SARs give none beyond the 500 °C condition).

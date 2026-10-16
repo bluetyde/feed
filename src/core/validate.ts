@@ -18,7 +18,7 @@ import { fuelMean, initialState } from "./transientResults";
 import { AXIAL_CONDUCTION_WARNING, AXIAL_STEP_WARNING, AxialSpec, axialConductionEstimate, parseAxial, sliceCase, sliceLoads } from "./axial";
 import { Dimension, toSI } from "./units";
 import { trisoSteadyEndTime } from "./trisoSolve";
-import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, parseTrisoGeometry, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
+import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, parseTrisoGeometry, parseTrisoLimits, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
 
 export interface Issue {
   code: string;
@@ -753,7 +753,6 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
     ["hotDimensions", "hot dimensions are for pins"],
     ["burnup", "a burnup is for pins in this release"],
     ["axial", "an axial stack is for pins and plates"],
-    ["limits", "temperature limits for the layers of a particle come with milestone T3 of plan 13"],
   ] as const) {
     if (c[key] !== undefined) err("E_UNSUPPORTED", "/" + key, why + "; remove the section");
   }
@@ -804,6 +803,8 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
     return conductivity(m, n, err, qty);
   });
   const cells = geo && isObject(c.mesh) ? parseTrisoMesh(c.mesh, names, err) : undefined;
+  // temperature limits on the kernel and the layers, each with its source (a pin's whileCladding condition has no meaning here)
+  const limits = c.limits === undefined ? undefined : parseTrisoLimits(c.limits, geo ? ["kernel", ...names] : ["kernel", "buffer", "ipyc", "sic", "opyc"], err, qty);
   const result = finish(issues);
   if (result.ok && geo && power && hGap !== undefined && boundary && kernelK && layerK.every((k) => k !== undefined) && cells) {
     let r = geo.kernelRadius;
@@ -812,7 +813,7 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
       r += l.thickness;
       return { name: l.name, innerRadius: inner, outerRadius: r, conductivity: layerK[i]! };
     });
-    const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells };
+    const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells, ...(limits ? { limits } : {}) };
     // The temperatures come from integrating each conductivity: a law that is positive over its stated range can still reach zero further out, where the particle runs; and a steady run has to be able to settle
     try {
       const h = trisoSteadyEndTime(triso); // integrates the closed form (and so finds a conductivity that reaches zero) and bounds the time scale

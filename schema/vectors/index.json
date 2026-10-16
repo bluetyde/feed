@@ -1570,6 +1570,10 @@
     "valid": true
   },
   {
+    "file": "good/triso-limits.json",
+    "valid": true
+  },
+  {
     "file": "bad/triso-linear-heat-rate.json",
     "valid": false,
     "code": "E_UNSUPPORTED",
@@ -1754,6 +1758,60 @@
     "valid": false,
     "code": "E_OUT_OF_RANGE",
     "field": "/materials"
+  },
+  {
+    "file": "bad/triso-limit-pin-region.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits/0/region"
+  },
+  {
+    "file": "bad/triso-limit-region-absent.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/limits/0/region"
+  },
+  {
+    "file": "bad/triso-limit-while-cladding.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/limits/0/whileCladding"
+  },
+  {
+    "file": "bad/triso-limit-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/limits/0/source"
+  },
+  {
+    "file": "bad/triso-limit-no-maximum.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/limits/0/maxTemperature"
+  },
+  {
+    "file": "bad/triso-limit-too-hot.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/limits/0/maxTemperature"
+  },
+  {
+    "file": "bad/triso-limit-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/limits/0/maxTemperature"
+  },
+  {
+    "file": "bad/triso-limit-duplicate-name.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits/1/name"
+  },
+  {
+    "file": "bad/triso-limit-no-name.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/limits/0/name"
   },
   {
     "file": "bad/pin-missing-fuel-material.json",

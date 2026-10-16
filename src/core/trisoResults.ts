@@ -17,6 +17,7 @@ import { SPHERE } from "./geometry";
 import { assertWholeFoamFile, Check, parsePatchValue, parseScalarField, parseVectorField, ResultsError, THERMAL_ONLY_TEXT } from "./resultsParser";
 import { STEADY_TOLERANCE } from "./steadyState";
 import type { NormalizedTriso } from "./triso";
+import { trisoLimitChecks } from "./trisoLimits";
 import { steadyTrisoFv, trisoClosedForm, trisoModelOf, trisoTimeScale, TrisoRegionName } from "./trisoSolve";
 import { TRISO_PATCHES, TRISO_WEDGE_SCALE, TRISO_ZONE, wedgeEquivalent } from "./trisoWriter";
 import type { Conductivity } from "./validate";
@@ -268,6 +269,8 @@ export function buildTrisoResults(n: NormalizedTriso, input: TrisoInput): TrisoR
       checks.push({ id: "steadyState", label: "Steady state reached (bound on what is still to change)", value: bound, unit: "K", verdict: bound <= STEADY_TOLERANCE ? "pass" : "fail", note: `at most ${bound.toPrecision(3)} K is still to change after the last step (OFFBEAT's last relative rate ${rate}, hottest cell ${hottest.toFixed(1)} K); threshold ${STEADY_TOLERANCE} K` });
     }
   }
+  // --- the stated limits: the hottest cell of each region against its limit (a steady result is one moment)
+  if (n.limits) checks.push(...trisoLimitChecks(n.limits, [{ time: input.time, max: Object.fromEntries(names.map((nm) => [nm, Math.max(...cells.filter((c) => c.region === nm).map((c) => c.T))])) }]));
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value}); the cell geometry is inconsistent`);
 
   // --- the record: the kernel's centre, the interfaces, the drops

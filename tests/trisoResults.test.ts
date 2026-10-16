@@ -22,7 +22,7 @@ const read = (x: G, mutate?: (n: any) => void, over: Partial<TrisoInput> = {}) =
 };
 const failed = (r: { checks: { id: string; verdict: string }[] }) => r.checks.filter((c) => c.verdict === "fail").map((c) => c.id);
 const check = (r: { checks: { id: string; value: number | null }[] }, id: string) => r.checks.find((c) => c.id === id)!.value!;
-const NAMES = ["steady", "intense", "film", "two-layers", "temperature-dependent", "fine"];
+const NAMES = ["steady", "intense", "film", "two-layers", "temperature-dependent", "fine", "limits"];
 
 describe("real OFFBEAT output of a particle", () => {
   for (const name of NAMES) {
