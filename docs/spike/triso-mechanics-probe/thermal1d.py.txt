@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+# D1 probe: thermal stress plus pressure in the single SiC shell of trisoBenchmarks case_1 with thermal expansion switched on (run-thermal.sh.txt),
+# against an independent solution: the steady conduction profile of a constant-conductivity shell, T(r) = Ti + (To - Ti)(1/a - 1/r)/(1/a - 1/b),
+# turned into a free strain alpha (T - Tref) in M thin sublayers of lame.py (isotropic, so the piecewise-constant model has no equilibrium error;
+# only the discretisation of the smooth temperature). Material numbers are those of the case's solverDict (copied to ~/spike/d1/case_1T).
+import math, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lame import Sphere
+from compare import read_internal, ROOT
+
+UM = 1e-6
+a, b = 350 * UM, 385 * UM
+Ti, To, Tref = 793.0, 393.0, 293.0
+E, nu, alpha = 3.7e11, 0.13, 4.9e-6
+pin, pout = 25e6, 0.1e6
+
+
+def T(r):
+    return Ti + (To - Ti) * (1 / a - 1 / r) / (1 / a - 1 / b)
+
+
+def solution(M):
+    edges = [a + (b - a) * j / M for j in range(M + 1)]
+    layers = []
+    for j in range(M):
+        rm = 0.5 * (edges[j] + edges[j + 1])
+        e = alpha * (T(rm) - Tref)
+        layers.append(dict(a=edges[j], b=edges[j + 1], E=E, nu=nu, e_r=e, e_t=e))
+    return Sphere(layers, pin, pout)
+
+
+def I(x, y, n=2000):
+    # integral of e(rho) rho^2 d rho, e = alpha (T - Tref), Simpson's rule
+    if y <= x:
+        return 0.0
+    h = (y - x) / n
+    f = lambda q: alpha * (T(q) - Tref) * q * q
+    return h / 3 * (f(x) + f(y) + sum((4 if k % 2 else 2) * f(x + k * h) for k in range(1, n)))
+
+
+def timoshenko(r):
+    # hollow sphere, free surfaces, radial temperature, constant E and nu (the hollow-sphere thermal stress; sigma_t is derived from sigma_r by radial equilibrium sigma_t = sigma_r + r/2 d sigma_r / dr, which also checks the formula), plus the Lame pressure part
+    Iab = I(a, b)
+    Ir = I(a, r)
+    e = alpha * (T(r) - Tref)
+    sr = 2 * E / (1 - nu) * ((r ** 3 - a ** 3) / (r ** 3 * (b ** 3 - a ** 3)) * Iab - Ir / r ** 3)
+    st = E / (1 - nu) * ((2 * r ** 3 + a ** 3) / (r ** 3 * (b ** 3 - a ** 3)) * Iab + Ir / r ** 3 - e)
+    p = Sphere([dict(a=a, b=b, E=E, nu=nu)], pin, pout).at(r)
+    return sr + p['sr'], st + p['st']
+
+
+if __name__ == '__main__':
+    d = os.path.join(ROOT, 'case_1T')
+    t = max([x for x in os.listdir(d) if re.fullmatch(r'[0-9.e+-]+', x) and os.path.isfile(os.path.join(d, x, 'sigma'))], key=float)
+    C = read_internal(os.path.join(d, t, 'C'))
+    S = read_internal(os.path.join(d, t, 'sigma'))
+    txt = open(os.path.join(d, t, 'T')).read()
+    Tc = [float(x) for x in txt[txt.index('internalField'):txt.index('boundaryField')].split('(', 1)[1].rsplit(')', 1)[0].split()]
+    r = [math.sqrt(x * x + y * y + z * z) for x, y, z in C]
+    print('case_1 with thermal expansion on, time %s, %d cells' % (t, len(r)))
+    print('  OFFBEAT cell temperature vs the analytic profile: largest difference %.3g K' % max(abs(Tc[k] - T(r[k])) for k in range(len(r))))
+    for M in (25, 50, 100):
+        sph = solution(M)
+        worst_t = max(abs(S[k][5] - sph.at(r[k])['st']) for k in range(len(r)))
+        worst_r = max(abs(S[k][0] - sph.at(r[k])['sr']) for k in range(len(r)))
+        scale_t = max(abs(sph.at(r[k])['st']) for k in range(len(r)))
+        scale_r = max(abs(sph.at(r[k])['sr']) for k in range(len(r)))
+        k0 = min(range(len(r)), key=lambda k: r[k])
+        print('  M=%3d sublayers: largest |sigma_t diff| %.4g Pa (%.3g %% of %.4g Pa), largest |sigma_r diff| %.4g Pa (%.3g %% of %.4g Pa); first cell sigma_t OFFBEAT %.6g, independent %.6g Pa'
+              % (M, worst_t, 100 * worst_t / scale_t, scale_t, worst_r, 100 * worst_r / scale_r, scale_r, S[k0][5], sph.at(r[k0])['st']))
+    worst_t = max(abs(S[k][5] - timoshenko(r[k])[1]) for k in range(len(r)))
+    worst_r = max(abs(S[k][0] - timoshenko(r[k])[0]) for k in range(len(r)))
+    scale_t = max(abs(timoshenko(r[k])[1]) for k in range(len(r)))
+    scale_r = max(abs(timoshenko(r[k])[0]) for k in range(len(r)))
+    print('  closed form (Timoshenko thermal part + Lame pressure part): largest |sigma_t diff| %.4g Pa (%.3g %% of %.4g Pa), largest |sigma_r diff| %.4g Pa (%.3g %% of %.4g Pa)'
+          % (worst_t, 100 * worst_t / scale_t, scale_t, worst_r, 100 * worst_r / scale_r, scale_r))
+    sph = solution(100)
+    print('  closed form vs the M=100 sublayer solution at the cell radii: largest |sigma_t diff| %.4g Pa' % max(abs(sph.at(x)['st'] - timoshenko(x)[1]) for x in r))
+    print('  closed form: sigma_t at the inner face %.6g Pa, at the outer face %.6g Pa; sigma_r at the cell nearest the inner face %.6g (OFFBEAT %.6g)' % (timoshenko(a)[1], timoshenko(b)[1], timoshenko(r[k0])[0], S[k0][0]))
+    # the same shell without thermal expansion (the shipped case): pressure only, for scale
+    p = Sphere([dict(a=a, b=b, E=E, nu=nu)], pin, pout)
+    print('  for scale, the pressure-only tangential stress at the inner face is %.6g Pa' % p.at(a)['st'])

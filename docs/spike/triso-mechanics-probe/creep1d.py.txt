@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+# D1 probe: a second, independent method for the PyC creep and swelling benchmark cases (4a, 4b, 4c), written for this probe.
+# Pure standard library; imports lame.py (same folder). Nothing here comes from OFFBEAT's code: the creep law is the one that
+# OFFBEAT's own header comment states for the PARFUME creep model (strain rate in direction i = K [s_i - vc (s_j + s_k)] x flux),
+# with K in 1/MPa per (1e25 n/m2) and vc the Poisson's ratio for creep. The IPyC is cut into M sublayers with their own creep
+# strain; the elastic problem of the layered sphere is linear, so the stress at the sublayer mid-radii is a matrix (influence
+# of each sublayer's creep strain) times the creep strains, built once from lame.py; then the fluence is marched with Heun's method.
+# Usage: python3 creep1d.py <4a|4b|4c> [M] [steps]
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lame import Sphere
+
+UM = 1e-6
+E_PYC, NU_PYC = 3.96e10, 0.33
+E_SIC, NU_SIC = 3.7e11, 0.13
+A0, B0, C0 = 350 * UM, 390 * UM, 425 * UM   # IPyC from 350 to 390 um, SiC from 390 to 425 um (cases 3 and 4)
+P_IN, P_OUT = 25e6, 0.1e6
+PHI_END = 3.0            # 1e25 n/m2: 3e14 n/cm2/s x 1e7 s = 3e21 n/cm2 = 3e25 n/m2
+K = 2.715e-4             # 1/MPa per 1e25 n/m2 (case file value)
+VC = 0.5                 # Poisson's ratio for creep (the default OFFBEAT takes when none is given)
+SWELL_RATE = -0.005      # per 1e25 n/m2, isotropic (cases 4a and 4c)
+
+
+def build(M):
+    edges = [A0 + (B0 - A0) * j / M for j in range(M + 1)]
+    mids = [(edges[j] + edges[j + 1]) / 2 for j in range(M)]
+
+    def sphere(er_list, et_list, pin, pout):
+        layers = [dict(a=edges[j], b=edges[j + 1], E=E_PYC, nu=NU_PYC, e_r=er_list[j], e_t=et_list[j]) for j in range(M)]
+        layers.append(dict(a=B0, b=C0, E=E_SIC, nu=NU_SIC))
+        return Sphere(layers, pin, pout)
+
+    def read(sph):
+        out = [sph.at(mids[j], j) for j in range(M)]
+        out.append(sph.at(A0, 0))      # IPyC inner face (tangential stress asked by the benchmark)
+        out.append(sph.at(B0, M))      # SiC inner face
+        return out
+    zero = [0.0] * M
+    base = read(sphere(zero, zero, P_IN, P_OUT))
+    # influence of a unit radial / tangential free strain in sublayer k on (sigma_r, sigma_t) at every read point
+    inf_r, inf_t = [], []
+    for k in range(M):
+        for comp, store in (('r', inf_r), ('t', inf_t)):
+            er = [0.0] * M
+            et = [0.0] * M
+            (er if comp == 'r' else et)[k] = 1.0
+            res = read(sphere(er, et, 0.0, 0.0))
+            store.append(res)
+    return mids, base, inf_r, inf_t
+
+
+def stresses(base, inf_r, inf_t, cr, ct, sw, M):
+    # sigma at the M + 2 read points for creep strains cr, ct and the isotropic swelling strain sw (all per sublayer: sw is one number).
+    # swelling is a uniform isotropic free strain in all sublayers: add sw * (influence of a unit isotropic strain) = sw * sum_k (r_k + t_k)
+    n = M + 2
+    sr = [base[i]['sr'] for i in range(n)]
+    st = [base[i]['st'] for i in range(n)]
+    for k in range(M):
+        cr_k = cr[k] + sw
+        ct_k = ct[k] + sw
+        for i in range(n):
+            sr[i] += cr_k * inf_r[k][i]['sr'] + ct_k * inf_t[k][i]['sr']
+            st[i] += cr_k * inf_r[k][i]['st'] + ct_k * inf_t[k][i]['st']
+    return sr, st
+
+
+def run(case, M=20, steps=600):
+    mids, base, inf_r, inf_t = build(M)
+    swell = case in ('4a', '4c')
+    creep = case in ('4b', '4c')
+    cr = [0.0] * M
+    ct = [0.0] * M
+    dphi = PHI_END / steps
+    phi = 0.0
+    for _ in range(steps):
+        def rate(cr_, ct_, phi_):
+            sw = SWELL_RATE * phi_ if swell else 0.0
+            sr, st = stresses(base, inf_r, inf_t, cr_, ct_, sw, M)
+            if not creep:
+                return [0.0] * M, [0.0] * M
+            dr = [K * 1e-6 * (sr[j] - VC * 2 * st[j]) for j in range(M)]          # sigma in Pa -> MPa
+            dt = [K * 1e-6 * (st[j] - VC * (sr[j] + st[j])) for j in range(M)]
+            return dr, dt
+        r1, t1 = rate(cr, ct, phi)
+        cr_p = [cr[j] + dphi * r1[j] for j in range(M)]
+        ct_p = [ct[j] + dphi * t1[j] for j in range(M)]
+        r2, t2 = rate(cr_p, ct_p, phi + dphi)
+        cr = [cr[j] + 0.5 * dphi * (r1[j] + r2[j]) for j in range(M)]
+        ct = [ct[j] + 0.5 * dphi * (t1[j] + t2[j]) for j in range(M)]
+        phi += dphi
+    sw = SWELL_RATE * phi if swell else 0.0
+    sr, st = stresses(base, inf_r, inf_t, cr, ct, sw, M)
+    return st[M], st[M + 1], phi
+
+
+if __name__ == '__main__':
+    case = sys.argv[1]
+    M = int(sys.argv[2]) if len(sys.argv) > 2 else 20
+    steps = int(sys.argv[3]) if len(sys.argv) > 3 else 600
+    # fluence for 4a is the same 3e25 n/m2 (3e19 n/cm2/s for 100 s)
+    ipyc, sic, phi = run(case, M, steps)
+    print('case %s: M=%d sublayers, %d fluence steps, fluence %.4g (1e25 n/m2): tangential stress at the IPyC inner face %.6g Pa, at the SiC inner face %.6g Pa'
+          % (case, M, steps, phi, ipyc, sic))
