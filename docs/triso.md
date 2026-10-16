@@ -2,7 +2,7 @@
 
 A coated particle (TRISO) is a sphere: a fuel **kernel** and two to four coating layers (buffer, inner pyrolytic carbon, silicon carbide, outer pyrolytic carbon). FEED treats it as one-dimensional in the radius (spherically symmetric), **thermal only and steady**. Heat is generated in the kernel and leaves through the layers to the outside.
 
-**Status (milestone T2, 2026-10-15): the case is read and checked, and its independent solutions exist; the solver does not run it yet.** A valid particle case is answered with "valid, but nothing runs it yet" by the editor's check (which now also returns the closed form and the derived numbers), the run manager and the command line; the solver is milestone T3, the editor T5. The reasons for each choice below are in [plan 13](plans/13-triso-particle.md) and [the probe](spike/triso-probe.md).
+**Status (milestone T3, stage 1, 2026-10-16): a valid steady particle runs through the real OFFBEAT and is read back with independent checks.** The editor's check, the run manager, the command line (`write-case`, `headless run`) and the server's run, results, detail and CSV routes all take a particle; the editor's page (milestone T5) shows a note for a particle case and a plain results card for a run. The reasons for each choice below are in [plan 13](plans/13-triso-particle.md) and [the probe](spike/triso-probe.md); the numbers of the real runs are in "Running a particle" below.
 
 **What it is not.** It says how hot the kernel and each layer are. It does not say whether the particle survives: the stress in the SiC, the swelling and creep of the carbon, the pressure of the fission gas and CO, a failure fraction and kernel migration are not modelled (decision D1 of plan 13: thermal only first). Gamma heating of the coatings is not modelled either: all the heat is in the kernel.
 
@@ -49,13 +49,51 @@ A complete case is `schema/vectors/good/triso-steady.json`; its dimensions are t
 | a pin's keys in the geometry (`fuelRadius`, thicknesses, a hole), an unknown key, layers out of order or of the wrong number, a layer with an unknown key, a material for a region the particle does not have | `E_GEOMETRY` at the key |
 | a missing kernel radius, layer thickness, material, mesh count, a power in none or two forms, a mesh key the particle does not have | `E_SCHEMA_INVALID` at the field |
 | a compact power density without a packing fraction; a material without a conductivity | `E_PROP_MISSING` |
-| a packing fraction that does nothing, mechanics, hot dimensions, burnup, an axial stack, limits, a transient, a particle that is not thermal-only or steady, a `linearHeatRate`, a closed or contacting gap, the burnup law | `E_UNSUPPORTED` at the section |
+| a packing fraction that does nothing, mechanics, hot dimensions, burnup, an axial stack, limits, a transient, a particle that is not thermal-only or steady, a `linearHeatRate`, a closed or contacting gap, the burnup law | `E_UNSUPPORTED` at the section (limits and the transient: until stages 2 and 3 below are built) |
 | a packing fraction of 0 or above 0.7405 | `E_OUT_OF_RANGE` |
 | a count of cells below or above the bounds | `E_MESH` |
 | a boundary that is missing, in two forms or incomplete | `E_BOUNDARY_INCOMPLETE` |
 | a length or power in the wrong unit | `E_UNITS` |
 
 Warnings: `W_PACKING_FRACTION` (above 0.64), `W_GAP_CONTACT` (a gap conductance above 3e5), `W_POWER_RANGE` (a kernel power density above 1e10 W/m3). Every refusal has a bad vector in `schema/vectors/bad/triso-*.json` (40 vectors in all, 308 with the pin's, the plate's and the stack's), and `tests/triso.test.ts` (29 tests) states each one's code and field.
+
+## Running a particle (T3)
+
+`src/core/trisoWriter.ts` writes the OFFBEAT case, `src/core/trisoResults.ts` reads it back; both are used by the run manager (`start`, then `classify` reads the log, the fields, `constant/polyMesh/cellZones`, which `solver/run-feed.sh` now collects beside `T` and `C`).
+
+- **The mesh** is a 2 degree double wedge on the x axis, written from FEED's own vertex formulas (nothing from OFFBEAT's tutorial or its mesh script, which are GPL-3.0): a level of radius r has four vertices at `(x, ±y, ±y)` with `x = r cos(a)/s`, `y = r sin(a)/s`, `s = sqrt(1 + sin(a)^2)`, `a` = 1 degree, so every vertex lies on the sphere of radius r. One block per region (cell zones Kernel, Buffer, IPyC, SiC, OPyC), in micrometres; the buffer's outer face and the next layer's inner face are the coupled patches `bufferOuter` and `ipycInner` (a zero-width gap and a conductance, like the pin), the outside is the patch `outer`, the four side planes are `wedge` patches.
+- **What the wedge solves.** In the coordinate along the axis the section at x is a square of side 2 x tan(a), area `4 tan(a)^2 x^2`, so the heat equation on the pyramid is the heat equation of a **sphere with every radius multiplied by lambda = cos(a)/sqrt(1 + sin(a)^2) = 0.999698**, with the same conductivities, conductances (gap and film) and volumetric power. A cell centre is reported at its volume centroid, whose length is x, so a cell's radius is the length of its centre vector and lies on that smaller sphere. The ratio of the wedge's volume fraction (9.6894e-5) to its face fraction (9.6923e-5) is lambda; the probe's "0.03 % flux factor" is this. The results are compared with that sphere (`wedgeEquivalent`), not with the nominal one: the nominal sphere's rises are 0.03 to 0.06 % larger, which is what the probe saw as an unexplained residual in the buffer (0.076 K at 48 cells; with the correction it is 0.009 K).
+- **The dictionaries.** `mechanicsSolver fromLatestTime`, `fgr none`, `gapGas none`, `burnup none`, `fastFlux none`; the heat is `timeDependentVhgr` in the kernel only (`materials ( Kernel )`), a two-point table that runs to twice the end time (OFFBEAT aborts when a table point equals the end time); each region is a `constant` material under the name of its cell zone, with the conductivity laws the pin writer writes (constant, linear, reciprocal, polynomial), rho 10000 and Cp 300; the gap is a `resistiveGap` with the case's conductance on both coupled patches; the outside is `fixedValue` or `convectiveHTC`. The end time is the particle's steady one (`trisoSteadyEndTime`, at least 5e7 s); OFFBEAT's adaptive steps make a run 84 steps and 3 to 4 seconds in all, 139 after complete output.
+- **The results** (`TrisoResultsRecord`, `kind: "triso"`): every cell (radius, temperature, region), per region the inner and outer face temperature (the gap's two faces and the outside are patch values, the other interfaces come from the two cells beside them, the kernel's centre from its first cell and the kernel's parabola), the hottest and coldest cell and the drop; the summary has the kernel's centre, its surface, the wall, the gap's drop. The checks, with the tolerances fixed in `trisoResults.ts` before the first run:
+
+| Check | Tolerance | Why |
+|---|---|---|
+| `closedFormKernel`, `closedFormBuffer`, `closedFormIpyc`, `closedFormSic`, `closedFormOpyc` | `5 dT_region / N^2 + max(0.5 % of the rise, 0.01 K)` | each cell against the closed form of the wedge's sphere at the cell's own radius; the first term is the pin's discretisation bound, the second the plan's 0.5 % of the rise |
+| `crossCheckFv` | `max(0.3 % of the rise, 0.02 K)` | every cell against FEED's finite-volume solution (`trisoSolve.ts`) on the same mesh; the two saved runs of T2 agreed to 0.2 % |
+| `energyBalance` | 0.5 % | the heat through the two outermost cells, `4 pi (K(Ta) - K(Tb)) / (1/ra - 1/rb)`, against the power made in the wedge's kernel (the input times lambda^3) |
+| `gapDrop` | `1 % + 0.005 K` | the difference of the two patch values against `P / (4 pi R^2 h)` |
+| `wallTemperature` | 0.05 K | the outside patch against the closed form |
+| `steadyState` | 0.01 K still to change | OFFBEAT's last relative rate times the hottest cell times the particle's Elmore bound |
+| `propertyRange` | | a conductivity law used outside its stated range makes the result out-of-domain |
+
+A cell in a zone whose radii it is not between, a mesh other than the case's (cell centres 0.1 % off), zones that are not the particle's, a cell in two zones, a missing patch, a cut field, a non-finite or non-positive temperature are refused (`E_OUTPUT_INCOMPLETE`), never a partial result. `energyBalance` and `gapDrop` have a margin of 1e-3 to 1e-5 of their tolerance on the real runs; the closed-form checks use about a quarter to a half of theirs on a 12-cell mesh.
+
+**Through the real solver** (`tests/trisoSolver.test.ts`, `FEED_SOLVER=1`; the output is saved in `tests/golden/offbeat-triso/<name>` and read again without the solver by `tests/trisoResults.test.ts`). Largest deviation of a cell from the closed form of the wedge's sphere, K, with 12 cells (16 in the SiC) per region unless stated:
+
+| Case | rise | kernel | buffer | IPyC | SiC | OPyC | vs FV |
+|---|---|---|---|---|---|---|---|
+| `steady` (the vector, wall 1000 K) | 9.8 K | 0.023 | 0.010 | 0.0077 | 0.0032 | 0.00005 | 0.020 |
+| `intense` (3000 MW/m3, wall 1298 K) | 49 K | 0.116 | 0.050 | 0.038 | 0.016 | 0.00013 | 0.098 |
+| `film` (3000 MW/m3, 900 K, 2000 W/m2/K) | 49 K + 37 K film | 0.116 | 0.050 | 0.038 | 0.016 | 0.00009 | 0.098 |
+| `two-layers` (buffer and IPyC only) | | 0.078 | 0.013 | 0.0002 | | | 0.060 |
+| `temperature-dependent` (linear, linear, reciprocal) | | 0.062 | 0.061 | 0.048 | 0.020 | 0.00009 | 0.061 |
+| `fine` (48 cells in every region) | 49 K | 0.0051 | 0.0087 | 0.0079 | 0.0032 | 0.00005 | 0.0087 |
+
+The energy balance is within 5e-5 of the power made on every 12-cell run (3.5e-4 on the fine one, 4e-4 on the two-layer one); the gap's drop is within 2e-5 K of its closed form (0.850 K); the wall of the film case is 936.9098 K against the closed form to 4e-6 K. The error is the mesh's, as in the pin: it falls with the cell count (kernel 0.116 K at 12 cells, 0.005 K at 48).
+
+**Entry points.** `check()` returns `{ ok: true, triso: { normalized, quick, derived } }` for a valid particle (and the particle's own errors for an invalid one); `POST /api/run` starts it, `/results`, `/detail` and `/results.csv` carry the record (a CSV row per cell and a comment row per region); compare refuses a particle (pins and plates only); `write-case` writes the files and the manifest; `headless run` writes `results.json`, a particle `derived.json` and the manifest. The editor's page shows a note instead of the pin's views for a particle case, and a numbers-only card for a particle run.
+
+**Not in stage 1:** limits for the layers, the particle transient (stages 2 and 3, below when built), the editor (T5), a compact or pebble (T4), a population (T6).
 
 ## The independent solutions (T2)
 
@@ -68,7 +106,7 @@ Warnings: `W_PACKING_FRACTION` (above 0.64), `W_GAP_CONTACT` (a gap conductance 
 
 **What was checked.** The closed form against arithmetic written in the test and against a Runge-Kutta integration of the conduction equation for conductivities that fall with temperature (agreement to 1e-6 K). The finite-volume solution against the closed form (second order in the cell width: the error falls by 2.5 or more each time the mesh is doubled), against the exact series of a sphere with a heated core and a prescribed wall (constant properties; Crank-Nicolson to 0.5 %, implicit Euler to 3 % of the rise at 1/400 of the slowest decay time), for conservation of energy to 1e-9 of the heat made with a time-dependent power and properties that depend on temperature, for the order in time (implicit Euler first order, Crank-Nicolson second), and **cell by cell against two saved OFFBEAT runs of the same particle** (tests/golden/offbeat-triso: a prescribed wall at 48 cells per layer, within 0.1 K of a rise of 48 K; a convective outside at 12 cells per layer, within 0.15 K of a rise of 85 K). The time scale against the sum written out in the test and against the measured slowest decay of the finite-volume field (the bound is above it, within a factor 40).
 
-**Not yet:** the case-level transient of a particle (a power history in the case, heat capacities for the layers) is built with the solver in T3, where it can be compared with OFFBEAT; the solutions above already take a power history and heat capacities as inputs.
+The case-level transient of a particle (a power history in the case, heat capacities for the layers) is built with the solver in T3 (stage 3), where it is compared with OFFBEAT; the solutions above take a power history and heat capacities as inputs.
 
 ## The geometry kernel
 
