@@ -298,9 +298,15 @@ describe("the page's wiring for a particle", () => {
     expect(script).toMatch(/const items = \(\) => \(isParticle\(\) \? particleItems\(\) : ITEMS\);/);
     expect(script).toMatch(/if \(isParticle\(\) && selected !== "boundary"\) \{ renderParticleProps\(p\); return; \}/);
     expect(script).toMatch(/for \(const \[id, label, group\] of items\(\)\)/);
-    expect(script).toMatch(/meta\(items\(\)\[i\]\[0\]\)/);
+    expect(script).toMatch(/meta\(its\[i\]\[0\]\)/);
     expect(script).toMatch(/if \(part\) \{ drawParticle\(\); drawParticleProfile\(\); drawBoundaryHistoryPlotParticle\(\); return; \}/);
     expect(script).toMatch(/if \(result\.triso\) \{ particleChecks\(o, row\); return; \}/);
+  });
+  it("does not meet a stale explorer: the metadata refresh skips a tree whose items changed (a layer added or removed), and a loaded document never leaves an item it does not have selected", () => {
+    expect(script).toMatch(/if \(bs\.length !== its\.length\) return;/);
+    expect(script).toMatch(/const ensureSelected = \(\) => \{ if \(doc && !items\(\)\.some\(\(i\) => i\[0\] === selected\)\) selected = "power"; \};/);
+    expect(script).toMatch(/ensureSelected\(\); const it = items\(\)\.find/);
+    expect(script).toMatch(/dropParticleRun\(\)/);
   });
   it("shows the particle's banner, no longer says the editor is a later milestone, and does not turn a valid particle into an error", () => {
     expect(script).toMatch(/if \(isParticle\(\)\) \$\("caseBanner"\)\.textContent = .*PARTICLE_TEXT;/);
