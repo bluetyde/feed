@@ -87,6 +87,14 @@ describe("the section as it is read", () => {
     expect(r.triso.normalized.transient).toBeDefined();
     expect(r.triso.derived.particlePower).toBe(0.4);
   });
+  it("a conductivity that reaches zero at the table's peak power is refused at the peak, from a uniform start", () => {
+    const d = vec("triso-pulse");
+    d.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: q(3, "W/m/K"), b: q(-0.002, "W/m/K2"), validRange: { min: q(500, "K"), max: q(1400, "K") }, source: "s" };
+    d.transient.powerHistory[1].particlePower = q(30, "W");
+    expect(codes(d)).toEqual(["E_OUT_OF_RANGE /materials"]);
+    d.transient.powerHistory[1].particlePower = q(0.4, "W");
+    expect(codes(d)).toEqual([]);
+  });
   it("the steady start has to exist even when the table never reaches its power: a start at 30 W under a table of 0.01 W is refused at the start field", () => {
     const d = vec("triso-outside-ramp");
     d.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: q(3, "W/m/K"), b: q(-0.002, "W/m/K2"), validRange: { min: q(500, "K"), max: q(1400, "K") }, source: "s" };
@@ -116,6 +124,12 @@ describe("the table", () => {
     expect(trisoPowerAt(times, p, 3.5)).toBe(1);
     expect(trisoPowerAt(times, p, 10)).toBe(0);
     expect(trisoPowerAt(times, p, -1)).toBe(0);
+  });
+  it("starts at its first value: at time 0 and before it the power is the table's first point, not zero", () => {
+    expect(trisoPowerAt([0, 1], [2, 3], 0)).toBe(2);
+    expect(trisoPowerAt([0, 1], [2, 3], -5)).toBe(2);
+    expect(trisoPowerAt([0, 1], [2, 3], 0.5)).toBe(2.5);
+    expect(trisoPowerAt([0, 1], [2, 3], 1)).toBe(3);
   });
   it("integrates exactly: a triangle, a plateau, a triangle", () => {
     expect(trisoEnergyUntil(times, p, 1)).toBe(1);

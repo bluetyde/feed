@@ -69,7 +69,7 @@ const stage1 = [
   [R, "if (fvCentre > TRISO_CENTRE_TOLERANCE) bad(", "if (false) bad(", "mesh mismatch not detected"],
   [M, "const normalized: any = v.normalized ?? { kind: \"triso\", ...v.triso };", "const normalized: any = v.normalized ?? { ...v.triso };", "run not marked as a particle"],
   [M, "if (!v.normalized && !v.triso) return { ok: false, errors: unrunnableErrors(v) };", "if (!v.normalized) return { ok: false, errors: unrunnableErrors(v) };", "particle refused by the run manager"],
-  [M, "const cellZones = read(join(nativeDir, \"final\", \"cellZones\"));", "const cellZones = read(join(nativeDir, \"final\", \"zones\"));", "zones read from the wrong file"],
+  [M, "buildTrisoResults(normalized, { T, C, cellZones, time: exit.finalTime", "buildTrisoResults(normalized, { T, C, cellZones: \"\", time: exit.finalTime", "zones not given to the steady results"],
   [M, "const tr = buildTrisoResults(normalized, { T, C, cellZones, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });", "const tr = buildTrisoResults(normalized, { T, C, cellZones, time: exit.finalTime });", "no steady-state rate given"],
   [M, "r.headline = { centreCellT: tr.summary.kernelCentreCellT, claddingOuterWallT: tr.summary.wallT };", "r.headline = { centreCellT: tr.summary.kernelCentreT, claddingOuterWallT: tr.summary.wallT };", "headline from the extrapolated centre"],
   [S, "if (v.triso) return { ok: true, errors: v.errors,", "if (v.triso) return { ok: false, errors: v.errors,", "check rejects a valid particle"],

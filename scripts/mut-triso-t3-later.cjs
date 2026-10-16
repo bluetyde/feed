@@ -22,7 +22,7 @@ const stage2 = [
   [L, "if (invalid > 0 || o.margin === null || o.worst === null) {", "if (o.margin === null || o.worst === null) {", "invalid moments ignored"],
   [R, "if (n.limits) checks.push(...trisoLimitChecks(", "if (false) checks.push(...trisoLimitChecks(", "limits not checked"],
   [R, "[nm, Math.max(...cells.filter((c) => c.region === nm)", "[nm, Math.min(...cells.filter((c) => c.region === nm)", "coldest cell of the region"],
-  [V, "gapConductance: hGap, boundary, power, cells, ...(limits ? { limits } : {}) };", "gapConductance: hGap, boundary, power, cells };", "limits dropped from the normalised case"],
+  [V, "...(limits ? { limits } : {}),", "", "limits dropped from the normalised case"],
 ];
 
 const TT = "src/core/trisoTransient.ts";
@@ -33,6 +33,7 @@ const WR = "src/core/trisoWriter.ts";
 const RM = "src/core/runManager.ts";
 const SR = "src/server/server.ts";
 const EX = "src/core/exportResults.ts";
+const M2 = "src/core/runManager.ts";
 
 const stage3 = [
   [TT, "export const MAX_TRISO_TRANSIENT_WORK = 5e5;", "export const MAX_TRISO_TRANSIENT_WORK = 5e8;", "work budget"],
@@ -81,8 +82,9 @@ const stage3 = [
   [SR, "if (\"kind\" in d.results && d.results.kind === \"triso-transient\") return void res.end(trisoTransientResultsToCsv(d.results, meta));", "if (false) return void res.end(trisoTransientResultsToCsv(d.results as any, meta));", "transient CSV not routed"],
   [EX, "...regions.map((r) => r + \"_max_T_K\"), \"outer_wall_T_K\"", "\"outer_wall_T_K\"", "CSV without the region maxima"],
   [V, "if (c.power !== undefined) err(\"E_TRANSIENT_INCOMPLETE\", \"/power\"", "if (false) err(\"E_TRANSIENT_INCOMPLETE\", \"/power\"", "power section in a transient accepted"],
-  [V, "if (!isTransient && c.transient !== undefined) err(", "if (false) err(", "transient section in a steady case accepted"],
-  [V, "if (isTransient && c.transient === undefined) err(", "if (false) err(", "transient case without its section accepted"],
+  [V, "(checked below), as for a pin. Nothing is assumed.\n  const isTransient = c.assumptions.steadyState === false;\n  if (!isTransient && c.transient !== undefined) err(", "(checked below), as for a pin. Nothing is assumed.\n  const isTransient = c.assumptions.steadyState === false;\n  if (false) err(", "transient section in a steady case accepted"],
+  [V, "  if (!isTransient && c.transient !== undefined) err(\"E_TRANSIENT_INCOMPLETE\", \"/transient\", \"the case has a transient section but assumptions.steadyState is true; set it to false to run the transient, or remove the section\");\n  if (isTransient && c.transient === undefined) err(", "  if (!isTransient && c.transient !== undefined) err(\"E_TRANSIENT_INCOMPLETE\", \"/transient\", \"the case has a transient section but assumptions.steadyState is true; set it to false to run the transient, or remove the section\");\n  if (false) err(", "transient case without its section accepted"],
+  [M2, "buildTrisoTransientResults(normalized, { C, cellZones, fields }, ind)", "buildTrisoTransientResults(normalized, { C, cellZones: \"\", fields }, ind)", "zones not given to the transient results"],
   [V, "if (work > MAX_TRISO_TRANSIENT_WORK) {", "if (false) {", "work not bounded"],
   [V, "if (triso.transient.initial.kind === \"steady\") trisoInitialField(triso); // the steady start has to exist", "void 0;", "steady start not checked"],
   [V, "trisoClosedForm(triso); // at the table's peak power: finds a conductivity that reaches zero", "void 0;", "closed form at the peak not taken"],
