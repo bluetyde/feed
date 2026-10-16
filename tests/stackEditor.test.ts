@@ -87,6 +87,8 @@ describe("the page's helpers, run without a page", () => {
   });
   it("removes the mechanics section and the thermal-only flag of a case that is made a plate, and a point-kinetics pulse", () => {
     const d = read("synthetic-pulse-kinetics");
+    d.mechanics = { referenceTemperature: q(293.15, "K"), plane: "free-axial", contact: { penaltyFactor: q(0.3, "1") }, coolantPressure: q(0, "Pa") };
+    d.assumptions.thermalOnly = false;
     const h = pure(d);
     h.convertGeometry("plate");
     expect(d.mechanics).toBeUndefined();
