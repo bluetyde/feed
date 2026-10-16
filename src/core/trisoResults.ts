@@ -224,18 +224,15 @@ export function buildTrisoResults(n: NormalizedTriso, input: TrisoInput): TrisoR
 
   // --- energy balance from the two outermost cells: the flux through a shell is 4 pi (K(Ta) - K(Tb)) / (1/ra - 1/rb), whatever the conductivity law
   {
+    // the outermost layer has at least two cells (the validator's minimum, and the cell count was checked above), so the last two cells are in it
     const last = cells.length - 1;
     const a = cells[last - 1]!;
     const b = cells[last]!;
     const kLast = laws[laws.length - 1]!;
-    if (a.region === b.region) {
-      const Q = (primitive(kLast, a.T) - primitive(kLast, b.T)) / SPHERE.resist(a.r, b.r, 1);
-      const want = eq.power.particlePower;
-      const rel = (Q - want) / want;
-      checks.push({ id: "energyBalance", label: "Energy balance (heat through the outer layer vs the power made)", value: rel, unit: "relative", verdict: Math.abs(rel) <= TRISO_BALANCE_TOLERANCE ? "pass" : "fail", note: `heat through the two outermost cells = ${Q.toPrecision(6)} W against ${want.toPrecision(6)} W made in the wedge's kernel (the input ${n.power.particlePower.toPrecision(6)} W times ${(want / n.power.particlePower).toPrecision(6)}: the wedge is the sphere with its radii times ${TRISO_WEDGE_SCALE.toFixed(6)}); threshold ${TRISO_BALANCE_TOLERANCE * 100} %` });
-    } else {
-      checks.push({ id: "energyBalance", label: "Energy balance (heat through the outer layer vs the power made)", value: null, unit: "relative", verdict: "fail", note: "the outermost layer has fewer than two cells, so the heat through it cannot be read" });
-    }
+    const Q = (primitive(kLast, a.T) - primitive(kLast, b.T)) / SPHERE.resist(a.r, b.r, 1);
+    const want = eq.power.particlePower;
+    const rel = (Q - want) / want;
+    checks.push({ id: "energyBalance", label: "Energy balance (heat through the outer layer vs the power made)", value: rel, unit: "relative", verdict: Math.abs(rel) <= TRISO_BALANCE_TOLERANCE ? "pass" : "fail", note: `heat through the two outermost cells = ${Q.toPrecision(6)} W against ${want.toPrecision(6)} W made in the wedge's kernel (the input ${n.power.particlePower.toPrecision(6)} W times ${(want / n.power.particlePower).toPrecision(6)}: the wedge is the sphere with its radii times ${TRISO_WEDGE_SCALE.toFixed(6)}); threshold ${TRISO_BALANCE_TOLERANCE * 100} %` });
   }
 
   // --- the gap's drop and the wall
