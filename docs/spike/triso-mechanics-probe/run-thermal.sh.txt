@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# D1 probe: case_1 (one SiC shell, 350 to 385 um, 25 MPa inside, 0.1 MPa outside, the case's own fixed wall temperatures 793 K inside and 393 K
+# outside) with ONE change in a copy: thermalExpansion on (the shipped case has it off), so the shell carries a thermal stress as well as the pressure.
+set +eu
+source /opt/openfoam9/etc/bashrc
+set +e
+SRC=/home/feed/OpenFOAM/feed-9/applications/solvers/offbeat/Cases/Verification/trisoBenchmarks/case_1
+RUN="$HOME/spike/d1/case_1T"
+rm -rf "$RUN"; mkdir -p "$RUN"; cp -r "$SRC"/. "$RUN"/; cd "$RUN" || exit 3
+sed -i 's/thermalExpansion off;/thermalExpansion on;/' constant/solverDict
+grep -n "thermalExpansion" constant/solverDict
+timeout 120 blockMesh > log.blockMesh 2>&1; echo "blockMesh exit $?"
+s=$(date +%s.%N)
+timeout 300 offbeat > log.offbeat 2>&1; echo "offbeat exit $?"
+e=$(date +%s.%N); echo "wall $(echo "$e - $s" | bc) s"
+ls -d [0-9]* | sort -g | tr '\n' ' '; echo
+timeout 120 postProcess -func writeCellCentres -latestTime > log.cc 2>&1; echo "writeCellCentres exit $?"

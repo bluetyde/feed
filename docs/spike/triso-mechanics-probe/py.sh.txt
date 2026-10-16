@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# copy the .txt python files of this folder to ~/spike/d1/tools as .py and run one: bash py.sh.txt <script> [args]
+D=/mnt/c/agents/claude/feed-d1/docs/spike/triso-mechanics-probe
+mkdir -p ~/spike/d1/tools
+for f in "$D"/*.py.txt; do b=$(basename "$f" .txt); cp "$f" ~/spike/d1/tools/$b; done
+S="$1"; shift
+python3 ~/spike/d1/tools/$S "$@"

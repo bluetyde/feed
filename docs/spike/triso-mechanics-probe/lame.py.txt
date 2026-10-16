@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+# D1 probe: an independent solution for a stack of concentric ELASTIC spheres (Lame), written for this probe.
+# Pure standard library. No OFFBEAT file or coefficient is used here: the material numbers are passed in by the caller.
+#
+# Each layer i has inner radius a, outer radius b, Young's modulus E, Poisson's ratio nu and a uniform free
+# (eigen)strain: e_r in the radial direction, e_t in both tangential directions (thermal expansion, swelling).
+#   u(r)       = A r + B / r^2 + k r ln(r/a)      (the last term is zero when e_r = e_t; it is the particular solution
+#                                                   that equilibrium needs when the free strain is anisotropic, e_r != e_t:
+#                                                   k = -2 (1-2 nu)(e_t - e_r) / (3 (1-nu)), derived in the probe note)
+#   eps_r      = A - 2 B / r^3 + k (ln(r/a) + 1) ,  eps_t = A + B / r^3 + k ln(r/a)
+#   sigma_r    = c [ (1-nu)(eps_r-e_r) + 2 nu (eps_t-e_t) ] ,  sigma_t = c [ (eps_t-e_t) + nu (eps_r-e_r) ] ,  c = E/((1+nu)(1-2nu))
+# 2N unknowns (A_i, B_i): sigma_r(inner) = -p_in, sigma_r(outer) = -p_out, and at each interface u and sigma_r are continuous.
+# Small strain, linear elastic. Sign: tension positive, pressure p is a compressive radial stress -p at the surface.
+import math
+import sys
+
+
+def solve(M, y):
+    n = len(y)
+    A = [row[:] + [y[i]] for i, row in enumerate(M)]
+    for k in range(n):
+        p = max(range(k, n), key=lambda i: abs(A[i][k]))
+        A[k], A[p] = A[p], A[k]
+        for i in range(k + 1, n):
+            f = A[i][k] / A[k][k]
+            for j in range(k, n + 1):
+                A[i][j] -= f * A[k][j]
+    x = [0.0] * n
+    for i in range(n - 1, -1, -1):
+        x[i] = (A[i][n] - sum(A[i][j] * x[j] for j in range(i + 1, n))) / A[i][i]
+    return x
+
+
+class Sphere:
+    def __init__(self, layers, p_in, p_out):
+        # layers: list of dicts a, b, E, nu, e_r (default 0), e_t (default 0)
+        self.L = layers
+        n = len(layers)
+        M = [[0.0] * (2 * n) for _ in range(2 * n)]
+        y = [0.0] * (2 * n)
+        row = 0
+        # inner surface
+        for (i, r, target) in ((0, layers[0]['a'], -p_in), (n - 1, layers[-1]['b'], -p_out)):
+            ca, cb, rhs = self._sr_terms(i, r)
+            M[row][2 * i] = ca
+            M[row][2 * i + 1] = cb
+            y[row] = target - rhs
+            row += 1
+        for i in range(n - 1):
+            r = layers[i]['b']
+            assert abs(r - layers[i + 1]['a']) < 1e-15, 'layers must touch'
+            # u continuity: A_i r + B_i/r^2 + k_i r ln(r/a_i) = A_j r + B_j/r^2 + k_j r ln(r/a_j)
+            M[row][2 * i] = r
+            M[row][2 * i + 1] = 1 / r ** 2
+            M[row][2 * i + 2] = -r
+            M[row][2 * i + 3] = -1 / r ** 2
+            y[row] = (self._k(i + 1) * r * math.log(r / layers[i + 1]['a']) - self._k(i) * r * math.log(r / layers[i]['a']))
+            row += 1
+            ca, cb, rhs = self._sr_terms(i, r)
+            ca2, cb2, rhs2 = self._sr_terms(i + 1, r)
+            M[row][2 * i] = ca
+            M[row][2 * i + 1] = cb
+            M[row][2 * i + 2] = -ca2
+            M[row][2 * i + 3] = -cb2
+            y[row] = rhs2 - rhs
+            row += 1
+        x = solve(M, y)
+        self.A = x[0::2]
+        self.B = x[1::2]
+
+    def _k(self, i):
+        l = self.L[i]
+        nu = l['nu']
+        return -2 * (1 - 2 * nu) * (l.get('e_t', 0.0) - l.get('e_r', 0.0)) / (3 * (1 - nu))
+
+    def _c(self, i):
+        l = self.L[i]
+        return l['E'] / ((1 + l['nu']) * (1 - 2 * l['nu']))
+
+    def _sr_terms(self, i, r):
+        # sigma_r = ca*A + cb*B + rhs
+        l = self.L[i]
+        c = self._c(i)
+        nu = l['nu']
+        er, et = l.get('e_r', 0.0), l.get('e_t', 0.0)
+        k = self._k(i)
+        lg = math.log(r / l['a'])
+        ca = c * (1 + nu)
+        cb = -2 * c * (1 - 2 * nu) / r ** 3
+        rhs = c * ((1 - nu) * k * (lg + 1) + 2 * nu * k * lg) - c * ((1 - nu) * er + 2 * nu * et)
+        return ca, cb, rhs
+
+    def layer_of(self, r):
+        for i, l in enumerate(self.L):
+            if l['a'] - 1e-12 <= r <= l['b'] + 1e-12:
+                return i
+        raise ValueError('radius %g outside the sphere' % r)
+
+    def at(self, r, i=None):
+        i = self.layer_of(r) if i is None else i
+        l = self.L[i]
+        c = self._c(i)
+        nu = l['nu']
+        er, et = l.get('e_r', 0.0), l.get('e_t', 0.0)
+        A, B = self.A[i], self.B[i]
+        k = self._k(i)
+        lg = math.log(r / l['a'])
+        eps_r = A - 2 * B / r ** 3 + k * (lg + 1)
+        eps_t = A + B / r ** 3 + k * lg
+        sr = c * ((1 - nu) * (eps_r - er) + 2 * nu * (eps_t - et))
+        st = c * ((eps_t - et) + nu * (eps_r - er))
+        return {'u': A * r + B / r ** 2 + k * r * lg, 'sr': sr, 'st': st, 'layer': i}
+
+
+def textbook_single(a, b, p_in, p_out):
+    # thick-walled sphere, textbook Lame, for the cross-check of the general solver
+    def st(r):
+        return (p_in * a ** 3 * (b ** 3 + 2 * r ** 3) - p_out * b ** 3 * (a ** 3 + 2 * r ** 3)) / (2 * r ** 3 * (b ** 3 - a ** 3))
+
+    def sr(r):
+        return (p_in * a ** 3 * (r ** 3 - b ** 3) + p_out * b ** 3 * (a ** 3 - r ** 3)) / (r ** 3 * (b ** 3 - a ** 3))
+    return sr, st
+
+
+if __name__ == '__main__':
+    # self-test: the general solver against the textbook formula for one shell
+    a, b = 350e-6, 385e-6
+    s = Sphere([dict(a=a, b=b, E=3.7e11, nu=0.13)], 25e6, 0.1e6)
+    sr, st = textbook_single(a, b, 25e6, 0.1e6)
+    worst = 0
+    for k in range(11):
+        r = a + (b - a) * k / 10
+        d = s.at(r)
+        worst = max(worst, abs(d['sr'] - sr(r)), abs(d['st'] - st(r)))
+    print('single shell: general solver vs textbook, largest difference %.3g Pa; sigma_t(a) = %.6g Pa' % (worst, st(a)))
+    # and an equal-material split into two layers must reproduce the single shell
+    m = (a + b) / 2
+    s2 = Sphere([dict(a=a, b=m, E=3.7e11, nu=0.13), dict(a=m, b=b, E=3.7e11, nu=0.13)], 25e6, 0.1e6)
+    worst = 0
+    for k in range(11):
+        r = a + (b - a) * k / 10
+        worst = max(worst, abs(s2.at(r)['st'] - st(r)), abs(s2.at(r)['sr'] - sr(r)))
+    print('two layers of the same material vs one shell: largest difference %.3g Pa' % worst)
+
+    # anisotropic free strain: the stress must satisfy radial equilibrium d(sr)/dr + 2 (sr - st) / r = 0 (checked by a central difference)
+    s3 = Sphere([dict(a=a, b=b, E=3.96e10, nu=0.33, e_r=-0.01, e_t=0.004)], 25e6, 0.1e6)
+    worst = 0
+    for kk in range(1, 10):
+        r = a + (b - a) * kk / 10
+        h = 1e-9
+        d = (s3.at(r + h)['sr'] - s3.at(r - h)['sr']) / (2 * h)
+        res = d + 2 * (s3.at(r)['sr'] - s3.at(r)['st']) / r
+        worst = max(worst, abs(res) * (b - a))
+    print('anisotropic free strain: equilibrium residual x wall thickness, largest %.3g Pa (stress scale ~1e7 Pa)' % worst)
