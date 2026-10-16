@@ -183,6 +183,44 @@ describe("the page's particle helpers, run without a page", () => {
     expect(d.transient.initialSteadyParticlePower).toBeUndefined();
     expect(d.transient.initialTemperature).toEqual(q(850, "K"));
   });
+  it("the transient it starts is the good vector's pulse, keeps a heat capacity the person already stated, and falls back to the outside's temperature and a stated steady power only when it must", () => {
+    const d = fresh(), h = pure(d);
+    h.particleAnalysis("transient");
+    const v = vector("triso-pulse");
+    expect(d.transient).toEqual(v.transient);
+    for (const n of h.particleRegions()) expect(d.materials[n].sets["thermal.volumetricHeatCapacity"], n).toEqual(v.materials[n].sets["thermal.volumetricHeatCapacity"]);
+    // a capacity the person stated is not overwritten when the analysis is switched to a transient again
+    const mine = { model: "constant", value: q(7, "MJ/m3/K"), referenceTemperature: q(900, "K"), source: "the person's own" };
+    const e = fresh(), g = pure(e);
+    e.materials.sic.sets["thermal.volumetricHeatCapacity"] = mine;
+    g.particleAnalysis("transient");
+    expect(e.materials.sic.sets["thermal.volumetricHeatCapacity"]).toEqual(mine);
+    expect(e.materials.kernel.sets["thermal.volumetricHeatCapacity"]).toBeTruthy();
+    // no boundary to take the start from: 1000 K; a table with no heat in it: the steady start is 0.2 W
+    const f = fresh(), k = pure(f);
+    delete f.boundary;
+    k.particleAnalysis("transient");
+    expect(f.transient.initialTemperature).toEqual(q(1000, "K"));
+    f.transient.powerHistory.forEach((p: any) => { p.particlePower = q(0, "W"); });
+    k.particleInitial("steady");
+    expect(f.transient.initialSteadyParticlePower).toEqual(q(0.2, "W"));
+    // a power of 0.6 W in the table starts from 0.3 W
+    const m = fresh(), mm = pure(m);
+    mm.particleAnalysis("transient");
+    m.transient.powerHistory[1].particlePower = q(0.6, "W");
+    mm.particleInitial("steady");
+    expect(m.transient.initialSteadyParticlePower).toEqual(q(0.3, "W"));
+  });
+  it("keeps the radial shape when the power form changes, and takes the packing fraction from a number the validator accepts", () => {
+    const d = fresh(), h = pure(d);
+    d.power.radialShape = "uniform";
+    h.setParticlePowerForm("compact", (check(d) as any).triso.derived);
+    expect(d.power.radialShape).toBe("uniform");
+    expect(d.power.packingFraction.value).toBeLessThan(0.64); // not above random close packing: no warning at once
+    expect(validateCase(d).warnings).toEqual([]);
+    const r: any = check(d);
+    expect(r.triso.derived.compactPowerDensity).toBeCloseTo(d.power.compactPowerDensity.value * 1e6, 3);
+  });
   it("changes the form the power is given in and keeps the heat per particle, in all six directions", () => {
     const d = fresh(), h = pure(d);
     const P0 = (check(d) as any).triso.derived.particlePower as number;
