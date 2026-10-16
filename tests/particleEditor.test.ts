@@ -344,7 +344,21 @@ describe("the page's wiring for a particle", () => {
     expect(script).toMatch(/if \(bs\.length !== its\.length\) return;/);
     expect(script).toMatch(/const ensureSelected = \(\) => \{ if \(doc && !items\(\)\.some\(\(i\) => i\[0\] === selected\)\) selected = "power"; \};/);
     expect(script).toMatch(/ensureSelected\(\); const it = items\(\)\.find/);
-    expect(script).toMatch(/dropParticleRun\(\)/);
+    // loading a pin, the example or a file drops the run of a particle that was open; a results render hides the particle's own elements first
+    expect(script).toMatch(/async function loadPin\(id, name\) \{ doc = await \(await fetch\("\/api\/pin\/" \+ encodeURIComponent\(id\)\)\)\.json\(\); dropParticleRun\(\);/);
+    expect(script).toMatch(/async function loadExample\(\) \{ doc = await \(await fetch\("\/api\/example"\)\)\.json\(\); dropParticleRun\(\);/);
+    expect(script).toMatch(/try \{ doc = JSON\.parse\(await f\.text\(\)\); dropParticleRun\(\);/);
+    expect(script).toMatch(/drawStackResults\(null\); particleResultsOff\(\);/);
+    expect(script).toMatch(/function dropParticleRun\(\) \{ if \(solverRes && String\(solverRes\.kind \|\| ""\)\.startsWith\("triso"\)\) \{ solverRes = null; runRec = null;/);
+  });
+  it("offers a material item only for the layer names a particle can have", () => {
+    const d = fresh(), h = pure(d);
+    d.geometry.layers.push({ name: "foam", thickness: q(10, "um") });
+    d.geometry.layers.push(null);
+    expect(h.particleRegions()).toEqual(["kernel", "buffer", "ipyc", "sic", "opyc"]);
+    expect(h.particleItems().map((i: any) => i[0])).not.toContain("foam");
+    delete d.geometry.layers;
+    expect(h.particleRegions()).toEqual(["kernel"]);
   });
   it("shows the particle's banner, no longer says the editor is a later milestone, and does not turn a valid particle into an error", () => {
     expect(script).toMatch(/if \(isParticle\(\)\) \$\("caseBanner"\)\.textContent = .*PARTICLE_TEXT;/);
