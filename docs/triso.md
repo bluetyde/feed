@@ -1,8 +1,8 @@
 # The coated particle (plan 13)
 
-A coated particle (TRISO) is a sphere: a fuel **kernel** and two to four coating layers (buffer, inner pyrolytic carbon, silicon carbide, outer pyrolytic carbon). FEED treats it as one-dimensional in the radius (spherically symmetric), **thermal only and steady**. Heat is generated in the kernel and leaves through the layers to the outside.
+A coated particle (TRISO) is a sphere: a fuel **kernel** and two to four coating layers (buffer, inner pyrolytic carbon, silicon carbide, outer pyrolytic carbon). FEED treats it as one-dimensional in the radius (spherically symmetric), **thermal only, steady or a thermal transient**. Heat is generated in the kernel and leaves through the layers to the outside.
 
-**Status (milestone T3, stage 1, 2026-10-16): a valid steady particle runs through the real OFFBEAT and is read back with independent checks.** The editor's check, the run manager, the command line (`write-case`, `headless run`) and the server's run, results, detail and CSV routes all take a particle; the editor's page (milestone T5) shows a note for a particle case and a plain results card for a run. The reasons for each choice below are in [plan 13](plans/13-triso-particle.md) and [the probe](spike/triso-probe.md); the numbers of the real runs are in "Running a particle" below.
+**Status (milestone T3, 2026-10-16): a valid particle, steady or a transient, runs through the real OFFBEAT and is read back with independent checks; the layers can carry stated temperature limits.** The editor's check, the run manager, the command line (`write-case`, `headless run`) and the server's run, results, detail and CSV routes all take a particle; the editor's page (milestone T5) shows a note for a particle case and a plain results card for a run. The reasons for each choice below are in [plan 13](plans/13-triso-particle.md) and [the probe](spike/triso-probe.md); the numbers of the real runs are in "Running a particle" below.
 
 **What it is not.** It says how hot the kernel and each layer are. It does not say whether the particle survives: the stress in the SiC, the swelling and creep of the carbon, the pressure of the fission gas and CO, a failure fraction and kernel migration are not modelled (decision D1 of plan 13: thermal only first). Gamma heating of the coatings is not modelled either: all the heat is in the kernel.
 
@@ -50,7 +50,9 @@ A complete case is `schema/vectors/good/triso-steady.json`; its dimensions are t
 | a pin's keys in the geometry (`fuelRadius`, thicknesses, a hole), an unknown key, layers out of order or of the wrong number, a layer with an unknown key, a material for a region the particle does not have | `E_GEOMETRY` at the key |
 | a missing kernel radius, layer thickness, material, mesh count, a power in none or two forms, a mesh key the particle does not have | `E_SCHEMA_INVALID` at the field |
 | a compact power density without a packing fraction; a material without a conductivity | `E_PROP_MISSING` |
-| a packing fraction that does nothing, mechanics, hot dimensions, burnup, an axial stack, a transient (until stage 3), a particle that is not thermal-only or steady, a `linearHeatRate`, a closed or contacting gap, the burnup law, a limit's `whileCladding` | `E_UNSUPPORTED` at the section |
+| a packing fraction that does nothing, mechanics, hot dimensions, burnup, an axial stack, a particle that is not thermal-only, a `linearHeatRate`, a closed or contacting gap, the burnup law, a limit's `whileCladding`, point kinetics or a pin's steady-start key in a transient | `E_UNSUPPORTED` at the section |
+| a transient section with a steady case, none with a transient case, a `power` section in a transient, no or two starts | `E_TRANSIENT_INCOMPLETE` |
+| a history that does not start at 0, is not increasing or ends before the end time, a step that does not divide the end time, outputs that do not divide the steps, too much work | `E_TIME` |
 | a limit with a region that is a pin's or unknown, a duplicate or empty name | `E_SCHEMA_INVALID` at the field |
 | a limit on a layer the particle does not have | `E_GEOMETRY` at `/limits/i/region` |
 | a limit without a source or a maximum | `E_PROP_MISSING` |
@@ -99,6 +101,52 @@ The energy balance is within 5e-5 of the power made on every 12-cell run (3.5e-4
 **Entry points.** `check()` returns `{ ok: true, triso: { normalized, quick, derived } }` for a valid particle (and the particle's own errors for an invalid one); `POST /api/run` starts it, `/results`, `/detail` and `/results.csv` carry the record (a CSV row per cell and a comment row per region); compare refuses a particle (pins and plates only); `write-case` writes the files and the manifest; `headless run` writes `results.json`, a particle `derived.json` and the manifest. The editor's page shows a note instead of the pin's views for a particle case, and a numbers-only card for a particle run.
 
 **Not in T3:** the editor (T5), a compact or pebble (T4), a population (T6).
+
+## The transient (T3, stage 3)
+
+`assumptions.steadyState: false` asks for a thermal transient: the heat made in the kernel is a **table against time**, the particle starts from a uniform temperature or from its steady state, and the outside may change with time. Code: `src/core/trisoTransient.ts` (the section), `src/core/trisoTransientModel.ts` (the independent model and the start), `src/core/trisoTransientResults.ts` (the checks), the writer; the vectors `triso-pulse`, `triso-outside-ramp`, `triso-wall-quench`, `triso-pulse-limits` and the `triso-transient-*` bad ones.
+
+```json
+"assumptions": { "thermalOnly": true, "steadyState": false, "geometry": "1D-sphere" },
+"transient": {
+  "powerHistory": [ { "time": { "value": 0, "unit": "ms" }, "particlePower": { "value": 0, "unit": "W" } }, { "time": { "value": 10, "unit": "ms" }, "particlePower": { "value": 0.4, "unit": "W" } }, ... ],
+  "endTime": { "value": 500, "unit": "ms" }, "timeStep": { "value": 0.5, "unit": "ms" }, "outputs": 50,
+  "initialTemperature": { "value": 1000, "unit": "K" },        // or "initialSteadyParticlePower": { "value": 0.2, "unit": "W" }
+  "boundaryHistory": [ ... ]                                    // optional: the pin's form, the outside against time
+}
+```
+
+- **Power.** `transient.powerHistory` is a table of `{time, particlePower}` (W per particle, linear between the points, from 0, increasing, reaching the end time, never negative); the case has **no `power` section** (`E_TRANSIENT_INCOMPLETE` at `/power`), and the case's `power` is the table's peak. Not offered, by name: `pointKinetics`, a pin's `initialSteadyLinearHeatRate`.
+- **Heat capacity.** Every region's material needs a `thermal.volumetricHeatCapacity` set (constant, linear or polynomial, under the pin's rules and with its source; `E_PROP_MISSING` otherwise). OFFBEAT is given `rho` 10000 and `Cp = c / rho` (a temperature-dependent one through the pin's models).
+- **Time grid.** `endTime` a whole number of `timeStep`s, `outputs` dividing the steps, at most 100000 steps and 200 outputs, as for a pin; **cells x steps at most 5e5** (`E_TIME`), because the independent runs (about five times that work) are done in the server's own thread. A particle's time scale is a fraction of a second: the slowest time constant of the synthetic particle with a film is 0.2 s, its kernel's a few milliseconds.
+- **Start.** A uniform `initialTemperature`, or `initialSteadyParticlePower`, the steady field at that power written as the starting field of every cell (FEED's finite-volume solution of the wedge's sphere on the same mesh; refused with `E_OUT_OF_RANGE` when there is none).
+- **Outside.** `transient.boundaryHistory` is the pin's (plan 11): points `{time, bulkTemperature, heatTransferCoefficient}` for a film or `{time, surfaceTemperature}` for a prescribed wall, linear in time, in the same form as the case's own boundary, starting at the case's boundary when the run starts steady, reaching the end time; written as OFFBEAT's `timeDependentAxialProfileHTC` / `...T` at the one height with a flat point beyond the end time (they work on the wedge: the table is read at the height of the mesh, a few micrometres, with two equal columns).
+- **Refused still:** point kinetics, an axial stack, mechanics, burnup, hot dimensions (as for a particle at all).
+
+**Results** (`TrisoTransientResultsRecord`, `kind: "triso-transient"`, schema `feed.results/0.2`): the times, every cell by increasing radius with its region, the temperature of every cell at every output, the series (power, the energy made, the energy the step deposits, stored, rejected, the hottest cell of each region, the outside's temperature, the gap's drop), the summary, the checks and the thermal-only statement. **The checks are the pin's, with its ids and tolerances** (`src/core/transientResults.ts`), against FEED's finite-volume solution (`solveTrisoFv`) of the sphere the wedge solves, run on the same mesh and step, on the doubled mesh (its own spatial error) and on the half step:
+
+| Check | Rule |
+|---|---|
+| `energyBalance` | the energy made = stored + rejected, from the output fields, 3 % of the energy made (or of the largest exchanged anywhere, with a steady start or a moving outside). **The energy made is the one the implicit step deposits**, the source taken at the end of each step (the independent solution does the same, and OFFBEAT was found to): a ramp of N steps deposits 1/N more than its integral on the way up and 1/N less on the way down, so the 10 ms pulse of 20 steps is 5 % high at its peak (5.75 % gap against the exact integral, 0.85 % against the step's). The record carries both series. The heat leaving is a trapezoid over the outputs: with the outputs far apart against the time the heat takes to leave it is poor, and the note says to add outputs |
+| `crossCheckFv` | every cell and the wall at every output, `min(3 x the independent solution's own change when its cells are halved, 0.5 % of the peak rise) + 0.02 K` |
+| `timeStep` | the peak changes by less than 2 % of its rise when the step is halved (at every step of the run), and with an outside table every cell and the wall too |
+| `wallTemperature` | a prescribed wall follows the table at every output to 0.05 K |
+| `propertyRange` | a conductivity or heat capacity law used outside its stated range makes the result out-of-domain |
+| `temperatureLimit1...` | the worse of the outputs and **every step of the independent solution**, which sees a peak between two outputs: the pulse's outputs show 1016.61 K at 20 ms, the steps 1017.16 K |
+
+Energies in the record are the nominal sphere's (the wedge's, divided by lambda^3 = 0.999087).
+
+**Through the real solver** (`tests/trisoTransientSolver.test.ts`, 6 tests, `FEED_SOLVER=1`; output in `tests/golden/offbeat-triso-transient`, read again without the solver by `tests/trisoTransientResults.test.ts`; 1000 steps, 5 to 6 seconds a run):
+
+| Case | max cell vs independent | energy balance | time-step (of threshold) | peak |
+|---|---|---|---|---|
+| `pulse`: 0.4 W triangle in 20 ms, uniform 1000 K, wall held | 0.014 K | 0.85 % | 0.205 K (0.34) | 1016.61 K at 20 ms, 16.6 K up |
+| `outside-ramp`: steady at 0.2 W, film bulk 900 to 1000 K over 50 to 250 ms | 0.067 K | 0.09 % | 0.029 K | 1062.5 K at 500 ms |
+| `wall-quench`: steady at 0.2 W, wall 1000 to 900 K in 50 ms | 0.26 K (bound 0.41) | 1.0 % | 0.123 K (2.0) | 949.8 K at 500 ms |
+| `laws`: linear and reciprocal conductivities, linear and quadratic capacities, a film | 0.027 K | 2.4 % | 0.208 K | 966.8 K at 20 ms |
+| `coarse-step`: the pulse with a 5 ms step | 0.013 K | **3.9 %, fails** | **1.87 K, fails** | 1013.6 K |
+
+A step that does not resolve the pulse fails `timeStep` and says to shorten it, while the cells still agree with the independent solution of the same step. A heat capacity 1.5 times too large, a power 10 % too high, a wall table other than the one that was run, a conductivity 20 % off and a step twice the one that was run each fail a check on the saved real output.
 
 ## The independent solutions (T2)
 

@@ -1,7 +1,7 @@
 {
   "schema": "feed.case/0.1",
-  "caseId": "triso-transient",
-  "name": "Synthetic coated particle (illustrative numbers, not a real fuel design)",
+  "caseId": "triso-transient-pin-steady-start-key",
+  "name": "Synthetic coated particle, a pulse (illustrative numbers, not a real fuel design)",
   "label": "synthetic",
   "assumptions": {
     "thermalOnly": true,
@@ -45,12 +45,6 @@
       }
     ]
   },
-  "power": {
-    "kernelPowerDensity": {
-      "value": 600,
-      "unit": "MW/m3"
-    }
-  },
   "boundary": {
     "surfaceTemperature": {
       "value": 1000,
@@ -73,6 +67,18 @@
             "unit": "K"
           },
           "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle"
         }
       }
     },
@@ -91,6 +97,18 @@
             "unit": "K"
           },
           "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 1.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle"
         }
       }
     },
@@ -109,6 +127,18 @@
             "unit": "K"
           },
           "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 2.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle"
         }
       }
     },
@@ -127,6 +157,18 @@
             "unit": "K"
           },
           "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle"
         }
       }
     },
@@ -145,6 +187,18 @@
             "unit": "K"
           },
           "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 2.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle"
         }
       }
     }
@@ -163,5 +217,62 @@
     "ipycCells": 12,
     "sicCells": 16,
     "opycCells": 12
+  },
+  "transient": {
+    "powerHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "ms"
+        },
+        "particlePower": {
+          "value": 0,
+          "unit": "W"
+        }
+      },
+      {
+        "time": {
+          "value": 10,
+          "unit": "ms"
+        },
+        "particlePower": {
+          "value": 0.4,
+          "unit": "W"
+        }
+      },
+      {
+        "time": {
+          "value": 20,
+          "unit": "ms"
+        },
+        "particlePower": {
+          "value": 0,
+          "unit": "W"
+        }
+      },
+      {
+        "time": {
+          "value": 500,
+          "unit": "ms"
+        },
+        "particlePower": {
+          "value": 0,
+          "unit": "W"
+        }
+      }
+    ],
+    "endTime": {
+      "value": 500,
+      "unit": "ms"
+    },
+    "timeStep": {
+      "value": 0.5,
+      "unit": "ms"
+    },
+    "outputs": 50,
+    "initialSteadyLinearHeatRate": {
+      "value": 20,
+      "unit": "kW/m"
+    }
   }
 }

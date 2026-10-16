@@ -22,13 +22,13 @@ const ids: Record<string, string> = {};
 
 beforeAll(async () => {
   runsRoot = mkdtempSync(join(tmpdir(), "feed-trisrv-"));
-  const scripts = ["triso-good", "good"] as const;
+  const scripts = ["triso-good", "good", "triso-transient-good"] as const;
   let n = 0;
   mgr = new RunManager({ runsRoot, backend: new FakeBackend(() => scripts[n++]!) });
   useManager(mgr);
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
   base = "http://127.0.0.1:" + (server.address() as AddressInfo).port;
-  for (const [name, doc] of [["particle", particle()], ["pin", pin()]] as const) {
+  for (const [name, doc] of [["particle", particle()], ["pin", pin()], ["transient", JSON.parse(readFileSync(join(root, "schema", "vectors", "good", "triso-pulse.json"), "utf8"))]] as const) {
     const j: any = await (await post("/api/run", doc)).json();
     await mgr.done(j.id);
     ids[name] = j.id;
@@ -86,6 +86,23 @@ describe("a particle through the server", () => {
     expect(text.split("\n").filter((l) => /,(kernel|buffer|ipyc|sic|opyc)$/.test(l))).toHaveLength(64);
     expect(text).toContain("# kernel,");
     expect(text).toContain("# opyc,");
+  });
+  it("a transient particle: /results and /detail carry its series, the CSV a row per output with the hottest cell of each region", async () => {
+    const r: any = await (await get(`/api/run/${ids.transient}/results`)).json();
+    expect(r.kind).toBe("triso-transient");
+    expect(r.checks.filter((c: any) => c.verdict === "fail")).toEqual([]);
+    const d: any = await (await get(`/api/run/${ids.transient}/detail`)).json();
+    expect(d.normalized.transient.steps).toBe(1000);
+    expect(d.record.headline.transient).toBe(true);
+    const res = await get(`/api/run/${ids.transient}/results.csv`);
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toContain("# Fuel Performance Studio results (coated particle, transient)");
+    const rows = text.split("\n").filter((l) => /^[0-9]/.test(l));
+    expect(rows).toHaveLength(51);
+    expect(text).toContain("time_s,power_W,deposited_J,stored_J,rejected_J,peak_T_K,kernel_max_T_K,buffer_max_T_K,ipyc_max_T_K,sic_max_T_K,opyc_max_T_K,outer_wall_T_K,gap_drop_K");
+    expect(Number(rows[2]!.split(",")[0])).toBeCloseTo(0.02, 9);
+    expect(Number(rows[2]!.split(",")[5])).toBeCloseTo(r.summary.maxT, 9);
   });
   it("compare refuses a particle (with a pin or with itself), saying why, and does not crash", async () => {
     for (const [a, b] of [[ids.particle, ids.pin], [ids.pin, ids.particle], [ids.particle, ids.particle]] as const) {

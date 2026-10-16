@@ -1,0 +1,135 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0.45000000000000034417";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+64
+(
+1000.0037
+1000.0037
+1000.0036
+1000.0036
+1000.0036
+1000.0035
+1000.0035
+1000.0034
+1000.0033
+1000.0032
+1000.0031
+1000.003
+1000.0028
+1000.0026
+1000.0023
+1000.0021
+1000.0018
+1000.0016
+1000.0014
+1000.0012
+1000.0009
+1000.0007
+1000.0005
+1000.0003
+1000.0002
+1000.0002
+1000.0002
+1000.0002
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+)
+;
+
+boundaryField
+{
+    top
+    {
+        type            wedge;
+    }
+    front
+    {
+        type            wedge;
+    }
+    back
+    {
+        type            wedge;
+    }
+    bottom
+    {
+        type            wedge;
+    }
+    outer
+    {
+        type            fixedValue;
+        value           uniform 1000;
+    }
+    bufferOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 1000.0003;
+        alpha           uniform 150000;
+    }
+    ipycInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 1000.0002;
+        alpha           uniform 150000;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

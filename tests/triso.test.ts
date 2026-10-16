@@ -3,6 +3,7 @@
 // and that the pin and the plate are untouched.
 import { mkdtempSync, readFileSync, rmSync } from "fs";
 import type { TrisoResultsRecord } from "../src/core/trisoResults";
+import type { TrisoTransientResultsRecord } from "../src/core/trisoTransientResults";
 import { FakeBackend, Script } from "./helpers/fakeBackend";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -278,9 +279,10 @@ describe("what the particle case refuses", () => {
       const c = codes(d);
       expect(c).toContain("E_UNSUPPORTED /" + key);
     }
+    // a transient (stage 3) is offered: steadyState false asks for its section, its heat capacities and no power section
     const tr = particle();
     tr.assumptions.steadyState = false;
-    expect(codes(tr)).toEqual(["E_UNSUPPORTED /assumptions/steadyState"]);
+    expect(codes(tr)).toEqual(expect.arrayContaining(["E_TRANSIENT_INCOMPLETE /transient", "E_TRANSIENT_INCOMPLETE /power", "E_PROP_MISSING /materials/kernel/sets/thermal.volumetricHeatCapacity"]));
     const th = particle();
     th.assumptions.thermalOnly = false;
     expect(codes(th)).toEqual(["E_UNSUPPORTED /assumptions/thermalOnly"]);
@@ -289,7 +291,7 @@ describe("what the particle case refuses", () => {
     expect(codes(geo)).toEqual(["E_UNSUPPORTED /assumptions/geometry"]);
     const sec = particle();
     sec.transient = { endTime: q(1, "s") };
-    expect(codes(sec)).toContain("E_UNSUPPORTED /transient");
+    expect(codes(sec)).toContain("E_TRANSIENT_INCOMPLETE /transient");
   });
   it("refuses a closed gap, a missing gap source and boundaries that are missing, in two forms or incomplete, as a pin does", () => {
     const closed = particle();
@@ -399,6 +401,36 @@ describe("a valid particle is run (T3), and an invalid one is refused with its o
       expect(rec.failure!.code, script).toBe("E_OUTPUT_INCOMPLETE");
       expect(rec.failure!.message, script).toMatch(message);
       expect(mgr.results(s.id)).toBeUndefined();
+    }
+  });
+  it("runs a transient particle: the fields at every output are read, the independent runs are done, and results.json carries the transient with every check passing", async () => {
+    const { mgr, runsRoot } = manager("triso-transient-good");
+    const pulse = read("schema/vectors/good/triso-pulse.json");
+    const s = mgr.start(pulse);
+    expect(s.ok).toBe(true);
+    if (!s.ok) return;
+    const rec = await mgr.done(s.id);
+    expect(rec.state, JSON.stringify(rec.failure)).toBe("completed");
+    const r = mgr.results(s.id) as unknown as TrisoTransientResultsRecord;
+    expect(r.kind).toBe("triso-transient");
+    expect(r.checks.filter((c) => c.verdict === "fail")).toEqual([]);
+    expect(r.times).toHaveLength(51);
+    expect(rec.headline).toEqual({ centreCellT: r.summary.maxT, claddingOuterWallT: 1000, transient: true });
+    expect(rec.notes.some((n) => /independent finite-volume runs took/.test(n))).toBe(true);
+    // the files written are the transient's: a fixed step, the marker, the power table
+    expect(readFileSync(join(runsRoot, s.id, "inputs", "system", "controlDict"), "utf8")).toMatch(/adjustableTimeStep\s+false;/);
+    expect(readFileSync(join(runsRoot, s.id, "inputs", "feed-transient.json"), "utf8")).toContain('"outputs":50');
+    expect(mgr.detail(s.id)!.normalized.transient.steps).toBe(1000);
+  });
+  it("fails the transient run when the zones were not collected or a write time is missing", async () => {
+    for (const [script, message] of [["triso-transient-no-zones", /cell zones/], ["triso-transient-missing-time", /expected 50 write times after 0, found 49/]] as const) {
+      const { mgr } = manager(script);
+      const s = mgr.start(read("schema/vectors/good/triso-pulse.json"));
+      if (!s.ok) throw new Error("refused");
+      const rec = await mgr.done(s.id);
+      expect(rec.state, script).toBe("failed");
+      expect(rec.failure!.code, script).toBe("E_OUTPUT_INCOMPLETE");
+      expect(rec.failure!.message, script).toMatch(message);
     }
   });
   it("refuses an invalid particle without starting anything", () => {

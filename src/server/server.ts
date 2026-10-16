@@ -15,7 +15,7 @@ import { trisoDerived, trisoQuickLook } from "../core/trisoSolve";
 import { projectRoot, unrunnableErrors, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
-import { resultsToCsv, transientResultsToCsv, trisoResultsToCsv } from "../core/exportResults";
+import { resultsToCsv, transientResultsToCsv, trisoResultsToCsv, trisoTransientResultsToCsv } from "../core/exportResults";
 import { burnupSweep } from "../core/burnupSweep";
 import { burnupText } from "../core/resultsParser";
 import { applyDesign, designOf } from "../core/design";
@@ -340,6 +340,7 @@ export const server = createServer(async (req, res) => {
         res.writeHead(200, { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${rec.caseId}-${id}.csv"`, "cache-control": "no-store", "x-content-type-options": "nosniff" });
         const meta = { runId: id, caseName: rec.caseName ?? rec.caseId, solver: rec.solver, caseHash: rec.caseHash };
         if ("kind" in d.results && d.results.kind === "triso") return void res.end(trisoResultsToCsv(d.results, meta));
+        if ("kind" in d.results && d.results.kind === "triso-transient") return void res.end(trisoTransientResultsToCsv(d.results, meta));
         return void res.end("kind" in d.results && d.results.kind === "transient" ? transientResultsToCsv(d.results, meta) : resultsToCsv(d.results as Parameters<typeof resultsToCsv>[0], meta));
       }
       if (req.method === "POST" && runMatch[2] === "/cancel") return json(res, 200, await manager.cancel(id));

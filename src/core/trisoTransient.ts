@@ -67,7 +67,7 @@ export function parseTrisoTransient(t: Record<string, unknown>, err: ErrFn, qty:
   for (const key of ["endTime", "timeStep", "outputs"]) if (t[key] === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/" + key, "the transient section needs '" + key + "'");
   if (t.powerHistory === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/powerHistory", "the transient section needs its power: 'powerHistory', a table of {time, particlePower}");
   if (t.initialTemperature !== undefined && t.initialSteadyParticlePower !== undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/initialSteadyParticlePower", "give either 'initialTemperature' (a uniform start) or 'initialSteadyParticlePower' (the steady state at that power), not both");
-  else if (t.initialTemperature === undefined && t.initialSteadyParticlePower === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/initialTemperature", "the transient section needs an initial state: 'initialTemperature' (a uniform start) or 'initialSteadyParticlePower' (the steady state of this particle at that power)");
+  else if (t.initialTemperature === undefined && t.initialSteadyParticlePower === undefined && t.initialSteadyLinearHeatRate === undefined) bad("E_TRANSIENT_INCOMPLETE", "/transient/initialTemperature", "the transient section needs an initial state: 'initialTemperature' (a uniform start) or 'initialSteadyParticlePower' (the steady state of this particle at that power)");
 
   const endTime = t.endTime === undefined ? undefined : qty(t.endTime, "time", "/transient/endTime");
   const timeStep = t.timeStep === undefined ? undefined : qty(t.timeStep, "time", "/transient/timeStep");

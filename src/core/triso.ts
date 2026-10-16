@@ -5,7 +5,8 @@
 import { SPHERE } from "./geometry";
 import type { Dimension } from "./units";
 import type { TrisoLimitRule } from "./trisoLimits";
-import type { Conductivity } from "./validate";
+import type { NormalizedTrisoTransient } from "./trisoTransient";
+import type { Conductivity, HeatCapacity } from "./validate";
 
 /** The coating layers in the order they lie, from the kernel outward. A particle has the first two to all four (the buffer and the inner pyrolytic carbon at least: the gap between them is the case's gap). */
 export const TRISO_LAYER_NAMES = ["buffer", "ipyc", "sic", "opyc"] as const;
@@ -62,6 +63,10 @@ export interface NormalizedTriso {
   cells: number[];
   /** The temperature limits the case states for its regions (stage 2 of T3), each with its source; absent when the case states none. */
   limits?: TrisoLimitRule[];
+  /** Present for a transient (stage 3 of T3): the power table, the time grid, the start and the outside's table; `power` is then the table's peak. */
+  transient?: NormalizedTrisoTransient;
+  /** A transient's volumetric heat capacity of each region, kernel first. */
+  capacities?: HeatCapacity[];
 }
 
 type ErrFn = (code: string, field: string, message: string, extra?: Record<string, unknown>) => void;

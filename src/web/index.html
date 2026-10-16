@@ -1711,10 +1711,11 @@ function renderResults() {
   if (d.results && d.normalized && d.normalized.transient && d.normalized.transient.boundaryHistory) $("rBanner").textContent = "The coolant side changed with time (a table the case stated, not a calculation). " + $("rBanner").textContent;
   if (d.results && warns.length) $("rBanner").textContent += "  WARNING at run time: " + warns.map((w) => w.code + " (" + w.message + ")").join("; ");
   $("rBanner").style.color = ood ? "var(--err)" : ""; $("rBanner").style.background = ood ? "rgba(240,117,117,.12)" : "";
-  if (d.results && d.results.kind === "triso") {
+  if (d.results && (d.results.kind === "triso" || d.results.kind === "triso-transient")) {
     /* a coated particle (plan 13): numbers only until the particle view of milestone T5 */
     const s = d.results.summary;
-    m.append(card("Kernel centre", K(s.kernelCentreT), "extrapolated from the first cell"), card("Kernel surface", K(s.kernelSurfaceT)), card("Outer wall", K(s.wallT)), card("Gap drop", s.gapDeltaT.toFixed(3) + " K", "buffer to the next layer"));
+    if (d.results.kind === "triso-transient") m.append(card("Hottest cell", K(s.maxT), "at " + (s.timeOfMaxT * 1e3).toPrecision(4) + " ms"), card("Rise", s.maxRise.toFixed(2) + " K", "above the start"), card("Final hottest cell", K(s.finalPeakT), "at " + (s.finalTime * 1e3).toPrecision(4) + " ms"));
+    else m.append(card("Kernel centre", K(s.kernelCentreT), "extrapolated from the first cell"), card("Kernel surface", K(s.kernelSurfaceT)), card("Outer wall", K(s.wallT)), card("Gap drop", s.gapDeltaT.toFixed(3) + " K", "buffer to the next layer"));
     const bad = d.results.checks.filter((c) => c.verdict === "fail").length, ok = d.results.checks.filter((c) => c.verdict === "pass").length;
     m.append(card("Checks", ok + " pass" + (bad ? ", " + bad + " fail" : ""), d.results.checks.map((c) => c.label.split(" (")[0] + ": " + c.verdict).join(" · ")));
     drawGeneric($("rprof"), null);

@@ -1706,12 +1706,6 @@
     "field": "/axial"
   },
   {
-    "file": "bad/triso-transient.json",
-    "valid": false,
-    "code": "E_UNSUPPORTED",
-    "field": "/assumptions/steadyState"
-  },
-  {
     "file": "bad/triso-assumed-radial.json",
     "valid": false,
     "code": "E_UNSUPPORTED",
@@ -1758,6 +1752,166 @@
     "valid": false,
     "code": "E_OUT_OF_RANGE",
     "field": "/materials"
+  },
+  {
+    "file": "good/triso-pulse.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-outside-ramp.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-wall-quench.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-pulse-limits.json",
+    "valid": true
+  },
+  {
+    "file": "bad/triso-transient-no-section.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient"
+  },
+  {
+    "file": "bad/triso-transient-section-in-steady-case.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient"
+  },
+  {
+    "file": "bad/triso-transient-with-power-section.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/power"
+  },
+  {
+    "file": "bad/triso-transient-no-heat-capacity.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/buffer/sets/thermal.volumetricHeatCapacity"
+  },
+  {
+    "file": "bad/triso-transient-point-kinetics.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/transient/pointKinetics"
+  },
+  {
+    "file": "bad/triso-transient-pin-steady-start-key.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/transient/initialSteadyLinearHeatRate"
+  },
+  {
+    "file": "bad/triso-transient-unknown-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/transient/mesh"
+  },
+  {
+    "file": "bad/triso-transient-negative-power.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/powerHistory/1/particlePower"
+  },
+  {
+    "file": "bad/triso-transient-power-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/transient/powerHistory/1/particlePower"
+  },
+  {
+    "file": "bad/triso-transient-history-not-from-zero.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/powerHistory/0/time"
+  },
+  {
+    "file": "bad/triso-transient-history-not-increasing.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/powerHistory/2/time"
+  },
+  {
+    "file": "bad/triso-transient-history-ends-early.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/powerHistory"
+  },
+  {
+    "file": "bad/triso-transient-all-zero-power.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/powerHistory"
+  },
+  {
+    "file": "bad/triso-transient-step-not-dividing.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/timeStep"
+  },
+  {
+    "file": "bad/triso-transient-outputs-not-dividing.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/outputs"
+  },
+  {
+    "file": "bad/triso-transient-too-much-work.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/timeStep"
+  },
+  {
+    "file": "bad/triso-transient-two-starts.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/initialSteadyParticlePower"
+  },
+  {
+    "file": "bad/triso-transient-no-start.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/initialTemperature"
+  },
+  {
+    "file": "bad/triso-transient-start-outside-capacity-range.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/initialTemperature"
+  },
+  {
+    "file": "bad/triso-transient-start-conductivity-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/transient/initialTemperature"
+  },
+  {
+    "file": "bad/triso-transient-history-form-differs.json",
+    "valid": false,
+    "code": "E_BOUNDARY_INCOMPLETE",
+    "field": "/transient/boundaryHistory"
+  },
+  {
+    "file": "bad/triso-transient-steady-start-history-differs.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/transient/boundaryHistory/0"
+  },
+  {
+    "file": "bad/triso-transient-history-ends-early-outside.json",
+    "valid": false,
+    "code": "E_TIME",
+    "field": "/transient/boundaryHistory"
+  },
+  {
+    "file": "bad/triso-transient-limit-on-absent-layer.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/limits/0/region"
   },
   {
     "file": "bad/triso-limit-pin-region.json",

@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, w
 import { dirname, join } from "path";
 import { writeOffbeatCase } from "./caseWriter";
 import { buildTrisoResults, TrisoResultsRecord } from "./trisoResults";
+import { buildTrisoTransientResults, computeTrisoIndependent, TrisoTransientResultsRecord } from "./trisoTransientResults";
 import { writeTrisoCase } from "./trisoWriter";
 import { judgeConvergence, judgeMechanicsConvergence, readCriterion, readMechanicsCriterion } from "./convergence";
 import { lastRelativeRate } from "./steadyState";
@@ -223,7 +224,7 @@ export class RunManager {
     return [...this.records.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((r) => ({ ...r }));
   }
   /** The results record, present only when the run is `completed`. */
-  results(id: string): ResultsRecord | TransientResultsRecord | TrisoResultsRecord | undefined {
+  results(id: string): ResultsRecord | TransientResultsRecord | TrisoResultsRecord | TrisoTransientResultsRecord | undefined {
     const r = this.records.get(id);
     const f = join(this.dir(id), "results.json");
     if (!r || r.state !== "completed" || !existsSync(f)) return undefined;
@@ -409,6 +410,24 @@ export class RunManager {
 
     try {
       const normalized = JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8"));
+      if (normalized.kind === "triso" && normalized.transient) {
+        // a coated particle's transient: every write time after 0 from native/times/<time>/T, the cells put into their regions by the cell zones. The independent finite-volume runs
+        // (the cross-check and the time-step error) are cheap for a particle and the validator bounds their work (cells x steps), so they are done here, not in a worker.
+        const cellZones = read(join(nativeDir, "final", "cellZones"));
+        if (cellZones === undefined) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "The solver output is not a complete result: the mesh's cell zones (constant/polyMesh/cellZones) were not collected, so the cells cannot be put into the kernel and the layers.", native });
+        const tdir = join(nativeDir, "times");
+        const names = existsSync(tdir) ? readdirSync(tdir).filter((d) => /^[0-9.eE+-]+$/.test(d) && Number.isFinite(Number(d))).sort((a, b) => Number(a) - Number(b)) : [];
+        const fields = names.map((d) => ({ time: Number(d), T: read(join(tdir, d, "T")) ?? "" }));
+        const t0 = Date.now();
+        const ind = computeTrisoIndependent(normalized);
+        r.notes.push(`The independent finite-volume runs took ${((Date.now() - t0) / 1000).toFixed(1)} s.`);
+        const tr = buildTrisoTransientResults(normalized, { C, cellZones, fields }, ind);
+        atomicWrite(join(dir, "results.json"), JSON.stringify(tr, null, 2) + "\n");
+        r.headline = { centreCellT: tr.summary.maxT, claddingOuterWallT: tr.series.wallT[tr.series.wallT.length - 1]!, transient: true };
+        r.state = "completed";
+        if (exit.offbeatExit !== 0) r.notes.push(`The solver exited with code ${exit.offbeatExit}${SIGNALS[exit.offbeatExit] ? " (" + SIGNALS[exit.offbeatExit] + ")" : ""} after writing a complete output. This is a known OFFBEAT shutdown crash; the result was accepted because the output is complete and finite.`);
+        return;
+      }
       if (normalized.transient) {
         // every write time after 0, in time order, from native/times/<time>/T
         const tdir = join(nativeDir, "times");
