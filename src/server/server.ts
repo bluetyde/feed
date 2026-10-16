@@ -13,6 +13,7 @@ import { axialSummary, hottestLoad, sliceCase, sliceLoads } from "../core/axial"
 import { STACK_TEXT } from "../core/stackResults";
 import { quickLook, radialProfile } from "../core/quickLook";
 import { trisoDerived, trisoQuickLook } from "../core/trisoSolve";
+import { trisoProfile } from "../core/trisoProfile";
 import { projectRoot, unrunnableErrors, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
@@ -212,8 +213,8 @@ function derivedOf(n: NormalizedCase, q: number) {
 
 function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransient | null; skipped?: string }) {
   if (!v.normalized) {
-    // a coated particle (plan 13) is valid and runs; its closed form and derived numbers are shown (the editor for it is milestone T5)
-    if (v.triso) return { ok: true, errors: v.errors, warnings: v.warnings, triso: { normalized: v.triso, quick: trisoQuickLook(v.triso), derived: trisoDerived(v.triso) } };
+    // a coated particle (plan 13) is valid and runs; the editor (T5) draws its closed-form profile (`profile`: every region over its own radii) and shows the derived numbers
+    if (v.triso) return { ok: true, errors: v.errors, warnings: v.warnings, triso: { normalized: v.triso, quick: trisoQuickLook(v.triso), derived: trisoDerived(v.triso), profile: trisoProfile(v.triso) } };
     return { ok: false, errors: unrunnableErrors(v), warnings: v.warnings };
   }
   const n = v.normalized;
