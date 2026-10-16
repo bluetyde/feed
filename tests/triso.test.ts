@@ -379,6 +379,8 @@ describe("a valid particle is run (T3), and an invalid one is refused with its o
     const r = mgr.results(s.id) as unknown as TrisoResultsRecord;
     expect(r.kind).toBe("triso");
     expect(r.checks.filter((c) => c.verdict === "fail")).toEqual([]);
+    // the log's last rate was read: the steady-state check is made
+    expect(r.checks.map((c) => c.id)).toContain("steadyState");
     expect(rec.headline!.centreCellT).toBeCloseTo(r.summary.kernelCentreCellT, 9);
     expect(rec.headline!.claddingOuterWallT).toBeCloseTo(1000, 9);
     // the files written are the particle's (a wedge mesh, a timeDependentVhgr), the run is marked as one, and the detail carries it

@@ -118,6 +118,9 @@ describe("a particle through the command line", () => {
       rmSync(out, { recursive: true, force: true });
     }
   });
+  it("the solver's run script collects the mesh's cell zones beside the fields (a particle is read by them)", () => {
+    expect(readFileSync(join(root, "solver", "run-feed.sh"), "utf8")).toContain('cp constant/polyMesh/cellZones "$OUT/final/"');
+  });
   it("headless validate accepts a particle", () => {
     const src = join(root, "schema", "vectors", "good", "triso-steady.json");
     const r = JSON.parse(execFileSync("node", [join(dist, "headless.js"), "validate", src], { encoding: "utf8" }));
