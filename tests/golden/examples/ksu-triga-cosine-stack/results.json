@@ -1,0 +1,1712 @@
+{
+  "schema": "feed.results/0.1",
+  "caseId": "ksu-triga-cosine-stack",
+  "time": 50000000,
+  "radial": [
+    {
+      "r": 0.00060536619,
+      "T": 776.80655,
+      "region": "fuel"
+    },
+    {
+      "r": 0.0014125211,
+      "T": 775.6143,
+      "region": "fuel"
+    },
+    {
+      "r": 0.0023003915,
+      "T": 772.9913,
+      "region": "fuel"
+    },
+    {
+      "r": 0.0031997927,
+      "T": 769.00557,
+      "region": "fuel"
+    },
+    {
+      "r": 0.0041030375,
+      "T": 763.6683,
+      "region": "fuel"
+    },
+    {
+      "r": 0.0050080294,
+      "T": 756.98339,
+      "region": "fuel"
+    },
+    {
+      "r": 0.005913962,
+      "T": 748.95255,
+      "region": "fuel"
+    },
+    {
+      "r": 0.006820459,
+      "T": 739.57655,
+      "region": "fuel"
+    },
+    {
+      "r": 0.0077273213,
+      "T": 728.85569,
+      "region": "fuel"
+    },
+    {
+      "r": 0.0086344335,
+      "T": 716.78999,
+      "region": "fuel"
+    },
+    {
+      "r": 0.0095417242,
+      "T": 703.37924,
+      "region": "fuel"
+    },
+    {
+      "r": 0.010449147,
+      "T": 688.62312,
+      "region": "fuel"
+    },
+    {
+      "r": 0.01135667,
+      "T": 672.52119,
+      "region": "fuel"
+    },
+    {
+      "r": 0.012264271,
+      "T": 655.07291,
+      "region": "fuel"
+    },
+    {
+      "r": 0.013171933,
+      "T": 636.27765,
+      "region": "fuel"
+    },
+    {
+      "r": 0.014079646,
+      "T": 616.13471,
+      "region": "fuel"
+    },
+    {
+      "r": 0.014987399,
+      "T": 594.64332,
+      "region": "fuel"
+    },
+    {
+      "r": 0.015895186,
+      "T": 571.80263,
+      "region": "fuel"
+    },
+    {
+      "r": 0.016803002,
+      "T": 547.61174,
+      "region": "fuel"
+    },
+    {
+      "r": 0.017710842,
+      "T": 522.06969,
+      "region": "fuel"
+    },
+    {
+      "r": 0.018203352,
+      "T": 319.61734,
+      "region": "cladding"
+    },
+    {
+      "r": 0.018288018,
+      "T": 316.9103,
+      "region": "cladding"
+    },
+    {
+      "r": 0.018372685,
+      "T": 314.21577,
+      "region": "cladding"
+    },
+    {
+      "r": 0.018457351,
+      "T": 311.53364,
+      "region": "cladding"
+    },
+    {
+      "r": 0.018542018,
+      "T": 308.8638,
+      "region": "cladding"
+    },
+    {
+      "r": 0.018626684,
+      "T": 306.20612,
+      "region": "cladding"
+    }
+  ],
+  "summary": {
+    "centreCellT": 776.80655,
+    "fuelSurfaceCellT": 522.06969,
+    "claddingInnerCellT": 319.61734,
+    "claddingOuterWallT": 304.88431,
+    "maxT": 776.80655,
+    "minT": 295.25741
+  },
+  "checks": [
+    {
+      "id": "energyBalance",
+      "label": "Energy balance (cladding wall flux vs input)",
+      "value": 0.12946790177424713,
+      "unit": "relative",
+      "verdict": "pass",
+      "note": "all 10 slices pass; the worst is slice 1 of 10 (height 0.0191 m): flux from the two innermost cladding cells = 10962.9 W/m against 9706.27939486991 W/m; threshold 1%"
+    },
+    {
+      "id": "closedFormFuel",
+      "label": "Fuel vs closed form (max deviation)",
+      "value": 10.942676548698785,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "all 10 slices pass; the worst is slice 1 of 10 (height 0.0191 m): bound 5 dT / N^2 = 15.795 K for 20 cells"
+    },
+    {
+      "id": "closedFormCladding",
+      "label": "Cladding vs closed form (max deviation)",
+      "value": 0.4902917331465346,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "all 10 slices pass; the worst is slice 1 of 10 (height 0.0191 m): bound 5 dT / N^2 = 15.615 K for 6 cells"
+    },
+    {
+      "id": "wallTemperature",
+      "label": "Outer wall temperature vs closed form",
+      "value": 0.18597054729804086,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "all 10 slices pass; the worst is slice 1 of 10 (height 0.0191 m): solver 295.01919 K, closed form 294.833 K; threshold 0.335 K"
+    },
+    {
+      "id": "temperatureLimit1",
+      "label": "Temperature limit: TRIGA fuel limit, cladding at most 500 C",
+      "value": 646.3434500000001,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "all 10 slices pass; the worst is slice 6 of 10 (height 0.2095 m): TRIGA fuel limit, cladding at most 500 C: the hottest fuel stays at or below 1423.15 K (1150 C) while the hottest cladding is at most 773.15 K (500 C). Source: K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 1150 C fuel limit with cladding below 500 C, stainless-clad U-ZrH, H/Zr about 1.6. Smallest margin 646.3 K: 776.81 K (503.66 C) at the result (cladding 319.62 K (46.47 C)), from the solver's result; the rule was in force at 1 moment(s). This check computes no stress; staying below a limit is not an integrity assessment."
+    },
+    {
+      "id": "temperatureLimit2",
+      "label": "Temperature limit: TRIGA fuel limit, cladding above 500 C",
+      "value": null,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "all 10 slices pass; the worst is slice 1 of 10 (height 0.0191 m): TRIGA fuel limit, cladding above 500 C: the hottest fuel stays at or below 1223.15 K (950 C) while the hottest cladding is above 773.15 K (500 C). Source: K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 950 C fuel limit with cladding above 500 C, stainless-clad U-ZrH, H/Zr about 1.6. The cladding condition never held in this run, so the limit was not in force. This check computes no stress; staying below a limit is not an integrity assessment."
+    },
+    {
+      "id": "steadyState",
+      "label": "Steady state reached (bound on what is still to change)",
+      "value": 0,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "all 10 slices pass; the worst is slice 1 of 10 (height 0.0191 m): at most 0.00 K is still to change after the last step (OFFBEAT's last relative rate 0, hottest cell 381.2 K); threshold 0.01 K"
+    },
+    {
+      "id": "energyBalanceTotal",
+      "label": "Energy balance of the whole pin (heat leaving through all slices vs the heat given)",
+      "value": 0.0000025489164327694453,
+      "unit": "relative",
+      "verdict": "pass",
+      "note": "the cladding fluxes of the 10 slices sum to 39663.3 W/m on average against 39663.2 W/m given (the shape sampled at the slice centres; the stated average is 39480 W/m); threshold 1%. The end faces carry no heat, so the whole pin's balance does not depend on the axial conduction"
+    },
+    {
+      "id": "axialConduction",
+      "label": "Axial heat flow allowed for in the per-slice tolerances",
+      "value": 0.01048061546200957,
+      "unit": "relative",
+      "verdict": "na",
+      "note": "estimated at 1.05 % of the largest rise (src/core/axial.ts, calibrated on the real-solver measurements of docs/spike/axial-plate-probe.md); the per-slice tolerances are widened by 3 times it: 15.3 K on a field, 1.93e+3 W/m on a flux, 0.285 K on the wall"
+    }
+  ],
+  "domain": {
+    "verdict": "in-domain",
+    "findings": []
+  },
+  "thermalOnly": "Thermal-only result. It says nothing about stress, failure or fuel integrity. One radial solution per axial slice, with the heat flow along the pin that the solver includes. The checks compare each slice with its own one-dimensional closed form within a bound that includes an estimate of that heat flow.",
+  "axial": {
+    "length": 0.381,
+    "slices": [
+      {
+        "index": 0,
+        "height": 0.01905,
+        "linearHeatRate": 9706.27939486991,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 293.4,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 381.15798,
+        "fuelSurfaceCellT": 334.14845,
+        "claddingInnerCellT": 297.67409,
+        "claddingOuterWallT": 295.01919,
+        "maxT": 381.15798,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 381.15798,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 380.93329,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 380.4391,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 379.68857,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 378.6843,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 377.4277,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 375.91991,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 374.16208,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 372.15545,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 369.90135,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 367.40125,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 364.65678,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 361.6697,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 358.44192,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 354.97554,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 351.27278,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 347.33604,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 343.1679,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 338.77107,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 334.14845,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 297.67409,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 297.18635,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 296.70082,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 296.2175,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 295.73637,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 295.25741,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 1,
+        "height": 0.05715,
+        "linearHeatRate": 28168.71992981472,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 293.9,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 515.73697,
+        "fuelSurfaceCellT": 398.18856,
+        "claddingInnerCellT": 304.8363,
+        "claddingOuterWallT": 298.04276,
+        "maxT": 515.73697,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 515.73697,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 515.18641,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 513.97517,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 512.13469,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 509.67019,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 506.58351,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 502.87553,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 498.54669,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 493.59723,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 488.02726,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 481.83683,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 475.02592,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 467.59447,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 459.54241,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 450.8696,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 441.57591,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 431.66117,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 421.12518,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 409.96773,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 398.18856,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 304.8363,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 303.58807,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 302.3456,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 301.10884,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 299.87775,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 298.65227,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "height": 0.09525,
+        "linearHeatRate": 43873.809895016995,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 294.4,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 638.7442,
+        "fuelSurfaceCellT": 456.34177,
+        "claddingInnerCellT": 311.38207,
+        "claddingOuterWallT": 300.83294,
+        "maxT": 638.7442,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 638.7442,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 637.89047,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 636.01223,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 633.15819,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 629.33636,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 624.54955,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 618.79897,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 612.0852,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 604.40845,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 595.76874,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 586.16593,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 575.59981,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 564.07006,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 551.57631,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 538.11812,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 523.69501,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 508.30643,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 491.9518,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 474.63047,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 456.34177,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 311.38207,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 309.44378,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 307.51444,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 305.59399,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 303.68233,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 301.77938,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "height": 0.13335,
+        "linearHeatRate": 55284.225660886674,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 294.9,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 728.73543,
+        "fuelSurfaceCellT": 498.93202,
+        "claddingInnerCellT": 316.29587,
+        "claddingOuterWallT": 303.00492,
+        "maxT": 728.73543,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 728.73543,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 727.65988,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 725.29361,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 721.698,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 716.88313,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 710.85252,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 703.60772,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 695.14943,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 685.47792,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 674.59318,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 662.49506,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 649.18325,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 634.65736,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 618.9169,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 601.96131,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 583.78995,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 564.40213,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 543.79709,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 521.97401,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 498.93202,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 316.29587,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 313.8538,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 311.42301,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 309.00341,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 306.59489,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 304.19735,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "height": 0.17145000000000002,
+        "linearHeatRate": 61283.03623121904,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 295.4,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 776.30655,
+        "fuelSurfaceCellT": 521.56969,
+        "claddingInnerCellT": 319.11734,
+        "claddingOuterWallT": 304.38431,
+        "maxT": 776.30655,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 776.30655,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 775.1143,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 772.4913,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 768.50557,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 763.1683,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 756.48339,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 748.45255,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 739.07655,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 728.3557,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 716.28999,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 702.87924,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 688.12312,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 672.02119,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 654.57291,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 635.77765,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 615.63471,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 594.14332,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 571.30263,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 547.11174,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 521.56969,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 319.11734,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 316.4103,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 313.71577,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 311.03364,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 308.3638,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 305.70612,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "height": 0.20955,
+        "linearHeatRate": 61283.03623121903,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 295.9,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 776.80655,
+        "fuelSurfaceCellT": 522.06969,
+        "claddingInnerCellT": 319.61734,
+        "claddingOuterWallT": 304.88431,
+        "maxT": 776.80655,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 776.80655,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 775.6143,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 772.9913,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 769.00557,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 763.6683,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 756.98339,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 748.95255,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 739.57655,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 728.85569,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 716.78999,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 703.37924,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 688.62312,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 672.52119,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 655.07291,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 636.27765,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 616.13471,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 594.64332,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 571.80263,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 547.61174,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 522.06969,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 319.61734,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 316.9103,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 314.21577,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 311.53364,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 308.8638,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 306.20612,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "height": 0.24765,
+        "linearHeatRate": 55284.225660886674,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 296.4,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 730.2354,
+        "fuelSurfaceCellT": 500.43201,
+        "claddingInnerCellT": 317.79587,
+        "claddingOuterWallT": 304.50492,
+        "maxT": 730.2354,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 730.2354,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 729.15985,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 726.79358,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 723.19797,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 718.3831,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 712.35249,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 705.10769,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 696.6494,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 686.97789,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 676.09315,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 663.99503,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 650.68323,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 636.15734,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 620.41688,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 603.46129,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 585.28993,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 565.90211,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 545.29707,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 523.474,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 500.43201,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 317.79587,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 315.3538,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 312.92301,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 310.50341,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 308.09489,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 305.69735,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "height": 0.28575,
+        "linearHeatRate": 43873.809895016995,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 296.9,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 641.24374,
+        "fuelSurfaceCellT": 458.84158,
+        "claddingInnerCellT": 313.88205,
+        "claddingOuterWallT": 303.33293,
+        "maxT": 641.24374,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 641.24374,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 640.39001,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 638.51178,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 635.65774,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 631.83592,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 627.04911,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 621.29855,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 614.58479,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 606.90805,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 598.26835,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 588.66556,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 578.09945,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 566.56972,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 554.07599,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 540.61783,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 526.19473,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 510.80618,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 494.45156,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 477.13026,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 458.84158,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 313.88205,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 311.94376,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 310.01443,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 308.09398,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 306.18232,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 304.27937,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "height": 0.32385,
+        "linearHeatRate": 28168.71992981468,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 297.4,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 519.23026,
+        "fuelSurfaceCellT": 401.68571,
+        "claddingInnerCellT": 308.336,
+        "claddingOuterWallT": 301.54265,
+        "maxT": 519.23026,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 519.23026,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 518.67973,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 517.46853,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 515.62813,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 513.16371,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 510.07715,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 506.36931,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 502.04062,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 497.09134,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 491.52157,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 485.33135,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 478.52068,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 471.08948,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 463.03769,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 454.36516,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 445.07177,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 435.15734,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 424.62167,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 413.46454,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 401.68571,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 308.336,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 307.0878,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 305.84536,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 304.60864,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 303.37758,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 302.15213,
+            "region": "cladding"
+          }
+        ]
+      },
+      {
+        "index": 9,
+        "height": 0.36195,
+        "linearHeatRate": 9706.279394869924,
+        "boundary": {
+          "kind": "convective",
+          "bulkTemperature": 297.9,
+          "heatTransferCoefficient": 57735
+        },
+        "centreCellT": 385.56336,
+        "fuelSurfaceCellT": 338.60356,
+        "claddingInnerCellT": 302.16922,
+        "claddingOuterWallT": 299.51732,
+        "maxT": 385.56336,
+        "radial": [
+          {
+            "r": 0.00060536619,
+            "T": 385.56336,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0014125211,
+            "T": 385.33889,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0023003915,
+            "T": 384.84522,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0031997927,
+            "T": 384.09545,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0041030375,
+            "T": 383.09222,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0050080294,
+            "T": 381.8369,
+            "region": "fuel"
+          },
+          {
+            "r": 0.005913962,
+            "T": 380.33067,
+            "region": "fuel"
+          },
+          {
+            "r": 0.006820459,
+            "T": 378.57466,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0077273213,
+            "T": 376.5701,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0086344335,
+            "T": 374.31834,
+            "region": "fuel"
+          },
+          {
+            "r": 0.0095417242,
+            "T": 371.82085,
+            "region": "fuel"
+          },
+          {
+            "r": 0.010449147,
+            "T": 369.07925,
+            "region": "fuel"
+          },
+          {
+            "r": 0.01135667,
+            "T": 366.0953,
+            "region": "fuel"
+          },
+          {
+            "r": 0.012264271,
+            "T": 362.87093,
+            "region": "fuel"
+          },
+          {
+            "r": 0.013171933,
+            "T": 359.40822,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014079646,
+            "T": 355.7094,
+            "region": "fuel"
+          },
+          {
+            "r": 0.014987399,
+            "T": 351.77688,
+            "region": "fuel"
+          },
+          {
+            "r": 0.015895186,
+            "T": 347.61321,
+            "region": "fuel"
+          },
+          {
+            "r": 0.016803002,
+            "T": 343.22114,
+            "region": "fuel"
+          },
+          {
+            "r": 0.017710842,
+            "T": 338.60356,
+            "region": "fuel"
+          },
+          {
+            "r": 0.018203352,
+            "T": 302.16922,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018288018,
+            "T": 301.68201,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018372685,
+            "T": 301.19703,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018457351,
+            "T": 300.71426,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018542018,
+            "T": 300.23367,
+            "region": "cladding"
+          },
+          {
+            "r": 0.018626684,
+            "T": 299.75526,
+            "region": "cladding"
+          }
+        ]
+      }
+    ],
+    "hottest": 5,
+    "averageLinearHeatRate": 39480,
+    "sampledAverageLinearHeatRate": 39663.214222361465,
+    "conduction": {
+      "fraction": 0.01048061546200957,
+      "lambdaSquared": 0.00015542177486337386,
+      "curvature": 67.43337908232442
+    },
+    "allowance": {
+      "field": 15.258532229281014,
+      "flux": 1926.851811251421,
+      "wall": 0.2845170003883456
+    }
+  }
+}

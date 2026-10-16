@@ -1,0 +1,137 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0.45000000000000034417";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+64
+(
+906.21459
+906.20658
+906.18866
+906.16114
+906.12415
+906.07774
+906.02196
+905.9568
+905.8823
+905.79846
+905.7053
+905.60284
+905.41591
+905.16344
+904.92551
+904.70081
+904.48818
+904.28659
+904.09513
+903.91298
+903.73941
+903.57376
+903.41545
+903.26395
+903.1302
+903.12305
+903.116
+903.10906
+903.10222
+903.09548
+903.08883
+903.08227
+903.07581
+903.06942
+903.06313
+903.05691
+903.05487
+903.05372
+903.05258
+903.05145
+903.05032
+903.0492
+903.04809
+903.04699
+903.04589
+903.0448
+903.04372
+903.04264
+903.04157
+903.04051
+903.03945
+903.0384
+903.03665
+903.03186
+903.02712
+903.02242
+903.01776
+903.01314
+903.00856
+903.00403
+902.99953
+902.99507
+902.99065
+902.98626
+)
+;
+
+boundaryField
+{
+    top
+    {
+        type            wedge;
+    }
+    front
+    {
+        type            wedge;
+    }
+    back
+    {
+        type            wedge;
+    }
+    bottom
+    {
+        type            wedge;
+    }
+    outer
+    {
+        type            convectiveHTC;
+        h               uniform 2000;
+        T0              uniform 900;
+        value           uniform 902.98409;
+    }
+    bufferOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 903.19193;
+        alpha           uniform 150000;
+    }
+    ipycInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 903.13384;
+        alpha           uniform 150000;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //
