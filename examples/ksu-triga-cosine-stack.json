@@ -1,0 +1,166 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "ksu-triga-cosine-stack",
+  "name": "K-State TRIGA element as a stack of 10 slices: cosine power over the 38.1 cm fuel length, a pool that warms 5 K along the element (illustrative)",
+  "label": "synthetic",
+  "citation": "Materials, radii, gap conductance, film coefficient and temperature limits exactly as the K-State hot-element case with the SAR film coefficient (ksu-triga-1p25mw-film-limits: radii Table 4.6, k Tables 13.3 and 4.6, gap conductance Appendix A, h = 57735 W/m2/K from eq. 7, q' from eq. 9, the fuel limits of SAR sections 3.5.1 and 4.7). The heated length, 38.10 cm, is the fuel length the University of Texas TRIGA II SAR gives (Chapter 4, Table 4.1, 8/2023) and that FEED's UT-Austin cases already use; the K-State SAR text FEED holds states no fuel length, and the two are the same stainless-clad U-ZrH TRIGA element type, but this case takes the length from the UT table, not from K-State. NOT from any source: the cosine shape, the 5 K warming of the pool along the element, and the choice of the average heat rate (see the description).",
+  "description": "ILLUSTRATIVE, not a K-State analysis. The K-State hottest-element state (1.25 MW, pool at 20 C, SAR film coefficient) spread over a stack of 10 slices along the 38.1 cm fuel length. The SAR's 62.021 kW/m is the heat rate at the hottest axial position; here the axial shape is an ASSUMED cosine (zero at both ends of the fuel, peak in the middle; a real TRIGA element has a flatter shape and a reflector), so the average over the length is set to 62.021 x 2 / pi = 39.48 kW/m, which puts the continuous peak of the cosine at the SAR's value (the hottest slice, sampled at its centre, is 1.2 % below it). The pool warms by an ASSUMED 5 K from the bottom of the element (20 C) to the top (25 C), a coolant table against height that is an INPUT, not a thermal-hydraulic result: the SAR gives no such number, and the film coefficient is held at the SAR's single value. The case shows what the stack adds to the single hot slice: where along the element the fuel is hottest (the warming coolant moves the peak a little above the middle), how far each slice sits from the SAR's two fuel temperature limits, and that the one-dimensional answer for the hottest slice is the pin of the hot-element case. The solver includes the small heat flow along the element that FEED's per-slice closed forms leave out; the checks allow for it (docs/axial-stack.md). Solid-cylinder model with the zirconium rod ignored, end reflectors not modelled. Thermal only. The two fuel limits are the SAR's and are judged per slice with that slice's cladding; they say nothing about whether a real element would fail.",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 18.161,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 18.669,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 39.48,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 20,
+      "unit": "degC"
+    },
+    "heatTransferCoefficient": {
+      "value": 57735,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "triga-uzrh-h16",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 18,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "K-State SAR 2004 Table 13.3 (18 W/m/K, all temperatures); UT-Austin SAR 2023 Table 4.1 (0.18 W/cm/K)"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "ss304-k166",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 16.6,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 400,
+            "unit": "K"
+          },
+          "source": "K-State SAR 2004 Table 13.3 and Table 4.6 (16.6 W/m/K at 400 K)"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 2840,
+      "unit": "W/m2/K"
+    },
+    "source": "K-State SAR 2004 section 4.5.3 and Appendix A: effective gap resistance 500 Btu/h/ft2/F = 2840 W/m2/K"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 6
+  },
+  "limits": [
+    {
+      "name": "TRIGA fuel limit, cladding at most 500 C",
+      "region": "fuel",
+      "maxTemperature": {
+        "value": 1150,
+        "unit": "degC"
+      },
+      "whileCladding": {
+        "atMost": {
+          "value": 500,
+          "unit": "degC"
+        }
+      },
+      "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 1150 C fuel limit with cladding below 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+    },
+    {
+      "name": "TRIGA fuel limit, cladding above 500 C",
+      "region": "fuel",
+      "maxTemperature": {
+        "value": 950,
+        "unit": "degC"
+      },
+      "whileCladding": {
+        "above": {
+          "value": 500,
+          "unit": "degC"
+        }
+      },
+      "source": "K-State SAR 2004 sections 3.5.1 and 4.7 (NUREG-1282); UT-Austin SAR Ch. 4 section 4.2.1: 950 C fuel limit with cladding above 500 C, stainless-clad U-ZrH, H/Zr about 1.6"
+    }
+  ],
+  "axial": {
+    "length": {
+      "value": 0.381,
+      "unit": "m"
+    },
+    "slices": 10,
+    "powerShape": {
+      "kind": "cosine"
+    },
+    "boundary": [
+      {
+        "height": {
+          "value": 0,
+          "unit": "m"
+        },
+        "bulkTemperature": {
+          "value": 20,
+          "unit": "degC"
+        },
+        "heatTransferCoefficient": {
+          "value": 57735,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "height": {
+          "value": 0.381,
+          "unit": "m"
+        },
+        "bulkTemperature": {
+          "value": 25,
+          "unit": "degC"
+        },
+        "heatTransferCoefficient": {
+          "value": 57735,
+          "unit": "W/m2/K"
+        }
+      }
+    ]
+  }
+}
