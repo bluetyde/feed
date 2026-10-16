@@ -1,11 +1,11 @@
 // A scripted backend: writes the same native files solver/run-feed.sh writes, from saved real OFFBEAT output, with
 // chosen faults. Lets the run manager be tested without the solver.
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { BackendOutcome, RunBackend } from "../../src/core/runManager";
 
-export type Script = "burnup-good" | "burnup-no-k" | "burnup-wrong-basis" | "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "unconverged" | "drifting" | "no-rate-record" | "exit-1-complete" | "fatal-in-log" | "no-iteration-records" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
+export type Script = "triso-transient-quench" | "triso-transient-good" | "triso-transient-no-zones" | "triso-transient-missing-time" | "triso-good" | "triso-no-zones" | "triso-wrong-zones" | "triso-no-patch" | "burnup-good" | "burnup-no-k" | "burnup-wrong-basis" | "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "unconverged" | "drifting" | "no-rate-record" | "exit-1-complete" | "fatal-in-log" | "no-iteration-records" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
 
 const golden = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-syn", f), "utf8");
 /** Real OFFBEAT logs from the non-convergence probe: one step that converged (6 outer iterations), one that hit its cap unconverged. */
@@ -124,6 +124,45 @@ export class FakeBackend implements RunBackend {
         writeFileSync(join(nativeDir, "final", "Bu"), bu);
         writeFileSync(join(nativeDir, "log.offbeat"), steadyLog());
         exit(0, 139, 50000000);
+        return { cancelled: false };
+      }
+      // a coated particle (tests/golden/offbeat-triso/steady): the real fields of the wedge, its cell zones and the real log of the run
+      case "triso-good":
+      case "triso-no-zones":
+      case "triso-wrong-zones":
+      case "triso-no-patch": {
+        const t = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-triso", "steady", f), "utf8");
+        writeFileSync(join(nativeDir, "final", "T"), script === "triso-no-patch" ? t("T").replace(/bufferOuter/g, "bufferOuterX") : t("T"));
+        writeFileSync(join(nativeDir, "final", "C"), t("C"));
+        // the buffer and the next layer's zones swapped by name: every cell is in a zone whose radii it is not within
+        if (script === "triso-wrong-zones") writeFileSync(join(nativeDir, "final", "cellZones"), t("cellZones").replace(/Buffer/g, "XX").replace(/IPyC/g, "Buffer").replace(/XX/g, "IPyC"));
+        else if (script !== "triso-no-zones") writeFileSync(join(nativeDir, "final", "cellZones"), t("cellZones"));
+        writeFileSync(join(nativeDir, "log.offbeat"), t("log.offbeat.txt"));
+        exit(0, 139, 50000000);
+        return { cancelled: false };
+      }
+      // a coated particle's transient (tests/golden/offbeat-triso-transient/pulse): the real fields at every output and the cell zones; the log is a compact one of the same form (one outer
+      // iteration per step, converged), since the real log of 1000 steps is 1.7 MB
+      case "triso-transient-quench":
+      case "triso-transient-good":
+      case "triso-transient-no-zones":
+      case "triso-transient-missing-time": {
+        const dir = join(__dirname, "..", "golden", "offbeat-triso-transient", script === "triso-transient-quench" ? "wall-quench" : "pulse");
+        const times = readdirSync(join(dir, "times")).sort((a, b) => Number(a) - Number(b));
+        const last = times[times.length - 1]!;
+        writeFileSync(join(nativeDir, "final", "T"), readFileSync(join(dir, "times", last, "T"), "utf8"));
+        writeFileSync(join(nativeDir, "final", "C"), readFileSync(join(dir, "C"), "utf8"));
+        if (script !== "triso-transient-no-zones") writeFileSync(join(nativeDir, "final", "cellZones"), readFileSync(join(dir, "cellZones"), "utf8"));
+        times.forEach((t, i) => {
+          if (script === "triso-transient-missing-time" && i === 3) return;
+          mkdirSync(join(nativeDir, "times", t), { recursive: true });
+          writeFileSync(join(nativeDir, "times", t, "T"), readFileSync(join(dir, "times", t, "T"), "utf8"));
+        });
+        const steps = 1000;
+        const log: string[] = [];
+        for (let s = 1; s <= steps; s++) log.push(`Time = ${Number((s * 5e-4).toPrecision(12))} seconds`, "", "OuterIteration n. 0", "FDICPCG:  Solving for T, Initial residual = 1e-9, Final residual = 1e-10, No Iterations 1", "relResidualT is 0", "absErrT is 0", "");
+        writeFileSync(join(nativeDir, "log.offbeat"), log.join("\n") + "\n");
+        exit(0, 139, Number(last));
         return { cancelled: false };
       }
       case "good":

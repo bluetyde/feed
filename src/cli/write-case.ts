@@ -5,6 +5,7 @@ import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { writeOffbeatCase } from "../core/caseWriter";
+import { writeTrisoCase } from "../core/trisoWriter";
 import { unrunnableErrors, validateCase } from "../core/validate";
 
 function main(argv: string[]): number {
@@ -15,7 +16,7 @@ function main(argv: string[]): number {
   }
   const doc = JSON.parse(readFileSync(casePath, "utf8"));
   const v = validateCase(doc);
-  if (!v.normalized) {
+  if (!v.normalized && !v.triso) {
     for (const e of unrunnableErrors(v)) console.error(e.code + " " + e.field + ": " + e.message);
     return 1;
   }
@@ -26,7 +27,7 @@ function main(argv: string[]): number {
     return 1;
   }
   rmSync(out, { recursive: true, force: true });
-  const w = writeOffbeatCase(v.normalized);
+  const w = v.normalized ? writeOffbeatCase(v.normalized) : writeTrisoCase(v.triso!);
   const hashes: Record<string, string> = {};
   for (const [rel, text] of Object.entries(w.files)) {
     const p = join(out, rel);
@@ -34,8 +35,8 @@ function main(argv: string[]): number {
     writeFileSync(p, text, { encoding: "utf8" });
     hashes[rel] = createHash("sha256").update(text).digest("hex");
   }
-  const caseHash = createHash("sha256").update(JSON.stringify(v.normalized)).digest("hex");
-  writeFileSync(join(out, "feed-manifest.json"), JSON.stringify({ caseId: v.normalized.caseId, caseHash, solver: "OpenFOAM-9 + OFFBEAT 80e84450", mapping: w.mapping, placeholders: w.placeholders, choices: w.choices, files: hashes, warnings: v.warnings }, null, 2) + "\n");
+  const caseHash = createHash("sha256").update(JSON.stringify(v.normalized ?? { kind: "triso", ...v.triso })).digest("hex");
+  writeFileSync(join(out, "feed-manifest.json"), JSON.stringify({ caseId: (v.normalized ?? v.triso)!.caseId, caseHash, solver: "OpenFOAM-9 + OFFBEAT 80e84450", mapping: w.mapping, placeholders: w.placeholders, choices: w.choices, files: hashes, warnings: v.warnings }, null, 2) + "\n");
   console.log("wrote " + Object.keys(w.files).length + " files to " + out);
   return 0;
 }

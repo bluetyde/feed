@@ -4,7 +4,9 @@
 
 import { SPHERE } from "./geometry";
 import type { Dimension } from "./units";
-import type { Conductivity } from "./validate";
+import type { TrisoLimitRule } from "./trisoLimits";
+import type { NormalizedTrisoTransient } from "./trisoTransient";
+import type { Conductivity, HeatCapacity } from "./validate";
 
 /** The coating layers in the order they lie, from the kernel outward. A particle has the first two to all four (the buffer and the inner pyrolytic carbon at least: the gap between them is the case's gap). */
 export const TRISO_LAYER_NAMES = ["buffer", "ipyc", "sic", "opyc"] as const;
@@ -59,6 +61,12 @@ export interface NormalizedTriso {
   power: TrisoPower;
   /** Cells in the kernel, then in each layer in the same order as `layers`. */
   cells: number[];
+  /** The temperature limits the case states for its regions (stage 2 of T3), each with its source; absent when the case states none. */
+  limits?: TrisoLimitRule[];
+  /** Present for a transient (stage 3 of T3): the power table, the time grid, the start and the outside's table; `power` is then the table's peak. */
+  transient?: NormalizedTrisoTransient;
+  /** A transient's volumetric heat capacity of each region, kernel first. */
+  capacities?: HeatCapacity[];
 }
 
 type ErrFn = (code: string, field: string, message: string, extra?: Record<string, unknown>) => void;
@@ -207,6 +215,53 @@ export function parseTrisoPower(p: Record<string, unknown>, volumes: { kernelVol
     warn("W_POWER_RANGE", "/power/" + form, "the kernel's power density " + kernelPowerDensity.toExponential(2) + " W/m3 is above the sanity range (" + KERNEL_POWER_DENSITY_SANITY_MAX.toExponential(0) + " W/m3); kept as given", { unit: "W/m3", range: [0, KERNEL_POWER_DENSITY_SANITY_MAX] });
   }
   return { form: form === "particlePower" ? "particle" : form === "kernelPowerDensity" ? "kernel-density" : "compact", particlePower, kernelPowerDensity, ...volumes, ...(compact ? { compact } : {}) };
+}
+
+/** The most limits a case states, and the highest temperature one may name: the pin's (src/core/validate.ts MAX_LIMITS, MAX_LIMIT_TEMPERATURE; a test holds them equal). */
+export const TRISO_MAX_LIMITS = 10;
+export const TRISO_MAX_LIMIT_TEMPERATURE = 10000;
+
+/**
+ * The limits a particle case states: each with a name, a region (the kernel or one of the layers the particle has), a maximum temperature and the source it comes from. Nothing is
+ * defaulted and FEED has no limit of its own (docs/temperature-limits.md). A pin's `whileCladding` condition has no meaning here and is refused by name.
+ */
+export function parseTrisoLimits(raw: unknown, regions: readonly string[], err: ErrFn, qty: QtyFn): TrisoLimitRule[] | undefined {
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > TRISO_MAX_LIMITS) {
+    err("E_SCHEMA_INVALID", "/limits", "limits is a list of 1 to " + TRISO_MAX_LIMITS + " rules");
+    return undefined;
+  }
+  const out: TrisoLimitRule[] = [];
+  let ok = true;
+  const names = new Set<string>();
+  const known = ["kernel", ...TRISO_LAYER_NAMES] as readonly string[];
+  raw.forEach((r: unknown, i: number) => {
+    const base = "/limits/" + i;
+    const bad = (code: string, field: string, message: string, extra: Record<string, unknown> = {}) => {
+      ok = false;
+      err(code, field, message, extra);
+    };
+    if (!isObject(r)) return bad("E_SCHEMA_INVALID", base, "a limit is an object with a name, a region, a maximum temperature and a source");
+    const name = typeof r.name === "string" ? r.name.trim() : "";
+    if (name === "" || name.length > 80 || /[\u0000-\u001f]/.test(name)) bad("E_SCHEMA_INVALID", base + "/name", "a limit needs a name of 1 to 80 characters");
+    else if (names.has(name)) bad("E_SCHEMA_INVALID", base + "/name", "two limits are named '" + name + "'; a name says which limit a result is about");
+    names.add(name);
+    if (typeof r.region !== "string" || !known.includes(r.region)) bad("E_SCHEMA_INVALID", base + "/region", "region is one of " + known.join(", ") + " (the kernel or a coating layer; 'fuel' and 'cladding' are a pin's)");
+    else if (!regions.includes(r.region)) bad("E_GEOMETRY", base + "/region", "this particle has no " + r.region + " layer (its regions are " + regions.join(", ") + ")");
+    if (typeof r.source !== "string" || r.source.trim() === "") bad("E_PROP_MISSING", base + "/source", "a limit needs the source it comes from: FEED has no limits of its own");
+    if (r.whileCladding !== undefined) bad("E_UNSUPPORTED", base + "/whileCladding", "whileCladding conditions a pin's fuel limit on its cladding; a particle has no cladding, so a limit on a region has no condition");
+    let max: number | undefined;
+    if (r.maxTemperature === undefined) bad("E_PROP_MISSING", base + "/maxTemperature", "a limit needs its maximum temperature");
+    else {
+      max = qty(r.maxTemperature, "temperature", base + "/maxTemperature");
+      if (max === undefined) ok = false;
+      else if (!(max > 0 && max <= TRISO_MAX_LIMIT_TEMPERATURE)) {
+        bad("E_OUT_OF_RANGE", base + "/maxTemperature", "a limit temperature is above 0 K and at most " + TRISO_MAX_LIMIT_TEMPERATURE + " K", { unit: "K" });
+        max = undefined;
+      }
+    }
+    if (ok && max !== undefined && typeof r.region === "string" && regions.includes(r.region) && typeof r.source === "string" && name !== "") out.push({ name, region: r.region as TrisoLimitRule["region"], maxTemperature: max, source: r.source.trim() });
+  });
+  return ok && out.length === raw.length ? out : undefined;
 }
 
 /** The mesh keys of a particle with the given layers: kernelCells, then <layer>Cells for each. */

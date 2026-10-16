@@ -16,7 +16,7 @@ import { trisoDerived, trisoQuickLook } from "../core/trisoSolve";
 import { projectRoot, unrunnableErrors, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
-import { resultsToCsv, transientResultsToCsv } from "../core/exportResults";
+import { resultsToCsv, transientResultsToCsv, trisoResultsToCsv, trisoTransientResultsToCsv } from "../core/exportResults";
 import { burnupSweep } from "../core/burnupSweep";
 import { burnupText } from "../core/resultsParser";
 import { applyDesign, designOf } from "../core/design";
@@ -165,6 +165,7 @@ export function compareRuns(ida: string, idb: string) {
   const b = manager?.detail(idb);
   if (!a || !b) return { error: "unknown run" };
   if (!a.results || !b.results || !a.normalized || !b.normalized) return { error: "both runs must be completed to be compared (A is " + a.record.state + ", B is " + b.record.state + ")" };
+  if (a.normalized.kind === "triso" || b.normalized.kind === "triso") return { error: "Compare supports pins and plates; a coated particle's result is read on the Results tab." };
   if (a.normalized.transient || b.normalized.transient) return { error: "Compare supports steady runs only; a transient run has a time series, not one profile. Use the Results tab." };
   const inputDiff = diffCases(a.case, b.case);
   return {
@@ -211,8 +212,9 @@ function derivedOf(n: NormalizedCase, q: number) {
 
 function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransient | null; skipped?: string }) {
   if (!v.normalized) {
-    // a coated particle is checked and its closed form shown, but nothing runs it yet (the error says so)
-    return { ok: false, errors: unrunnableErrors(v), warnings: v.warnings, ...(v.triso ? { triso: { quick: trisoQuickLook(v.triso), derived: trisoDerived(v.triso) } } : {}) };
+    // a coated particle (plan 13) is valid and runs; its closed form and derived numbers are shown (the editor for it is milestone T5)
+    if (v.triso) return { ok: true, errors: v.errors, warnings: v.warnings, triso: { normalized: v.triso, quick: trisoQuickLook(v.triso), derived: trisoDerived(v.triso) } };
+    return { ok: false, errors: unrunnableErrors(v), warnings: v.warnings };
   }
   const n = v.normalized;
   if (n.transient) {
@@ -338,6 +340,8 @@ export const server = createServer(async (req, res) => {
         if (!d?.results) return json(res, 404, { error: "no result for this run (state: " + rec.state + ")" });
         res.writeHead(200, { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${rec.caseId}-${id}.csv"`, "cache-control": "no-store", "x-content-type-options": "nosniff" });
         const meta = { runId: id, caseName: rec.caseName ?? rec.caseId, solver: rec.solver, caseHash: rec.caseHash };
+        if ("kind" in d.results && d.results.kind === "triso") return void res.end(trisoResultsToCsv(d.results, meta));
+        if ("kind" in d.results && d.results.kind === "triso-transient") return void res.end(trisoTransientResultsToCsv(d.results, meta));
         return void res.end("kind" in d.results && d.results.kind === "transient" ? transientResultsToCsv(d.results, meta) : resultsToCsv(d.results as Parameters<typeof resultsToCsv>[0], meta));
       }
       if (req.method === "POST" && runMatch[2] === "/cancel") return json(res, 200, await manager.cancel(id));
