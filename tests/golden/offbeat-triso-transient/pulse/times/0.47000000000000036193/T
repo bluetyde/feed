@@ -1,0 +1,135 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0.47000000000000036193";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+64
+(
+1000.0025
+1000.0025
+1000.0025
+1000.0025
+1000.0024
+1000.0024
+1000.0024
+1000.0023
+1000.0022
+1000.0022
+1000.0021
+1000.0021
+1000.0019
+1000.0018
+1000.0016
+1000.0014
+1000.0013
+1000.0011
+1000.0009
+1000.0008
+1000.0006
+1000.0005
+1000.0004
+1000.0002
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000.0001
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+1000
+)
+;
+
+boundaryField
+{
+    top
+    {
+        type            wedge;
+    }
+    front
+    {
+        type            wedge;
+    }
+    back
+    {
+        type            wedge;
+    }
+    bottom
+    {
+        type            wedge;
+    }
+    outer
+    {
+        type            fixedValue;
+        value           uniform 1000;
+    }
+    bufferOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 1000.0002;
+        alpha           uniform 150000;
+    }
+    ipycInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 1000.0001;
+        alpha           uniform 150000;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

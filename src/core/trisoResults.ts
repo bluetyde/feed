@@ -130,6 +130,55 @@ function interfaceT(rA: number, TA: number, kA: Law, rB: number, TB: number, kB:
   return (gA * TA + gB * TB) / (gA + gB);
 }
 
+export interface ParticleCells {
+  /** The region (index into the case's regions, kernel first) and the radius (the length of the cell-centre vector, m) of each cell by its number in the mesh. */
+  regionOf: number[];
+  radius: number[];
+  /** The mesh numbers of the cells by increasing radius. */
+  order: number[];
+  /** The radii of the sphere the wedge solves between the regions (0, the kernel's, each layer's outer). */
+  bounds: number[];
+  eq: NormalizedTriso;
+  names: TrisoRegionName[];
+}
+
+/**
+ * Put the cells of a run into the particle's regions: the cell zones name them, the cell-centre vectors give each one's radius. Refuses zones that are not the case's, a cell in two
+ * zones or in none, a cell in a zone whose radii it is not between, and two cells at one centre. Shared by the steady and the transient results.
+ */
+export function readParticleCells(n: NormalizedTriso, C: number[][], zonesText: string): ParticleCells {
+  const names = regionNames(n);
+  const total = n.cells.reduce((a, b) => a + b, 0);
+  if (C.length !== total) bad(`C has ${C.length} cells, the case has ${total}`);
+  // the zones: exactly the particle's regions, each with its cells, covering every cell once
+  const zones = parseCellZones(zonesText);
+  const wantedZones = names.map((k) => TRISO_ZONE[k as keyof typeof TRISO_ZONE]);
+  for (const z of zones.keys()) if (!wantedZones.includes(z)) bad(`cellZones: zone ${z} is not a region of this particle (${wantedZones.join(", ")})`);
+  const regionOf = new Array<number>(total).fill(-1);
+  names.forEach((k, ri) => {
+    const labels = zones.get(TRISO_ZONE[k as keyof typeof TRISO_ZONE]);
+    if (!labels) return bad(`cellZones: zone ${TRISO_ZONE[k as keyof typeof TRISO_ZONE]} is missing`);
+    if (labels.length !== n.cells[ri]) bad(`cellZones: zone ${TRISO_ZONE[k as keyof typeof TRISO_ZONE]} has ${labels.length} cells, the case has ${n.cells[ri]} ${k} cells`);
+    for (const l of labels) {
+      if (l >= total) bad(`cellZones: zone ${TRISO_ZONE[k as keyof typeof TRISO_ZONE]} names cell ${l}, but there are ${total} cells`);
+      if (regionOf[l] !== -1) bad(`cellZones: cell ${l} is in two zones`);
+      regionOf[l] = ri;
+    }
+  });
+  const eq = wedgeEquivalent(n);
+  const bounds = [0, eq.kernelRadius, ...eq.layers.map((l) => l.outerRadius)];
+  const radius = C.map((p) => Math.hypot(p[0]!, p[1]!, p[2]!));
+  radius.forEach((r, i) => {
+    const ri = regionOf[i]!;
+    const lo = bounds[ri]!;
+    const hi = bounds[ri + 1]!;
+    if (!(r > lo * (1 - 1e-9) && r < hi * (1 + 1e-9))) bad(`cell ${i} is in the ${names[ri]} zone but its centre, r = ${r} m, is not between ${lo} and ${hi} m: the zones and the cell centres do not belong together`);
+  });
+  const order = radius.map((_, i) => i).sort((a, b) => radius[a]! - radius[b]!);
+  for (let i = 1; i < order.length; i++) if (!(radius[order[i]!]! - radius[order[i - 1]!]! > 1e-12)) bad(`two cells share a centre (r = ${radius[order[i]!]} m): the cell centres are not distinct`);
+  return { regionOf, radius, order, bounds, eq, names };
+}
+
 /**
  * Build the results record of a steady particle. Throws ResultsError for anything that is not a complete, finite, consistent field set: the wrong number of cells, a cell in a zone
  * whose radii it is not within, zones that are not the case's, non-finite or non-positive temperatures, a missing patch.
@@ -158,34 +207,8 @@ export function buildTrisoResults(n: NormalizedTriso, input: TrisoInput): TrisoR
   assertWholeFoamFile(input.T, "T");
   assertWholeFoamFile(input.C, "C");
 
-  // the zones: exactly the particle's regions, each with its cells, covering every cell once
-  const zones = parseCellZones(input.cellZones);
-  const wantedZones = names.map((k) => TRISO_ZONE[k as keyof typeof TRISO_ZONE]);
-  for (const z of zones.keys()) if (!wantedZones.includes(z)) bad(`cellZones: zone ${z} is not a region of this particle (${wantedZones.join(", ")})`);
-  const regionOf = new Array<number>(T.length).fill(-1);
-  names.forEach((k, ri) => {
-    const labels = zones.get(TRISO_ZONE[k as keyof typeof TRISO_ZONE]);
-    if (!labels) return bad(`cellZones: zone ${TRISO_ZONE[k as keyof typeof TRISO_ZONE]} is missing`);
-    if (labels.length !== n.cells[ri]) bad(`cellZones: zone ${TRISO_ZONE[k as keyof typeof TRISO_ZONE]} has ${labels.length} cells, the case has ${n.cells[ri]} ${k} cells`);
-    for (const l of labels) {
-      if (l >= T.length) bad(`cellZones: zone ${TRISO_ZONE[k as keyof typeof TRISO_ZONE]} names cell ${l}, but there are ${T.length} cells`);
-      if (regionOf[l] !== -1) bad(`cellZones: cell ${l} is in two zones`);
-      regionOf[l] = ri;
-    }
-  });
-
-  const eq = wedgeEquivalent(n);
-  const bounds = [0, eq.kernelRadius, ...eq.layers.map((l) => l.outerRadius)];
-  const radius = C.map((p) => Math.hypot(p[0]!, p[1]!, p[2]!));
-  const cellsUnsorted: TrisoCell[] = T.map((t, i) => ({ r: radius[i]!, T: t, region: names[regionOf[i]!]! }));
-  cellsUnsorted.forEach((c, i) => {
-    const ri = regionOf[i]!;
-    const lo = bounds[ri]!;
-    const hi = bounds[ri + 1]!;
-    if (!(c.r > lo * (1 - 1e-9) && c.r < hi * (1 + 1e-9))) bad(`cell ${i} is in the ${c.region} zone but its centre, r = ${c.r} m, is not between ${lo} and ${hi} m: the zones and the cell centres do not belong together`);
-  });
-  const cells = cellsUnsorted.slice().sort((a, b) => a.r - b.r);
-  for (let i = 1; i < cells.length; i++) if (!(cells[i]!.r - cells[i - 1]!.r > 1e-12)) bad(`two cells share a centre (r = ${cells[i]!.r} m): the cell centres are not distinct`);
+  const { regionOf, radius, order, bounds, eq } = readParticleCells(n, C, input.cellZones);
+  const cells: TrisoCell[] = order.map((i) => ({ r: radius[i]!, T: T[i]!, region: names[regionOf[i]!]! }));
 
   // the sphere the wedge solves, in closed form and finite volumes, on the same mesh
   const closed = trisoClosedForm(eq);
