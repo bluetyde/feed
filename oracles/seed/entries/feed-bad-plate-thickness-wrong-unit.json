@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-plate-thickness-wrong-unit",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-plate-thickness-wrong-unit.case.json",
+      "sha256": "c8e361c5ad5d1d7413bcc4294290e0c4197d06554fe11bcf69b74cb0fa3c6277"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_UNITS"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a plate's half-thickness given in a unit that is not a length. FEED must refuse it before any run; SEED reports E_UNITS.",
+    "check": "FEED's schema vectors (schema/vectors/bad/plate-thickness-wrong-unit.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "54262153a53740967a136b5408210f843d1584787e7a5795f46cefe62f84d8b7"
+}

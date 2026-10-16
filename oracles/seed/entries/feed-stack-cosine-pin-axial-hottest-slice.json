@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-cosine-pin-axial-hottest-slice",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-cosine-pin.case.json",
+      "sha256": "d233119aa3c427237fe71374c32fac981f817ec1d41ce465d367acc2eac8ba67"
+    }
+  ],
+  "expected": {
+    "quantity": "axial_hottest_slice",
+    "value": 4,
+    "unit": "1"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The index of the slice with the hottest fuel, counted from 0 at the bottom (its centre is at 0.1905 m of 0.381 m). The next slice is cooler by 69.65 K, more than twice the largest tolerance of any slice (5 K), so the solver's own choice cannot differ. An integer: no tolerance.",
+    "check": "Second method: FEED's own per-slice closed form (src/core/closedForm.ts through axialSummary, tests/seedOracleStack.test.ts, to 1e-3 K apart from the cosine's table term), and the real solver (FEED_SOLVER=1): every check of the run passes and the solver's slice peaks are inside the tolerances."
+  },
+  "coverage": {
+    "quantities": [
+      "axial_hottest_slice"
+    ],
+    "domain": "synthetic pin (constant conductivities, convective boundary 573 K and 30000 W/m2/K on every slice) as 9 radial slices over 0.381 m with a cosine power shape, 20 kW/m on average (31.4 kW/m at the peak)"
+  },
+  "toleranceHash": "8e8e2ab99d270246a41ec651f0ed1912dcb1dd8f3011a42cbfb5a4bd065aee75"
+}
