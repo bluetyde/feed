@@ -10,6 +10,7 @@ import { AddressInfo } from "net";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { axialSummary, hottestLoad, sliceCase, sliceLoads } from "../core/axial";
+import { STACK_TEXT } from "../core/stackResults";
 import { quickLook, radialProfile } from "../core/quickLook";
 import { projectRoot, unrunnableErrors, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
@@ -218,7 +219,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
       warnings: v.warnings,
       normalized: slim(n),
       transient: transientPreview(n.axial ? sliceCase(n, hottestLoad(n)) : n, external),
-      ...(n.axial ? { axial: axialSummary(n) } : {}),
+      ...(n.axial ? { axial: axialSummary(n), axialNote: STACK_TEXT } : {}),
       derived: derivedOf(n, n.qPrime),
     };
   }
@@ -239,7 +240,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
     ...(n.burnup ? { burnupNote: burnupText(n.burnup.value) } : {}),
     quick: look,
     profile: radialProfile(hot, look),
-    ...(stack ? { axial: stack } : {}),
+    ...(stack ? { axial: stack, axialNote: STACK_TEXT } : {}),
     derived: derivedOf(n, hot.qPrime),
   };
 }

@@ -37,3 +37,7 @@ A case may describe **a plate** instead of a pin: heat made uniformly in a slab 
 - One face cooled (the other insulated, or the mid-plane of a plate cooled on both faces); no boiling, no critical heat flux, no melting: the film coefficient is an input (the boundary history makes it a function of time).
 - A plate cooled differently on its two faces, or with a different fuel on either side, is not offered.
 - Mechanics, burnup and hot dimensions are for pins. The plate's temperature limits are as for a pin (`limits`, judged on the meat and the cladding).
+
+## In the editor (milestone A6, plan 12)
+
+The Pin dimensions item has a **Shape** choice, *Pin* or *Plate*. Switching converts the dimensions without changing them (a plate's meat half-thickness is the pin's fuel radius, its gap and cladding thicknesses are the pin's gap and wall), keeps the units the person typed for the meat, and removes what a plate cannot have (a central hole, hot dimensions, burnup, mechanics, a point-kinetics pulse), saying so in the log. The item is then named *Plate dimensions*; the Hot dimensions, Burnup and Mechanics items say *not for a plate*. The pin's cross-section is drawn as a slab (the insulated mid-plane dashed on the left, the meat coloured by temperature, the gap, the cladding, the coolant on the right, to scale), and the profile's axis is *x (mm from mid-plane)*. The Power note says that for a plate q′ is per metre of height per metre of width.
