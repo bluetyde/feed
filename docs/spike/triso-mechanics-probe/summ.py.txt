@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+# D1 probe: summarise the last time written by OFFBEAT for a whole-particle run: per layer, the temperature range and the
+# radial / tangential stress at the first and last cell centre of the layer. Usage: python3 summ.py <case folder under ~/spike/d1> <r_kernel um> <t_buffer> <t_ipyc> <t_sic> <t_opyc>
+import math, os, re, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from compare import read_internal, ROOT
+
+
+def main():
+    folder = sys.argv[1]
+    rk, tb, ti, ts, to = [float(x) for x in sys.argv[2:7]]
+    d = os.path.join(ROOT, folder)
+    ts_ = [t for t in os.listdir(d) if re.fullmatch(r'[0-9.e+-]+', t) and os.path.isfile(os.path.join(d, t, 'sigma'))]
+    t = max(ts_, key=float)
+    C = read_internal(os.path.join(d, t, 'C'))
+    S = read_internal(os.path.join(d, t, 'sigma'))
+    T = [x[0] for x in read_internal(os.path.join(d, t, 'T'))] if False else None
+    # scalar field: numbers after the count
+    txt = open(os.path.join(d, t, 'T')).read()
+    body = txt[txt.index('internalField'):txt.index('boundaryField')]
+    nums = body.split('(', 1)[1].rsplit(')', 1)[0].split()
+    T = [float(x) for x in nums]
+    r = [math.sqrt(x * x + y * y + z * z) / 1e-6 for x, y, z in C]
+    edges = [0.0, rk, rk + tb, rk + tb + ti, rk + tb + ti + ts, rk + tb + ti + ts + to]
+    names = ['Kernel', 'Buffer', 'IPyC', 'SiC', 'OPyC']
+    print('%s, time %s s, %d cells' % (folder, t, len(r)))
+    for i, n in enumerate(names):
+        ks = sorted([k for k in range(len(r)) if edges[i] <= r[k] <= edges[i + 1]], key=lambda k: r[k])
+        if not ks:
+            continue
+        k0, k1 = ks[0], ks[-1]
+        print('  %-6s %3d cells, T %.2f to %.2f K; first cell r=%.2f um sigma_r %.4g sigma_t %.4g Pa; last cell r=%.2f um sigma_r %.4g sigma_t %.4g Pa'
+              % (n, len(ks), min(T[k] for k in ks), max(T[k] for k in ks), r[k0], S[k0][0], S[k0][5], r[k1], S[k1][0], S[k1][5]))
+
+
+if __name__ == '__main__':
+    main()

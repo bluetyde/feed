@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# D1 probe: the whole probe in order, one log. usage (from Git Bash, MSYS_NO_PATHCONV=1):
+#   wsl -d feed-solver -u feed -- bash /mnt/c/agents/claude/feed-d1/docs/spike/triso-mechanics-probe/run-all.sh.txt > probe-log.txt
+D=/mnt/c/agents/claude/feed-d1/docs/spike/triso-mechanics-probe
+mkdir -p ~/spike/d1
+echo "# D1 probe log, started $(date -u +%FT%TZ); nproc $(nproc); load average at start: $(cut -d' ' -f1-3 /proc/loadavg)"
+echo; echo "## the independent Lame solver, self test"; bash $D/py.sh.txt lame.py
+echo; echo "## shipped benchmark cases, by their own Allrun (copies under ~/spike/d1/allrun)"
+for c in case_1 case_2 case_3 case_4a case_4b case_4c case_4d case_5 case_6 case_7 case_8 case_9 case_10 case_11 case_13; do
+  echo; echo "### $c"; bash $D/run-allrun.sh.txt $c 600 2>&1 | tr -d '\r'
+done
+echo; echo "## OFFBEAT's own module tests (trisoModulesTest), a few"
+for c in hollowsphere_1D sphere_1D testPyC_creep; do echo; echo "### $c"; bash $D/run-allrun.sh.txt Verification/trisoModulesTest/$c 300 2>&1 | tr -d '\r'; done
+echo; echo "## elastic cases step by step (blockMesh, offbeat), then OFFBEAT cell stresses against the independent Lame solution"
+for c in case_1 case_2 case_3 case_4a; do echo; echo "### $c"; bash $D/run-case.sh.txt $c 300 2>&1 | tr -d '\r'; bash $D/py.sh.txt compare.py $c; done
+echo; echo "## creep and swelling cases 4a, 4b, 4c: the independent march (creep1d.py), 10, 20 and 40 sublayers"
+for c in 4a 4b 4c; do for M in 10 20 40; do bash $D/py.sh.txt creep1d.py $c $M 600; done; done
+echo; echo "## case_1 with thermal expansion on"
+bash $D/run-thermal.sh.txt 2>&1 | tr -d '\r'; bash $D/py.sh.txt thermal1d.py
+echo; echo "## the shipped tutorial generic_TRISO_1D with one heat-table point appended"
+bash $D/run-tutorial.sh.txt 900 2>&1 | tr -d '\r'; bash $D/py.sh.txt summ.py tutorial 251 95 41 35 40
+echo; echo "## case_13 (the CRP-6 style whole particle with SCIANTIX), layer summary at the last time"
+bash $D/py.sh.txt summ.py allrun/case_13 251 95 41 35 40
+echo; echo "# finished $(date -u +%FT%TZ); load average at end: $(cut -d' ' -f1-3 /proc/loadavg)"
