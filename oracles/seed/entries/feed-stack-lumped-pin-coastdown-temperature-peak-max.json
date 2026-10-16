@@ -24,7 +24,7 @@
   },
   "source": {
     "kind": "analytic",
-    "text": "A lumped pin per slice, started at its steady state T_b + q_k/(h A) and then cooled less and less well. Heat capacity per metre 206.404, surface 0.02985. Slice 4 of 10 (the hottest, 1.551 kW/m) warms monotonically from 617.3279 K to 728.4139 K at 40 s, which is the largest peak of the run. The tolerance 3.3 K is the sum, rounded up to 0.05 K, of 1 % of the rise (1.111 K), twice the bound on the heat the slices exchange along the height (rate 0.003333 /s, exchange number 0.133 over the run, bound 0.862 K, twice 1.724 K) and the internal rise of the hottest cell above the lumped mean (at most 0.448 K); fixed before any run.",
+    "text": "A lumped pin per slice, started at its steady state T_b + q_k/(h A) and then cooled less and less well. Heat capacity per metre 206.404, surface 0.02985. Slice 4 of 10 (one of the two middle slices, equally hot, 1.551 kW/m) warms monotonically from 617.3279 K to 728.4139 K at 40 s, which is the largest peak of the run. The tolerance 3.3 K is the sum, rounded up to 0.05 K, of 1 % of the rise (1.111 K), twice the bound on the heat the slices exchange along the height (rate 0.003333 /s, exchange number 0.133 over the run, bound 0.862 K, twice 1.724 K) and the internal rise of the hottest cell above the lumped mean (at most 0.448 K); fixed before any run.",
     "check": "Second method: FEED's independent finite-volume solution of every slice (tests/seedOracleStack.test.ts, the same bound added) and the real solver with FEED_SOLVER=1; FEED's own checks of the stack run (cross-check, energy balance, time step) all pass."
   },
   "coverage": {
