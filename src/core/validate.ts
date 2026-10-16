@@ -213,7 +213,7 @@ export interface ValidationResult {
   warnings: Issue[];
   /** Present only when ok. */
   normalized?: NormalizedCase;
-  /** Present instead of `normalized` when ok and the case is a coated particle (plan 13): its own normalised form. Nothing runs it yet (T2: the independent solution, T3: the solver). */
+  /** Present instead of `normalized` when ok and the case is a coated particle (plan 13): its own normalised form (run by src/core/trisoWriter.ts, read by src/core/trisoResults.ts). */
   triso?: NormalizedTriso;
 }
 
@@ -835,12 +835,12 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
 }
 
 /**
- * The errors to give for a result that has no `normalized` case: its own, or, for a coated particle that validated (its form is `triso`), the statement that nothing runs it yet. A caller
- * that needs a pin or a plate and finds none uses this, so a valid particle is never answered with an empty list of problems.
+ * The errors to give for a result that has neither a `normalized` case nor a `triso` one: its own. A valid case never reaches this; if one ever did (a validator bug), the caller
+ * is not answered with an empty list of problems.
  */
 export function unrunnableErrors(v: ValidationResult): Issue[] {
-  if (v.errors.length > 0 || !v.triso) return v.errors;
-  return [{ code: "E_UNSUPPORTED", severity: "error", field: "/geometry/kind", message: "a coated particle case is valid, but nothing runs it yet: its independent solution (T2), the solver (T3) and the editor (T5) are milestones of plan 13" }];
+  if (v.errors.length > 0 || v.normalized || v.triso) return v.errors;
+  return [{ code: "E_SCHEMA_INVALID", severity: "error", field: "/", message: "the case could not be normalised" }];
 }
 
 function finish(issues: Issue[]): ValidationResult {

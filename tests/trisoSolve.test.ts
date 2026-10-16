@@ -484,10 +484,10 @@ describe("the quick look and the numbers beside the case", () => {
     // a power given per particle has no compact numbers
     expect(trisoDerived(norm(particle())).compactPowerDensity).toBeUndefined();
   });
-  it("is shown by the editor's check beside the statement that nothing runs the particle yet", () => {
+  it("is shown by the editor's check beside the valid case (which now runs)", () => {
     const r = check(particle()) as { ok: boolean; errors: { code: string }[]; triso?: { quick: { verdict: string; closed: { centreT: number } }; derived: { particlePower: number } } };
-    expect(r.ok).toBe(false);
-    expect(r.errors.map((e) => e.code)).toEqual(["E_UNSUPPORTED"]);
+    expect(r.ok).toBe(true);
+    expect(r.errors).toEqual([]);
     expect(r.triso!.quick.verdict).toBe("in-domain");
     expect(r.triso!.quick.closed.centreT).toBeCloseTo(trisoClosedForm(norm(particle())).centreT, 12);
     expect(r.triso!.derived.particlePower).toBeCloseTo(norm(particle()).power.particlePower, 15);

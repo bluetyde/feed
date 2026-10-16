@@ -2,6 +2,7 @@
 
 import { ResultsRecord } from "./resultsParser";
 import { TransientResultsRecord } from "./transientResults";
+import type { TrisoResultsRecord } from "./trisoResults";
 
 export function resultsToCsv(res: ResultsRecord, meta: { runId: string; caseName: string; solver: string; caseHash: string }): string {
   const clean = (s: string) => s.replace(/[\r\n]+/g, " ");
@@ -15,6 +16,23 @@ export function resultsToCsv(res: ResultsRecord, meta: { runId: string; caseName
     "r_mm,T_K,T_C,region",
   ];
   for (const p of res.radial) lines.push(`${p.r * 1000},${p.T},${p.T - 273.15},${p.region}`);
+  return lines.join("\n") + "\n";
+}
+
+/** A coated particle (plan 13): one row per cell, then the regions' faces. */
+export function trisoResultsToCsv(res: TrisoResultsRecord, meta: { runId: string; caseName: string; solver: string; caseHash: string }): string {
+  const clean = (s: string) => s.replace(/[\r\n]+/g, " ");
+  const lines = [
+    "# Fuel Performance Studio results (coated particle)",
+    "# " + clean(res.thermalOnly),
+    "# case: " + clean(meta.caseName) + " (" + clean(res.caseId) + ")",
+    "# run: " + clean(meta.runId) + "  solver: " + clean(meta.solver) + "  case hash: " + clean(meta.caseHash),
+    "# time: " + res.time + " s (steady state); values are at cell centres, on the sphere the 2 degree wedge solves (radii 0.03 % smaller than the case's)",
+    "r_um,T_K,T_C,region",
+  ];
+  for (const p of res.cells) lines.push(`${p.r * 1e6},${p.T},${p.T - 273.15},${p.region}`);
+  lines.push("# region,inner_face_T_K,outer_face_T_K,drop_K,hottest_cell_T_K");
+  for (const r of res.regions) lines.push(`# ${r.name},${r.innerFaceT},${r.outerFaceT},${r.drop},${r.hottestCellT}`);
   return lines.join("\n") + "\n";
 }
 
