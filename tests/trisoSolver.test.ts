@@ -9,6 +9,7 @@ import { lastRelativeRate } from "../src/core/steadyState";
 import { RunManager } from "../src/core/runManager";
 import { TrisoResultsRecord } from "../src/core/trisoResults";
 import { trisoClosedForm } from "../src/core/trisoSolve";
+import { wedgeEquivalent } from "../src/core/trisoWriter";
 import { WslBackend } from "../src/core/wslBackend";
 
 const root = join(__dirname, "..");
@@ -105,6 +106,26 @@ describe.skipIf(!solverOn)("a coated particle through the real solver (needs FEE
     show("temperature-dependent", res);
     expect(failing(res)).toEqual([]);
     expect(res.checks.find((c) => c.id === "propertyRange")!.verdict).toBe("pass");
+  }, 300_000);
+
+  it("temperature limits on the kernel, the buffer and the SiC: each margin is its limit minus the hottest cell of its region, and a limit under the SiC's hottest cell fails on a completed run", async () => {
+    const { res, normalized } = await run(vector("triso-limits"), GOLDEN ? join(GOLDEN, "limits") : undefined);
+    show("limits", res);
+    expect(failing(res)).toEqual([]);
+    const lim = res.checks.filter((c) => c.id.startsWith("temperatureLimit"));
+    expect(lim.map((c) => c.id)).toEqual(["temperatureLimit1", "temperatureLimit2", "temperatureLimit3"]);
+    const cf = trisoClosedForm(wedgeEquivalent(normalized));
+    // the hottest cell of a region is its innermost; the closed form's face is hotter by up to a cell's drop: within 0.3 K on this mesh
+    expect(Math.abs(lim[0]!.value! - (1500 - cf.regions[0]!.innerT))).toBeLessThan(0.3);
+    expect(Math.abs(lim[1]!.value! - (1100 + 273.15 - cf.regions[1]!.innerT))).toBeLessThan(2.5); // the buffer drops 36 K over 12 cells: its inner face is 2.1 K above its first cell
+    expect(Math.abs(lim[2]!.value! - (1300 - cf.regions[3]!.innerT))).toBeLessThan(0.1);
+    const d = vector("triso-limits");
+    d.limits[2].maxTemperature = q(1298, "K");
+    const r2 = await run(d);
+    const l3 = r2.res.checks.find((c) => c.id === "temperatureLimit3")!;
+    expect(l3.verdict).toBe("fail");
+    expect(l3.value!).toBeLessThan(0);
+    expect(failing(r2.res)).toEqual([expect.stringContaining("temperatureLimit3")]);
   }, 300_000);
 
   it("a fine mesh (48 cells in every region): the cells agree with the closed form of the wedge's sphere to a few hundredths of a kelvin", async () => {

@@ -272,7 +272,7 @@ describe("what the particle case refuses", () => {
     expect(codes(nfi)).toEqual(["E_UNSUPPORTED /materials/kernel/sets/thermal.conductivity/model"]);
   });
   it("refuses every pin section that has no meaning for a particle, each by its own name", () => {
-    for (const [key, value] of [["mechanics", {}], ["hotDimensions", {}], ["burnup", {}], ["axial", {}], ["limits", [{ name: "a" }]]] as const) {
+    for (const [key, value] of [["mechanics", {}], ["hotDimensions", {}], ["burnup", {}], ["axial", {}]] as const) {
       const d = particle();
       d[key] = value;
       const c = codes(d);

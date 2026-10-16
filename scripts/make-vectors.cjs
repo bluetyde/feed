@@ -713,6 +713,18 @@ add("good", "triso-steady", trisoBase(), {});
   c.materials.sic.sets["thermal.conductivity"] = { model: "reciprocal", a: qv(17885, "W/m"), b: qv(2, "W/m/K"), validRange: range, source: "synthetic: a phonon-limited shape, k = a / T + b" };
   add("good", "triso-temperature-dependent", c, {});
 }
+{
+  // limits on the kernel and on layers, each with its source: synthetic numbers, not design limits (FEED has none of its own)
+  const c = trisoBase();
+  c.power = { kernelPowerDensity: qv(3000, "MW/m3") };
+  c.boundary = { surfaceTemperature: qv(1298, "K") };
+  c.limits = [
+    { name: "kernel, synthetic", region: "kernel", maxTemperature: qv(1500, "K"), source: "synthetic: a number chosen for this test, not a design limit" },
+    { name: "buffer, synthetic", region: "buffer", maxTemperature: qv(1100, "degC"), source: "synthetic: a number chosen for this test, not a design limit" },
+    { name: "sic, synthetic", region: "sic", maxTemperature: qv(1300, "K"), source: "synthetic: a number chosen for this test, not a design limit" },
+  ];
+  add("good", "triso-limits", c, {});
+}
 const badTr = (name, code, field, mutate) => { const c = trisoBase(); mutate(c); add("bad", name, c, { code, field }); };
 badTr("triso-linear-heat-rate", "E_UNSUPPORTED", "/power/linearHeatRate", (c) => (c.power = { linearHeatRate: qv(20, "kW/m") }));
 badTr("triso-two-power-forms", "E_SCHEMA_INVALID", "/power", (c) => (c.power.particlePower = qv(0.04, "W")));
@@ -748,6 +760,16 @@ badTr("triso-conductivity-reaches-zero", "E_OUT_OF_RANGE", "/materials", (c) => 
   c.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: qv(3, "W/m/K"), b: qv(-0.002, "W/m/K2"), validRange: { min: qv(500, "K"), max: qv(1400, "K") }, source: "synthetic: positive over its range, zero at 1500 K, where this power takes the kernel" };
   c.power = { kernelPowerDensity: qv(30000, "MW/m3") };
 });
+const limitRule = (extra) => Object.assign({ name: "kernel, synthetic", region: "kernel", maxTemperature: qv(1500, "K"), source: "synthetic: a number chosen for this test" }, extra);
+badTr("triso-limit-pin-region", "E_SCHEMA_INVALID", "/limits/0/region", (c) => (c.limits = [limitRule({ region: "fuel" })]));
+badTr("triso-limit-region-absent", "E_GEOMETRY", "/limits/0/region", (c) => { c.geometry.layers = c.geometry.layers.slice(0, 2); delete c.materials.sic; delete c.materials.opyc; delete c.mesh.sicCells; delete c.mesh.opycCells; c.limits = [limitRule({ region: "sic" })]; });
+badTr("triso-limit-while-cladding", "E_UNSUPPORTED", "/limits/0/whileCladding", (c) => (c.limits = [limitRule({ whileCladding: { atMost: qv(500, "degC") } })]));
+badTr("triso-limit-no-source", "E_PROP_MISSING", "/limits/0/source", (c) => { const r = limitRule({}); delete r.source; c.limits = [r]; });
+badTr("triso-limit-no-maximum", "E_PROP_MISSING", "/limits/0/maxTemperature", (c) => { const r = limitRule({}); delete r.maxTemperature; c.limits = [r]; });
+badTr("triso-limit-too-hot", "E_OUT_OF_RANGE", "/limits/0/maxTemperature", (c) => (c.limits = [limitRule({ maxTemperature: qv(20000, "K") })]));
+badTr("triso-limit-wrong-unit", "E_UNITS", "/limits/0/maxTemperature", (c) => (c.limits = [limitRule({ maxTemperature: qv(1500, "W") })]));
+badTr("triso-limit-duplicate-name", "E_SCHEMA_INVALID", "/limits/1/name", (c) => (c.limits = [limitRule({}), limitRule({ region: "buffer" })]));
+badTr("triso-limit-no-name", "E_SCHEMA_INVALID", "/limits/0/name", (c) => (c.limits = [limitRule({ name: "" })]));
 bad("pin-missing-fuel-material", "E_SCHEMA_INVALID", "/materials/fuel", (c) => delete c.materials.fuel);
 bad("pin-missing-cladding-cells", "E_SCHEMA_INVALID", "/mesh/claddingCells", (c) => delete c.mesh.claddingCells);
 

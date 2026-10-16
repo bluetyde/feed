@@ -39,6 +39,7 @@ A complete case is `schema/vectors/good/triso-steady.json`; its dimensions are t
 - **Power**, exactly one of: `particlePower` (W, the heat generated in the kernel), `kernelPowerDensity` (W/m3 of kernel), or `compactPowerDensity` (W/m3 of compact) with `packingFraction`. The first two are two ways to say the same thing (power = density x the kernel's volume 4/3 pi R^3). The compact form gives each particle the compact's power density times the particle's whole volume divided by the packing fraction: the compact holds (packing fraction / particle volume) particles per cubic metre, so each carries the density divided by that. **The packing fraction is the fraction of the compact's volume that the whole particles (kernel to outer coating) fill.** It is an input number: OpenMC can model a packed compact, OpenMC Studio cannot yet, so FEED cannot check that the two apps use the same number. It is refused above 0.7405 (pi / sqrt 18, the densest packing of equal spheres) and warned above 0.64 (random close packing: an ordered arrangement is needed). A packing fraction given without a compact power density is refused, since it would change nothing. The pin's `linearHeatRate` is refused.
 - **Boundary.** The same two forms as a pin: a prescribed surface temperature, or a bulk temperature with a heat-transfer coefficient (the matrix or coolant outside the outer coating).
 - **Gap.** A constant conductance with its source, as for a pin, **at the buffer's outer radius** (W/m2/K). An irradiated particle has a gap between the buffer and the inner carbon, and the gap's width and gas decide how much it insulates; computing it needs mechanics, so FEED takes the conductance as an input. A conductance above 3e5 W/m2/K (about what OFFBEAT's own gap model gives for a zero-width gap) is warned: a buffer in contact understates the kernel temperature of an irradiated particle.
+- **Limits.** Optional `limits` on the kernel and on the layers the particle has, each with its source ([docs/temperature-limits.md](temperature-limits.md), "A coated particle's regions"): the results carry one check per rule with its margin.
 - **Mesh.** `kernelCells` and one `<layer>Cells` for each layer the particle has: whole numbers, at least 4 in the kernel and 2 in a layer, at most 20000 and 10000.
 - **Units.** Lengths in `um` (or the micro sign `µm`), `mm`, `cm`, `m`; volumetric power in `W/m3`, `kW/m3`, `MW/m3`, `W/cm3`; the packing fraction as `1` or `%`.
 
@@ -49,13 +50,17 @@ A complete case is `schema/vectors/good/triso-steady.json`; its dimensions are t
 | a pin's keys in the geometry (`fuelRadius`, thicknesses, a hole), an unknown key, layers out of order or of the wrong number, a layer with an unknown key, a material for a region the particle does not have | `E_GEOMETRY` at the key |
 | a missing kernel radius, layer thickness, material, mesh count, a power in none or two forms, a mesh key the particle does not have | `E_SCHEMA_INVALID` at the field |
 | a compact power density without a packing fraction; a material without a conductivity | `E_PROP_MISSING` |
-| a packing fraction that does nothing, mechanics, hot dimensions, burnup, an axial stack, limits, a transient, a particle that is not thermal-only or steady, a `linearHeatRate`, a closed or contacting gap, the burnup law | `E_UNSUPPORTED` at the section (limits and the transient: until stages 2 and 3 below are built) |
+| a packing fraction that does nothing, mechanics, hot dimensions, burnup, an axial stack, a transient (until stage 3), a particle that is not thermal-only or steady, a `linearHeatRate`, a closed or contacting gap, the burnup law, a limit's `whileCladding` | `E_UNSUPPORTED` at the section |
+| a limit with a region that is a pin's or unknown, a duplicate or empty name | `E_SCHEMA_INVALID` at the field |
+| a limit on a layer the particle does not have | `E_GEOMETRY` at `/limits/i/region` |
+| a limit without a source or a maximum | `E_PROP_MISSING` |
+| a limit temperature of 0 K or above 10000 K | `E_OUT_OF_RANGE` |
 | a packing fraction of 0 or above 0.7405 | `E_OUT_OF_RANGE` |
 | a count of cells below or above the bounds | `E_MESH` |
 | a boundary that is missing, in two forms or incomplete | `E_BOUNDARY_INCOMPLETE` |
 | a length or power in the wrong unit | `E_UNITS` |
 
-Warnings: `W_PACKING_FRACTION` (above 0.64), `W_GAP_CONTACT` (a gap conductance above 3e5), `W_POWER_RANGE` (a kernel power density above 1e10 W/m3). Every refusal has a bad vector in `schema/vectors/bad/triso-*.json` (40 vectors in all, 308 with the pin's, the plate's and the stack's), and `tests/triso.test.ts` (29 tests) states each one's code and field.
+Warnings: `W_PACKING_FRACTION` (above 0.64), `W_GAP_CONTACT` (a gap conductance above 3e5), `W_POWER_RANGE` (a kernel power density above 1e10 W/m3). Every refusal has a bad vector in `schema/vectors/bad/triso-*.json`, and `tests/triso.test.ts` (29 tests) and `tests/trisoLimits.test.ts` state each one's code and field.
 
 ## Running a particle (T3)
 
@@ -93,7 +98,7 @@ The energy balance is within 5e-5 of the power made on every 12-cell run (3.5e-4
 
 **Entry points.** `check()` returns `{ ok: true, triso: { normalized, quick, derived } }` for a valid particle (and the particle's own errors for an invalid one); `POST /api/run` starts it, `/results`, `/detail` and `/results.csv` carry the record (a CSV row per cell and a comment row per region); compare refuses a particle (pins and plates only); `write-case` writes the files and the manifest; `headless run` writes `results.json`, a particle `derived.json` and the manifest. The editor's page shows a note instead of the pin's views for a particle case, and a numbers-only card for a particle run.
 
-**Not in stage 1:** limits for the layers, the particle transient (stages 2 and 3, below when built), the editor (T5), a compact or pebble (T4), a population (T6).
+**Not in T3:** the editor (T5), a compact or pebble (T4), a population (T6).
 
 ## The independent solutions (T2)
 

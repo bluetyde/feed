@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const root = path.join(__dirname, "..");
 
-const FOCUS = ["tests/trisoWriter.test.ts", "tests/trisoResults.test.ts", "tests/triso.test.ts", "tests/trisoServer.test.ts", "tests/trisoSolve.test.ts"];
+const FOCUS = ["tests/trisoWriter.test.ts", "tests/trisoResults.test.ts", "tests/triso.test.ts", "tests/trisoServer.test.ts", "tests/trisoSolve.test.ts", "tests/trisoLimits.test.ts"];
 const W = "src/core/trisoWriter.ts";
 const R = "src/core/trisoResults.ts";
 const M = "src/core/runManager.ts";
