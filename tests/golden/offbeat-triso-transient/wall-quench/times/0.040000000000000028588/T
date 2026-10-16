@@ -1,0 +1,144 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0.040000000000000028588";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+64
+(
+1038.655
+1038.4343
+1037.9398
+1037.1783
+1036.1506
+1034.8545
+1033.2864
+1031.4414
+1029.3138
+1026.8969
+1024.1834
+1021.165
+1015.5925
+1007.8865
+1000.4271
+993.16802
+986.06776
+979.08888
+972.19754
+965.3631
+958.55769
+951.75596
+944.9348
+938.07311
+931.69655
+931.34362
+930.98389
+930.61741
+930.24422
+929.86436
+929.47788
+929.0848
+928.68516
+928.279
+927.86635
+927.44723
+927.30593
+927.2241
+927.14081
+927.05608
+926.96991
+926.88232
+926.7933
+926.70288
+926.61107
+926.51786
+926.42328
+926.32732
+926.23001
+926.13134
+926.03132
+925.92997
+925.75761
+925.27786
+924.79413
+924.30641
+923.81471
+923.31903
+922.81936
+922.31571
+921.80807
+921.29645
+920.78084
+920.26124
+)
+;
+
+boundaryField
+{
+    top
+    {
+        type            wedge;
+    }
+    front
+    {
+        type            wedge;
+    }
+    back
+    {
+        type            wedge;
+    }
+    bottom
+    {
+        type            wedge;
+    }
+    outer
+    {
+        type            timeDependentAxialProfileT;
+        value           uniform 920;
+        timeDependentProfile 
+        {
+            timePoints      ( 0 0.05 0.5 0.5005 );
+            axialLocations  ( 0 1 );
+            axialData       ( ( 1000 1000 ) ( 900 900 ) ( 900 900 ) ( 900 900 ) );
+            axialInterpolationMethod linear;
+            timeInterpolationMethod linear;
+        }
+;
+    }
+    bufferOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 934.63985;
+        alpha           uniform 150000;
+    }
+    ipycInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 931.87015;
+        alpha           uniform 150000;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

@@ -38,7 +38,7 @@ export const WRITER_DENSITY = 10000;
 /** The shortest steady end time; a case whose pin needs longer gets its own (src/core/steadyState.ts steadyEndTime). */
 export const STEADY_END_TIME = MIN_STEADY_END_TIME;
 
-const FOAM_HEADER = (cls: string, obj: string, loc?: string) =>
+export const FOAM_HEADER = (cls: string, obj: string, loc?: string) =>
   `FoamFile
 {
     version     2.0;
@@ -48,7 +48,7 @@ ${loc ? `    location    "${loc}";\n` : ""}    object      ${obj};
 }
 `;
 
-const num = (v: number) => {
+export const num = (v: number) => {
   if (!Number.isFinite(v)) throw new RangeError("non-finite number cannot be written");
   return String(v);
 };
@@ -131,7 +131,7 @@ mergePatchPairs
  * so par2 = b and par1 = a + 273.15 b reproduce any linear law. Checked against the conductivity-integral oracle in OFFBEAT
  * (docs/spike/F0-note.md, tests/offbeatOracle.test.ts). The model's name is a misnomer here; the manifest says so.
  */
-function conductivityLines(c: Conductivity): string {
+export function conductivityLines(c: Conductivity): string {
   if (c.kind === "constant") return `        k           k     [1 1 -3 -1 0]  ${num(c.k)};\n`;
   if (c.kind === "uo2-nfi") {
     // OFFBEAT's UO2MATPRO model is FRAPCON-3.4's modified NFI conductivity (its name is a misnomer: docs/spike/burnup-sourcing.md). All 13 parameters are written, with the
@@ -154,7 +154,7 @@ function conductivityLines(c: Conductivity): string {
 
 /** Heat capacity lines. Steady cases keep placeholders. A transient carries the volumetric c: constant as Cp = c / rho; linear c = a + b T
  *  through OFFBEAT's steel1515TiBanerjee model (Cp = par1 + par2 T + par3 T^-2, T in K) with par3 = 0; the model's name is a misnomer. */
-function heatCapacityLines(cp: HeatCapacity | undefined): string {
+export function heatCapacityLines(cp: HeatCapacity | undefined): string {
   const cpLine = (v: number) => `        Cp          Cp    [0 2 -2 -1 0]  ${num(v)};\n`;
   if (cp === undefined) return cpLine(300);
   if (cp.kind === "constant") return cpLine(cp.c / WRITER_DENSITY);
@@ -167,7 +167,7 @@ function heatCapacityLines(cp: HeatCapacity | undefined): string {
 }
 
 /** What was written for a region's conductivity, for the run's mapping record. */
-function conductivityNote(region: string, k: Conductivity): string {
+export function conductivityNote(region: string, k: Conductivity): string {
   if (k.kind === "constant") return `materials.${region}.k (constant)`;
   if (k.kind === "linear") return `materials.${region}: steel1515TiTobbe with par1 = a + 273.15 b, par2 = b (linear k(T))`;
   if (k.kind === "uo2-nfi") return `materials.${region}: UO2MATPRO, which is FRAPCON-3.4's modified NFI model (NUREG/CR-7024 Eq. 2.3-10 and 2.3-11; the name is a misnomer) with densityFraction ${k.densityFraction}, GdContent ${k.gadolinia} and all 13 parameters written (par13 = 16361, the report's, not OFFBEAT's default 16360); the burnup is read from 0/Bu`;
@@ -193,7 +193,7 @@ function mechanicalConstants(m?: EffectiveSolid, Tref?: number): string {
 `;
 }
 
-function constantMaterial(name: string, k: Conductivity, cp?: HeatCapacity, mech?: EffectiveSolid, Tref?: number): string {
+export function constantMaterial(name: string, k: Conductivity, cp?: HeatCapacity, mech?: EffectiveSolid, Tref?: number): string {
   return `    ${name}
     {
         material constant;
@@ -503,7 +503,7 @@ ${c.fuelInnerRadius > 0 ? `    fuelInner
 }
 `;
 
-const controlDict = (endTime: number, transient?: { timeStep: number; writeEvery: number }) => `${FOAM_HEADER("dictionary", "controlDict", "system")}
+export const controlDict = (endTime: number, transient?: { timeStep: number; writeEvery: number }) => `${FOAM_HEADER("dictionary", "controlDict", "system")}
 application     offbeat;
 startFrom       latestTime;
 startTime       0;
@@ -533,7 +533,7 @@ maxFGR            1e-8;
 runTimeModifiable true;
 `;
 
-const fvSchemes = `${FOAM_HEADER("dictionary", "fvSchemes", "system")}
+export const fvSchemes = `${FOAM_HEADER("dictionary", "fvSchemes", "system")}
 d2dt2Schemes { default steadyState; }
 ddtSchemes { default Euler; }
 gradSchemes { default leastSquaresImplicitContact; }
@@ -554,7 +554,7 @@ fluxRequired
  * default settings oscillate and never reach OFFBEAT's convergence criterion in its 1000 outer iterations, which OFFBEAT then accepts silently; with 0.5 the same case converges
  * in 2 and gives the contact pressure to 1 % (docs/spike/mechanics-probe.md, the M2 section). A thermal-only case keeps its settings byte for byte.
  */
-const fvSolutionText = (mechanics: boolean) => `${FOAM_HEADER("dictionary", "fvSolution", "system")}
+export const fvSolutionText = (mechanics: boolean) => `${FOAM_HEADER("dictionary", "fvSolution", "system")}
 solvers
 {
     D { solver PCG; preconditioner FDIC; tolerance 1e-10; relTol 0.1; }

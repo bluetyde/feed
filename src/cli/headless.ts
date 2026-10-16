@@ -109,7 +109,7 @@ async function run(args: string[]) {
   const files: Record<string, string | Buffer> = {
     "case.json": bytes,
     "results.json": JSON.stringify(res, null, 2) + "\n",
-    "derived.json": JSON.stringify({ linearHeatRate: n.qPrime, heatFluxOuter: n.qPrime / (2 * Math.PI * n.claddingOuterRadius), fuelRadius: n.fuelRadius, claddingInnerRadius: n.claddingInnerRadius, claddingOuterRadius: n.claddingOuterRadius, fuelCells: n.mesh.fuelCells, claddingCells: n.mesh.claddingCells, warnings: detail.manifest?.warnings ?? [] }, null, 2) + "\n",
+    "derived.json": JSON.stringify(n.kind === "triso" ? { ...(n.transient ? { transient: true, endTime: n.transient.endTime, steps: n.transient.steps, outputs: n.transient.outputs } : {}), particlePower: n.power.particlePower, kernelPowerDensity: n.power.kernelPowerDensity, heatFluxOuter: n.power.particlePower / (4 * Math.PI * n.outerRadius ** 2), kernelRadius: n.kernelRadius, outerRadius: n.outerRadius, cells: n.cells, warnings: detail.manifest?.warnings ?? [] } : { linearHeatRate: n.qPrime, heatFluxOuter: n.qPrime / (2 * Math.PI * n.claddingOuterRadius), fuelRadius: n.fuelRadius, claddingInnerRadius: n.claddingInnerRadius, claddingOuterRadius: n.claddingOuterRadius, fuelCells: n.mesh.fuelCells, claddingCells: n.mesh.claddingCells, warnings: detail.manifest?.warnings ?? [] }, null, 2) + "\n",
     "run.json": JSON.stringify(detail.record, null, 2) + "\n",
     "feed-manifest.json": readFileSync(join(outDir, "work", started.id, "feed-manifest.json")),
   };

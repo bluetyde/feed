@@ -756,6 +756,29 @@ add("good", "triso-steady", trisoBase(), {});
   c.power = { kernelPowerDensity: qv(20000, "MW/m3") };
   add("good", "triso-power-warning", c, { warnings: ["W_POWER_RANGE"] });
 }
+{
+  // conductivities that fall with temperature (T3: the real solver is checked against the closed form of each); a film outside, the probe's 3000 MW/m3
+  const c = trisoBase();
+  c.power = { kernelPowerDensity: qv(3000, "MW/m3") };
+  c.boundary = { bulkTemperature: qv(900, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") };
+  const range = { min: qv(600, "K"), max: qv(2000, "K") };
+  c.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: qv(3.5, "W/m/K"), b: qv(-0.0008, "W/m/K2"), validRange: range, source: "synthetic: chosen for the conductivity-integral oracle" };
+  c.materials.buffer.sets["thermal.conductivity"] = { model: "linear", a: qv(0.4, "W/m/K"), b: qv(0.0001, "W/m/K2"), validRange: range, source: "synthetic: chosen for the conductivity-integral oracle" };
+  c.materials.sic.sets["thermal.conductivity"] = { model: "reciprocal", a: qv(17885, "W/m"), b: qv(2, "W/m/K"), validRange: range, source: "synthetic: a phonon-limited shape, k = a / T + b" };
+  add("good", "triso-temperature-dependent", c, {});
+}
+{
+  // limits on the kernel and on layers, each with its source: synthetic numbers, not design limits (FEED has none of its own)
+  const c = trisoBase();
+  c.power = { kernelPowerDensity: qv(3000, "MW/m3") };
+  c.boundary = { surfaceTemperature: qv(1298, "K") };
+  c.limits = [
+    { name: "kernel, synthetic", region: "kernel", maxTemperature: qv(1500, "K"), source: "synthetic: a number chosen for this test, not a design limit" },
+    { name: "buffer, synthetic", region: "buffer", maxTemperature: qv(1100, "degC"), source: "synthetic: a number chosen for this test, not a design limit" },
+    { name: "sic, synthetic", region: "sic", maxTemperature: qv(1300, "K"), source: "synthetic: a number chosen for this test, not a design limit" },
+  ];
+  add("good", "triso-limits", c, {});
+}
 const badTr = (name, code, field, mutate) => { const c = trisoBase(); mutate(c); add("bad", name, c, { code, field }); };
 badTr("triso-linear-heat-rate", "E_UNSUPPORTED", "/power/linearHeatRate", (c) => (c.power = { linearHeatRate: qv(20, "kW/m") }));
 badTr("triso-two-power-forms", "E_SCHEMA_INVALID", "/power", (c) => (c.power.particlePower = qv(0.04, "W")));
@@ -779,7 +802,6 @@ badTr("triso-material-without-conductivity", "E_PROP_MISSING", "/materials/buffe
 badTr("triso-pin-material-names", "E_GEOMETRY", "/materials/fuel", (c) => (c.materials.fuel = trisoMat("synthetic-fuel", 3, 1000)));
 badTr("triso-with-mechanics", "E_UNSUPPORTED", "/mechanics", (c) => (c.mechanics = {}));
 badTr("triso-with-axial-stack", "E_UNSUPPORTED", "/axial", (c) => (c.axial = axialBase()));
-badTr("triso-transient", "E_UNSUPPORTED", "/assumptions/steadyState", (c) => (c.assumptions.steadyState = false));
 badTr("triso-assumed-radial", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-radial"));
 badTr("triso-closed-gap", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "closed" }));
 badTr("triso-no-boundary", "E_BOUNDARY_INCOMPLETE", "/boundary", (c) => (c.boundary = {}));
@@ -791,6 +813,106 @@ badTr("triso-conductivity-reaches-zero", "E_OUT_OF_RANGE", "/materials", (c) => 
   c.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: qv(3, "W/m/K"), b: qv(-0.002, "W/m/K2"), validRange: { min: qv(500, "K"), max: qv(1400, "K") }, source: "synthetic: positive over its range, zero at 1500 K, where this power takes the kernel" };
   c.power = { kernelPowerDensity: qv(30000, "MW/m3") };
 });
+// ---- the particle's transient (T3 stage 3): a pulse into a particle at a uniform 1000 K with the wall held there; volumetric heat capacities of synthetic order (J/m3/K)
+const trisoCap = (c) => ({ model: "constant", value: qv(c, "MJ/m3/K"), referenceTemperature: qv(1000, "K"), source: "synthetic: a number of the right order for the material, chosen for the independent oracle" });
+const trisoPulse = () => {
+  const c = trisoBase();
+  c.caseId = "triso-pulse";
+  c.name = "Synthetic coated particle, a pulse (illustrative numbers, not a real fuel design)";
+  c.assumptions.steadyState = false;
+  delete c.power;
+  for (const [r, v] of [["kernel", 3], ["buffer", 1.5], ["ipyc", 2.5], ["sic", 3.5], ["opyc", 2.5]]) c.materials[r].sets["thermal.volumetricHeatCapacity"] = trisoCap(v);
+  c.transient = {
+    powerHistory: [
+      { time: qv(0, "ms"), particlePower: qv(0, "W") },
+      { time: qv(10, "ms"), particlePower: qv(0.4, "W") },
+      { time: qv(20, "ms"), particlePower: qv(0, "W") },
+      { time: qv(500, "ms"), particlePower: qv(0, "W") },
+    ],
+    endTime: qv(500, "ms"),
+    timeStep: qv(0.5, "ms"),
+    outputs: 50,
+    initialTemperature: qv(1000, "K"),
+  };
+  return c;
+};
+add("good", "triso-pulse", trisoPulse(), {});
+{
+  // a particle at its operating power with a film outside, whose bulk temperature then rises (a loss of the outside's cooling): a steady start and a boundary history
+  const c = trisoPulse();
+  c.caseId = "triso-outside-ramp";
+  c.transient.outputs = 50;
+  c.boundary = { bulkTemperature: qv(900, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") };
+  c.transient.powerHistory = [{ time: qv(0, "ms"), particlePower: qv(0.2, "W") }, { time: qv(500, "ms"), particlePower: qv(0.2, "W") }];
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyParticlePower = qv(0.2, "W");
+  c.transient.boundaryHistory = [
+    { time: qv(0, "ms"), bulkTemperature: qv(900, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") },
+    { time: qv(50, "ms"), bulkTemperature: qv(900, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") },
+    { time: qv(250, "ms"), bulkTemperature: qv(1000, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") },
+    { time: qv(500, "ms"), bulkTemperature: qv(1000, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") },
+  ];
+  add("good", "triso-outside-ramp", c, {});
+}
+{
+  // the wall of a hot particle dropped by 100 K in 50 ms (a quench)
+  const c = trisoPulse();
+  c.caseId = "triso-wall-quench";
+  c.transient.outputs = 100; // the wall moves in 50 ms: the heat leaving changes fast between outputs
+  c.boundary = { surfaceTemperature: qv(1000, "K") };
+  c.transient.powerHistory = [{ time: qv(0, "ms"), particlePower: qv(0.2, "W") }, { time: qv(500, "ms"), particlePower: qv(0.2, "W") }];
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyParticlePower = qv(0.2, "W");
+  c.transient.boundaryHistory = [{ time: qv(0, "ms"), surfaceTemperature: qv(1000, "K") }, { time: qv(50, "ms"), surfaceTemperature: qv(900, "K") }, { time: qv(500, "ms"), surfaceTemperature: qv(900, "K") }];
+  add("good", "triso-wall-quench", c, {});
+}
+{
+  // limits in a transient: the worse of the solver's outputs and every step of the independent solution decides
+  const c = trisoPulse();
+  c.caseId = "triso-pulse-limits";
+  c.limits = [{ name: "kernel, synthetic", region: "kernel", maxTemperature: qv(1100, "K"), source: "synthetic: a number chosen for this test, not a design limit" }];
+  add("good", "triso-pulse-limits", c, {});
+}
+const badTT = (name, code, field, mutate) => { const c = trisoPulse(); mutate(c); add("bad", name, c, { code, field }); };
+badTT("triso-transient-no-section", "E_TRANSIENT_INCOMPLETE", "/transient", (c) => delete c.transient);
+badTT("triso-transient-section-in-steady-case", "E_TRANSIENT_INCOMPLETE", "/transient", (c) => { c.assumptions.steadyState = true; c.power = { kernelPowerDensity: qv(600, "MW/m3") }; });
+badTT("triso-transient-with-power-section", "E_TRANSIENT_INCOMPLETE", "/power", (c) => (c.power = { kernelPowerDensity: qv(600, "MW/m3") }));
+badTT("triso-transient-no-heat-capacity", "E_PROP_MISSING", "/materials/buffer/sets/thermal.volumetricHeatCapacity", (c) => delete c.materials.buffer.sets["thermal.volumetricHeatCapacity"]);
+badTT("triso-transient-point-kinetics", "E_UNSUPPORTED", "/transient/pointKinetics", (c) => (c.transient.pointKinetics = {}));
+badTT("triso-transient-pin-steady-start-key", "E_UNSUPPORTED", "/transient/initialSteadyLinearHeatRate", (c) => { delete c.transient.initialTemperature; c.transient.initialSteadyLinearHeatRate = qv(20, "kW/m"); });
+badTT("triso-transient-unknown-key", "E_SCHEMA_INVALID", "/transient/mesh", (c) => (c.transient.mesh = 4));
+badTT("triso-transient-negative-power", "E_OUT_OF_RANGE", "/transient/powerHistory/1/particlePower", (c) => (c.transient.powerHistory[1].particlePower = qv(-0.4, "W")));
+badTT("triso-transient-power-wrong-unit", "E_UNITS", "/transient/powerHistory/1/particlePower", (c) => (c.transient.powerHistory[1].particlePower = qv(0.4, "W/m")));
+badTT("triso-transient-history-not-from-zero", "E_TIME", "/transient/powerHistory/0/time", (c) => (c.transient.powerHistory[0].time = qv(1, "ms")));
+badTT("triso-transient-history-not-increasing", "E_TIME", "/transient/powerHistory/2/time", (c) => (c.transient.powerHistory[2].time = qv(10, "ms")));
+badTT("triso-transient-history-ends-early", "E_TIME", "/transient/powerHistory", (c) => c.transient.powerHistory.pop());
+badTT("triso-transient-all-zero-power", "E_OUT_OF_RANGE", "/transient/powerHistory", (c) => c.transient.powerHistory.forEach((p) => (p.particlePower = qv(0, "W"))));
+badTT("triso-transient-step-not-dividing", "E_TIME", "/transient/timeStep", (c) => (c.transient.timeStep = qv(0.7, "ms")));
+badTT("triso-transient-outputs-not-dividing", "E_TIME", "/transient/outputs", (c) => (c.transient.outputs = 7));
+badTT("triso-transient-too-much-work", "E_TIME", "/transient/timeStep", (c) => (c.transient.timeStep = qv(0.05, "ms")));
+badTT("triso-transient-two-starts", "E_TRANSIENT_INCOMPLETE", "/transient/initialSteadyParticlePower", (c) => (c.transient.initialSteadyParticlePower = qv(0.2, "W")));
+badTT("triso-transient-no-start", "E_TRANSIENT_INCOMPLETE", "/transient/initialTemperature", (c) => delete c.transient.initialTemperature);
+badTT("triso-transient-start-outside-capacity-range", "E_OUT_OF_RANGE", "/transient/initialTemperature", (c) => {
+  c.materials.sic.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: qv(3, "MJ/m3/K"), b: qv(0.0002, "MJ/m3/K2"), validRange: { min: qv(1200, "K"), max: qv(2000, "K") }, source: "synthetic: a range the start is outside" };
+});
+badTT("triso-transient-start-conductivity-zero", "E_OUT_OF_RANGE", "/transient/initialTemperature", (c) => {
+  c.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: qv(3, "W/m/K"), b: qv(-0.002, "W/m/K2"), validRange: { min: qv(500, "K"), max: qv(1400, "K") }, source: "synthetic: positive over its range, zero at 1500 K" };
+  c.transient.initialTemperature = qv(1600, "K");
+});
+badTT("triso-transient-history-form-differs", "E_BOUNDARY_INCOMPLETE", "/transient/boundaryHistory", (c) => (c.transient.boundaryHistory = [{ time: qv(0, "ms"), bulkTemperature: qv(900, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") }, { time: qv(500, "ms"), bulkTemperature: qv(950, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") }]));
+badTT("triso-transient-steady-start-history-differs", "E_TRANSIENT_INCOMPLETE", "/transient/boundaryHistory/0", (c) => { delete c.transient.initialTemperature; c.transient.initialSteadyParticlePower = qv(0.2, "W"); c.transient.boundaryHistory = [{ time: qv(0, "ms"), surfaceTemperature: qv(950, "K") }, { time: qv(500, "ms"), surfaceTemperature: qv(900, "K") }]; });
+badTT("triso-transient-history-ends-early-outside", "E_TIME", "/transient/boundaryHistory", (c) => (c.transient.boundaryHistory = [{ time: qv(0, "ms"), surfaceTemperature: qv(1000, "K") }, { time: qv(100, "ms"), surfaceTemperature: qv(900, "K") }]));
+badTT("triso-transient-limit-on-absent-layer", "E_GEOMETRY", "/limits/0/region", (c) => { c.geometry.layers = c.geometry.layers.slice(0, 2); delete c.materials.sic; delete c.materials.opyc; delete c.mesh.sicCells; delete c.mesh.opycCells; c.limits = [{ name: "k", region: "sic", maxTemperature: qv(1500, "K"), source: "synthetic" }]; });
+const limitRule = (extra) => Object.assign({ name: "kernel, synthetic", region: "kernel", maxTemperature: qv(1500, "K"), source: "synthetic: a number chosen for this test" }, extra);
+badTr("triso-limit-pin-region", "E_SCHEMA_INVALID", "/limits/0/region", (c) => (c.limits = [limitRule({ region: "fuel" })]));
+badTr("triso-limit-region-absent", "E_GEOMETRY", "/limits/0/region", (c) => { c.geometry.layers = c.geometry.layers.slice(0, 2); delete c.materials.sic; delete c.materials.opyc; delete c.mesh.sicCells; delete c.mesh.opycCells; c.limits = [limitRule({ region: "sic" })]; });
+badTr("triso-limit-while-cladding", "E_UNSUPPORTED", "/limits/0/whileCladding", (c) => (c.limits = [limitRule({ whileCladding: { atMost: qv(500, "degC") } })]));
+badTr("triso-limit-no-source", "E_PROP_MISSING", "/limits/0/source", (c) => { const r = limitRule({}); delete r.source; c.limits = [r]; });
+badTr("triso-limit-no-maximum", "E_PROP_MISSING", "/limits/0/maxTemperature", (c) => { const r = limitRule({}); delete r.maxTemperature; c.limits = [r]; });
+badTr("triso-limit-too-hot", "E_OUT_OF_RANGE", "/limits/0/maxTemperature", (c) => (c.limits = [limitRule({ maxTemperature: qv(20000, "K") })]));
+badTr("triso-limit-wrong-unit", "E_UNITS", "/limits/0/maxTemperature", (c) => (c.limits = [limitRule({ maxTemperature: qv(1500, "W") })]));
+badTr("triso-limit-duplicate-name", "E_SCHEMA_INVALID", "/limits/1/name", (c) => (c.limits = [limitRule({}), limitRule({ region: "buffer" })]));
+badTr("triso-limit-no-name", "E_SCHEMA_INVALID", "/limits/0/name", (c) => (c.limits = [limitRule({ name: "" })]));
 bad("pin-missing-fuel-material", "E_SCHEMA_INVALID", "/materials/fuel", (c) => delete c.materials.fuel);
 bad("pin-missing-cladding-cells", "E_SCHEMA_INVALID", "/mesh/claddingCells", (c) => delete c.mesh.claddingCells);
 

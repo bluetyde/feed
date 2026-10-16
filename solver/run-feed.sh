@@ -60,6 +60,8 @@ if [ "$final" != "0" ]; then
   timeout --foreground "$TMO" postProcess -func writeCellCentres -latestTime > log.cellCentres 2>&1
   cancelled && stop_cancelled
   cp "$final/T" "$final/C" "$OUT/final/" 2>/dev/null
+  # a coated particle is put into its regions by the mesh's cell zones (src/core/trisoResults.ts)
+  cp constant/polyMesh/cellZones "$OUT/final/" 2>/dev/null
   # a burnup case is checked against OFFBEAT's own conductivity (k) and burnup (Bu) fields (src/core/resultsParser.ts); other cases have no use for them
   cp "$final/k" "$final/Bu" "$OUT/final/" 2>/dev/null
   # a mechanics case is read back from the displacement and stress fields and the contact (src/core/mechanicsResults.ts)

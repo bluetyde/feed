@@ -1,0 +1,107 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "50000000";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+36
+(
+1047.9784
+1047.8545
+1047.5772
+1047.1515
+1046.5792
+1045.861
+1044.9975
+1043.9889
+1042.8352
+1041.5366
+1040.0931
+1038.5048
+1035.6064
+1031.7072
+1028.048
+1024.607
+1021.3655
+1018.3066
+1015.4152
+1012.678
+1010.0829
+1007.6192
+1005.2771
+1003.0479
+1001.0908
+1000.9866
+1000.8843
+1000.7839
+1000.6853
+1000.5885
+1000.4934
+1000.4001
+1000.3084
+1000.2182
+1000.1297
+1000.0427
+)
+;
+
+boundaryField
+{
+    top
+    {
+        type            wedge;
+    }
+    front
+    {
+        type            wedge;
+    }
+    back
+    {
+        type            wedge;
+    }
+    bottom
+    {
+        type            wedge;
+    }
+    outer
+    {
+        type            fixedValue;
+        value           uniform 1000;
+    }
+    bufferOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 1001.9942;
+        alpha           uniform 150000;
+    }
+    ipycInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 1001.1441;
+        alpha           uniform 150000;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

@@ -99,6 +99,8 @@ export interface TrisoModel {
   /** W/m2/K at the buffer's outer radius; Infinity is no gap resistance. */
   gapConductance: number;
   boundary: NormalizedTriso["boundary"];
+  /** When given, the outside at time t (s) instead of the constant `boundary`: the value of the END of a step is the one an implicit step uses, as OFFBEAT does (plan 11 B0). */
+  boundaryAt?: (t: number) => NormalizedTriso["boundary"];
   /** Heat made in the kernel at time t, W. */
   power: (t: number) => number;
 }
@@ -124,6 +126,8 @@ export interface TrisoFvOptions {
   initialField?: number[];
   outputEvery: number;
   scheme?: "implicit-euler" | "crank-nicolson";
+  /** Also record, at every step, the hottest cell of each region and the extrema of each region over the run (independent of the outputs). */
+  trace?: boolean;
 }
 
 export interface TrisoFvState {
@@ -136,6 +140,15 @@ export interface TrisoFvState {
   wall: number;
 }
 
+export interface TrisoFvTrace {
+  /** After every step (the first entry is the start): the hottest cell, and the hottest cell of each region (kernel first). */
+  peakByStep: number[];
+  regionMaxByStep: number[][];
+  /** The lowest and highest cell temperature of each region over the whole run. */
+  regionMin: number[];
+  regionMax: number[];
+}
+
 export interface TrisoFv {
   /** Cell-centre radii (m), kernel first. */
   r: number[];
@@ -144,6 +157,7 @@ export interface TrisoFv {
   /** The region (0 = kernel, 1 = buffer, ...) of each cell. */
   region: number[];
   states: TrisoFvState[];
+  trace?: TrisoFvTrace;
 }
 
 /** The cell faces of a region of n equal cells between a and b. */
@@ -195,10 +209,11 @@ export function solveTrisoFv(m: TrisoModel, o: TrisoFvOptions): TrisoFv {
   // only the face the gap sits on needs a name: the buffer's outer face, between region 1 and region 2
   const isGap = (i: number) => region[i] === 1 && region[i + 1] === 2;
   const kOf = (i: number, T: number) => evaluate(m.laws[region[i]!]!, T);
-  const outerT = m.boundary.kind === "convective" ? m.boundary.bulkTemperature : m.boundary.surfaceTemperature;
+  const boundaryOf = (t: number): NormalizedTriso["boundary"] => (m.boundaryAt ? m.boundaryAt(t) : m.boundary);
+  const outerOf = (b: NormalizedTriso["boundary"]) => (b.kind === "convective" ? b.bulkTemperature : b.surfaceTemperature);
   const Ro = bounds[bounds.length - 1]!;
-  const rFilm = m.boundary.kind === "convective" ? 1 / (SPHERE.area(Ro) * m.boundary.heatTransferCoefficient) : 0;
-  const conductances = (T: number[]) => {
+  const rFilmOf = (b: NormalizedTriso["boundary"]) => (b.kind === "convective" ? 1 / (SPHERE.area(Ro) * b.heatTransferCoefficient) : 0);
+  const conductances = (T: number[], b: NormalizedTriso["boundary"]) => {
     const g: number[] = [];
     for (let i = 0; i < n - 1; i++) {
       const f = faceOf(i);
@@ -207,43 +222,48 @@ export function solveTrisoFv(m: TrisoModel, o: TrisoFvOptions): TrisoFv {
       if (isGap(i)) res += 1 / (SPHERE.area(f) * m.gapConductance);
       g.push(1 / res);
     }
-    const gOut = 1 / (SPHERE.resist(r[n - 1]!, Ro, kOf(n - 1, T[n - 1]!)) + rFilm);
+    const gOut = 1 / (SPHERE.resist(r[n - 1]!, Ro, kOf(n - 1, T[n - 1]!)) + rFilmOf(b));
     return { g, gOut };
   };
-  const conduction = (T: number[], Tk: number[]) => {
-    const { g, gOut } = conductances(Tk);
+  const conduction = (T: number[], Tk: number[], b: NormalizedTriso["boundary"]) => {
+    const { g, gOut } = conductances(Tk, b);
     const f = new Array<number>(n).fill(0);
     for (let i = 0; i < n - 1; i++) {
       const q = g[i]! * (T[i + 1]! - T[i]!);
       f[i]! += q;
       f[i + 1]! -= q;
     }
-    f[n - 1]! += gOut * (outerT - T[n - 1]!);
+    f[n - 1]! += gOut * (outerOf(b) - T[n - 1]!);
     return { f, gOut };
   };
-  const wallOf = (T: number[]) => {
-    if (m.boundary.kind !== "convective") return outerT;
+  const wallOf = (T: number[], b: NormalizedTriso["boundary"]) => {
+    if (b.kind !== "convective") return outerOf(b);
     const gHalf = SPHERE.conductance(r[n - 1]!, Ro, kOf(n - 1, T[n - 1]!));
-    const gFilm = 1 / rFilm;
-    return (gHalf * T[n - 1]! + gFilm * outerT) / (gHalf + gFilm);
+    const gFilm = 1 / rFilmOf(b);
+    return (gHalf * T[n - 1]! + gFilm * b.bulkTemperature) / (gHalf + gFilm);
   };
   if ((o.initialTemperature === undefined) === (o.initialField === undefined)) throw new Error("give exactly one of initialTemperature and initialField");
   if (o.initialField !== undefined && (o.initialField.length !== n || !o.initialField.every((x) => Number.isFinite(x) && x > 0))) throw new Error("initialField needs " + n + " positive finite temperatures");
   let T = o.initialField !== undefined ? o.initialField.slice() : new Array<number>(n).fill(o.initialTemperature!);
-  const states: TrisoFvState[] = [{ time: 0, T: T.slice(), deposited: 0, rejected: 0, wall: wallOf(T) }];
+  const states: TrisoFvState[] = [{ time: 0, T: T.slice(), deposited: 0, rejected: 0, wall: wallOf(T, boundaryOf(0)) }];
+  const regionMaxOf = (Tc: number[]) => m.cells.map((_, ri) => Tc.reduce((mx, x, i) => (region[i] === ri && x > mx ? x : mx), -Infinity));
+  const trace: TrisoFvTrace | undefined = o.trace ? { peakByStep: [Math.max(...T)], regionMaxByStep: [regionMaxOf(T)], regionMin: m.cells.map((_, ri) => Math.min(...T.filter((_, i) => region[i] === ri))), regionMax: regionMaxOf(T) } : undefined;
   let deposited = 0;
   let rejected = 0;
   const theta = scheme === "crank-nicolson" ? 0.5 : 1;
   for (let step = 1; step <= o.steps; step++) {
     const t0 = (step - 1) * o.dt;
     const t1 = step * o.dt;
+    const b1 = boundaryOf(t1);
+    const b0 = boundaryOf(t0);
+    const outerT = outerOf(b1);
     const q0 = m.power(t0);
     const q1 = m.power(t1);
     const Told = T;
-    const old = scheme === "crank-nicolson" ? conduction(Told, Told) : null;
+    const old = scheme === "crank-nicolson" ? conduction(Told, Told, b0) : null;
     let Tn = Told.slice();
     for (let iter = 0; iter < 100; iter++) {
-      const { g, gOut } = conductances(Tn);
+      const { g, gOut } = conductances(Tn, b1);
       const lower = new Array<number>(n).fill(0);
       const diag = new Array<number>(n).fill(0);
       const upper = new Array<number>(n).fill(0);
@@ -270,14 +290,25 @@ export function solveTrisoFv(m: TrisoModel, o: TrisoFvOptions): TrisoFv {
       Tn = Tnew;
       if (delta < 1e-10) break;
     }
-    const outNew = conduction(Tn, Tn).gOut * (Tn[n - 1]! - outerT);
-    const outOld = conduction(Told, Told).gOut * (Told[n - 1]! - outerT);
+    const outNew = conduction(Tn, Tn, b1).gOut * (Tn[n - 1]! - outerT);
+    const outOld = conduction(Told, Told, b0).gOut * (Told[n - 1]! - outerOf(b0));
     rejected += o.dt * (scheme === "crank-nicolson" ? 0.5 * (outNew + outOld) : outNew);
     deposited += o.dt * (scheme === "crank-nicolson" ? 0.5 * (q0 + q1) : q1);
     T = Tn;
-    if (step % o.outputEvery === 0) states.push({ time: t1, T: T.slice(), deposited, rejected, wall: wallOf(T) });
+    if (trace) {
+      const mx = regionMaxOf(T);
+      trace.peakByStep.push(Math.max(...mx));
+      trace.regionMaxByStep.push(mx);
+      mx.forEach((x, ri) => {
+        if (x > trace.regionMax[ri]!) trace.regionMax[ri] = x;
+      });
+      T.forEach((x, i) => {
+        if (x < trace.regionMin[region[i]!]!) trace.regionMin[region[i]!] = x;
+      });
+    }
+    if (step % o.outputEvery === 0) states.push({ time: t1, T: T.slice(), deposited, rejected, wall: wallOf(T, b1) });
   }
-  return { r, volume: vol, region, states };
+  return { r, volume: vol, region, states, ...(trace ? { trace } : {}) };
 }
 
 /** The energy stored in the particle relative to a starting field (or a uniform temperature), J: the enthalpy change of every cell. */
@@ -298,7 +329,7 @@ export function trisoStoredEnergy(m: TrisoModel, fv: TrisoFv, T: number[], initi
 export function steadyTrisoFv(m: TrisoModel, power: number): { T: number[]; wall: number; r: number[]; region: number[] } {
   if (!(power >= 0) || !Number.isFinite(power)) throw new RangeError("the steady power must be a finite number, zero or more");
   const outer = m.boundary.kind === "convective" ? m.boundary.bulkTemperature : m.boundary.surfaceTemperature;
-  const stat: TrisoModel = { ...m, power: () => power };
+  const stat: TrisoModel = { ...m, boundaryAt: undefined, power: () => power };
   const run = solveTrisoFv(stat, { dt: 1e30, steps: 1, initialTemperature: outer, outputEvery: 1 });
   const s = run.states[1]!;
   if (!s.T.every((x) => Number.isFinite(x) && x > 0)) throw new RangeError("the iteration for the steady state ended with a temperature that is not finite and above 0 K; a conductivity law that falls too far at this power is the usual cause");

@@ -17,8 +17,10 @@ import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./po
 import { fuelMean, initialState } from "./transientResults";
 import { AXIAL_CONDUCTION_WARNING, AXIAL_STEP_WARNING, AxialSpec, axialConductionEstimate, parseAxial, sliceCase, sliceLoads } from "./axial";
 import { Dimension, toSI } from "./units";
-import { trisoSteadyEndTime } from "./trisoSolve";
-import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, parseTrisoGeometry, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
+import { trisoClosedForm, trisoSteadyEndTime } from "./trisoSolve";
+import { MAX_TRISO_TRANSIENT_WORK, NormalizedTrisoTransient, parseTrisoTransient } from "./trisoTransient";
+import { trisoInitialField } from "./trisoTransientModel";
+import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, parseTrisoGeometry, parseTrisoLimits, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
 
 export interface Issue {
   code: string;
@@ -213,7 +215,7 @@ export interface ValidationResult {
   warnings: Issue[];
   /** Present only when ok. */
   normalized?: NormalizedCase;
-  /** Present instead of `normalized` when ok and the case is a coated particle (plan 13): its own normalised form. Nothing runs it yet (T2: the independent solution, T3: the solver). */
+  /** Present instead of `normalized` when ok and the case is a coated particle (plan 13): its own normalised form (run by src/core/trisoWriter.ts, read by src/core/trisoResults.ts). */
   triso?: NormalizedTriso;
 }
 
@@ -745,14 +747,15 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
   const warn = (code: string, field: string, message: string, extra: Record<string, unknown> = {}) => issues.push({ code, severity: "warning", field, message, ...extra } as Issue);
   if (c.assumptions.geometry !== "1D-sphere") err("E_UNSUPPORTED", "/assumptions/geometry", "a particle is geometry '1D-sphere', got '" + String(c.assumptions.geometry) + "'");
   if (c.assumptions.thermalOnly !== true) err("E_UNSUPPORTED", "/assumptions/thermalOnly", "a particle is thermal only: its mechanics (the stress in the SiC, the swelling and creep of the carbon, the gas pressure) are decision D1 of plan 13 and not offered");
-  if (c.assumptions.steadyState !== true) err("E_UNSUPPORTED", "/assumptions/steadyState", "a particle is steady only in this release: its transient comes with milestone T2 of plan 13");
-  if (c.transient !== undefined) err("E_UNSUPPORTED", "/transient", "a particle transient comes with milestone T2 of plan 13; remove the section");
+  // steadyState false means a thermal transient: it needs the transient section and the regions' heat capacities (checked below), as for a pin. Nothing is assumed.
+  const isTransient = c.assumptions.steadyState === false;
+  if (!isTransient && c.transient !== undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "the case has a transient section but assumptions.steadyState is true; set it to false to run the transient, or remove the section");
+  if (isTransient && c.transient === undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "assumptions.steadyState is false, so the case needs a transient section (power history, end time, time step, outputs, initial temperature)");
   for (const [key, why] of [
     ["mechanics", "a particle has no mechanics here"],
     ["hotDimensions", "hot dimensions are for pins"],
     ["burnup", "a burnup is for pins in this release"],
     ["axial", "an axial stack is for pins and plates"],
-    ["limits", "temperature limits for the layers of a particle come with milestone T3 of plan 13"],
   ] as const) {
     if (c[key] !== undefined) err("E_UNSUPPORTED", "/" + key, why + "; remove the section");
   }
@@ -774,7 +777,10 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
   const volumes = geo ? particleVolumes(geo.kernelRadius, geo.outerRadius) : undefined;
   const powerRaw: Record<string, unknown> = isObject(c.power) ? c.power : {};
   let power: ReturnType<typeof parseTrisoPower>;
-  if (volumes) power = parseTrisoPower(powerRaw, volumes, err, qty, warn);
+  // a steady particle states its power in one of three forms; a transient takes it from transient.powerHistory instead
+  if (isTransient) {
+    if (c.power !== undefined) err("E_TRANSIENT_INCOMPLETE", "/power", "a transient case takes its power from transient.powerHistory; remove the power section");
+  } else if (volumes) power = parseTrisoPower(powerRaw, volumes, err, qty, warn);
   else if (powerRaw.linearHeatRate !== undefined) err("E_UNSUPPORTED", "/power/linearHeatRate", "a particle's power is per particle, per kernel volume or per compact volume; the linear heat rate is for pins");
   const hGap = parseGap(c.gap as Record<string, unknown>, err, positive);
   if (hGap !== undefined && hGap > GAP_CONTACT_CONDUCTANCE) {
@@ -803,21 +809,89 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
     return conductivity(m, n, err, qty);
   });
   const cells = geo && isObject(c.mesh) ? parseTrisoMesh(c.mesh, names, err) : undefined;
+  // the transient (stage 3 of T3): the heat capacity of every region and the section itself; the outside's table follows the pin's rules
+  let transient: NormalizedTrisoTransient | undefined;
+  let capacities: HeatCapacity[] | undefined;
+  if (isTransient) {
+    const caps = ["kernel", ...names].map((r) => (isObject(materials[r]) ? heatCapacity(materials[r] as Record<string, any>, r, err, qty) : undefined));
+    if (c.transient !== undefined) transient = isObject(c.transient) ? parseTrisoTransient(c.transient, err, qty, (raw, end) => parseBoundaryHistory(raw, err, qty, end)) : void err("E_SCHEMA_INVALID", "/transient", "the transient section is an object");
+    if (caps.every((x) => x !== undefined)) capacities = caps as HeatCapacity[];
+    if (transient && transient.boundaryHistory && boundary) {
+      const hist = transient.boundaryHistory;
+      if (hist.kind !== boundary.kind) {
+        err("E_BOUNDARY_INCOMPLETE", "/transient/boundaryHistory", "the boundary history is in the " + hist.kind + " form but the case's own boundary is " + boundary.kind + ": use the same form in both");
+        transient = undefined;
+      } else if (transient.initial.kind === "steady") {
+        // the run starts at the steady state of the case's own boundary; a history that begins elsewhere would not be starting from that state
+        const same = hist.kind === "convective" && boundary.kind === "convective"
+          ? Math.abs(hist.bulkTemperature[0]! - boundary.bulkTemperature) <= 1e-9 * boundary.bulkTemperature && Math.abs(hist.heatTransferCoefficient[0]! - boundary.heatTransferCoefficient) <= 1e-9 * boundary.heatTransferCoefficient
+          : hist.kind === "surface-temperature" && boundary.kind === "surface-temperature" && Math.abs(hist.surfaceTemperature[0]! - boundary.surfaceTemperature) <= 1e-9 * boundary.surfaceTemperature;
+        if (!same) {
+          err("E_TRANSIENT_INCOMPLETE", "/transient/boundaryHistory/0", "the run starts at the steady state of the case's own boundary, so the history's value at time 0 must equal it (bulk temperature, heat-transfer coefficient or surface temperature); otherwise start from a uniform temperature");
+          transient = undefined;
+        }
+      }
+    }
+    if (transient && transient.boundaryHistory) {
+      const unseen = unseenHistoryChange(transient.boundaryHistory, transient.endTime, transient.outputs);
+      if (unseen) issues.push({ code: "W_BOUNDARY_BETWEEN_OUTPUTS", severity: "warning", field: "/transient/boundaryHistory", message: unseen + ". The outputs of the run (and so the checks against the independent solution) cannot see it; add outputs, or accept that this part of the history is judged by the files FEED writes and not by the result." });
+    }
+    if (transient && cells) {
+      // the work must fit the budget; a conductivity and a heat capacity law must hold at a uniform starting temperature (a steady start is checked on its field, below)
+      const work = cells.reduce((a, b) => a + b, 0) * transient.steps;
+      if (work > MAX_TRISO_TRANSIENT_WORK) {
+        err("E_TIME", "/transient/timeStep", "cells x steps = " + work + " exceeds the budget of " + MAX_TRISO_TRANSIENT_WORK + " for a particle (" + transient.steps + " steps on " + cells.reduce((a, b) => a + b, 0) + " cells); use a coarser mesh or a longer step", { unit: "s" });
+        transient = undefined;
+      }
+    }
+    if (transient && transient.initial.kind === "uniform") {
+      const start = transient.initial.temperature;
+      const ks = [kernelK, ...layerK];
+      const regionNames = ["kernel", ...names];
+      for (let i = 0; i < ks.length && transient; i++) {
+        const k = ks[i];
+        const kStart = k ? evaluate(lawOf(k), start) : undefined;
+        if (kStart !== undefined && !(Number.isFinite(kStart) && kStart > 0)) {
+          err("E_OUT_OF_RANGE", "/transient/initialTemperature", "the " + regionNames[i] + " conductivity at the initial temperature " + start + " K is " + kStart.toPrecision(4) + " W/m/K: a conductivity law that is positive over its stated range can be zero or negative where the particle starts", { unit: "W/m/K" });
+          transient = undefined;
+          break;
+        }
+        const cp = capacities?.[i];
+        if (cp && cp.kind !== "constant" && (start < cp.range[0] || start > cp.range[1])) {
+          err("E_OUT_OF_RANGE", "/transient/initialTemperature", "the initial temperature " + start + " K is outside the stated range of the " + regionNames[i] + " heat capacity law (" + cp.range[0] + " to " + cp.range[1] + " K)", { unit: "K", range: cp.range });
+          transient = undefined;
+          break;
+        }
+      }
+    }
+  }
+  // temperature limits on the kernel and the layers, each with its source (a pin's whileCladding condition has no meaning here)
+  const limits = c.limits === undefined ? undefined : parseTrisoLimits(c.limits, geo ? ["kernel", ...names] : ["kernel", "buffer", "ipyc", "sic", "opyc"], err, qty);
   const result = finish(issues);
-  if (result.ok && geo && power && hGap !== undefined && boundary && kernelK && layerK.every((k) => k !== undefined) && cells) {
+  // a transient's power is its table: the particle's `power` is then the table's peak (the steady closed form below is taken at it)
+  if (isTransient && transient && volumes) {
+    const peak = Math.max(...transient.particlePower);
+    power = { form: "particle", particlePower: peak, kernelPowerDensity: peak / volumes.kernelVolume, ...volumes };
+  }
+  if (result.ok && geo && power && hGap !== undefined && boundary && kernelK && layerK.every((k) => k !== undefined) && cells && (!isTransient || (transient && capacities))) {
     let r = geo.kernelRadius;
     const layers: TrisoLayer[] = geo.layers.map((l, i) => {
       const inner = r;
       r += l.thickness;
       return { name: l.name, innerRadius: inner, outerRadius: r, conductivity: layerK[i]! };
     });
-    const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells };
+    const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells, ...(limits ? { limits } : {}), ...(transient && capacities ? { transient, capacities } : {}) };
     // The temperatures come from integrating each conductivity: a law that is positive over its stated range can still reach zero further out, where the particle runs; and a steady run has to be able to settle
     try {
-      const h = trisoSteadyEndTime(triso); // integrates the closed form (and so finds a conductivity that reaches zero) and bounds the time scale
-      if (!h.ok) {
-        result.ok = false;
-        result.errors.push({ code: "E_TIME", severity: "error", field: "/assumptions/steadyState", message: "this case cannot be run as a steady case: " + h.message });
+      if (triso.transient) {
+        trisoClosedForm(triso); // at the table's peak power: finds a conductivity that reaches zero
+        if (triso.transient.initial.kind === "steady") trisoInitialField(triso); // the steady start has to exist
+      } else {
+        const h = trisoSteadyEndTime(triso); // integrates the closed form (and so finds a conductivity that reaches zero) and bounds the time scale
+        if (!h.ok) {
+          result.ok = false;
+          result.errors.push({ code: "E_TIME", severity: "error", field: "/assumptions/steadyState", message: "this case cannot be run as a steady case: " + h.message });
+        }
       }
     } catch (e) {
       if (!(e instanceof RangeError)) throw e;
@@ -834,12 +908,12 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
 }
 
 /**
- * The errors to give for a result that has no `normalized` case: its own, or, for a coated particle that validated (its form is `triso`), the statement that nothing runs it yet. A caller
- * that needs a pin or a plate and finds none uses this, so a valid particle is never answered with an empty list of problems.
+ * The errors to give for a result that has neither a `normalized` case nor a `triso` one: its own. A valid case never reaches this; if one ever did (a validator bug), the caller
+ * is not answered with an empty list of problems.
  */
 export function unrunnableErrors(v: ValidationResult): Issue[] {
-  if (v.errors.length > 0 || !v.triso) return v.errors;
-  return [{ code: "E_UNSUPPORTED", severity: "error", field: "/geometry/kind", message: "a coated particle case is valid, but nothing runs it yet: its independent solution (T2), the solver (T3) and the editor (T5) are milestones of plan 13" }];
+  if (v.errors.length > 0 || v.normalized || v.triso) return v.errors;
+  return [{ code: "E_SCHEMA_INVALID", severity: "error", field: "/", message: "the case could not be normalised" }];
 }
 
 function finish(issues: Issue[]): ValidationResult {

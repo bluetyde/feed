@@ -793,6 +793,8 @@ async function runCheck(rebuildProps) {
   try {
     const r = await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
     const j = await r.json(); if (my !== seq) return; result = j;
+    /* a coated particle (plan 13) is valid and runs from the command line and the API; the editor for it is milestone T5, so this page shows a note instead of the pin views */
+    if (j && j.triso && !j.normalized) { result = { ok: false, errors: [{ code: "I_PARTICLE", severity: "error", field: "/geometry/kind", message: "This is a coated-particle case. It is valid (kernel centre " + K(j.triso.quick.closed.centreT) + " in the closed form) and it runs through the command line, the headless runner and the API; the editor and the results view for particles are milestone T5 of plan 13." }], warnings: j.warnings || [] }; }
   } catch (e) { result = { ok: false, errors: [{ code: "E_SERVER", severity: "error", field: "/", message: "Couldn't reach the server. Restart the app." }], warnings: [] }; }
   const active = document.activeElement; const keep = active && $("props").contains(active) && !rebuildProps ? active.id : null;
   $("caseBanner").textContent = doc && doc.mechanics ? ((result && result.mechanicsNote) || "Mechanics is on: a thermo-elastic result (linear elastic, no creep, plasticity or swelling). It does not say that anything fails or holds.") : "Thermal-only result. It says nothing about stress, failure or fuel integrity.";
@@ -1909,7 +1911,15 @@ function renderResults() {
   if (d.results && d.normalized && d.normalized.transient && d.normalized.transient.boundaryHistory) $("rBanner").textContent = "The coolant side changed with time (a table the case stated, not a calculation). " + $("rBanner").textContent;
   if (d.results && warns.length) $("rBanner").textContent += "  WARNING at run time: " + warns.map((w) => w.code + " (" + w.message + ")").join("; ");
   $("rBanner").style.color = ood ? "var(--err)" : ""; $("rBanner").style.background = ood ? "rgba(240,117,117,.12)" : "";
-  if (d.results && d.results.kind === "transient") { renderTransientResults(d, m); }
+  if (d.results && (d.results.kind === "triso" || d.results.kind === "triso-transient")) {
+    /* a coated particle (plan 13): numbers only until the particle view of milestone T5 */
+    const s = d.results.summary;
+    if (d.results.kind === "triso-transient") m.append(card("Hottest cell", K(s.maxT), "at " + (s.timeOfMaxT * 1e3).toPrecision(4) + " ms"), card("Rise", s.maxRise.toFixed(2) + " K", "above the start"), card("Final hottest cell", K(s.finalPeakT), "at " + (s.finalTime * 1e3).toPrecision(4) + " ms"));
+    else m.append(card("Kernel centre", K(s.kernelCentreT), "extrapolated from the first cell"), card("Kernel surface", K(s.kernelSurfaceT)), card("Outer wall", K(s.wallT)), card("Gap drop", s.gapDeltaT.toFixed(3) + " K", "buffer to the next layer"));
+    const bad = d.results.checks.filter((c) => c.verdict === "fail").length, ok = d.results.checks.filter((c) => c.verdict === "pass").length;
+    m.append(card("Checks", ok + " pass" + (bad ? ", " + bad + " fail" : ""), d.results.checks.map((c) => c.label.split(" (")[0] + ": " + c.verdict).join(" · ")));
+    drawGeneric($("rprof"), null);
+  } else if (d.results && d.results.kind === "transient") { renderTransientResults(d, m); }
   else if (d.results) {
     const s = d.results.summary;
     m.append(card("Centre cell", K(s.centreCellT), "first cell, near the axis"), card("Fuel surface cell", K(s.fuelSurfaceCellT)), card("Cladding inner cell", K(s.claddingInnerCellT)), card("Outer wall", s.claddingOuterWallT === null ? "n/a" : K(s.claddingOuterWallT)));
@@ -1931,7 +1941,7 @@ function renderResults() {
   row("State", rec.state); row("Run id", rec.id); row("Started", (rec.startedAt || "—").replace("T", " ").slice(0, 19)); row("Ended", (rec.endedAt || "—").replace("T", " ").slice(0, 19));
   row("Solver", rec.solver); if (rec.exitCode !== undefined && rec.exitCode !== null) row("Solver exit", rec.exitCode);
   row("Case hash", rec.caseHash.slice(0, 16) + "…");
-  if (d.manifest) { row("End time", d.manifest.choices.endTime + " s"); row("Mesh", d.normalized.mesh.fuelCells + " fuel / " + d.normalized.mesh.claddingCells + " cladding cells" + (d.normalized.axial ? " in each of " + d.normalized.axial.slices + " slices" : "")); }
+  if (d.manifest) { row("End time", d.manifest.choices.endTime + " s"); row("Mesh", d.normalized.kind === "triso" ? d.normalized.cells.join(" / ") + " cells (kernel, then the layers)" : d.normalized.mesh.fuelCells + " fuel / " + d.normalized.mesh.claddingCells + " cladding cells" + (d.normalized.axial ? " in each of " + d.normalized.axial.slices + " slices" : "")); }
   if ((rec.notes || []).length) pr.append(note(rec.notes.join(" ").replace(/</g, "&lt;")));
   if (d.manifest && d.manifest.placeholders) { pr.append(elt("div", "Solver placeholders", { class: "psec" })); pr.append(note(d.manifest.placeholders.map((p) => "<code>" + p.name + "</code> " + p.value).join("<br>"))); }
   pr.append(elt("div", "Warnings at the time", { class: "psec" })); pr.append(note(d.manifest && d.manifest.warnings && d.manifest.warnings.length ? d.manifest.warnings.map((w) => "<code>" + w.code + "</code> " + w.message.replace(/</g, "&lt;")).join("<br>") : "None."));
