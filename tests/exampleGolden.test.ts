@@ -92,7 +92,7 @@ describe("the example cases of plan 12 A9 and plan 13 T7, with the output the re
     expect(mid[mid.length - 1] - mid[0]).toBeGreaterThan(470);
     expect(end[end.length - 1] - end[0]).toBeGreaterThan(75);
     expect(end[end.length - 1] - end[0]).toBeLessThan(90);
-    // still warming at the end: the last interval of 2 s adds about 17 K to the middle (8.7 K/s between 12 s and 60 s)
+    // still warming at the end: the last interval of 2 s adds about 15 K to the middle (8.7 K/s between 12 s and 60 s)
     expect(mid[mid.length - 1] - mid[mid.length - 2]).toBeGreaterThan(10);
     expect((mid[mid.length - 1] - mid[6]) / (60 - 12)).toBeGreaterThan(8);
     expect((mid[mid.length - 1] - mid[6]) / (60 - 12)).toBeLessThan(9.5);
