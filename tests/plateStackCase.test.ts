@@ -279,6 +279,12 @@ describe("the heat the slices of a transient stack can exchange along the height
     const C = (2.4e6 + 2000 * 400) * 4.1e-3 + 2.5e6 * 0.57e-3;
     expect(ex.kA / kA).toBeCloseTo(1, 9);
     expect(ex.heatCapacity / C).toBeCloseTo(1, 9);
+    // a conductivity that RISES with temperature has its largest value at the hot end of the range, not at the cool end or in the lower half
+    const up = slab(example("synthetic-coastdown"));
+    up.axial = cosine(0.381);
+    up.materials.fuel.sets["thermal.conductivity"] = { model: "linear", a: q(2, "W/m/K"), b: q(0.001, "W/m/K2"), validRange: { min: q(300, "K"), max: q(2500, "K") }, source: "synthetic: a test" };
+    const exUp = axialExchange(norm(up), [400, 900], [300, 600])!;
+    expect(exUp.kA / ((2 + 0.001 * 900) * 4.1e-3 + 15 * 0.57e-3)).toBeCloseTo(1, 9);
     // a range the other way round gives a different answer: the range matters
     expect(axialExchange(nn, [800, 1200], [300, 600])!.kA).toBeLessThan(ex.kA);
     expect(axialExchange(nn, [800, 1200], [300, 600])!.heatCapacity).toBeGreaterThan(ex.heatCapacity);
