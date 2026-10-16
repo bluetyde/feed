@@ -151,6 +151,7 @@ input.bad,select.bad{border-color:var(--err)}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl th{text-align:left;color:var(--faint);font-weight:500;padding:3px 8px;border-bottom:1px solid var(--line)}
 .tbl td{padding:3px 8px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.tbl td.nw,.tbl td.pass.nw,.tbl td.fail.nw,.tbl td.na.nw{white-space:nowrap}
 .chg{color:var(--warn)}.diff-note{color:var(--warn)}.ok-note{color:var(--ok)}
 .toolbar select{width:auto;max-width:230px}
 .toolbar #rTitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -232,7 +233,10 @@ input.bad,select.bad{border-color:var(--err)}
         <div class="banner" id="rBanner"></div>
         <div class="toolbar"><span id="rTitle" style="color:var(--text)">No run selected</span><div class="seg" role="group" aria-label="Plot"><button type="button" id="rCf" aria-pressed="true">Closed-form line</button></div><span class="readout" id="rReadout">Hover the profile</span></div>
         <div class="metrics" id="metrics"></div>
+        <div class="vpwrap1 mechplot" id="rpartWrap" hidden><canvas id="rpart" aria-label="Cross-section of the particle, to scale, coloured by the temperature OFFBEAT gives"></canvas></div>
         <div class="vpwrap1"><canvas id="rprof" aria-label="Radial temperature profile of the selected run"></canvas></div>
+        <div class="vpwrap1 mechplot" id="rradWrap" hidden><canvas id="rrad" aria-label="Radial temperature profile of the particle at the selected time"></canvas></div>
+        <div class="ctables" id="rpTable" hidden></div>
         <div class="vpwrap1 mechplot" id="raxWrap" hidden><canvas id="rax" aria-label="Heat rate and peak temperature of each slice against height, from the selected run"></canvas></div>
         <div class="ctables" id="raxTable" hidden></div>
         <div id="r3dHost" hidden></div>
@@ -266,7 +270,7 @@ input.bad,select.bad{border-color:var(--err)}
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
-const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"], burnup: ["MWd/kgHM", "GWd/tHM", "MWd/tHM"], pressure: ["Pa", "kPa", "MPa", "GPa", "psi", "ksi"], ratio: ["1"] };
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"], burnup: ["MWd/kgHM", "GWd/tHM", "MWd/tHM"], pressure: ["Pa", "kPa", "MPa", "GPa", "psi", "ksi"], ratio: ["1"], lengthUm: ["um", "mm", "cm", "m"], powerDensity: ["MW/m3", "kW/m3", "W/m3", "W/cm3"], particlePower: ["W", "kW", "MW"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
 let sweepData = null, sweepFor = "", sweepMsg = "";
 let caseTab = "view";
@@ -287,7 +291,11 @@ const ITEMS = [
   ["mechanics", "Mechanics", "Checks", ["/mechanics"]],
   ["limits", "Temperature limits", "Checks", ["/limits"]],
 ];
-const itemOf = (field) => { if (field === "/transient/boundaryHistory" || field.startsWith("/transient/boundaryHistory/")) return "boundary"; const f = (ITEMS.find((i) => i[3].some((p) => field === p || field.startsWith(p + "/"))) || [])[0]; return f || null; };
+/* the explorer's items: a particle has its own (particleItems, in the particle section) */
+const items = () => (isParticle() ? particleItems() : ITEMS);
+const itemOf = (field) => { if (field === "/transient/boundaryHistory" || field.startsWith("/transient/boundaryHistory/")) return "boundary"; const f = (items().find((i) => i[3].some((p) => field === p || field.startsWith(p + "/"))) || [])[0]; return f || (isParticle() ? particleFallbackItem(field) : null); };
+/* a document of another kind can leave `selected` at an item it does not have */
+const ensureSelected = () => { if (doc && !items().some((i) => i[0] === selected)) selected = "power"; };
 
 /* ---- value helpers: read and write {value, unit} at a path of keys */
 const getp = (o, p) => p.reduce((a, k) => (a == null ? undefined : a[k]), o);
@@ -295,7 +303,8 @@ function setp(o, p, v) { let a = o; for (let i = 0; i < p.length - 1; i++) { if 
 const ptr = (p) => "/" + p.join("/");
 
 function qField(label, path, dim) {
-  const q = getp(doc, path); const units = UNITS[dim];
+  const q = getp(doc, path); let units = UNITS[dim];
+  if (q && typeof q === "object" && typeof q.unit === "string" && q.unit !== "" && !units.includes(q.unit)) units = [q.unit].concat(units); /* a unit the case uses that the list lacks (µm) is shown as it is, not as the first unit of the list */
   const row = el("div", "prow"); const id = "f" + path.join("_");
   row.append(elt("label", label, { for: id }));
   const box = el("div", "qin");
@@ -348,8 +357,9 @@ const note = (html) => { const r = el("div", "prow note"); const p = document.cr
 /* ---- property panels */
 function renderProps() {
   const p = $("props"); p.replaceChildren();
-  const it = ITEMS.find((i) => i[0] === selected); $("propSub").textContent = it ? it[1] : "";
+  ensureSelected(); const it = items().find((i) => i[0] === selected); $("propSub").textContent = it ? it[1] : "";
   if (!doc) return;
+  if (isParticle() && selected !== "boundary") { renderParticleProps(p); return; } /* a particle's Coolant boundary is the pin's panel below */
   if (selected === "power") {
     p.append(sec("Analysis"), analysisField());
     if (isTransient()) { renderTransientProps(p); return; }
@@ -366,7 +376,7 @@ function renderProps() {
     row.append(sel); p.append(row);
     if (form === "surface") p.append(qField("T surface", ["boundary", "surfaceTemperature"], "temperature"));
     else p.append(qField("T bulk", ["boundary", "bulkTemperature"], "temperature"), qField("h", ["boundary", "heatTransferCoefficient"], "htc"));
-    p.append(note("Bulk temperature alone is not a boundary condition: the coolant film needs a heat-transfer coefficient."));
+    p.append(note("Bulk temperature alone is not a boundary condition: the coolant film needs a heat-transfer coefficient." + (isParticle() ? " For a particle the outside is the matrix or the coolant around the outer layer; the film is on the sphere's outer surface." : "")));
     const gen = (result && result.errors || []).filter((i) => i.field === "/boundary"); if (gen.length) p.append(elt("div", gen.map((x) => x.message).join(" "), { class: "ferr" }));
     if (isTransient()) renderBoundaryHistory(p, form);
   } else if (selected === "geometry") {
@@ -570,6 +580,7 @@ function stackPanel(p) {
 function meta(id) {
   const fmt = (q) => (q && typeof q === "object" && q.value !== undefined ? q.value + " " + (q.unit || "?") : "—");
   if (!doc) return "";
+  if (isParticle()) { const pm = particleMeta(id, fmt); if (pm !== undefined) return pm; }
   switch (id) {
     case "power": return isTransient() ? (doc.transient && doc.transient.pointKinetics ? "pulse · kinetics" : "pulse · " + ((doc.transient && doc.transient.powerHistory) || []).length + " pts") : fmt(doc.power && doc.power.linearHeatRate);
     case "boundary": return doc.boundary.surfaceTemperature !== undefined ? "T surface " + fmt(doc.boundary.surfaceTemperature) : (doc.boundary.bulkTemperature !== undefined ? fmt(doc.boundary.bulkTemperature) : "—");
@@ -587,8 +598,8 @@ function meta(id) {
 function renderTree() {
   const t = $("tree"); t.replaceChildren(); if (!doc) return;
   const issues = (result && result.errors || []).concat(result && result.warnings || []);
-  let last = null, g = null;
-  for (const [id, label, group] of ITEMS) {
+  let last = null, g = null; ensureSelected();
+  for (const [id, label, group] of items()) {
     if (group !== last) { g = el("div", "tgroup"); const h = el("div", "tghead"); h.setAttribute("role", "heading"); h.setAttribute("aria-level", "3"); h.append(elt("span", group)); g.append(h); t.append(g); last = group; }
     const mine = issues.filter((i) => itemOf(i.field) === id);
     const st = mine.some((i) => i.severity === "error") ? "err" : mine.length ? "warn" : result ? "ok" : "";
@@ -624,6 +635,7 @@ function renderOutput() {
     const row = (k, v, cls, why) => { const r = el("div", "crow"); r.append(elt("span", k, { class: "k" }), elt("span", v, { class: "v " + (cls || "") }), elt("span", why || "", { class: "k" })); o.append(r); };
     if (!result || !result.ok) { o.textContent = "Fix the problems first."; return; }
     if (result.transient) { transientChecks(o, row); return; }
+    if (result.triso) { particleChecks(o, row); return; }
     const q = result.quick, t = q.temperatures;
     row("Centre temperature", K(t.centreT), "", "closed form: bulk + film + cladding + gap + fuel");
     row("Fuel centre-to-surface", t.fuelDeltaT.toFixed(1) + " K", "", "q′ / (4π k) for constant k");
@@ -962,20 +974,24 @@ function renderStackResults3d(d) {
 }
 
 /* ---- flow */
-function draw() { drawPin(); drawProfile(); drawBoundaryHistoryPlot(); drawStackSummary(); if (!$("doc3d").hidden && $("doc3d")._redraw) $("doc3d")._redraw(); }
+function draw() {
+  const part = isParticle(); $("tabView").textContent = part ? "Particle and profile" : "Pin and profile"; $("pCol").textContent = part ? "Colour by T" : "Colour fuel by T";
+  document.querySelector(".vpwrap").style.gridTemplateRows = part ? "minmax(150px,46%) minmax(0,1fr)" : ""; /* the particle's picture needs more room than the pin's */
+  if (part) { drawParticle(); drawParticleProfile(); drawBoundaryHistoryPlotParticle(); return; }
+  $("prof")._pplot = null; drawPin(); drawProfile(); drawBoundaryHistoryPlot(); drawStackSummary(); if (!$("doc3d").hidden && $("doc3d")._redraw) $("doc3d")._redraw();
+}
 function renderAll() { $("projName").textContent = doc ? doc.name + (doc.label ? " · " + doc.label : "") : ""; $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderProps(); renderOutput(); draw(); }
 async function runCheck(rebuildProps) {
   const my = ++seq;
   try {
     const r = await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
     const j = await r.json(); if (my !== seq) return; result = j;
-    /* a coated particle (plan 13) is valid and runs from the command line and the API; the editor for it is milestone T5, so this page shows a note instead of the pin views */
-    if (j && j.triso && !j.normalized) { result = { ok: false, errors: [{ code: "I_PARTICLE", severity: "error", field: "/geometry/kind", message: "This is a coated-particle case. It is valid (kernel centre " + K(j.triso.quick.closed.centreT) + " in the closed form) and it runs through the command line, the headless runner and the API; the editor and the results view for particles are milestone T5 of plan 13." }], warnings: j.warnings || [] }; }
   } catch (e) { result = { ok: false, errors: [{ code: "E_SERVER", severity: "error", field: "/", message: "Couldn't reach the server. Restart the app." }], warnings: [] }; }
   const active = document.activeElement; const keep = active && $("props").contains(active) && !rebuildProps ? active.id : null;
   $("caseBanner").textContent = doc && doc.mechanics ? ((result && result.mechanicsNote) || "Mechanics is on: a thermo-elastic result (linear elastic, no creep, plasticity or swelling). It does not say that anything fails or holds.") : "Thermal-only result. It says nothing about stress, failure or fuel integrity.";
   if (doc && doc.transient && doc.transient.boundaryHistory) $("caseBanner").textContent = "The coolant side changes with time: a table this case states (an input), not a thermal-hydraulic calculation. " + $("caseBanner").textContent;
   if (doc && doc.axial && result && result.axialNote) $("caseBanner").textContent = result.axialNote + " " + $("caseBanner").textContent;
+  if (isParticle()) $("caseBanner").textContent = (doc.transient && doc.transient.boundaryHistory ? "The outside changes with time: a table this case states (an input), not a calculation. " : "") + PARTICLE_TEXT;
   $("burnupBanner").textContent = (result && result.burnupNote) || ""; $("burnupBanner").hidden = !(result && result.burnupNote);
   if (sweepFor !== "" && sweepFor !== JSON.stringify(doc)) { sweepData = null; sweepFor = ""; }
   $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderOutput(); draw(); update3dTab();
@@ -990,7 +1006,7 @@ function refreshErrors() {  /* update inline error text without rebuilding field
 }
 function renderPropsKeepFocus() { const id = document.activeElement && document.activeElement.id; const pos = document.activeElement && document.activeElement.selectionStart; renderProps(); if (id) { const e = $(id); if (e) { e.focus(); try { if (pos != null) e.setSelectionRange(pos, pos); } catch (_) {} } } }
 function changed(rebuild) { if (study) { study = null; clearTimeout(studyTimer); } if (solverRes) { solverRes = null; runRec = null; logText += "Solver result cleared: the case changed.\n"; setChip(); } clearTimeout(timer); timer = setTimeout(() => runCheck(!!rebuild), rebuild ? 0 : 150); renderTreeMetaOnly(); }
-function renderTreeMetaOnly() { document.querySelectorAll("#tree .titem").forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(ITEMS[i][0]); }); }
+function renderTreeMetaOnly() { const its = items(), bs = document.querySelectorAll("#tree .titem"); if (bs.length !== its.length) return; /* the items changed (a layer added or removed): the check that follows rebuilds the tree */ bs.forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(its[i][0]); }); }
 let lib = { pins: [], materials: [], limits: [], expansion: [], strengths: [] }, menuEl = null;
 function closeMenu() { if (menuEl) { const had = menuEl.contains(document.activeElement), opener = menuEl.dataset.for && document.getElementById(menuEl.dataset.for); menuEl.remove(); menuEl = null; if (had && opener) opener.focus(); /* focus goes back to the button that opened it */ } }
 function openMenu(btn, heading, groups) {
@@ -1006,7 +1022,7 @@ function openMenu(btn, heading, groups) {
 document.addEventListener("click", (e) => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest(".rbtn")) closeMenu(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
 async function loadLibrary() { try { lib = await (await fetch("/api/library")).json(); } catch (_) { logText += "Couldn't load the library.\n"; } }
-async function loadPin(id, name) { doc = await (await fetch("/api/pin/" + encodeURIComponent(id))).json(); selected = "power"; logText += "Loaded pin: " + name + ".\n"; await runCheck(true); renderAll(); }
+async function loadPin(id, name) { doc = await (await fetch("/api/pin/" + encodeURIComponent(id))).json(); dropParticleRun(); selected = "power"; logText += "Loaded pin: " + name + ".\n"; await runCheck(true); renderAll(); }
 /* ---- temperature-dependent laws: constant, linear, polynomial, or a table carried by a fitted polynomial (docs/conductivity-models.md). Conductivity (cubic) and heat capacity (quadratic) share the editor. */
 const LAW = {
   conductivity: { set: "thermal.conductivity", what: "conductivity", valueDim: "conductivity", dims: ["conductivity", "conductivityPerK", "conductivityPerK2", "conductivityPerK3"], units: ["W/m/K", "W/m/K2", "W/m/K3", "W/m/K4"], pointKey: "conductivity", maxDegree: 3, default: { value: 3, unit: "W/m/K" }, polyLabel: "Cubic: a + b T + c T² + d T³", formula: "k = a + b T + c T² + d T³ in W/m/K", written: "<code>ZyRELAP</code> with the T² term's sign turned round and all four parameters written", plotUnit: "W/m/K" },
@@ -1119,7 +1135,7 @@ function lawFields(kind, p, kp, k, region) {
     ds.addEventListener("change", () => { if (!k.fit) k.fit = { tolerance: { value: 2, unit: "%" } }; k.fit.degree = Number(ds.value); changed(true); });
     dr.append(ds); attachErr(dr, ptr(kp.concat("fit", "degree")), [ds]); p.append(dr);
     p.append(qField("Largest deviation accepted", kp.concat("fit", "tolerance"), "fraction"));
-    const own = result && result.normalized && result.normalized[normKey];
+    const own = result && result.normalized ? result.normalized[normKey] : particleLaw(region, kind);
     if (own && own.kind === "polynomial" && own.fit) {
       p.append(note("Fitted: degree <code>" + own.fit.degree + "</code> through <code>" + own.fit.points.length + "</code> points, <b>largest deviation " + (own.fit.maxRelativeDeviation * 100).toPrecision(3) + " %</b> at " + own.fit.worstAt + " K (accepted " + (own.fit.tolerance * 100).toPrecision(3) + " %). Valid from " + own.range[0] + " to " + own.range[1] + " K, the table's own range. Coefficients <code>" + own.coefficients.map((c) => c.toPrecision(5)).join(", ") + "</code>."));
       const holder = el("div", "prow"); holder.append(fitPlot(own.fit, own.coefficients, own.range)); p.append(holder);
@@ -1510,18 +1526,19 @@ function applyMaterial(region, entry) {
   doc.materials[region] = JSON.parse(JSON.stringify(entry.material));
   /* a fuel that depends on burnup needs the case to state one (0 is fresh fuel, to be given a source); any other fuel must not have one */
   if (region === "fuel") { const km = entry.material.sets["thermal.conductivity"]; if (km && km.model === "uo2-nfi") { if (!doc.burnup) doc.burnup = { value: { value: 0, unit: "MWd/kgHM" }, basis: "heavy-metal", source: "" }; } else delete doc.burnup; } logText += "Set " + region + " to " + entry.name + " (" + entry.label + ").\n"; changed(true); }
-$("bPins").onclick = (e) => openMenu(e.currentTarget, "Pins", [["Pin presets", lib.pins.map((p) => ({ name: p.name, label: p.label, description: p.description, pick: () => loadPin(p.id, p.name) }))]]);
+$("bPins").onclick = (e) => openMenu(e.currentTarget, "Pins", [["Coated particle (plan 13)", [{ name: "New coated particle", label: "synthetic", description: "A kernel and four layers (250, 100, 40, 35, 35 µm), thermal only, one-dimensional in the radius. Synthetic numbers: replace them and state their sources.", pick: loadParticle }]], ["Pin presets", lib.pins.map((p) => ({ name: p.name, label: p.label, description: p.description, pick: () => loadPin(p.id, p.name) }))]]);
 $("bMats").onclick = (e) => openMenu(e.currentTarget, "Materials", [["Fuel", lib.materials.filter((x) => x.region === "fuel").map((x) => ({ ...x, pick: () => applyMaterial("fuel", x) }))], ["Cladding", lib.materials.filter((x) => x.region === "cladding").map((x) => ({ ...x, pick: () => applyMaterial("cladding", x) }))]]);
-async function loadExample() { doc = await (await fetch("/api/example")).json(); logText += "Loaded the synthetic example pin.\n"; await runCheck(true); renderAll(); }
+async function loadExample() { doc = await (await fetch("/api/example")).json(); dropParticleRun(); logText += "Loaded the synthetic example pin.\n"; await runCheck(true); renderAll(); }
 
 $("bExample").onclick = loadExample;
 $("bOpen").onclick = () => $("fileIn").click();
-$("fileIn").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { doc = JSON.parse(await f.text()); logText += "Opened " + f.name + ".\n"; } catch (_) { logText += "Couldn't read " + f.name + ": not valid JSON.\n"; renderOutput(); return; } await runCheck(true); renderAll(); e.target.value = ""; };
+$("fileIn").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { doc = JSON.parse(await f.text()); dropParticleRun(); logText += "Opened " + f.name + ".\n"; } catch (_) { logText += "Couldn't read " + f.name + ": not valid JSON.\n"; renderOutput(); return; } await runCheck(true); renderAll(); e.target.value = ""; };
 $("bSave").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2) + "\n"], { type: "application/json" })); a.download = (doc.caseId || "case") + ".json"; a.click(); URL.revokeObjectURL(a.href); logText += "Saved " + a.download + " (to your downloads).\n"; renderOutput(); };
 $("bStudy").onclick = async () => {
   await runCheck(false); outTab = "checks";
   if (!solverName) { logText += "A refinement study needs the solver, which is not installed.\n"; renderOutput(); return; }
   if (!result.ok) { outTab = "problems"; logText += "Study not started: fix the problems first.\n"; renderOutput(); return; }
+  if (isParticle()) { logText += "A refinement study is for pins and plates. A particle's run compares every cell with the closed form and an independent finite-volume solution on its own mesh; raise the cell counts in the Mesh item to see the error fall.\n"; renderOutput(); return; }
   const r = await fetch("/api/study", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
   const j = await r.json();
   if (!r.ok) { logText += "Study refused: " + (j.error || j.message || (j.errors || []).map((e) => e.message).join("; ")) + "\n"; renderOutput(); return; }
@@ -1634,7 +1651,7 @@ function analysisField() {
   sel.addEventListener("change", () => setAnalysis(sel.value));
   row.append(sel); return row;
 }
-const startsSteady = () => !!(doc && doc.transient && doc.transient.initialSteadyLinearHeatRate !== undefined);
+const startsSteady = () => !!(doc && doc.transient && (doc.transient.initialSteadyLinearHeatRate !== undefined || doc.transient.initialSteadyParticlePower !== undefined));
 function setInitialKind(kind) {
   const t = doc.transient;
   if (kind === "steady" && !startsSteady()) {
@@ -1749,7 +1766,7 @@ function drawBoundaryHistory(canvas, h) {
 }
 function drawBoundaryHistoryPlot() {
   const c = $("bhist"); if (!c) return;
-  drawBoundaryHistory(c, result && result.transient ? result.transient.boundaryHistory : null);
+  drawBoundaryHistory(c, result && result.transient ? result.transient.boundaryHistory : isParticle() && result && result.triso ? result.triso.normalized.transient && result.triso.normalized.transient.boundaryHistory || null : null);
 }
 function renderBoundaryHistory(p, form) {
   const t = doc.transient; const on = Array.isArray(t.boundaryHistory);
@@ -1850,7 +1867,7 @@ function drawTimeSeries(canvas, spec) {
   if (spec.power) { /* power as a scaled area along the bottom */
     const pm = Math.max(...spec.power.v) || 1; x.fillStyle = "rgba(140,148,158,.22)"; x.beginPath(); x.moveTo(X(spec.power.t[0]), h - Bt);
     spec.power.t.forEach((t, i) => x.lineTo(X(t), h - Bt - (spec.power.v[i] / pm) * pw)); x.lineTo(X(spec.power.t[spec.power.t.length - 1]), h - Bt); x.closePath(); x.fill();
-    x.fillStyle = "#8c949e"; x.fillText("power (input), peak " + (pm / 1e6).toPrecision(3) + " MW/m", L + 6, h - Bt - pw + 12);
+    x.fillStyle = "#8c949e"; x.fillText(spec.powerLabel || "power (input), peak " + (pm / 1e6).toPrecision(3) + " MW/m", L + 6, h - Bt - pw + 12);
   }
   for (const s of spec.series) {
     if (s.line && s.t.length > 1) { x.strokeStyle = s.color; x.lineWidth = s.width || 1.6; x.setLineDash(s.dash ? [5, 3] : []); x.beginPath(); s.t.forEach((t, i) => { const px = X(t), py = Y(showT(s.v[i])); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); x.setLineDash([]); }
@@ -2066,7 +2083,7 @@ const radialPts = (res) => res.radial.map((p) => [p.r, p.T]);
 async function selectRun(id) {
   selRun = id; renderRuns();
   try { selDetail = await (await fetch("/api/run/" + id + "/detail")).json(); } catch (_) { selDetail = null; }
-  selDetail.closed = null;
+  selDetail.closed = null; pIdx = -1;
   if (selDetail && selDetail.results && selDetail.case) {
     try { const c = await (await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(selDetail.case) })).json(); if (c.ok) selDetail.closed = c; } catch (_) {}
   }
@@ -2077,7 +2094,7 @@ function renderResults() {
   const d = selDetail, m = $("metrics"); m.replaceChildren();
   $("rTitle").textContent = d ? (d.record.caseName || d.record.caseId) + " · " + d.record.id : "No run selected";
   const pr = $("props"); pr.replaceChildren(); $("propSub").textContent = d ? "Run " + d.record.id : "";
-  $("rmechWrap").hidden = true; $("rdispWrap").hidden = true; drawStackResults(null); $("r3dHost").hidden = true;
+  $("rmechWrap").hidden = true; $("rdispWrap").hidden = true; drawStackResults(null); $("r3dHost").hidden = true; particleResultsOff();
   const bh = d && d.normalized && d.normalized.transient && d.normalized.transient.boundaryHistory;
   $("rbndWrap").hidden = !bh; if (bh) requestAnimationFrame(() => drawBoundaryHistory($("rbnd"), bh));
   if (!d) { drawGeneric($("rprof"), null); $("rBanner").hidden = true; return; }
@@ -2090,13 +2107,9 @@ function renderResults() {
   if (d.results && warns.length) $("rBanner").textContent += "  WARNING at run time: " + warns.map((w) => w.code + " (" + w.message + ")").join("; ");
   $("rBanner").style.color = ood ? "var(--err)" : ""; $("rBanner").style.background = ood ? "rgba(240,117,117,.12)" : "";
   if (d.results && (d.results.kind === "triso" || d.results.kind === "triso-transient")) {
-    /* a coated particle (plan 13): numbers only until the particle view of milestone T5 */
-    const s = d.results.summary;
-    if (d.results.kind === "triso-transient") m.append(card("Hottest cell", K(s.maxT), "at " + (s.timeOfMaxT * 1e3).toPrecision(4) + " ms"), card("Rise", s.maxRise.toFixed(2) + " K", "above the start"), card("Final hottest cell", K(s.finalPeakT), "at " + (s.finalTime * 1e3).toPrecision(4) + " ms"));
-    else m.append(card("Kernel centre", K(s.kernelCentreT), "extrapolated from the first cell"), card("Kernel surface", K(s.kernelSurfaceT)), card("Outer wall", K(s.wallT)), card("Gap drop", s.gapDeltaT.toFixed(3) + " K", "buffer to the next layer"));
-    const bad = d.results.checks.filter((c) => c.verdict === "fail").length, ok = d.results.checks.filter((c) => c.verdict === "pass").length;
-    m.append(card("Checks", ok + " pass" + (bad ? ", " + bad + " fail" : ""), d.results.checks.map((c) => c.label.split(" (")[0] + ": " + c.verdict).join(" · ")));
-    drawGeneric($("rprof"), null);
+    /* a coated particle (plan 13, T5): cards per region, the checks, the cross-section and the profile (steady) or the peak against time (transient) */
+    $("rBanner").textContent = PARTICLE_LABEL + ". " + $("rBanner").textContent;
+    renderParticleResults(d, m);
   } else if (d.results && d.results.kind === "transient") { renderTransientResults(d, m); }
   else if (d.results) {
     const s = d.results.summary;
@@ -2192,6 +2205,548 @@ function drawDelta(profile) {
   x.fillText("+" + m.toPrecision(2), 8, Tp + 8); x.fillText("−" + m.toPrecision(2), 8, h - Bt); x.fillText("B − A (K) at each cell", L + 6, Tp + 10);
   x.strokeStyle = COL.b; x.lineWidth = 1.4; x.beginPath(); profile.r.forEach((r, i) => { const px = X(r), py = Y(profile.dT[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke();
 }
+
+/* ================= Coated particle (plan 13, T5): its own explorer items, panels, picture and results view. The pin, plate and stack code above is not touched except where a shared helper has a branch for a particle. ================= */
+/* particle-pure:begin (tests/particleEditor.test.ts runs this block without a page; it uses only `doc` and `logText`) */
+const PARTICLE_LAYER_NAMES = ["buffer", "ipyc", "sic", "opyc"];
+const PARTICLE_LAYER_LABEL = { kernel: "Kernel", buffer: "Buffer", ipyc: "Inner PyC", sic: "SiC", opyc: "Outer PyC" };
+const PARTICLE_LABEL = "1D, spherically symmetric: thermal only";
+const PARTICLE_TEXT = PARTICLE_LABEL + ". Thermal-only result. It says nothing about stress, failure or fission-gas release: no stress in the silicon carbide, no swelling or creep of the carbon, no gas pressure, no kernel migration. All the heat is made in the kernel (no gamma heating of the coatings).";
+const isParticle = () => !!(doc && doc.geometry && doc.geometry.kind === "triso");
+const particleTransient = () => !!(doc && doc.assumptions && doc.assumptions.steadyState === false);
+const uq = (value, unit) => ({ value, unit });
+/* the starting numbers: the dimensions of OpenMC Studio's illustrative particle, FEED's own synthetic conductivities and heat capacities (each says so in its source) */
+const PARTICLE_SOURCE = "synthetic: chosen for the closed-form oracle, not a sourced property";
+const PARTICLE_CAPACITY_SOURCE = "synthetic: a number of the right order for the material, chosen for the independent oracle";
+const PARTICLE_DEFAULTS = { kernel: { k: 3, c: 3, cells: 12 }, buffer: { t: 100, k: 0.5, c: 1.5, cells: 12 }, ipyc: { t: 40, k: 4, c: 2.5, cells: 12 }, sic: { t: 35, k: 13.9, c: 3.5, cells: 16 }, opyc: { t: 35, k: 4, c: 2.5, cells: 12 } };
+const constantLaw = (value, unit, source) => ({ model: "constant", value: uq(value, unit), referenceTemperature: uq(1000, "K"), source });
+function particleMaterial(name, withCapacity) {
+  const d = PARTICLE_DEFAULTS[name];
+  const sets = { "thermal.conductivity": constantLaw(d.k, "W/m/K", PARTICLE_SOURCE) };
+  if (withCapacity) sets["thermal.volumetricHeatCapacity"] = constantLaw(d.c, "MJ/m3/K", PARTICLE_CAPACITY_SOURCE);
+  return { materialId: "synthetic-" + name, revision: 1, sets };
+}
+/** A valid steady particle to start from (the content of schema/vectors/good/triso-steady.json). */
+function defaultParticle() {
+  const materials = { kernel: particleMaterial("kernel", false) }, mesh = { kernelCells: PARTICLE_DEFAULTS.kernel.cells };
+  for (const n of PARTICLE_LAYER_NAMES) { materials[n] = particleMaterial(n, false); mesh[n + "Cells"] = PARTICLE_DEFAULTS[n].cells; }
+  return {
+    schema: "feed.case/0.1", caseId: "particle", name: "New coated particle (illustrative numbers, not a real fuel design)", label: "synthetic",
+    assumptions: { thermalOnly: true, steadyState: true, geometry: "1D-sphere" },
+    geometry: { kind: "triso", kernelRadius: uq(250, "um"), layers: PARTICLE_LAYER_NAMES.map((n) => ({ name: n, thickness: uq(PARTICLE_DEFAULTS[n].t, "um") })) },
+    power: { kernelPowerDensity: uq(600, "MW/m3") },
+    boundary: { surfaceTemperature: uq(1000, "K") },
+    materials,
+    gap: { model: "constant-conductance", conductance: uq(150000, "W/m2/K"), source: "synthetic: chosen for the closed-form oracle" },
+    mesh,
+  };
+}
+/** The regions of the particle in the document, kernel first, then the layers it has. */
+function particleRegions() {
+  const ls = doc && doc.geometry && Array.isArray(doc.geometry.layers) ? doc.geometry.layers : [];
+  return ["kernel"].concat(ls.filter((l) => l && PARTICLE_LAYER_NAMES.includes(l.name)).map((l) => l.name));
+}
+/** The explorer's items for a particle: id, label, group, JSON pointer prefixes that belong to it (the same shape as ITEMS). */
+function particleItems() {
+  const items = [
+    ["power", "Power", "Operating conditions", ["/power", "/assumptions", "/transient"]],
+    ["boundary", "Coolant boundary", "Operating conditions", ["/boundary"]],
+    ["geometry", "Particle dimensions", "Particle", ["/geometry"]],
+    ["gap", "Gap", "Particle", ["/gap"]],
+    ["mesh", "Mesh", "Particle", ["/mesh"]],
+  ];
+  for (const n of particleRegions()) items.push([n, PARTICLE_LAYER_LABEL[n], "Materials", ["/materials/" + n]]);
+  items.push(["limits", "Temperature limits", "Checks", ["/limits"]]);
+  return items;
+}
+/** Where an error goes that no item names: a material of a region the particle does not have is a fault of its geometry; the materials as a whole belong with the kernel. */
+function particleFallbackItem(field) { return field === "/materials" ? "kernel" : field.startsWith("/materials/") ? "geometry" : null; }
+/** Add the next coating layer (buffer, ipyc, sic, opyc in that order), with its material and its mesh count; false at four layers. */
+function particleAddLayer() {
+  const layers = doc.geometry.layers;
+  if (!Array.isArray(layers) || layers.length >= PARTICLE_LAYER_NAMES.length) return false;
+  const name = PARTICLE_LAYER_NAMES[layers.length], d = PARTICLE_DEFAULTS[name];
+  layers.push({ name, thickness: uq(d.t, "um") });
+  if (!doc.materials) doc.materials = {};
+  doc.materials[name] = particleMaterial(name, particleTransient());
+  if (!doc.mesh) doc.mesh = {};
+  doc.mesh[name + "Cells"] = d.cells;
+  logText += "Added the " + name + " layer (" + d.t + " um, a synthetic material and " + d.cells + " cells): check its numbers.\n";
+  return true;
+}
+/** Remove the outermost layer with its material, its mesh count and any limit on it; the name removed, or false at two layers (the smallest particle). */
+function particleRemoveLayer() {
+  const layers = doc.geometry.layers;
+  if (!Array.isArray(layers) || layers.length <= 2) return false;
+  const name = layers.pop().name;
+  if (doc.materials) delete doc.materials[name];
+  if (doc.mesh) delete doc.mesh[name + "Cells"];
+  let dropped = 0;
+  if (Array.isArray(doc.limits)) { const keep = doc.limits.filter((l) => l && l.region !== name); dropped = doc.limits.length - keep.length; if (keep.length) doc.limits = keep; else delete doc.limits; }
+  logText += "Removed the " + name + " layer" + (dropped ? " and " + dropped + (dropped === 1 ? " limit" : " limits") + " on it" : "") + ".\n";
+  return name;
+}
+/** The initial temperature a transient starts from when nothing else is said: the outside's. */
+function particleOutsideTemperature() {
+  const b = (doc && doc.boundary) || {}, t = b.bulkTemperature || b.surfaceTemperature;
+  return t && typeof t === "object" && t.value !== undefined ? uq(t.value, t.unit) : uq(1000, "K");
+}
+function defaultParticleTransient() {
+  const pt = (t, p) => ({ time: uq(t, "ms"), particlePower: uq(p, "W") });
+  return { powerHistory: [pt(0, 0), pt(10, 0.4), pt(20, 0), pt(500, 0)], endTime: uq(500, "ms"), timeStep: uq(0.5, "ms"), outputs: 50, initialTemperature: particleOutsideTemperature() };
+}
+/** Switch between a steady and a transient analysis. A transient has no `power` section (its power is the table) and needs a heat capacity in every region; the steady case needs a power. */
+function particleAnalysis(kind) {
+  const on = particleTransient();
+  if (kind === "transient" && !on) {
+    doc.assumptions.steadyState = false;
+    delete doc.power;
+    doc.transient = defaultParticleTransient();
+    for (const n of particleRegions()) { const m = doc.materials && doc.materials[n]; if (m && m.sets && !m.sets["thermal.volumetricHeatCapacity"]) m.sets["thermal.volumetricHeatCapacity"] = constantLaw(PARTICLE_DEFAULTS[n].c, "MJ/m3/K", PARTICLE_CAPACITY_SOURCE); }
+    logText += "Switched to a transient analysis: edit the power history; every region got a synthetic heat capacity, replace it with a sourced value.\n";
+  } else if (kind === "steady" && on) {
+    doc.assumptions.steadyState = true;
+    delete doc.transient;
+    doc.power = { kernelPowerDensity: uq(600, "MW/m3") };
+    logText += "Switched to a steady-state analysis.\n";
+  }
+}
+/** Start a transient from a uniform temperature or from the steady state at a power. */
+function particleInitial(kind) {
+  const t = doc.transient, steady = t.initialSteadyParticlePower !== undefined;
+  if (kind === "steady" && !steady) {
+    const first = Array.isArray(t.powerHistory) && t.powerHistory.map((h) => h && h.particlePower).find((q) => q && q.value > 0);
+    delete t.initialTemperature;
+    t.initialSteadyParticlePower = first ? uq(first.value / 2, first.unit) : uq(0.2, "W");
+    logText += "The run now starts from the steady state of the particle at that power.\n";
+  } else if (kind === "uniform" && steady) {
+    delete t.initialSteadyParticlePower;
+    t.initialTemperature = particleOutsideTemperature();
+    logText += "The run now starts from a uniform temperature.\n";
+  }
+}
+const particlePowerForm = () => { const p = (doc && doc.power) || {}; return p.particlePower !== undefined ? "particle" : p.compactPowerDensity !== undefined ? "compact" : "kernel-density"; };
+/** Change the form the power is given in, keeping the same heat per particle when `d` (the server's derived numbers of a valid case) is given. */
+function setParticlePowerForm(form, d) {
+  const num = (x) => Number(Number(x).toPrecision(6)), old = doc.power || {}, packing = 0.35;
+  let power;
+  if (form === "particle") power = { particlePower: uq(num(d ? d.particlePower : 0.1), "W") };
+  else if (form === "kernel-density") power = { kernelPowerDensity: uq(num(d ? d.kernelPowerDensity / 1e6 : 600), "MW/m3") };
+  else power = { compactPowerDensity: uq(num(d ? (d.particlePower * packing) / d.particleVolume / 1e6 : 100), "MW/m3"), packingFraction: uq(packing, "1") };
+  if (old.radialShape !== undefined) power.radialShape = old.radialShape;
+  doc.power = power;
+}
+const LENGTH_M = { um: 1e-6, "µm": 1e-6, mm: 1e-3, cm: 1e-2, m: 1 };
+const lengthM = (q) => (q && typeof q === "object" && typeof q.value === "number" && LENGTH_M[q.unit] !== undefined && q.value > 0 ? q.value * LENGTH_M[q.unit] : null);
+/** The particle's radii in metres from the document (so the picture can be drawn before the rest of the case is valid), or null when a radius is missing or not positive. */
+function particleRadii() {
+  const g = doc && doc.geometry, k = g && lengthM(g.kernelRadius);
+  if (!k || !Array.isArray(g.layers) || !g.layers.length) return null;
+  const layers = []; let r = k;
+  for (const l of g.layers) { const t = l && lengthM(l.thickness); if (!t) return null; layers.push({ name: String(l.name), inner: r, outer: r + t }); r += t; }
+  return { kernel: k, layers, outer: r };
+}
+/** The temperature inside a region at radius r from a list of {r, T, region} points (the closed form, or OFFBEAT's cells): linear between points, flat beyond the first and last. */
+function tempInRegion(points, region, r) {
+  const pts = points.filter((p) => p.region === region).sort((a, b) => a.r - b.r);
+  if (!pts.length) return null;
+  if (r <= pts[0].r) return pts[0].T;
+  for (let i = 1; i < pts.length; i++) if (r <= pts[i].r) return pts[i - 1].T + ((pts[i].T - pts[i - 1].T) * (r - pts[i - 1].r)) / (pts[i].r - pts[i - 1].r || 1);
+  return pts[pts.length - 1].T;
+}
+/** One row per region of a steady run: the nominal radii of the case, the temperature at the inner and outer face, the drop and the hottest and coldest cell. */
+function particleRegionRows(rec, norm) {
+  const nominal = [{ name: "kernel", inner: 0, outer: norm.kernelRadius }].concat(norm.layers.map((l) => ({ name: l.name, inner: l.innerRadius, outer: l.outerRadius })));
+  return rec.regions.map((g) => { const nm = nominal.find((x) => x.name === g.name); return { name: g.name, inner: nm.inner, outer: nm.outer, innerT: g.innerFaceT, outerT: g.outerFaceT, drop: g.drop, hottest: g.hottestCellT, coldest: g.coldestCellT }; });
+}
+/** The hottest cell of each region over a transient run, and when. */
+function particleRegionPeaks(rec) {
+  return Object.keys(rec.series.regionMax).map((name) => { const v = rec.series.regionMax[name]; let k = 0; v.forEach((x, i) => { if (x > v[k]) k = i; }); return { name, peak: v[k], time: rec.times[k] }; });
+}
+/** The limits to draw on the peak-against-time plot: those within one span of the temperatures the run reaches (a limit far above would flatten the curve; it is named instead). */
+function limitLines(limits, lo, hi, tmax) {
+  const span = Math.max(hi - lo, 50), lines = [], off = [];
+  for (const l of limits || []) { if (l.maxTemperature >= lo - span && l.maxTemperature <= hi + span) lines.push({ label: l.name, region: l.region, t: [0, tmax], v: [l.maxTemperature, l.maxTemperature] }); else off.push(l); }
+  return { lines, off };
+}
+/** Energy made by a power table that is linear between its points, J. */
+function particleEnergy(times, power) { let e = 0; for (let i = 1; i < times.length; i++) e += 0.5 * (power[i] + power[i - 1]) * (times[i] - times[i - 1]); return e; }
+/* particle-pure:end */
+
+/* what the explorer shows beside a particle's items (the others, boundary, materials and limits, are the pin's) */
+function particleMeta(id, fmt) {
+  const cnt = (n) => (doc.mesh ? (n === "kernel" ? doc.mesh.kernelCells : doc.mesh[n + "Cells"]) : undefined);
+  switch (id) {
+    case "power": { if (particleTransient()) return "pulse · " + ((doc.transient && doc.transient.powerHistory) || []).length + " pts"; const p = doc.power || {}; return p.particlePower ? fmt(p.particlePower) : p.kernelPowerDensity ? fmt(p.kernelPowerDensity) : p.compactPowerDensity ? fmt(p.compactPowerDensity) + " compact" : "—"; }
+    case "geometry": return fmt(doc.geometry.kernelRadius) + " kernel R · " + (Array.isArray(doc.geometry.layers) ? doc.geometry.layers.length : 0) + " layers";
+    case "gap": return fmt(doc.gap && doc.gap.conductance);
+    case "mesh": return particleRegions().map((n) => (cnt(n) === undefined ? "?" : cnt(n))).join(" / ");
+    default: return undefined;
+  }
+}
+/* the normalised law of a region (the fit of a table), from the server's check */
+function particleLaw(region, kind) {
+  const n = result && result.triso && result.triso.normalized; if (!n) return undefined;
+  const i = ["kernel"].concat(n.layers.map((l) => l.name)).indexOf(region); if (i < 0) return undefined;
+  if (kind === "heatCapacity") return n.capacities ? n.capacities[i] : undefined;
+  return i === 0 ? n.kernelConductivity : n.layers[i - 1].conductivity;
+}
+const PARTICLE_COLOUR = { kernel: "#c9a45c", buffer: "#7d6b5c", ipyc: "#8e949c", sic: "#5f86a8", opyc: "#a9aeb5" };
+const fmtUm = (m) => (m * 1e6).toFixed(m * 1e6 >= 100 ? 1 : 2);
+const sig = (x, n) => Number(x).toPrecision(n || 4);
+function warnNotes(p, item) { for (const g of (result && result.warnings) || []) if (itemOf(g.field) === item) p.append(note("<b>Warning</b> <code>" + esc(g.code) + "</code> " + esc(g.message))); }
+function generalErrors(p, test) { for (const g of (result && result.errors) || []) if (test(g.field)) p.append(elt("div", g.message, { class: "ferr" })); }
+function dropParticleRun() { if (solverRes && String(solverRes.kind || "").startsWith("triso")) { solverRes = null; runRec = null; pIdx = -1; setChip(); } }
+let pIdx = -1; /* the output shown in the transient results' cross-section; -1 is the last */
+
+function renderParticleProps(p) {
+  if (selected === "power") particlePowerPanel(p);
+  else if (selected === "geometry") particleGeometryPanel(p);
+  else if (selected === "gap") particleGapPanel(p);
+  else if (selected === "mesh") particleMeshPanel(p);
+  else if (selected === "limits") particleLimitsPanel(p);
+  else particleMaterialPanel(p, selected);
+}
+function particleAnalysisField() {
+  const row = el("div", "prow"); row.append(elt("label", "Analysis", { for: "analysis" }));
+  const sel = elt("select", "", { id: "analysis" });
+  sel.append(elt("option", "Steady state", { value: "steady" }), elt("option", "Transient (a power history)", { value: "transient" }));
+  sel.value = particleTransient() ? "transient" : "steady";
+  sel.addEventListener("change", () => { particleAnalysis(sel.value); solverRes = null; runRec = null; pIdx = -1; setChip(); changed(true); });
+  row.append(sel); attachErr(row, "/assumptions/steadyState", [sel]); return row;
+}
+function particlePowerPanel(p) {
+  p.append(sec("Analysis"), particleAnalysisField());
+  const d = result && result.triso ? result.triso.derived : null;
+  if (particleTransient()) { particleTransientPanel(p, d); return; }
+  p.append(sec("Heat made in the kernel"));
+  const form = particlePowerForm(), row = el("div", "prow"); row.append(elt("label", "Given as", { for: "pform" }));
+  const sel = elt("select", "", { id: "pform" });
+  sel.append(elt("option", "Power per particle", { value: "particle" }), elt("option", "Kernel power density", { value: "kernel-density" }), elt("option", "Compact power density and packing fraction", { value: "compact" }));
+  sel.value = form;
+  sel.addEventListener("change", () => { setParticlePowerForm(sel.value, d); changed(true); });
+  row.append(sel); attachErr(row, "/power", [sel]); p.append(row);
+  if (form === "particle") p.append(qField("P particle", ["power", "particlePower"], "particlePower"));
+  else if (form === "kernel-density") p.append(qField("q‴ kernel", ["power", "kernelPowerDensity"], "powerDensity"));
+  else p.append(qField("q‴ compact", ["power", "compactPowerDensity"], "powerDensity"), qField("Packing", ["power", "packingFraction"], "fraction"));
+  for (const k of ["linearHeatRate", "radialShape"]) { const g = (result && result.errors || []).filter((i) => i.field === "/power/" + k); for (const e of g) p.append(elt("div", e.message, { class: "ferr" })); }
+  warnNotes(p, "power");
+  if (d) {
+    p.append(note("Heat per particle <code>" + sig(d.particlePower) + " W</code>, kernel power density <code>" + sig(d.kernelPowerDensity / 1e6) + " MW/m³</code> (kernel volume <code>" + sig(d.kernelVolume * 1e9) + " mm³</code>, whole particle <code>" + sig(d.particleVolume * 1e9) + " mm³</code>). Heat flux at the outer surface <code>" + sig(d.outerSurfaceHeatFlux / 1e3) + " kW/m²</code>."));
+    if (d.packingFraction !== undefined) p.append(note("The compact holds <code>" + sig(d.particlesPerCubicMetre) + "</code> particles per m³ (packing fraction <code>" + d.packingFraction + "</code> over the whole particle's volume), each carrying the compact's power density times its own volume over the packing fraction. The packing fraction is an input: OpenMC Studio has none, so FEED cannot check it against the neutronics model."));
+    p.append(note("Closed form: kernel centre <code>" + K(d.centreT) + "</code>, outer wall <code>" + K(d.wallT) + "</code>. Drops from the inner to the outer face: " + d.regionDrops.map((r) => esc(r.name) + " <code>" + sig(r.deltaT, 3) + " K</code>").join(", ") + "; gap <code>" + sig(d.gapDeltaT, 3) + " K</code>."));
+  } else p.append(note("The volumetric power, the heat per particle and the closed-form temperatures appear once the case is valid."));
+  p.append(sec("Scope"), note(PARTICLE_TEXT));
+}
+function particleTransientPanel(p, d) {
+  const t = doc.transient || {}, steady = t.initialSteadyParticlePower !== undefined;
+  const kind = el("div", "prow"); kind.append(elt("label", "Starts from", { for: "initialKind" }));
+  const ik = elt("select", "", { id: "initialKind" }); ik.append(elt("option", "Uniform temperature", { value: "uniform" }), elt("option", "Steady state at a power", { value: "steady" }));
+  ik.value = steady ? "steady" : "uniform";
+  ik.addEventListener("change", () => { particleInitial(ik.value); solverRes = null; runRec = null; setChip(); changed(true); });
+  kind.append(ik); attachErr(kind, "/transient/initialTemperature", [ik]);
+  p.append(sec("Timing"), kind, steady ? qField("Operating power", ["transient", "initialSteadyParticlePower"], "particlePower") : qField("Initial T", ["transient", "initialTemperature"], "temperature"), qField("End time", ["transient", "endTime"], "time"), qField("Time step", ["transient", "timeStep"], "time"), iField("Outputs", ["transient", "outputs"]));
+  const nt = result && result.triso ? result.triso.normalized.transient : null;
+  p.append(note(nt ? "<code>" + nt.steps + "</code> steps of a fixed size, <code>" + nt.outputs + "</code> outputs (the temperature field is kept at each). The checks compare the run with an independent solution on the same mesh and report what halving the step would change." : "The end time must be a whole number of steps and the outputs must divide the steps."));
+  generalErrors(p, (f) => f === "/transient" || f === "/transient/powerHistory" || f === "/power" || f.startsWith("/transient/") && !/^\/transient\/(powerHistory|endTime|timeStep|outputs|initialTemperature|initialSteadyParticlePower|boundaryHistory)/.test(f));
+  p.append(sec("Power history (W per particle)"));
+  const pts = Array.isArray(t.powerHistory) ? t.powerHistory : [];
+  pts.forEach((_, i) => p.append(qField("t" + (i + 1), ["transient", "powerHistory", i, "time"], "time"), qField("P" + (i + 1), ["transient", "powerHistory", i, "particlePower"], "particlePower")));
+  const bar = el("div", "prow note"), add = elt("button", "Add point", { class: "tbtn", type: "button" }), rem = elt("button", "Remove last", { class: "tbtn", type: "button" });
+  add.addEventListener("click", () => { if (!Array.isArray(doc.transient.powerHistory)) doc.transient.powerHistory = []; const h = doc.transient.powerHistory, last = h[h.length - 1]; h.push({ time: last && last.time ? uq(last.time.value * 2 || 1, last.time.unit) : uq(0, "ms"), particlePower: uq(0, "W") }); changed(true); });
+  rem.addEventListener("click", () => { if (doc.transient.powerHistory && doc.transient.powerHistory.length) { doc.transient.powerHistory.pop(); changed(true); } });
+  bar.append(add, rem); p.append(bar);
+  if (nt) p.append(note("Peak power <code>" + sig(Math.max(...nt.particlePower)) + " W</code>; energy made over the run <code>" + sig(particleEnergy(nt.times, nt.particlePower) * 1e3) + " mJ</code>. Power is linear between the points; the first is at time 0 and the last at or after the end time. The case has no separate power: the table is the power."));
+  else p.append(note("Power is linear between the points; the first is at time 0 and the last at or after the end time."));
+  p.append(note("Every region needs a heat capacity (Materials items). The outside may change with time: Coolant boundary, <b>A table against time</b>."));
+  p.append(sec("Scope"), note(PARTICLE_TEXT + " The power history is an <b>input</b>: FEED does not compute the pulse."));
+  if (d) p.append(note("The picture and the case-view profile show the steady closed form at the table's peak power (<code>" + sig(d.particlePower) + " W</code>), not the transient: the transient is the Run result."));
+}
+function particleGeometryPanel(p) {
+  const g = doc.geometry, layers = Array.isArray(g.layers) ? g.layers : [];
+  p.append(sec("Kernel"), qField("Kernel radius", ["geometry", "kernelRadius"], "lengthUm"));
+  p.append(sec("Coating layers, from the kernel outward"));
+  layers.forEach((l, i) => p.append(qField(PARTICLE_LAYER_LABEL[l && l.name] || String(l && l.name), ["geometry", "layers", i, "thickness"], "lengthUm")));
+  generalErrors(p, (f) => f === "/geometry" || f === "/geometry/layers" || /^\/geometry\/layers\/\d+(\/name)?$/.test(f) || (f.startsWith("/geometry/") && !/^\/geometry\/(kernelRadius|layers\/\d+\/thickness)/.test(f)));
+  const bar = el("div", "prow note"), nextName = PARTICLE_LAYER_NAMES[layers.length], lastName = layers.length ? layers[layers.length - 1].name : "";
+  const add = elt("button", nextName ? "Add the " + PARTICLE_LAYER_LABEL[nextName] + " layer" : "Four layers is the most", { class: "tbtn", type: "button" }), rem = elt("button", layers.length > 2 ? "Remove the " + PARTICLE_LAYER_LABEL[lastName] + " layer" : "Two layers is the least", { class: "tbtn", type: "button" });
+  add.disabled = !nextName; rem.disabled = layers.length <= 2;
+  add.addEventListener("click", () => { if (particleAddLayer()) { solverRes = null; runRec = null; setChip(); changed(true); } });
+  rem.addEventListener("click", () => { if (particleRemoveLayer()) { solverRes = null; runRec = null; setChip(); changed(true); } });
+  bar.append(add, rem); p.append(bar);
+  const rad = particleRadii();
+  if (rad) {
+    const rows = [["kernel", "—", "0 – " + fmtUm(rad.kernel)]].concat(rad.layers.map((l) => [l.name, fmtUm(l.outer - l.inner), fmtUm(l.inner) + " – " + fmtUm(l.outer)]));
+    const holder = el("div", "prow"); holder.style.display = "block"; holder.append(table(["Region", "Thickness (µm)", "Radii (µm)"], rows.map((r) => r.map((c, i) => ({ text: c, mono: i > 0 })))));
+    p.append(holder);
+    p.append(note("Outer radius of the particle <code>" + fmtUm(rad.outer) + " µm</code>. The layers lie in the order buffer, inner PyC, SiC, outer PyC: a particle has two to four, and the gap is between the buffer and the layer after it."));
+  } else p.append(note("The radii appear once the kernel radius and every thickness are positive lengths."));
+  if (doc.description) p.append(note("<code>" + esc(doc.label || "") + "</code> " + esc(doc.description)));
+  if (doc.citation) p.append(note("Source: " + esc(doc.citation)));
+}
+function particleGapPanel(p) {
+  p.append(sec("Gap between the buffer and the next layer"));
+  const row = el("div", "prow"); row.append(elt("label", "Model")); const v = el("div"); v.textContent = "Constant conductance"; row.append(v); p.append(row);
+  p.append(qField("h gap", ["gap", "conductance"], "htc"), tField("Source", ["gap", "source"]));
+  generalErrors(p, (f) => f === "/gap" || f === "/gap/model");
+  warnNotes(p, "gap");
+  p.append(note("The conductance is at the buffer's outer radius. An irradiated particle has a gap between the buffer and the inner carbon whose width and gas decide how much it insulates; computing that needs mechanics, so FEED takes the conductance as an input with its source. A conductance above 3e5 W/m²/K is a buffer in contact: it understates the kernel temperature of an irradiated particle."));
+}
+function particleMeshPanel(p) {
+  p.append(sec("Cells per region"));
+  p.append(iField("Kernel", ["mesh", "kernelCells"]));
+  for (const n of particleRegions().slice(1)) p.append(iField(PARTICLE_LAYER_LABEL[n], ["mesh", n + "Cells"]));
+  generalErrors(p, (f) => f === "/mesh");
+  p.append(note("Minimum: kernel 4, each layer 2. The mesh is a 2 degree wedge of the sphere, one block per region; the error falls with the cell count, and the checks compare every cell with the closed form and an independent finite-volume solution."));
+}
+function particleMaterialPanel(p, region) {
+  const m = doc.materials && doc.materials[region];
+  const label = PARTICLE_LAYER_LABEL[region] || region;
+  if (!m) { p.append(sec("Material: " + label), note("This region has no material in the case.")); return; }
+  const base = ["materials", region];
+  p.append(sec("Material: " + label), tField("ID", base.concat("materialId")), iField("Revision", base.concat("revision")));
+  generalErrors(p, (f) => f === ptr(base) || f === "/materials");
+  const kp = base.concat("sets", "thermal.conductivity"), k = getp(doc, kp);
+  p.append(sec("Thermal conductivity"));
+  if (!k) {
+    const r = el("div", "prow note"), p2 = document.createElement("p"); p2.textContent = "This material has no thermal.conductivity set. A thermal model needs one, with its source."; r.append(p2);
+    const b = elt("button", "Add constant conductivity", { class: "tbtn", type: "button" });
+    b.addEventListener("click", () => { setp(doc, kp, { model: "constant", value: { value: 3, unit: "W/m/K" }, referenceTemperature: { value: 1000, unit: "K" }, source: "" }); changed(true); });
+    r.append(b); p.append(r);
+    generalErrors(p, (f) => f === ptr(kp));
+  } else lawFields("conductivity", p, kp, k, region);
+  if (particleTransient()) heatCapacityPanel(p, base.concat("sets", "thermal.volumetricHeatCapacity"), getp(doc, base.concat("sets", "thermal.volumetricHeatCapacity")));
+  p.append(note("A temperature-dependent law is used over the range stated for it; a result outside that range is marked out of domain, never extrapolated. The burnup law of a pin is not offered: a particle has no burnup here. The numbers a new particle starts with are synthetic and say so in their source."));
+}
+function particleLimitsPanel(p) {
+  p.append(sec("Temperature limits"));
+  const rules = Array.isArray(doc.limits) ? doc.limits : [], regions = particleRegions();
+  if (!rules.length) p.append(note("This case states no limits, so its results say nothing about any. A limit is an input with its source: FEED has none of its own."));
+  const bar = el("div", "prow note"), add = elt("button", "Add a rule", { class: "tbtn", type: "button" });
+  add.addEventListener("click", () => { if (!Array.isArray(doc.limits)) doc.limits = []; doc.limits.push({ name: "Limit " + (doc.limits.length + 1), region: "kernel", maxTemperature: uq(1500, "K"), source: "" }); changed(true); });
+  bar.append(add);
+  if (rules.length) { const rm = elt("button", "Remove all limits", { class: "tbtn", type: "button" }); rm.addEventListener("click", () => { delete doc.limits; changed(true); }); bar.append(rm); }
+  p.append(bar);
+  generalErrors(p, (f) => f === "/limits");
+  rules.forEach((r, i) => {
+    const b = ["limits", i];
+    p.append(sec("Rule " + (i + 1)), tField("Name", b.concat("name")), sField("Region", b.concat("region"), regions.map((n) => [n, PARTICLE_LAYER_LABEL[n]]), () => {}), qField("Maximum", b.concat("maxTemperature"), "temperature"), tField("Source", b.concat("source")));
+    generalErrors(p, (f) => f === ptr(b));
+    const del = elt("button", "Remove rule " + (i + 1), { class: "tbtn", type: "button" });
+    del.addEventListener("click", () => { doc.limits.splice(i, 1); if (!doc.limits.length) delete doc.limits; changed(true); });
+    const row = el("div", "prow note"); row.append(del); p.append(row);
+  });
+  p.append(note("Each rule becomes a check in the results: the limit minus the hottest cell of the region, in kelvin. A cell's temperature understates its region's hottest point by up to half a cell's drop, so the check's note says so. A temperature under a limit is not an integrity assessment: FEED computes no stress and no failure."));
+}
+
+/* ---- the picture: concentric circles to scale, coloured by temperature, the gap marked */
+function paintCross(x, w, h, o) {
+  x.font = "11.5px ui-monospace,Consolas,monospace";
+  x.fillStyle = "#e6b455"; x.fillText(PARTICLE_LABEL, 14, 16);
+  const rad = o.rad;
+  if (!rad) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Particle cross-section appears when the kernel radius and the thicknesses are valid", 14, h / 2); return; }
+  /* the text to the right of the circle sets the circle's size: the text shrinks to 9 px, then the circle gives way, so that neither is cut off at the canvas's edge */
+  const texts = o.lines.map((l) => l[0]).concat(["to scale · outside: the matrix or coolant"], o.note ? [o.note] : []);
+  const rows = texts.length, lh = Math.max(11, Math.min(15, (h - 30) / rows));
+  let px = Math.round((lh - 3.5) * 2) / 2, tw = 0;
+  const measure = () => { x.font = px + "px ui-monospace,Consolas,monospace"; tw = Math.max(...texts.map((t) => x.measureText(t).width)); };
+  measure();
+  const R0 = Math.min(h * 0.4, w * 0.2);
+  while (px > 9 && (w - 56 - tw) / 2 < Math.min(R0, 55)) { px -= 0.5; measure(); }
+  const R = Math.max(28, Math.min(R0, (w - 56 - tw) / 2)), cx = R + 24, cy = h / 2 + 8, s = R / rad.outer;
+  const regions = [{ name: "kernel", inner: 0, outer: rad.kernel }].concat(rad.layers);
+  const colour = o.colour && o.temp;
+  for (let ri = regions.length - 1; ri >= 0; ri--) {
+    const g = regions[ri], rings = ri === 0 ? 16 : 6;
+    for (let k = rings; k >= 1; k--) {
+      const rOut = g.inner + ((g.outer - g.inner) * k) / rings, rMid = g.inner + ((g.outer - g.inner) * (k - 0.5)) / rings;
+      let fill = PARTICLE_COLOUR[g.name] || "#888";
+      if (colour) { const T = o.temp(g.name, rMid); if (T !== null) fill = heat((T - o.tmin) / Math.max(1e-9, o.tmax - o.tmin)); }
+      x.fillStyle = fill; x.beginPath(); x.arc(cx, cy, rOut * s, 0, 7); x.fill();
+    }
+  }
+  x.strokeStyle = "#0e1013"; x.lineWidth = 1;
+  for (const g of regions) { x.beginPath(); x.arc(cx, cy, g.outer * s, 0, 7); x.stroke(); }
+  if (rad.layers.length) { /* the gap lies on the buffer's outer face: no width, only a conductance */
+    x.strokeStyle = "#0e1013"; x.lineWidth = 2.2; x.setLineDash([3, 2]); x.beginPath(); x.arc(cx, cy, rad.layers[0].outer * s, 0, 7); x.stroke(); x.setLineDash([]); x.lineWidth = 1;
+  }
+  const lx = cx + R + 24; let y = Math.max(32, h / 2 - (rows * lh) / 2 + 8);
+  x.font = px + "px ui-monospace,Consolas,monospace";
+  for (const [text, col] of o.lines) { x.fillStyle = col || "#8c949e"; x.fillText(text, lx, y); y += lh; }
+  x.fillStyle = "#5e6670"; x.fillText(texts[o.lines.length], lx, y + 3);
+  if (o.note) x.fillText(o.note, lx, y + 3 + lh);
+}
+function crossLines(rows, gapText) { /* rows: {name, inner, outer, innerT, outerT} */
+  const out = rows.map((g) => [g.name.padEnd(6) + " " + fmtUm(g.inner) + "–" + fmtUm(g.outer) + " µm  " + K(g.innerT) + " → " + K(g.outerT), PARTICLE_COLOUR[g.name]]);
+  if (gapText) out.splice(2, 0, [gapText, "#f07575"]);
+  return out;
+}
+function drawParticle() {
+  const c = $("pin"), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); c._plot = null;
+  const rad = particleRadii(), t = result && result.ok ? result.triso : null;
+  c.setAttribute("aria-label", rad ? "Particle cross-section, to scale (" + PARTICLE_LABEL + "): kernel of radius " + fmtUm(rad.kernel) + " micrometres and " + rad.layers.length + " layers to " + fmtUm(rad.outer) + " micrometres" : "Particle cross-section, not shown until the radii are valid");
+  let o = { rad, lines: [], colour: false };
+  if (t) {
+    const cl = t.quick.closed;
+    o = { rad, colour: $("pCol").getAttribute("aria-pressed") === "true", temp: (region, r) => tempInRegion(t.profile, region, r), tmin: cl.wallT, tmax: cl.centreT,
+      lines: crossLines(cl.regions.map((g) => ({ name: g.name, inner: g.innerRadius, outer: g.outerRadius, innerT: g.innerT, outerT: g.outerT })), "gap at the buffer: " + sig(cl.gapDeltaT, 3) + " K drop"),
+      note: particleTransient() ? "colour: steady closed form at the peak power" : "colour: the closed form" };
+  } else o.lines = [["The case is not valid yet: the colours need a valid case", "#e6b455"]];
+  paintCross(x, w, h, o);
+}
+/* ---- the radial plot: regions as bands, one line per region (a jump at the gap), optional cell dots */
+function drawRadial(c, o) {
+  const [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); c._plot = null; c._pplot = null;
+  if (!o || !o.rad || !o.lines.length) { plotText(c, "", "", []); if (o && o.empty) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText(o.empty, 14, h / 2); } return; }
+  const L = 62, Rr = 16, Tp = 22, Bt = 30, rad = o.rad, rmax = rad.outer * 1e6;
+  const all = o.lines.flatMap((q) => q.pts.map((p) => showT(p.T)));
+  let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+  const X = (r) => L + ((r * 1e6) / rmax) * (w - L - Rr), Y = (T) => h - Bt - ((T - lo) / (hi - lo)) * (h - Bt - Tp);
+  c._pplot = { X, Y, L, Rr, rmax, w, lines: o.lines };
+  x.font = "11px ui-monospace,Consolas,monospace"; x.lineWidth = 1;
+  const regions = [{ name: "kernel", inner: 0, outer: rad.kernel }].concat(rad.layers);
+  const tint = { kernel: "rgba(201,164,92,.10)", buffer: "rgba(125,107,92,.16)", ipyc: "rgba(142,148,156,.12)", sic: "rgba(95,134,168,.16)", opyc: "rgba(169,174,181,.10)" };
+  for (const g of regions) { x.fillStyle = tint[g.name] || "rgba(140,148,158,.1)"; x.fillRect(X(g.inner), Tp, X(g.outer) - X(g.inner), h - Bt - Tp); }
+  for (let i = 0; i <= 4; i++) { const T = lo + ((hi - lo) * i) / 4, y = Y(T); x.strokeStyle = "#31363d"; x.beginPath(); x.moveTo(L, y); x.lineTo(w - Rr, y); x.stroke(); x.fillStyle = "#8c949e"; x.fillText(T.toFixed(Math.abs(hi - lo) < 20 ? 1 : 0), 8, y + 4); }
+  for (let i = 0; i <= 5; i++) { const r = (rad.outer * i) / 5; x.fillStyle = "#8c949e"; x.fillText(fmtUm(r), X(r) - 10, h - Bt + 15); }
+  x.fillStyle = "#8c949e"; x.fillText("r (µm)", w - 54, h - 6); x.fillText(showDegC ? "°C" : "K", 8, Tp - 8);
+  regions.forEach((g) => { x.fillStyle = "#8c949e"; if (X(g.outer) - X(g.inner) > 26) x.fillText(g.name, X(g.inner) + 3, Tp - 6); });
+  for (const q of o.lines) {
+    const byRegion = []; q.pts.forEach((p) => { const last = byRegion[byRegion.length - 1]; if (last && last.region === p.region) last.pts.push(p); else byRegion.push({ region: p.region, pts: [p] }); });
+    x.strokeStyle = q.color; x.lineWidth = q.width || 1.8; x.setLineDash(q.dash ? [5, 3] : []);
+    byRegion.forEach((seg, i) => {
+      if (seg.pts.length > 1) { x.beginPath(); seg.pts.forEach((p, j) => { const px = X(p.r), py = Y(showT(p.T)); if (j) x.lineTo(px, py); else x.moveTo(px, py); }); x.stroke(); }
+      if (q.jump && i > 0) { const a = byRegion[i - 1].pts[byRegion[i - 1].pts.length - 1], b = seg.pts[0]; if (Math.abs(a.T - b.T) > 1e-9 && Math.abs(a.r - b.r) < 1e-12) { x.setLineDash([2, 2]); x.beginPath(); x.moveTo(X(a.r), Y(showT(a.T))); x.lineTo(X(b.r), Y(showT(b.T))); x.stroke(); x.setLineDash(q.dash ? [5, 3] : []); } }
+    });
+    x.setLineDash([]);
+    if (q.dots) { x.fillStyle = q.color; q.pts.forEach((p) => { x.beginPath(); x.arc(X(p.r), Y(showT(p.T)), 2.4, 0, 7); x.fill(); }); }
+  }
+  if (o.faces) { x.fillStyle = "#e6b455"; o.faces.forEach((f) => { x.beginPath(); x.arc(X(f[0]), Y(showT(f[1])), 3.4, 0, 7); x.fill(); }); }
+  x.textAlign = "right"; o.lines.forEach((q, i) => { x.fillStyle = q.color; x.fillText("● " + q.label, w - Rr - 8, Tp + 12 + i * 14); }); x.textAlign = "left";
+  plotText(c, "r (µm)", showDegC ? "T (°C)" : "T (K)", o.lines.map((q) => ({ label: q.label, x: q.pts.map((p) => p.r * 1e6), y: q.pts.map((p) => showT(p.T)) })));
+}
+function particleHover(canvas, readoutId, fallback, e) {
+  const p = canvas._pplot; if (!p) return;
+  const b = canvas.getBoundingClientRect(), r = ((e.clientX - b.left - p.L) / (p.w - p.L - p.Rr)) * p.rmax; if (r < 0 || r > p.rmax) return;
+  const parts = p.lines.map((q) => { let best = q.pts[0]; for (const pt of q.pts) if (Math.abs(pt.r * 1e6 - r) < Math.abs(best.r * 1e6 - r)) best = pt; return q.label + ": r = " + fmtUm(best.r) + " µm  T = " + K(best.T) + " (" + best.region + ")"; });
+  $(readoutId).textContent = parts.join("   ");
+}
+$("prof").addEventListener("mousemove", (e) => { if (isParticle()) particleHover($("prof"), "readout", "", e); });
+$("rprof").addEventListener("mousemove", (e) => { if (selDetail && selDetail.normalized && selDetail.normalized.kind === "triso") particleHover($("rprof"), "rReadout", "", e); });
+$("rrad").addEventListener("mousemove", (e) => particleHover($("rrad"), "rReadout", "", e));
+function drawParticleProfile() {
+  const c = $("prof"), t = result && result.ok ? result.triso : null; $("noData").hidden = !!t; $("readout").textContent = "Hover the profile for r and T";
+  if (!t) { drawRadial(c, null); return; }
+  const rad = particleRadii();
+  if (particleTransient()) { drawParticlePower(c, t); return; }
+  const closed = { label: "closed form", color: COL.closed, dash: false, jump: true, width: 1.8, pts: t.profile.map((p) => ({ r: p.r, T: p.T, region: p.region })) };
+  const lines = [closed];
+  if (solverRes && solverRes.kind === "triso") lines.push({ label: "OFFBEAT cells", color: COL.solver, dots: true, width: 1, pts: solverRes.cells });
+  const faces = $("pCf").getAttribute("aria-pressed") === "true" ? t.quick.closed.regions.flatMap((g) => [[g.innerRadius, g.innerT], [g.outerRadius, g.outerT]]) : null;
+  drawRadial(c, { rad, lines, faces });
+}
+/* a transient case: the power table is the input, drawn against time (the temperatures of the transient are the Run result) */
+function drawParticlePower(c, t) {
+  const nt = t.normalized.transient;
+  drawPanels(c, nt.times.map((s) => s * 1e3), "t (ms)", [{ name: "particle power (input)", unit: "W", series: [{ label: "heat made in the kernel", v: nt.particlePower, color: "#c89df2" }] }]);
+}
+function drawBoundaryHistoryPlotParticle() { /* the coolant table of a particle transient, from the server's normalised case */
+  const c = $("bhist"); if (!c) return;
+  const nt = result && result.triso ? result.triso.normalized.transient : null;
+  drawBoundaryHistory(c, nt ? nt.boundaryHistory || null : null);
+}
+
+/* ---- the run's checks on the Checks tab of the case view */
+function particleChecks(o, row) {
+  const t = result.triso, cl = t.quick.closed, d = t.derived;
+  row("Kernel centre", K(cl.centreT), "", "closed form of the sphere" + (particleTransient() ? " at the table's peak power (steady)" : ""));
+  row("Kernel centre to surface", sig(cl.centreT - cl.kernelSurfaceT, 4) + " K", "", "q‴ R² / (6 k) for a constant k");
+  for (const g of cl.regions.slice(1)) row(PARTICLE_LAYER_LABEL[g.name] + " drop", sig(g.innerT - g.outerT, 4) + " K", "", "P / (4π k) × (1/r₁ − 1/r₂) for a constant k");
+  row("Gap drop", sig(cl.gapDeltaT, 4) + " K", "", "P / (4π R² h) at the buffer's outer radius");
+  row("Film drop", sig(cl.filmDeltaT, 4) + " K", "", "outside the outer layer");
+  row("Outer wall", K(cl.wallT));
+  row("Property range", t.quick.verdict === "in-domain" ? "in range" : "OUT OF RANGE", t.quick.verdict === "in-domain" ? "pass" : "fail", t.quick.findings.map((f) => f.region + " " + f.temperatureRange.map((v) => v.toFixed(0)).join("–") + " K vs valid " + f.validRange.join("–") + " K").join("; "));
+  const head = (s) => { const h2 = elt("div", s, { class: "psec" }); h2.style.padding = "8px 0 2px"; o.append(h2); }; /* elt gives a psec its heading role */
+  const sr = solverRes && String(solverRes.kind).startsWith("triso") ? solverRes : null;
+  if (sr) {
+    head("Solver result (OFFBEAT, thermal only)");
+    const s = sr.summary;
+    if (sr.kind === "triso") { row("Kernel centre", K(s.kernelCentreT), "", "extrapolated from the first cell"); row("Kernel surface", K(s.kernelSurfaceT)); row("Outer wall", K(s.wallT)); row("Gap drop", s.gapDeltaT.toFixed(3) + " K"); }
+    else { row("Hottest cell", K(s.maxT), "", "at t = " + fmtT(s.timeOfMaxT)); row("Largest rise", s.maxRise.toFixed(2) + " K"); row("Hottest cell at the end", K(s.finalPeakT), "", "t = " + fmtT(s.finalTime)); }
+    for (const c of sr.checks) row(c.label, c.value === null ? "n/a" : (c.unit === "relative" ? (c.value * 100).toFixed(2) + " %" : c.value.toFixed(3) + " " + c.unit), c.verdict === "na" ? "na" : c.verdict, c.verdict.toUpperCase() + ": " + c.note);
+    const b = el("div", "log"); b.style.paddingTop = "6px"; b.textContent = PARTICLE_LABEL + ". " + sr.thermalOnly; o.append(b);
+  } else if (runRec && (runRec.state === "failed" || runRec.state === "cancelled" || runRec.state === "interrupted")) {
+    head("Last solver run: " + runRec.state);
+    const f = runRec.failure;
+    if (f) { row(f.code, "", "fail", f.message); if (f.native) { const pre = el("pre", "log"); pre.textContent = f.native; o.append(pre); } }
+    else row("State", runRec.state, "fail", (runRec.notes || []).join(" "));
+  } else row("Solver run", solverName ? "press Run" : "needs solver", "na", "the result is checked against the closed form, an independent finite-volume solution, the energy balance" + (particleTransient() ? " and the time step" : " and the gap's drop"));
+  row("Time scale", sig(d.timeScale, 3) + " s", "", "bound on the slowest thermal time constant");
+}
+
+/* ---- the results view of a particle run (steady and transient) */
+function particleResultsOff() { for (const id of ["rpartWrap", "rradWrap"]) $(id).hidden = true; $("rpTable").hidden = true; $("rpTable").replaceChildren(); $("rprof")._pplot = null; $("rrad")._pplot = null; }
+const verdictCls = (v) => (v === "pass" ? "pass" : v === "fail" ? "fail" : "na");
+function checkRows(checks) { return checks.map((c) => [{ text: c.label }, { text: c.value === null ? "n/a" : c.unit === "relative" ? (c.value * 100).toFixed(3) + " %" : sig(c.value, 4) + " " + c.unit, mono: true, cls: "nw" }, { text: c.verdict, cls: verdictCls(c.verdict) + " nw" }, { text: c.note }]); }
+function renderParticleResults(d, m) {
+  const r = d.results, n = d.normalized, transient = r.kind === "triso-transient", box = $("rpTable");
+  const rad = { kernel: n.kernelRadius, layers: n.layers.map((l) => ({ name: l.name, inner: l.innerRadius, outer: l.outerRadius })), outer: n.outerRadius };
+  const bad = r.checks.filter((c) => c.verdict === "fail").length, ok = r.checks.filter((c) => c.verdict === "pass").length;
+  $("rpartWrap").hidden = false; box.hidden = false;
+  box.append(elt("h4", "Checks"), table(["Check", "Value", "Verdict", "What it says"], checkRows(r.checks)));
+  const checksCard = card("Checks", ok + " pass" + (bad ? ", " + bad + " fail" : ""), r.checks.map((c) => c.id + ": " + c.verdict).join(" · "));
+  if (!transient) {
+    const s = r.summary, rows = particleRegionRows(r, n);
+    m.append(card("Kernel centre", K(s.kernelCentreT), "extrapolated from the first cell"), card("Kernel surface", K(s.kernelSurfaceT)), card("Outer wall", K(s.wallT)), card("Gap drop", s.gapDeltaT.toFixed(3) + " K", "buffer to the next layer"));
+    for (const g of rows) m.append(card(PARTICLE_LAYER_LABEL[g.name] + " · " + fmtUm(g.inner) + "–" + fmtUm(g.outer) + " µm", (g.name === "kernel" ? "rise " : "drop ") + g.drop.toFixed(3) + " K", "inner face " + K(g.innerT) + " · outer face " + K(g.outerT)));
+    m.append(checksCard);
+    box.prepend(elt("h4", "Regions"), table(["Region", "Radii (µm)", "Inner face", "Outer face", "Drop (K)", "Hottest cell", "Coldest cell"], rows.map((g) => [PARTICLE_LAYER_LABEL[g.name], { text: fmtUm(g.inner) + " – " + fmtUm(g.outer), mono: true }, { text: K(g.innerT), mono: true }, { text: K(g.outerT), mono: true }, { text: g.drop.toFixed(3), mono: true }, { text: K(g.hottest), mono: true }, { text: K(g.coldest), mono: true }])));
+    const cells = r.cells, cross = { rad, colour: true, temp: (region, rr) => tempInRegion(cells, region, rr), tmin: s.minT, tmax: s.maxT, lines: crossLines(rows, "gap at the buffer: " + s.gapDeltaT.toFixed(3) + " K drop"), note: "colour: OFFBEAT, cell by cell" };
+    const cc = $("rpart"), [x, w, h] = sizeCanvas(cc); x.clearRect(0, 0, w, h); paintCross(x, w, h, cross);
+    const lines = [{ label: "OFFBEAT cells", color: COL.solver, dots: true, width: 1, pts: cells }];
+    if ($("rCf").getAttribute("aria-pressed") === "true" && d.closed && d.closed.triso) lines.unshift({ label: "closed form", color: COL.closed, dash: true, jump: true, width: 1.4, pts: d.closed.triso.profile });
+    drawRadial($("rprof"), { rad, lines });
+    $("rradWrap").hidden = true;
+    return;
+  }
+  const s = r.summary, ser = r.series, last = r.times.length - 1, k = pIdx < 0 || pIdx > last ? last : pIdx, peaks = particleRegionPeaks(r);
+  m.append(card("Hottest cell", K(s.maxT), "at t = " + fmtT(s.timeOfMaxT)), card("Rise", s.maxRise.toFixed(2) + " K", (r.initialState.kind === "steady" ? "above the operating peak " : "above the initial ") + K(r.initialTemperature)), card("Hottest cell at the end", K(s.finalPeakT), "at t = " + fmtT(s.finalTime)), card("Energy", (ser.deposited[last] * 1e3).toFixed(3) + " mJ made", "stored " + (ser.stored[last] * 1e3).toFixed(3) + " mJ · net heat out " + (ser.rejected[last] * 1e3).toFixed(3) + " mJ"));
+  for (const g of peaks) m.append(card(PARTICLE_LAYER_LABEL[g.name] + ": hottest cell", K(g.peak), "at t = " + fmtT(g.time)));
+  m.append(checksCard);
+  const lims = (n.limits || []);
+  if (lims.length) box.prepend(elt("h4", "Limits"), table(["Limit", "Region", "Maximum", "Margin (K)", "Verdict"], lims.map((l, i) => { const c = r.checks.find((x2) => x2.id === "temperatureLimit" + (i + 1)); return [l.name, PARTICLE_LAYER_LABEL[l.region], { text: K(l.maxTemperature), mono: true }, { text: c && c.value !== null ? sig(c.value, 4) : "n/a", mono: true }, { text: c ? c.verdict : "n/a", cls: c ? verdictCls(c.verdict) : "na" }]; })));
+  const all = ser.peakT, lo = Math.min(...all), hi = Math.max(...all);
+  const ll = limitLines(lims, lo, hi, r.times[last]);
+  const series = [{ label: "hottest cell", t: ser.time, v: ser.peakT, color: COL.solver, dots: true, line: true, width: 1.2 }];
+  const tone = { kernel: "#e8715f", buffer: "#c9a45c", ipyc: "#9ad0a8", sic: "#52b8ff", opyc: "#b9a6e8" };
+  for (const g of Object.keys(ser.regionMax)) series.push({ label: g + " hottest", t: ser.time, v: ser.regionMax[g], color: tone[g] || "#8fb7c9", line: true, width: 1 });
+  series.push({ label: "outer wall", t: ser.time, v: ser.wallT, color: "#6fd49c", line: true, dash: true, width: 1 });
+  for (const l of ll.lines) series.push({ label: "limit " + l.label, t: l.t, v: l.v, color: "#f07575", line: true, dash: true, width: 1.2 });
+  const pm = Math.max(...ser.power);
+  drawTimeSeries($("rprof"), { series, power: { t: ser.time, v: ser.power }, powerLabel: "power (input), peak " + sig(pm, 3) + " W", cursor: r.times[k] });
+  if (ll.off.length) box.prepend(note("Off the plot (far above the temperatures reached): " + ll.off.map((l) => esc(l.name) + " " + K(l.maxTemperature)).join("; ") + ". Their margins are in the table."));
+  const prof = r.profiles[k];
+  let tmin = Infinity, tmax = -Infinity; for (const pr of r.profiles) for (const v of pr) { if (v < tmin) tmin = v; if (v > tmax) tmax = v; }
+  const pts = r.cells.map((cc, i) => ({ r: cc.r, T: prof[i], region: cc.region }));
+  const crossRows = particleCrossRows(n, pts);
+  const cc2 = $("rpart"), [x, w, h] = sizeCanvas(cc2); x.clearRect(0, 0, w, h);
+  paintCross(x, w, h, { rad, colour: true, temp: (region, rr) => tempInRegion(pts, region, rr), tmin, tmax, lines: crossRows, note: "colour: OFFBEAT at t = " + fmtT(r.times[k]) + " (click the time plot)" });
+  $("rradWrap").hidden = false;
+  drawRadial($("rrad"), { rad, lines: [{ label: "OFFBEAT cells at t = " + fmtT(r.times[k]), color: COL.solver, dots: true, width: 1.2, pts }] });
+}
+/* the temperature at each region's faces from the cells of one output (the faces' own values are the steady record's; here the first and last cell of each region) */
+function particleCrossRows(n, pts) {
+  const regs = [{ name: "kernel", inner: 0, outer: n.kernelRadius }].concat(n.layers.map((l) => ({ name: l.name, inner: l.innerRadius, outer: l.outerRadius })));
+  return regs.map((g) => { const mine = pts.filter((p) => p.region === g.name); return [g.name.padEnd(6) + " " + fmtUm(g.inner) + "–" + fmtUm(g.outer) + " µm  cells " + K(mine[0].T) + " … " + K(mine[mine.length - 1].T), PARTICLE_COLOUR[g.name]]; });
+}
+$("rprof").addEventListener("click", (e) => {
+  const c = $("rprof"), p = c._plot, r = selDetail && selDetail.results;
+  if (!p || !r || r.kind !== "triso-transient") return;
+  const b = c.getBoundingClientRect(), t = ((e.clientX - b.left - p.L) / (p.w - p.L - p.Rr)) * p.tmax;
+  let bi = 0; r.times.forEach((tt, i) => { if (Math.abs(tt - t) < Math.abs(r.times[bi] - t)) bi = i; });
+  pIdx = bi; renderResults();
+});
+async function loadParticle() { doc = defaultParticle(); selected = "power"; solverRes = null; runRec = null; pIdx = -1; setChip(); logText += "Started a new coated particle (synthetic numbers).\n"; await runCheck(true); renderAll(); }
 
 const _draw = draw;
 draw = function () { if (mode === "results") renderResults(); else if (mode === "compare") renderCompare(); else _draw(); };
