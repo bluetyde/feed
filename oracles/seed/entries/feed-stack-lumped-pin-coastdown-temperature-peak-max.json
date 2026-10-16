@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-lumped-pin-coastdown-temperature-peak-max",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-lumped-pin-coastdown.case.json",
+      "sha256": "f0b7b81e5386180b51e9b6be0731c6cc10a334b201eb6d3269680699dc10dc5e"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_max",
+    "value": 728.4139,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 3.3,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "A lumped pin per slice, started at its steady state T_b + q_k/(h A) and then cooled less and less well. Heat capacity per metre 206.404, surface 0.02985. Slice 4 of 10 (the hottest, 1.551 kW/m) warms monotonically from 617.3279 K to 728.4139 K at 40 s, which is the largest peak of the run. The tolerance 3.3 K is the sum, rounded up to 0.05 K, of 1 % of the rise (1.111 K), twice the bound on the heat the slices exchange along the height (rate 0.003333 /s, exchange number 0.133 over the run, bound 0.862 K, twice 1.724 K) and the internal rise of the hottest cell above the lumped mean (at most 0.448 K); fixed before any run.",
+    "check": "Second method: FEED's independent finite-volume solution of every slice (tests/seedOracleStack.test.ts, the same bound added) and the real solver with FEED_SOLVER=1; FEED's own checks of the stack run (cross-check, energy balance, time step) all pass."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_max"
+    ],
+    "domain": "synthetic pin with a conductivity of 400 W/m/K and a heat capacity of 3 MJ/m3/K (Biot number about 0.01) as 10 slices over 2 m with a cosine power shape, 1 kW/m on average, each slice started from its own steady state at a film coefficient of 3000 W/m2/K, coolant 600 K, the film coefficient decaying linearly to 300 W/m2/K between 5 and 15 s, 40 s"
+  },
+  "toleranceHash": "84ff7e066faa978b59021fb0b9b8e62c8f69c7995a46d63f65a9eb16b3dfb266"
+}

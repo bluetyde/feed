@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-axial-shape-all-zero",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-axial-shape-all-zero.case.json",
+      "sha256": "d832de721fd273aa14c80e510fd7b99fa98990b2a9c78d8c07173785d58374e3"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_AXIAL"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a power shape that is zero everywhere. FEED must refuse it before any run; SEED reports E_AXIAL.",
+    "check": "FEED's schema vectors (schema/vectors/bad/axial-shape-all-zero.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "577a998e6cb96ef960140cca6561d4a24874a1d51f6f515c702124c67f59545b"
+}

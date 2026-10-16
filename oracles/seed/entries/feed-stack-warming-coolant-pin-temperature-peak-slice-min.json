@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-warming-coolant-pin-temperature-peak-slice-min",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-warming-coolant-pin.case.json",
+      "sha256": "58f903181cef5ff06f080b5ba39f40bcd52de9d17dcfb95e726addaeff125fd4"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_slice_min",
+    "value": 639.8047,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.95,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The lowest of the slices' hottest cells: the end slice (index 0), which makes the least heat. Slice 0 of 9 (centre at 0.0212 m, heat rate 1.364 kW/m, coolant 589.67 K): the closed-form series solution of that slice gives 639.8047 K at the centre. The power shape is a cosine, normalised to an average of 1, with the coolant read from the table at each slice's centre (linear between the two points). The solver's slices exchange a little heat along the height, which this solution does not have, so the tolerance is the sum of: the mesh bound 5 x 36.18 K / 100^2 = 0.018 K; the axial conduction allowance 3 x 0.00099 (the estimate as a fraction of the largest rise) x 288.7 K (the largest rise of any slice above its coolant) = 0.854 K; the cosine's 41-point table, 1e-3 of the slice's rise of 50.1 K = 0.05 K; rounded up to 0.05 K (0.95 K), fixed before any run.",
+    "check": "Second method: FEED's own per-slice closed form (src/core/closedForm.ts through axialSummary, tests/seedOracleStack.test.ts, to 1e-3 K apart from the cosine's table term), and the real solver (FEED_SOLVER=1): every check of the run passes and the solver's slice peaks are inside the tolerances."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_slice_min"
+    ],
+    "domain": "synthetic pin as 9 radial slices over 0.381 m with a cosine power shape, 5 kW/m on average (7.9 kW/m at the peak), a coolant table that warms linearly from 573 K at the bottom to 873 K at the top (a sodium-like rise; film coefficient 30000 W/m2/K)"
+  },
+  "toleranceHash": "74d6afc30c12c55f813c8ef5ee7b9a34a0dc3903051964cb262275fbe5c8c072"
+}

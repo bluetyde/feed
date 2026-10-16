@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-cosine-plate-temperature-peak-slice-min",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-cosine-plate.case.json",
+      "sha256": "bec1008d20e1d4fb978bad91353b628e2aed90fd42a9cabd768f4698d7bae790"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_slice_min",
+    "value": 625.0801,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 1.3,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The lowest of the slices' hottest cells: the end slice (index 0), which makes the least heat. Slice 0 of 9 (centre at 0.0212 m, heat rate 54.553 kW/m, coolant 573 K): the closed-form slab solution of that slice gives 625.0801 K at the centre. The power shape is a cosine, normalised to an average of 1 (the heat rate is per metre of height and per metre of width). The solver's slices exchange a little heat along the height, which this solution does not have, so the tolerance is the sum of: the mesh bound 5 x 37.28 K / 100^2 = 0.019 K; the axial conduction allowance 3 x 0.00134 (the estimate as a fraction of the largest rise) x 299.9 K (the largest rise of any slice above its coolant) = 1.205 K; the cosine's 41-point table, 1e-3 of the slice's rise of 52.1 K = 0.052 K; rounded up to 0.05 K (1.3 K), fixed before any run.",
+    "check": "Second method: FEED's own per-slice closed form (src/core/closedForm.ts through axialSummary, tests/seedOracleStack.test.ts, to 1e-3 K apart from the cosine's table term), and the real solver (FEED_SOLVER=1): every check of the run passes and the solver's slice peaks are inside the tolerances."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_slice_min"
+    ],
+    "domain": "synthetic plate (meat half-thickness 4.1 mm, gap 0.08 mm, cladding 0.57 mm, constant conductivities, one face cooled at 573 K and 30000 W/m2/K) as 9 through-thickness slices over 0.381 m with a cosine power shape, 200 kW per metre of height and width on average"
+  },
+  "toleranceHash": "54fb902ee50c867cdda4f5402e69dbaf5759adff8be2999b2e22e8e459cb0785"
+}
