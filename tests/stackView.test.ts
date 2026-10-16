@@ -77,6 +77,13 @@ describe("the rings and the data of the view", () => {
       expect(s.rings.filter((x: any) => x.T !== null)).toHaveLength(34);
     }
   });
+  it("put the samples in order of radius whatever order they arrive in", () => {
+    const { r } = viewOf(stackCase(3));
+    const g = lib.geomOfCase(r.normalized);
+    const pts = r.axialProfiles[1].points;
+    const shuffled = [...pts].reverse();
+    expect(lib.ringsOf(shuffled, g)).toEqual(lib.ringsOf(pts, g));
+  });
   it("take the colour range from the temperatures themselves and the outer wall from the last cladding sample", () => {
     const { r, d } = viewOf(stackCase(8));
     const all = r.axialProfiles.flatMap((s: any) => s.points.map((p: any) => p.T));
@@ -113,8 +120,11 @@ describe("the quadrilaterals", () => {
     for (const e of kind("outer")) expect(!(e.n[0] > 1e-9 && e.n[2] > 1e-9)).toBe(true);
     // the cut faces face into the removed quarter: +z at the plane z = 0 and +x at the plane x = 0
     const cuts = kind("cut");
-    expect(cuts.filter((e: any) => e.n[2] === 1).every((e: any) => e.pts.every((p: number[]) => p[2] === 0))).toBe(true);
-    expect(cuts.filter((e: any) => e.n[0] === 1).every((e: any) => e.pts.every((p: number[]) => p[0] === 0))).toBe(true);
+    const atZ = cuts.filter((e: any) => e.n[2] === 1), atX = cuts.filter((e: any) => e.n[0] === 1);
+    expect(atZ).toHaveLength(N * rings);
+    expect(atX).toHaveLength(N * rings);
+    expect(atZ.every((e: any) => e.pts.every((p: number[]) => p[2] === 0))).toBe(true);
+    expect(atX.every((e: any) => e.pts.every((p: number[]) => p[0] === 0))).toBe(true);
   });
   it("without the cut-away: the whole outer surface, no cut faces", () => {
     const quads = lib.stackQuads(d, false);
