@@ -5,7 +5,7 @@
 import { evaluate, lawOf, minimum } from "./conductivity";
 import { heatCapacityLaw } from "./heatCapacity";
 import { geometryOf } from "./geometry";
-import { quickLook } from "./quickLook";
+import { ProfilePoint, quickLook, radialProfile } from "./quickLook";
 import type { Dimension } from "./units";
 import type { NormalizedCase } from "./validate";
 
@@ -437,6 +437,15 @@ export function axialExchange(c: NormalizedCase, fuel: readonly [number, number]
   const heatCapacity = minimum(heatCapacityLaw(c.fuelHeatCapacity), fuel[0], fuel[1]) * Af + minimum(heatCapacityLaw(c.claddingHeatCapacity), cladding[0], cladding[1]) * Ac;
   const h = a.length / a.slices;
   return { rate: kA / (heatCapacity * h * h), kA, heatCapacity };
+}
+
+/** The closed-form radial profile of every slice (n + 1 points in the fuel and in the cladding), for the editor's 3D view: each slice is its own one-dimensional case, no heat flows between slices. */
+export function axialProfiles(c: NormalizedCase, n = 16): { index: number; height: number; points: ProfilePoint[] }[] | undefined {
+  if (!c.axial) return undefined;
+  return sliceLoads(c).map((l) => {
+    const sc = sliceCase(c, l);
+    return { index: l.index, height: l.height, points: radialProfile(sc, quickLook(sc), n) };
+  });
 }
 
 export interface SliceSummary {

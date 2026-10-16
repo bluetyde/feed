@@ -133,6 +133,10 @@ input.bad,select.bad{border-color:var(--err)}
 .ml{color:var(--muted);font-size:11px}.mv{font:500 15px var(--mono)}.ms{color:var(--faint);font-size:11px;margin-top:2px}
 .vpwrap1{flex:1;min-height:120px;background:var(--ground)}
 #docResults{overflow-y:auto}
+#doc3d{overflow-y:auto}
+#doc3d .toolbar,#r3dHost .toolbar{flex-wrap:wrap;height:auto;min-height:30px}
+#doc3d .vpwrap1{flex:0 0 360px!important}
+#r3dHost{flex:none}
 #docResults .mechplot{flex:0 0 240px;height:240px}
 #docResults .mechplot[hidden]{display:none}
 #docResults>.banner,#docResults>.toolbar,#docResults>.metrics,#docResults>.ctables{flex:none}
@@ -208,6 +212,7 @@ input.bad,select.bad{border-color:var(--err)}
     <main class="center" id="center" aria-label="Editor" tabindex="-1">
       <div class="dtabs" role="tablist">
         <button class="dtab" role="tab" id="tabView" aria-controls="docView" aria-selected="true" type="button">Pin and profile</button>
+        <button class="dtab" role="tab" id="tab3d" aria-controls="doc3d" aria-selected="false" type="button" hidden>3D stack</button>
         <button class="dtab" role="tab" id="tabJson" aria-controls="docJson" aria-selected="false" type="button">case.json</button>
         <button class="dtab" role="tab" id="tabResults" aria-controls="docResults" aria-selected="false" type="button" hidden>Run result</button><button class="dtab" role="tab" id="tabCompare" aria-controls="docCompare" aria-selected="false" type="button" hidden>Compare runs</button>
       </div>
@@ -221,6 +226,7 @@ input.bad,select.bad{border-color:var(--err)}
           <div class="cell"><canvas id="prof" aria-label="Radial temperature profile"></canvas><div class="nodata" id="noData" hidden>Fix the problems to see the profile</div></div>
         </div>
       </div>
+      <div class="doc" id="doc3d" role="tabpanel" aria-labelledby="tab3d" hidden></div>
       <div class="doc" id="docJson" role="tabpanel" aria-labelledby="tabJson" hidden><pre class="json" id="jsonView"></pre></div>
       <div class="doc" id="docResults" role="tabpanel" aria-labelledby="tabResults" hidden>
         <div class="banner" id="rBanner"></div>
@@ -229,6 +235,7 @@ input.bad,select.bad{border-color:var(--err)}
         <div class="vpwrap1"><canvas id="rprof" aria-label="Radial temperature profile of the selected run"></canvas></div>
         <div class="vpwrap1 mechplot" id="raxWrap" hidden><canvas id="rax" aria-label="Heat rate and peak temperature of each slice against height, from the selected run"></canvas></div>
         <div class="ctables" id="raxTable" hidden></div>
+        <div id="r3dHost" hidden></div>
         <div class="vpwrap1 mechplot" id="rbndWrap" hidden><canvas id="rbnd" aria-label="The coolant boundary against time: bulk temperature or wall temperature, and film coefficient"></canvas></div>
         <div class="vpwrap1 mechplot" id="rmechWrap" hidden><canvas id="rmech" aria-label="Stress against radius of the selected run"></canvas></div>
         <div class="vpwrap1 mechplot" id="rdispWrap" hidden><canvas id="rdisp" aria-label="Radial displacement against radius of the selected run"></canvas></div>
@@ -262,6 +269,7 @@ const $ = (id) => document.getElementById(id);
 const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"], burnup: ["MWd/kgHM", "GWd/tHM", "MWd/tHM"], pressure: ["Pa", "kPa", "MPa", "GPa", "psi", "ksi"], ratio: ["1"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
 let sweepData = null, sweepFor = "", sweepMsg = "";
+let caseTab = "view";
 let doc = null, result = null, selected = "power", outTab = "problems", logText = "", showDegC = false, seq = 0, timer = null;
 
 /* Explorer items: id, label, group, JSON pointer prefixes that belong to it. */
@@ -785,8 +793,176 @@ $("prof").addEventListener("mousemove", (e) => {
 });
 $("prof").addEventListener("mouseleave", () => ($("readout").textContent = "Hover the profile for r and T"));
 
+/* ---- the 3D view of a stack (plan 12, A7): one radial solution per slice, drawn as a stack you can turn. The drawing is a rendering of what the slices say and nothing else:
+   nothing varies around the axis, nothing flows between slices, and the radius is drawn larger than true against the height (said on screen). */
+/* pure3d:begin (tests/stackView.test.ts runs this block without a page) */
+const V3_SEGS = 36, V3_CUT = 9, V3_OUTER_RADIUS = 0.17, V3_PLATE_WIDTH = 0.4;
+/* shown with the view at all times: a caption under the canvas, drawn by make3dPanel and into the canvas by draw3D */
+const STACK_VIEW_LABEL = "1.5D: one radial solution per slice, drawn as a stack. Not a three-dimensional solution: nothing varies around the axis and no heat flows between the slices.";
+const geomOfCase = (n) => ({ plate: !!n.plate, inner: n.fuelInnerRadius || 0, fuelR: n.fuelRadius, cladIn: n.claddingInnerRadius, cladOut: n.claddingOuterRadius, length: n.axial ? n.axial.length : 1 });
+/* samples {r, T, region} of one slice -> rings {a, b, T} (metres): a ring runs to the midpoints between its sample and the next ones, inside each region, plus the gap as a ring with no temperature */
+function ringsOf(samples, g) {
+  const rings = [];
+  for (const [region, lo, hi] of [["fuel", g.inner, g.fuelR], ["cladding", g.cladIn, g.cladOut]]) {
+    const s = samples.filter((p) => p.region === region).sort((p, q) => p.r - q.r);
+    s.forEach((p, i) => { const a = i === 0 ? lo : 0.5 * (s[i - 1].r + p.r), b = i === s.length - 1 ? hi : 0.5 * (p.r + s[i + 1].r); rings.push({ a, b, T: p.T, r: p.r }); });
+    if (region === "fuel" && g.cladIn > g.fuelR) rings.push({ a: g.fuelR, b: g.cladIn, T: null, r: 0.5 * (g.fuelR + g.cladIn) });
+  }
+  return rings;
+}
+/* the data of the view: slices bottom to top, each with its height, its samples and its rings */
+function stackViewData(slices, g) {
+  const out = slices.map((s) => ({ index: s.index, z: s.z, samples: s.samples, rings: ringsOf(s.samples, g) }));
+  const Ts = out.flatMap((s) => s.rings.filter((r) => r.T !== null).map((r) => r.T));
+  return { geom: g, slices: out, lo: Math.min(...Ts), hi: Math.max(...Ts), outerT: out.map((s) => s.rings[s.rings.length - 1].T) };
+}
+/* the numbers behind the view, one row per slice: the table next to the drawing is built from these, the drawing from the same rings */
+function stackTableRows(d) { return d.slices.map((s) => { const ts = s.rings.filter((r) => r.T !== null).map((r) => r.T); return { slice: s.index + 1, z: s.z, inner: ts[0], hottest: Math.max(...ts), outer: d.outerT[s.index] }; }); }
+/* the quadrilaterals of the cut-away stack, in model units: the height runs from -0.5 to 0.5, the radius is scaled so the outer radius is V3_OUTER_RADIUS (a plate: the thickness likewise, its width V3_PLATE_WIDTH) */
+function stackQuads(d, cut) {
+  const g = d.geom, N = d.slices.length, k = V3_OUTER_RADIUS / g.cladOut, q = [];
+  const y = (i) => -0.5 + i / N;
+  const push = (pts, T, n, slice, r, kind) => q.push({ pts, T, n, slice, r, kind });
+  d.slices.forEach((s, i) => {
+    const y0 = y(i), y1 = y(i + 1);
+    if (!g.plate) {
+      for (let j = cut ? V3_CUT : 0; j < V3_SEGS; j++) {
+        const t0 = (2 * Math.PI * j) / V3_SEGS, t1 = (2 * Math.PI * (j + 1)) / V3_SEGS, tm = 0.5 * (t0 + t1), ro = V3_OUTER_RADIUS;
+        push([[ro * Math.cos(t0), y0, ro * Math.sin(t0)], [ro * Math.cos(t1), y0, ro * Math.sin(t1)], [ro * Math.cos(t1), y1, ro * Math.sin(t1)], [ro * Math.cos(t0), y1, ro * Math.sin(t0)]], d.outerT[i], [Math.cos(tm), 0, Math.sin(tm)], i, g.cladOut, "outer");
+      }
+      if (cut) for (const ring of s.rings) {
+        const a = ring.a * k, b = ring.b * k;
+        push([[a, y0, 0], [b, y0, 0], [b, y1, 0], [a, y1, 0]], ring.T, [0, 0, 1], i, ring.r, "cut");
+        push([[0, y0, a], [0, y0, b], [0, y1, b], [0, y1, a]], ring.T, [1, 0, 0], i, ring.r, "cut");
+      }
+      const face = (yy, ny) => { for (const ring of s.rings) for (let j = cut ? V3_CUT : 0; j < V3_SEGS; j++) { const t0 = (2 * Math.PI * j) / V3_SEGS, t1 = (2 * Math.PI * (j + 1)) / V3_SEGS, a = ring.a * k, b = ring.b * k; push([[a * Math.cos(t0), yy, a * Math.sin(t0)], [b * Math.cos(t0), yy, b * Math.sin(t0)], [b * Math.cos(t1), yy, b * Math.sin(t1)], [a * Math.cos(t1), yy, a * Math.sin(t1)]], ring.T, [0, ny, 0], i, ring.r, "end"); } };
+      if (i === N - 1) face(y1, 1);
+      if (i === 0) face(y0, -1);
+    } else {
+      const W = V3_PLATE_WIDTH, z0 = cut ? 0 : -W;
+      for (const ring of s.rings) {
+        const a = ring.a * k, b = ring.b * k;
+        if (cut) push([[a, y0, 0], [b, y0, 0], [b, y1, 0], [a, y1, 0]], ring.T, [0, 0, -1], i, ring.r, "cut");
+        push([[a, y0, W], [b, y0, W], [b, y1, W], [a, y1, W]], ring.T, [0, 0, 1], i, ring.r, "end");
+        if (!cut) push([[a, y0, z0], [b, y0, z0], [b, y1, z0], [a, y1, z0]], ring.T, [0, 0, -1], i, ring.r, "end");
+        if (i === N - 1) push([[a, y1, z0], [b, y1, z0], [b, y1, W], [a, y1, W]], ring.T, [0, 1, 0], i, ring.r, "end");
+        if (i === 0) push([[a, y0, z0], [b, y0, z0], [b, y0, W], [a, y0, W]], ring.T, [0, -1, 0], i, ring.r, "end");
+      }
+      push([[V3_OUTER_RADIUS, y0, z0], [V3_OUTER_RADIUS, y0, W], [V3_OUTER_RADIUS, y1, W], [V3_OUTER_RADIUS, y1, z0]], d.outerT[i], [1, 0, 0], i, g.cladOut, "outer");
+      push([[0, y0, z0], [0, y0, W], [0, y1, W], [0, y1, z0]], s.rings[0].T, [-1, 0, 0], i, 0, "outer");
+    }
+  });
+  /* a plate is drawn centred on the axis, like the pin, so that it turns about its own middle */
+  if (g.plate) for (const e of q) e.pts = e.pts.map((p) => [p[0] - 0.5 * V3_OUTER_RADIUS, p[1], p[2] - 0.5 * V3_PLATE_WIDTH]);
+  return q;
+}
+/* the view: turn about the vertical axis (yaw), tilt (pitch); a point is turned, then drawn in perspective; the camera looks down -z from z = D */
+const V3_DISTANCE = 3.2;
+const rot3 = (p, v) => { const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), cp = Math.cos(v.pitch), sp = Math.sin(v.pitch); const x1 = cy * p[0] + sy * p[2], z1 = -sy * p[0] + cy * p[2]; return [x1, cp * p[1] - sp * z1, sp * p[1] + cp * z1]; };
+function projectQuads(quads, v, w, h) {
+  const scale = 0.62 * Math.min(w, h) * v.zoom, out = [];
+  for (const q of quads) {
+    const n = rot3(q.n, v); if (n[2] <= 0.02) continue;
+    const pts = q.pts.map((p) => rot3(p, v)), s = (p) => V3_DISTANCE / (V3_DISTANCE - p[2]);
+    out.push({ q, depth: pts.reduce((a, p) => a + p[2], 0) / 4, xy: pts.map((p) => [w / 2 + scale * s(p) * p[0], h / 2 - scale * s(p) * p[1]]) });
+  }
+  return out.sort((a, b) => a.depth - b.depth);
+}
+const V3_KEYS = { ArrowLeft: (v) => ({ ...v, yaw: v.yaw - 0.12 }), ArrowRight: (v) => ({ ...v, yaw: v.yaw + 0.12 }), ArrowUp: (v) => ({ ...v, pitch: Math.min(1.45, v.pitch + 0.1) }), ArrowDown: (v) => ({ ...v, pitch: Math.max(-1.45, v.pitch - 0.1) }), "+": (v) => ({ ...v, zoom: Math.min(3, v.zoom * 1.15) }), "=": (v) => ({ ...v, zoom: Math.min(3, v.zoom * 1.15) }), "-": (v) => ({ ...v, zoom: Math.max(0.4, v.zoom / 1.15) }), "0": () => ({ ...V3_HOME }) };
+const V3_HOME = { yaw: -0.65, pitch: 0.42, zoom: 1, cut: true };
+const colourFraction = (T, lo, hi) => (hi > lo ? (T - lo) / (hi - lo) : 0.5);
+/* pure3d:end */
+
+function draw3D(canvas, d, v) {
+  const [x, w, h] = sizeCanvas(canvas); x.clearRect(0, 0, w, h);
+  if (!d) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Nothing to show: the case is not valid yet", 14, h / 2); canvas._quads = []; return; }
+  const list = projectQuads(stackQuads(d, v.cut), v, w, h); canvas._quads = list; canvas._data = d;
+  x.lineJoin = "round";
+  for (const e of list) {
+    x.beginPath(); e.xy.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.closePath();
+    x.fillStyle = e.q.T === null ? "#15181c" : heat(colourFraction(e.q.T, d.lo, d.hi)); x.fill();
+    x.strokeStyle = e.q.T === null ? "#2a2f36" : "rgba(14,16,19,.35)"; x.lineWidth = 0.5; x.stroke();
+  }
+  /* the colour scale, shared with the pin's picture (heat()), in the unit the page shows */
+  const sx = 14, sy = h - 30, sw = Math.min(220, w - 28);
+  for (let i = 0; i < sw; i++) { x.fillStyle = heat(i / (sw - 1)); x.fillRect(sx + i, sy, 1, 9); }
+  x.fillStyle = "#c9d1d9"; x.font = "11px ui-monospace,Consolas,monospace"; x.fillText(showT(d.lo).toFixed(0), sx, sy - 3); x.textAlign = "right"; x.fillText(showT(d.hi).toFixed(0) + (showDegC ? " °C" : " K"), sx + sw, sy - 3); x.textAlign = "left";
+  /* the label is part of the drawing: it cannot be switched off */
+  x.fillStyle = "#e6b455"; x.font = "12px sans-serif"; x.fillText("1.5D: one radial solution per slice", 14, 18);
+  x.fillStyle = "#8c949e"; x.font = "11px sans-serif"; x.fillText("radius drawn ×" + (V3_OUTER_RADIUS / (d.geom.cladOut / d.geom.length)).toFixed(0) + " against the height" + (d.geom.plate ? " · the plate's width is a drawing width, per metre in the model" : "") + (v.cut ? " · a quarter cut away" : ""), 14, 34);
+  canvas.setAttribute("aria-label", "3D stack of " + d.slices.length + " slices, " + d.geom.length.toFixed(3) + " m high, hottest slice " + (d.slices.reduce((m, s, i) => (Math.max(...s.rings.filter((r) => r.T !== null).map((r) => r.T)) > m.t ? { t: Math.max(...s.rings.filter((r) => r.T !== null).map((r) => r.T)), i } : m), { t: -Infinity, i: 0 }).i + 1) + ". Turn with the arrow keys, zoom with plus and minus, 0 resets, c toggles the cut-away. The numbers are in the table below.");
+}
+/* one panel for the view, used in the case view and in the results: the toolbar, the canvas, the caption, the numbers as a table */
+function make3dPanel(host, getData, id) {
+  host.replaceChildren();
+  const view = host._view || (host._view = { ...V3_HOME });
+  const bar = el("div", "toolbar"), seg = el("div", "seg"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "View");
+  const readout = elt("span", "Drag to turn, wheel to zoom; or use the arrow keys with the picture focused", { class: "readout", id: id + "Read" });
+  const redraw = () => { draw3D(canvas, getData(), view); fillTable(); };
+  const btn = (text, fn, pressed) => { const b = elt("button", text, { type: "button" }); if (pressed !== undefined) b.setAttribute("aria-pressed", String(pressed)); b.addEventListener("click", () => { fn(b); redraw(); }); seg.append(b); return b; };
+  const cutBtn = btn("Cut-away", (b) => { view.cut = !view.cut; b.setAttribute("aria-pressed", String(view.cut)); }, view.cut);
+  btn("Reset", () => { Object.assign(view, V3_HOME); cutBtn.setAttribute("aria-pressed", "true"); });
+  btn("Zoom +", () => Object.assign(view, V3_KEYS["+"](view))); btn("Zoom −", () => Object.assign(view, V3_KEYS["-"](view)));
+  bar.append(seg, readout);
+  const wrap = el("div", "vpwrap1"); wrap.style.cssText = "flex:none;height:380px;margin:0";
+  const canvas = elt("canvas", "", { id: id + "Cv", tabindex: "0", role: "img", "aria-label": "3D stack" }); wrap.append(canvas);
+  const cap = elt("div", STACK_VIEW_LABEL, { class: "banner", id: id + "Cap" }); cap.style.cssText = "border-top:1px solid var(--line)";
+  const det = el("details"); det.append(elt("summary", "The numbers behind the view (the same as the drawing)")); const tb = el("div", "ctables"); det.append(tb);
+  const fillTable = () => {
+    const d = getData(); tb.replaceChildren(); if (!d) return;
+    tb.append(table(["#", "z (m)", "innermost ring", "hottest ring", "outer wall"], stackTableRows(d).map((r) => [String(r.slice), r.z.toFixed(3), K(r.inner), K(r.hottest), K(r.outer)])));
+  };
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointerup", () => (drag = null));
+  canvas.addEventListener("pointermove", (e) => {
+    if (drag) { view.yaw += (e.clientX - drag.x) * 0.01; view.pitch = Math.max(-1.45, Math.min(1.45, view.pitch + (e.clientY - drag.y) * 0.01)); drag = { x: e.clientX, y: e.clientY }; redraw(); return; }
+    const b = canvas.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top, d = getData();
+    for (let i = (canvas._quads || []).length - 1; i >= 0; i--) { const t = canvas._quads[i]; if (inPoly(t.xy, px, py)) { readout.textContent = "slice " + (t.q.slice + 1) + " · z " + d.slices[t.q.slice].z.toFixed(3) + " m · " + (t.q.kind === "outer" ? "outer wall" : "r " + (t.q.r * 1e3).toFixed(2) + " mm") + " · " + (t.q.T === null ? "gap" : K(t.q.T)); return; }
+    }
+  });
+  canvas.addEventListener("wheel", (e) => { e.preventDefault(); Object.assign(view, (e.deltaY < 0 ? V3_KEYS["+"] : V3_KEYS["-"])(view)); redraw(); }, { passive: false });
+  canvas.addEventListener("keydown", (e) => { if (e.key === "c" || e.key === "C") { view.cut = !view.cut; cutBtn.setAttribute("aria-pressed", String(view.cut)); redraw(); e.preventDefault(); return; } const f = V3_KEYS[e.key]; if (f) { Object.assign(view, f(view)); cutBtn.setAttribute("aria-pressed", String(view.cut)); redraw(); e.preventDefault(); } });
+  host.append(bar, wrap, cap, det);
+  requestAnimationFrame(redraw);
+  host._redraw = redraw;
+}
+function inPoly(poly, x, y) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { if (((poly[i][1] > y) !== (poly[j][1] > y)) && x < ((poly[j][0] - poly[i][0]) * (y - poly[i][1])) / (poly[j][1] - poly[i][1]) + poly[i][0]) c = !c; } return c; }
+/* the case view's data: the closed form of every slice, from the check; a run's: OFFBEAT's cells of every slice */
+function stackDataFromCheck() {
+  if (!(result && result.ok && result.axialProfiles && result.normalized && result.normalized.axial) || result.transient) return null;
+  return stackViewData(result.axialProfiles.map((s) => ({ index: s.index, z: s.height, samples: s.points })), geomOfCase(result.normalized));
+}
+function stackDataFromRun(d) {
+  const a = d && d.results && d.results.axial, n = d && d.normalized;
+  if (!a || !n || !n.axial || d.results.kind === "transient" || !a.slices.every((s) => Array.isArray(s.radial))) return null;
+  return stackViewData(a.slices.map((s) => ({ index: s.index, z: s.height, samples: s.radial.map((p) => ({ r: p.r, T: p.T, region: p.region })) })), geomOfCase(n));
+}
+let case3dShown = false;
+function update3dTab() {
+  const has = !!stackDataFromCheck();
+  $("tab3d").hidden = !(mode === "case" && has);
+  if (!has && caseTab === "3d") showCaseTab("view");
+  if (has && caseTab === "3d" && !$("doc3d").hidden) { if (!$("doc3d")._redraw) make3dPanel($("doc3d"), stackDataFromCheck, "c3"); else $("doc3d")._redraw(); }
+}
+function showCaseTab(t) {
+  caseTab = t;
+  for (const [id, name] of [["tabView", "view"], ["tab3d", "3d"], ["tabJson", "json"]]) $(id).setAttribute("aria-selected", String(name === t));
+  $("docView").hidden = t !== "view"; $("doc3d").hidden = t !== "3d"; $("docJson").hidden = t !== "json";
+  if (t === "view") draw();
+  if (t === "3d") { if (!$("doc3d")._redraw) make3dPanel($("doc3d"), stackDataFromCheck, "c3"); else $("doc3d")._redraw(); }
+}
+function renderStackResults3d(d) {
+  const host = $("r3dHost"), data = stackDataFromRun(d);
+  host.hidden = !(d && d.results && d.results.axial);
+  if (host.hidden) return;
+  if (!data) { host.replaceChildren(note("The 3D view is for steady stacks. This run is a transient: the peak of each slice over the run is in the plot above.")); return; }
+  host._view = host._view || undefined;
+  make3dPanel(host, () => stackDataFromRun(selDetail), "r3");
+}
+
 /* ---- flow */
-function draw() { drawPin(); drawProfile(); drawBoundaryHistoryPlot(); drawStackSummary(); }
+function draw() { drawPin(); drawProfile(); drawBoundaryHistoryPlot(); drawStackSummary(); if (!$("doc3d").hidden && $("doc3d")._redraw) $("doc3d")._redraw(); }
 function renderAll() { $("projName").textContent = doc ? doc.name + (doc.label ? " · " + doc.label : "") : ""; $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderProps(); renderOutput(); draw(); }
 async function runCheck(rebuildProps) {
   const my = ++seq;
@@ -802,7 +978,7 @@ async function runCheck(rebuildProps) {
   if (doc && doc.axial && result && result.axialNote) $("caseBanner").textContent = result.axialNote + " " + $("caseBanner").textContent;
   $("burnupBanner").textContent = (result && result.burnupNote) || ""; $("burnupBanner").hidden = !(result && result.burnupNote);
   if (sweepFor !== "" && sweepFor !== JSON.stringify(doc)) { sweepData = null; sweepFor = ""; }
-  $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderOutput(); draw();
+  $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderOutput(); draw(); update3dTab();
   if (rebuildProps || !keep) renderProps(); else refreshErrors();
 }
 function refreshErrors() {  /* update inline error text without rebuilding fields (keeps the caret) */
@@ -1392,7 +1568,8 @@ $("runBtn").onclick = async () => {
 $("bTemp").onclick = () => { showDegC = !showDegC; $("bTempLbl").textContent = showDegC ? "Celsius" : "Kelvin"; renderOutput(); draw(); };
 $("pCol").onclick = $("pCf").onclick = (e) => { e.currentTarget.setAttribute("aria-pressed", String(e.currentTarget.getAttribute("aria-pressed") !== "true")); draw(); };
 document.querySelectorAll(".otab").forEach((b) => (b.onclick = () => { outTab = b.dataset.o; renderOutput(); }));
-$("tabView").onclick = $("tabJson").onclick = (e) => { const v = e.currentTarget.id === "tabView"; $("tabView").setAttribute("aria-selected", String(v)); $("tabJson").setAttribute("aria-selected", String(!v)); $("docView").hidden = !v; $("docJson").hidden = v; if (v) draw(); };
+$("tabView").onclick = () => showCaseTab("view"); $("tab3d").onclick = () => showCaseTab("3d"); $("tabJson").onclick = () => showCaseTab("json");
+window.addEventListener("resize", () => { for (const id of ["doc3d", "r3dHost"]) { const h = $(id); if (h && h._redraw && !h.hidden) h._redraw(); } });
 $("bRefresh2").onclick = () => $("bRefresh").click();
 new ResizeObserver(() => draw()).observe(document.querySelector(".vpwrap"));
 /* ---- keyboard: arrow keys move between tabs in a tab list and between items in a menu */
@@ -1763,12 +1940,13 @@ function setMode(m) {
   $("rbCase").hidden = m !== "case"; $("rbResults").hidden = m !== "results"; $("rbCompare").hidden = m !== "compare";
   $("tree").hidden = m !== "case"; $("runs").hidden = m === "case";
   $("exHead").textContent = m === "case" ? "Case" : "Runs";
-  $("tabView").hidden = $("tabJson").hidden = m !== "case";
+  $("tabView").hidden = $("tabJson").hidden = m !== "case"; $("tab3d").hidden = !(m === "case" && !!stackDataFromCheck());
   $("tabResults").hidden = m !== "results"; $("tabCompare").hidden = m !== "compare";
   $("tabResults").setAttribute("aria-selected", String(m === "results")); $("tabCompare").setAttribute("aria-selected", String(m === "compare"));
   $("center").classList.toggle("nooutput", m !== "case");
-  const caseView = m === "case" && $("tabView").getAttribute("aria-selected") === "true";
-  $("docView").hidden = !caseView; $("docJson").hidden = m !== "case" || caseView;
+  const showing = m !== "case" ? "" : caseTab === "3d" && !stackDataFromCheck() ? "view" : caseTab;
+  $("docView").hidden = showing !== "view"; $("doc3d").hidden = showing !== "3d"; $("docJson").hidden = showing !== "json";
+  for (const [id, name] of [["tabView", "view"], ["tab3d", "3d"], ["tabJson", "json"]]) $(id).setAttribute("aria-selected", String(name === showing));
   $("docResults").hidden = m !== "results"; $("docCompare").hidden = m !== "compare";
   if (m === "case") { renderProps(); renderOutput(); draw(); return; }
   loadRuns().then(() => {
@@ -1899,7 +2077,7 @@ function renderResults() {
   const d = selDetail, m = $("metrics"); m.replaceChildren();
   $("rTitle").textContent = d ? (d.record.caseName || d.record.caseId) + " · " + d.record.id : "No run selected";
   const pr = $("props"); pr.replaceChildren(); $("propSub").textContent = d ? "Run " + d.record.id : "";
-  $("rmechWrap").hidden = true; $("rdispWrap").hidden = true; drawStackResults(null);
+  $("rmechWrap").hidden = true; $("rdispWrap").hidden = true; drawStackResults(null); $("r3dHost").hidden = true;
   const bh = d && d.normalized && d.normalized.transient && d.normalized.transient.boundaryHistory;
   $("rbndWrap").hidden = !bh; if (bh) requestAnimationFrame(() => drawBoundaryHistory($("rbnd"), bh));
   if (!d) { drawGeneric($("rprof"), null); $("rBanner").hidden = true; return; }
@@ -1934,7 +2112,7 @@ function renderResults() {
     if (f && f.native) { const pre = el("pre", "log"); pre.textContent = f.native; box.append(pre); }
     m.append(box); drawGeneric($("rprof"), null);
   }
-  if (d.results && d.results.axial) { const ax = d.results.axial, hs = ax.slices[ax.hottest]; m.append(card("Hottest slice", "#" + (ax.hottest + 1) + " of " + ax.slices.length, "height " + hs.height.toFixed(3) + " m of " + ax.length.toFixed(3) + " m · peak " + K(hs.maxT))); drawStackResults(d); }
+  if (d.results && d.results.axial) { const ax = d.results.axial, hs = ax.slices[ax.hottest]; m.append(card("Hottest slice", "#" + (ax.hottest + 1) + " of " + ax.slices.length, "height " + hs.height.toFixed(3) + " m of " + ax.length.toFixed(3) + " m · peak " + K(hs.maxT))); drawStackResults(d); renderStackResults3d(d); }
   // run details in the right panel
   const row = (k, v) => { const r = el("div", "prow"); r.append(elt("label", k), elt("div", String(v))); r.lastChild.style.cssText = "font:12px var(--mono);overflow-wrap:anywhere"; pr.append(r); };
   pr.append(elt("div", "Provenance", { class: "psec" }));
