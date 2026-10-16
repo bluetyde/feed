@@ -1,0 +1,476 @@
+{
+  "schema": "feed.results/0.1",
+  "kind": "triso",
+  "caseId": "synthetic-triso-compact-steady",
+  "time": 50000000,
+  "cells": [
+    {
+      "r": 0.000015620242,
+      "T": 905.08959,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000033471946,
+      "T": 905.08224,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000053437668,
+      "T": 905.06579,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000073879521,
+      "T": 905.04054,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000094489658,
+      "T": 905.00658,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00011517783,
+      "T": 904.96397,
+      "region": "kernel"
+    },
+    {
+      "r": 0.0001359084,
+      "T": 904.91274,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00015666455,
+      "T": 904.8529,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00017743731,
+      "T": 904.78445,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00019822144,
+      "T": 904.70741,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00021901372,
+      "T": 904.62177,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00023981202,
+      "T": 904.52754,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00025413478,
+      "T": 904.35558,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026246413,
+      "T": 904.12425,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027079357,
+      "T": 903.90715,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027912309,
+      "T": 903.703,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00028745269,
+      "T": 903.51069,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029578235,
+      "T": 903.32921,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00030411207,
+      "T": 903.15767,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031244185,
+      "T": 902.99527,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032077169,
+      "T": 902.84131,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032910157,
+      "T": 902.69514,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0003374315,
+      "T": 902.55619,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00034576147,
+      "T": 902.42393,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00035156483,
+      "T": 902.30782,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003548971,
+      "T": 902.30163,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035822937,
+      "T": 902.29556,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036156164,
+      "T": 902.28961,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036489391,
+      "T": 902.28376,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036822619,
+      "T": 902.27802,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037155846,
+      "T": 902.27238,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037489073,
+      "T": 902.26684,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037822301,
+      "T": 902.2614,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038155528,
+      "T": 902.25605,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038488756,
+      "T": 902.2508,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038821984,
+      "T": 902.24563,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039097668,
+      "T": 902.24395,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039316351,
+      "T": 902.243,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039535033,
+      "T": 902.24206,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039753715,
+      "T": 902.24114,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039972398,
+      "T": 902.24022,
+      "region": "sic"
+    },
+    {
+      "r": 0.0004019108,
+      "T": 902.23931,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040409762,
+      "T": 902.23841,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040628444,
+      "T": 902.23753,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040847127,
+      "T": 902.23665,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041065809,
+      "T": 902.23578,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041284492,
+      "T": 902.23492,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041503174,
+      "T": 902.23407,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041721856,
+      "T": 902.23323,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041940539,
+      "T": 902.2324,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042159221,
+      "T": 902.23157,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042377903,
+      "T": 902.23076,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042633178,
+      "T": 902.2294,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042924754,
+      "T": 902.22571,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004321633,
+      "T": 902.22207,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043507905,
+      "T": 902.21848,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043799481,
+      "T": 902.21494,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044091057,
+      "T": 902.21144,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044382632,
+      "T": 902.20799,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044674208,
+      "T": 902.20459,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044965784,
+      "T": 902.20123,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004525736,
+      "T": 902.19791,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045548935,
+      "T": 902.19464,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045840511,
+      "T": 902.1914,
+      "region": "opyc"
+    }
+  ],
+  "regions": [
+    {
+      "name": "kernel",
+      "innerRadius": 0,
+      "outerRadius": 0.00024992386497047186,
+      "innerFaceT": 905.0920026172884,
+      "outerFaceT": 904.4763276653706,
+      "hottestCellT": 905.08959,
+      "coldestCellT": 904.52754,
+      "drop": 0.6156749519177538
+    },
+    {
+      "name": "buffer",
+      "innerRadius": 0.00024992386497047186,
+      "outerRadius": 0.0003498934109586606,
+      "innerFaceT": 904.4763276653706,
+      "outerFaceT": 902.36141,
+      "hottestCellT": 904.35558,
+      "coldestCellT": 902.42393,
+      "drop": 2.1149176653706263
+    },
+    {
+      "name": "ipyc",
+      "innerRadius": 0.0003498934109586606,
+      "outerRadius": 0.0003898812293539361,
+      "innerFaceT": 902.31098,
+      "outerFaceT": 902.2442163410475,
+      "hottestCellT": 902.30782,
+      "coldestCellT": 902.24563,
+      "drop": 0.06676365895248182
+    },
+    {
+      "name": "sic",
+      "innerRadius": 0.0003898812293539361,
+      "outerRadius": 0.00042487057044980213,
+      "innerFaceT": 902.2442163410475,
+      "outerFaceT": 902.2305181798758,
+      "hottestCellT": 902.24395,
+      "coldestCellT": 902.23076,
+      "drop": 0.013698161171646461
+    },
+    {
+      "name": "opyc",
+      "innerRadius": 0.00042487057044980213,
+      "outerRadius": 0.0004598599115456682,
+      "innerFaceT": 902.2305181798758,
+      "outerFaceT": 902.18981,
+      "hottestCellT": 902.2294,
+      "coldestCellT": 902.1914,
+      "drop": 0.04070817987587816
+    }
+  ],
+  "summary": {
+    "kernelCentreT": 905.0920026172884,
+    "kernelCentreCellT": 905.08959,
+    "kernelSurfaceT": 904.4763276653706,
+    "wallT": 902.18981,
+    "gapDeltaT": 0.05043000000000575,
+    "maxT": 905.08959,
+    "minT": 902.1914
+  },
+  "checks": [
+    {
+      "id": "closedFormKernel",
+      "label": "Kernel vs closed form (max deviation)",
+      "value": 0.006869566044770181,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.036 K = 5 x 0.618 K / 12^2 + 0.0145 K (0.5 % of the 2.91 K rise)"
+    },
+    {
+      "id": "closedFormBuffer",
+      "label": "Buffer vs closed form (max deviation)",
+      "value": 0.00298800841846969,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.088 K = 5 x 2.12 K / 12^2 + 0.0145 K (0.5 % of the 2.91 K rise)"
+    },
+    {
+      "id": "closedFormIpyc",
+      "label": "IPyC vs closed form (max deviation)",
+      "value": 0.0022607492155657383,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.017 K = 5 x 0.0679 K / 12^2 + 0.0145 K (0.5 % of the 2.91 K rise)"
+    },
+    {
+      "id": "closedFormSic",
+      "label": "SiC vs closed form (max deviation)",
+      "value": 0.0009257532930178058,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.015 K = 5 x 0.0141 K / 16^2 + 0.0145 K (0.5 % of the 2.91 K rise)"
+    },
+    {
+      "id": "closedFormOpyc",
+      "label": "OPyC vs closed form (max deviation)",
+      "value": 0.000008552913300263754,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.016 K = 5 x 0.0415 K / 12^2 + 0.0145 K (0.5 % of the 2.91 K rise)"
+    },
+    {
+      "id": "crossCheckFv",
+      "label": "Cells vs the independent finite-volume solution (max deviation)",
+      "value": 0.005787805124100487,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "the same mesh solved by FEED's own finite-volume code (src/core/trisoSolve.ts); bound 0.0200 K (0.3 % of the 2.91 K rise, at least 0.02 K)"
+    },
+    {
+      "id": "energyBalance",
+      "label": "Energy balance (heat through the outer layer vs the power made)",
+      "value": 0.0020595922879139334,
+      "unit": "relative",
+      "verdict": "pass",
+      "note": "heat through the two outermost cells = 0.0116625 W against 0.0116385 W made in the wedge's kernel (the input 0.0116491 W times 0.999087: the wedge is the sphere with its radii times 0.999695); threshold 0.5 %"
+    },
+    {
+      "id": "gapDrop",
+      "label": "Drop across the gap vs power / (area x conductance)",
+      "value": -0.0000041339983425925375,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "bufferOuter 902.36141 K minus ipycInner 902.31098 K = 0.050430 K against 0.050434 K from P / (4 pi R^2 h); bound 0.00550 K"
+    },
+    {
+      "id": "wallTemperature",
+      "label": "Outer wall temperature vs closed form",
+      "value": 8.974014917839668e-7,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "solver 902.18981 K, closed form 902.190 K; threshold 0.05 K"
+    },
+    {
+      "id": "steadyState",
+      "label": "Steady state reached (bound on what is still to change)",
+      "value": 8.504004787695264e-16,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "at most 8.50e-16 K is still to change after the last step (OFFBEAT's last relative rate 2.415145e-18, hottest cell 905.1 K); threshold 0.01 K"
+    }
+  ],
+  "domain": {
+    "verdict": "in-domain",
+    "findings": []
+  },
+  "thermalOnly": "Thermal-only result. It says nothing about stress, failure or fuel integrity. For a coated particle: the temperatures of the kernel and the layers, not the stress in the silicon carbide, the swelling and creep of the carbon, the gas pressure or a failure fraction."
+}

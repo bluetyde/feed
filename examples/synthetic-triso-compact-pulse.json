@@ -3,7 +3,7 @@
   "caseId": "synthetic-triso-compact-pulse",
   "name": "Generic coated particle: a 10 ms overpower to about 51 times the compact's steady power, from the steady state (illustrative)",
   "label": "synthetic",
-  "description": "TBD",
+  "description": "ILLUSTRATIVE and SYNTHETIC: the generic coated particle of synthetic-triso-compact-steady (the same dimensions, synthetic conductivities, gap and 900 K matrix), started from its steady state at the compact's 11.65 mW per particle, then given a 10 ms triangular overpower to 0.6 W (about 51 times the steady power) at 10 ms, back to 11.65 mW at 20 ms. The power history is an input in W per particle, not a result: FEED computes no kinetics here. The heat capacity of each region is a synthetic number of the right order for the material (kernel 3, buffer 1.5, inner and outer PyC 2.5, SiC 3.5 MJ/m3/K), not a sourced property. The five limits are ILLUSTRATIVE numbers chosen for this example (1000 K in every region), not design limits of any particle; each says so in its source. The case shows the heat wave: the kernel rises first, the layers follow, and by 0.5 s the particle is within about 1 K of its starting state. No statement is made about failure; stress, swelling, fission gas and kernel migration are not modelled. Thermal only.",
   "assumptions": {
     "thermalOnly": true,
     "steadyState": false,
@@ -48,7 +48,7 @@
   },
   "boundary": {
     "bulkTemperature": {
-      "value": 1000,
+      "value": 900,
       "unit": "K"
     },
     "heatTransferCoefficient": {
@@ -285,7 +285,7 @@
       "name": "kernel, illustrative",
       "region": "kernel",
       "maxTemperature": {
-        "value": 1200,
+        "value": 1000,
         "unit": "K"
       },
       "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
@@ -294,7 +294,7 @@
       "name": "buffer, illustrative",
       "region": "buffer",
       "maxTemperature": {
-        "value": 1200,
+        "value": 1000,
         "unit": "K"
       },
       "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
@@ -303,7 +303,7 @@
       "name": "inner PyC, illustrative",
       "region": "ipyc",
       "maxTemperature": {
-        "value": 1200,
+        "value": 1000,
         "unit": "K"
       },
       "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
@@ -312,7 +312,7 @@
       "name": "SiC, illustrative",
       "region": "sic",
       "maxTemperature": {
-        "value": 1200,
+        "value": 1000,
         "unit": "K"
       },
       "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
@@ -321,7 +321,7 @@
       "name": "outer PyC, illustrative",
       "region": "opyc",
       "maxTemperature": {
-        "value": 1200,
+        "value": 1000,
         "unit": "K"
       },
       "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"

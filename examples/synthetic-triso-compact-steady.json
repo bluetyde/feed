@@ -1,9 +1,9 @@
 {
   "schema": "feed.case/0.1",
   "caseId": "synthetic-triso-compact-steady",
-  "name": "Generic coated particle in a compact: 10 W/cm3 at 35 % packing, in a 1000 K matrix (illustrative)",
+  "name": "Generic coated particle in a compact: 10 W/cm3 at 35 % packing, in a 900 K matrix (illustrative)",
   "label": "synthetic",
-  "description": "TBD",
+  "description": "ILLUSTRATIVE and SYNTHETIC: a generic coated particle (kernel 250 um radius, buffer 100, inner PyC 40, SiC 35, outer PyC 35 um; the dimensions of OpenMC Studio's illustrative particle and of schema/vectors/good/triso-steady.json), in a compact that makes 10 W/cm3 with a packing fraction of 35 %. Each particle then makes 10 W/cm3 x its own volume / 0.35 = 11.65 mW (the same as a kernel power density of 178 MW/m3). The conductivities are FEED's own synthetic numbers (kernel 3, buffer 0.5, PyC 4, SiC 13.9 W/m/K, constant), chosen so that closed forms exist for checking; they are NOT sourced properties of UO2, porous carbon, PyC or SiC (the library holds no sourced set for them), and the buffer-to-inner-PyC gap conductance (150000 W/m2/K) is an input, not a gap model. The outside is a convective boundary that stands for the compact's matrix: 900 K and 2000 W/m2/K are ASSUMED round numbers, not a matrix model. Thermal only, and a low power: the whole particle sits only a few kelvin above its surroundings, most of it across the buffer. It says how hot the kernel and the layers are for these inputs. It makes no statement about whether a particle survives: stress, swelling, fission gas and failure are not modelled.",
   "assumptions": {
     "thermalOnly": true,
     "steadyState": true,
@@ -58,7 +58,7 @@
   },
   "boundary": {
     "bulkTemperature": {
-      "value": 1000,
+      "value": 900,
       "unit": "K"
     },
     "heatTransferCoefficient": {
