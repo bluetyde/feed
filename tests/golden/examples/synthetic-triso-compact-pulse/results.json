@@ -4468,42 +4468,42 @@
     {
       "id": "temperatureLimit1",
       "label": "Temperature limit: kernel, illustrative",
-      "value": 269.66873525318374,
+      "value": 69.66873525318374,
       "unit": "K",
       "verdict": "pass",
-      "note": "kernel, illustrative: the hottest kernel cell stays at or below 1200 K (926.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 269.67 K: 930.33 K (657.18 C) at t = 0.0175 s, from the independent solution (every step). This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
+      "note": "kernel, illustrative: the hottest kernel cell stays at or below 1000 K (726.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 69.67 K: 930.33 K (657.18 C) at t = 0.0175 s, from the independent solution (every step). This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
     },
     {
       "id": "temperatureLimit2",
       "label": "Temperature limit: buffer, illustrative",
-      "value": 278.18372253854534,
+      "value": 78.18372253854534,
       "unit": "K",
       "verdict": "pass",
-      "note": "buffer, illustrative: the hottest buffer cell stays at or below 1200 K (926.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 278.18 K: 921.82 K (648.67 C) at t = 0.0185 s, from the independent solution (every step). This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
+      "note": "buffer, illustrative: the hottest buffer cell stays at or below 1000 K (726.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 78.18 K: 921.82 K (648.67 C) at t = 0.0185 s, from the independent solution (every step). This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
     },
     {
       "id": "temperatureLimit3",
       "label": "Temperature limit: inner PyC, illustrative",
-      "value": 293.77033037742274,
+      "value": 93.77033037742274,
       "unit": "K",
       "verdict": "pass",
-      "note": "inner PyC, illustrative: the hottest ipyc cell stays at or below 1200 K (926.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 293.77 K: 906.23 K (633.08 C) at t = 0.084 s, from the independent solution (every step). This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
+      "note": "inner PyC, illustrative: the hottest ipyc cell stays at or below 1000 K (726.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 93.77 K: 906.23 K (633.08 C) at t = 0.084 s, from the independent solution (every step). This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
     },
     {
       "id": "temperatureLimit4",
       "label": "Temperature limit: SiC, illustrative",
-      "value": 293.9497724307362,
+      "value": 93.94977243073618,
       "unit": "K",
       "verdict": "pass",
-      "note": "SiC, illustrative: the hottest sic cell stays at or below 1200 K (926.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 293.95 K: 906.05 K (632.9 C) at t = 0.0875 s, from the independent solution (every step). This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
+      "note": "SiC, illustrative: the hottest sic cell stays at or below 1000 K (726.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 93.95 K: 906.05 K (632.9 C) at t = 0.0875 s, from the independent solution (every step). This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
     },
     {
       "id": "temperatureLimit5",
       "label": "Temperature limit: outer PyC, illustrative",
-      "value": 293.98918000000003,
+      "value": 93.98918000000003,
       "unit": "K",
       "verdict": "pass",
-      "note": "outer PyC, illustrative: the hottest opyc cell stays at or below 1200 K (926.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 293.99 K: 906.01 K (632.86 C) at t = 0.09 s, from the solver's outputs. This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
+      "note": "outer PyC, illustrative: the hottest opyc cell stays at or below 1000 K (726.85 C). Source: synthetic: an illustrative number chosen for this example, not a design limit or a sourced value. Smallest margin 93.99 K: 906.01 K (632.86 C) at t = 0.09 s, from the solver's outputs. This check computes no stress; staying below a limit is not an integrity assessment. It judges cell values: a region's face can be hotter than its hottest cell by up to half a cell's drop, so refine the mesh where a margin is small."
     }
   ],
   "domain": {
