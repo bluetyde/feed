@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { ResultsError, buildResults } from "../src/core/resultsParser";
 import { TrisoInput, buildTrisoResults, parseCellZones } from "../src/core/trisoResults";
 import { trisoClosedForm } from "../src/core/trisoSolve";
-import { TRISO_WEDGE_SCALE } from "../src/core/trisoWriter";
+import { TRISO_WEDGE_SCALE, wedgeEquivalent } from "../src/core/trisoWriter";
 
 const root = join(__dirname, "..");
 const g = (name: string) => {
@@ -98,6 +98,26 @@ describe("real OFFBEAT output of a particle", () => {
     expect(film.summary.wallT - 900).toBeGreaterThan(30);
   });
 
+  it("each region's faces are the closed form's faces of the wedge's sphere: within 0.15 K on 12 cells, 0.03 K on 48 (the kernel's centre is extrapolated from its first cell)", () => {
+    for (const [name, tol] of [["steady", 0.15], ["intense", 0.15], ["film", 0.15], ["temperature-dependent", 0.15], ["fine", 0.03]] as const) {
+      const x = g(name);
+      const r = read(x);
+      const cf = trisoClosedForm(wedgeEquivalent(x.n));
+      r.regions.forEach((q, i) => {
+        expect(Math.abs(q.innerFaceT - cf.regions[i]!.innerT), name + " " + q.name + " inner").toBeLessThan(tol);
+        expect(Math.abs(q.outerFaceT - cf.regions[i]!.outerT), name + " " + q.name + " outer").toBeLessThan(tol);
+      });
+    }
+  });
+
+  it("the kernel's centre is the first cell plus the parabola's rise q r^2 / (6 k) over the cell's radius, to the last digit (k = 3 W/m/K), and the drop of a region is its inner face minus its outer", () => {
+    const x = g("steady");
+    const r = read(x);
+    const r1 = r.cells[0]!.r;
+    expect(r.summary.kernelCentreT - r.summary.kernelCentreCellT).toBeCloseTo((6e8 * r1 * r1) / (6 * 3), 9);
+    for (const q of r.regions) expect(q.drop).toBeCloseTo(q.innerFaceT - q.outerFaceT, 12);
+  });
+
   it("the buffer carries the largest drop of the five regions in the synthetic particle (its conductivity is a sixth of the carbon's)", () => {
     const r = read(g("steady"));
     const drops = Object.fromEntries(r.regions.map((q) => [q.name, q.drop]));
@@ -180,6 +200,14 @@ describe("the same output judged as another particle fails, or is refused", () =
     expect(failed(read(x, undefined, { drift: { relativeRate: NaN } }))).toContain("steadyState");
     // without a log there is no steady-state check at all
     expect(read(x, undefined, { drift: undefined }).checks.map((c) => c.id)).not.toContain("steadyState");
+  });
+
+  it("two cells at one centre are refused before anything is judged", () => {
+    const x = g("steady");
+    const lines = x.C.split("\n");
+    const i = lines.findIndex((l) => /^\(\d/.test(l));
+    lines[i + 1] = lines[i]!;
+    expect(() => read(x, undefined, { C: lines.join("\n") })).toThrow(/share a centre/);
   });
 
   it("a pin's case does not read a particle's fields", () => {
