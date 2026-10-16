@@ -9,7 +9,7 @@ import { createServer, IncomingMessage, ServerResponse } from "http";
 import { AddressInfo } from "net";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
-import { axialSummary, hottestLoad, sliceCase, sliceLoads } from "../core/axial";
+import { axialProfiles, axialSummary, hottestLoad, sliceCase, sliceLoads } from "../core/axial";
 import { STACK_TEXT } from "../core/stackResults";
 import { quickLook, radialProfile } from "../core/quickLook";
 import { trisoDerived, trisoQuickLook } from "../core/trisoSolve";
@@ -246,7 +246,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
     ...(n.burnup ? { burnupNote: burnupText(n.burnup.value) } : {}),
     quick: look,
     profile: radialProfile(hot, look),
-    ...(stack ? { axial: stack, axialNote: STACK_TEXT } : {}),
+    ...(stack ? { axial: stack, axialNote: STACK_TEXT, axialProfiles: axialProfiles(n) } : {}),
     derived: derivedOf(n, hot.qPrime),
   };
 }
