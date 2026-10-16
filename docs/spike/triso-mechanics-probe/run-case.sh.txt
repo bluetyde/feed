@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# D1 probe: run one shipped trisoBenchmarks case as it is, on a COPY under ~/spike/d1/<case>.
+# usage: bash run-case.sh <case_name> [timeout_seconds]   (run as user feed in the feed-solver distro)
+# The OFFBEAT source tree is only read. The steps are those of the case's own Allrun, written by hand.
+set +eu
+source /opt/openfoam9/etc/bashrc
+set +e
+C="$1"; TO="${2:-600}"
+SRC=/home/feed/OpenFOAM/feed-9/applications/solvers/offbeat/Cases/Verification/trisoBenchmarks/$C
+RUN="$HOME/spike/d1/$C"
+rm -rf "$RUN"; mkdir -p "$RUN"; cp -r "$SRC"/. "$RUN"/; cd "$RUN" || exit 3
+rm -f results
+s0=$(date +%s.%N)
+timeout 120 blockMesh > log.blockMesh 2>&1; echo "blockMesh exit $?"
+[ -f system/changeDictionaryDict ] && { timeout 120 changeDictionary > log.changeDictionary 2>&1; echo "changeDictionary exit $?"; }
+s1=$(date +%s.%N)
+timeout "$TO" offbeat > log.offbeat 2>&1; rc=$?; echo "offbeat exit $rc"
+s2=$(date +%s.%N)
+echo "mesh $(echo "$s1 - $s0" | bc) s, offbeat $(echo "$s2 - $s1" | bc) s"
+echo "times written:"; ls -d [0-9]* 2>/dev/null | sort -g | tr '\n' ' '; echo
+grep -n -i "error\|abort\|fatal\|not converged" log.offbeat | head -5
+tail -4 log.offbeat | cut -c1-200
+timeout 120 postProcess -func writeCellCentres -latestTime > log.cc 2>&1; echo "writeCellCentres exit $?"
+[ -f system/sampleDict ] && { timeout 120 postProcess -func sampleDict > log.sampleDict 2>&1; echo "sampleDict exit $?"; }
+[ -f system/probes ] && { timeout 120 postProcess -func probes > log.probes 2>&1; echo "probes exit $?"; }
+ls postProcessing 2>/dev/null | tr '\n' ' '; echo

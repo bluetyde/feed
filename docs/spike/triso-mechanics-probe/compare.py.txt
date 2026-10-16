@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# D1 probe: read the last time written by OFFBEAT in ~/spike/d1/<case> and compare the cell stresses with the
+# Lame solution of lame.py.txt (same folder). Usage: python3 compare.py.txt <case> [mesh dir root]
+# Pure standard library. The material numbers below are the ones the shipped case files give to OFFBEAT for
+# the elastic cases (read from the copies in ~/spike/d1/<case>/constant/solverDict, not invented).
+import math, os, re, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lame import Sphere
+
+ROOT = os.path.expanduser('~/spike/d1')
+UM = 1e-6
+SIC = dict(E=3.7e11, nu=0.13)
+IPYC = dict(E=3.96e10, nu=0.33)
+
+# layer lists: name, inner radius, outer radius (um), material. Kernel 250 + buffer 100 = 350 um is the start of the coated stack.
+CASES = {
+    'case_1': dict(layers=[('SiC', 350, 385, SIC)], p_in=25e6, p_out=0.1e6),
+    'case_2': dict(layers=[('IPyC', 350, 440, IPYC)], p_in=25e6, p_out=0.1e6),
+    'case_3': dict(layers=[('IPyC', 350, 390, IPYC), ('SiC', 390, 425, SIC)], p_in=25e6, p_out=0.1e6),
+    # case 4a: the IPyC swells (constant rate -0.005 per 1e25 n/m2, isotropic) to a fluence of 3e25 n/m2 -> free strain -0.015 (the case's rate x fluence)
+    'case_4a': dict(layers=[('IPyC', 350, 390, dict(IPYC, e_r=-0.015, e_t=-0.015)), ('SiC', 390, 425, SIC)], p_in=25e6, p_out=0.1e6),
+}
+
+
+def latest(case):
+    d = os.path.join(ROOT, case)
+    ts = [t for t in os.listdir(d) if re.fullmatch(r'[0-9.e+-]+', t) and os.path.isfile(os.path.join(d, t, 'sigma'))]
+    return d, max(ts, key=float)
+
+
+def read_internal(path):
+    txt = open(path).read()
+    i = txt.index('internalField')
+    j = txt.index('boundaryField')
+    body = txt[i:j]
+    groups = re.findall(r'\(([^()]*)\)', body)
+    return [[float(x) for x in g.split()] for g in groups]
+
+
+def read_patch(path, patch):
+    txt = open(path).read()
+    m = re.search(r'\b' + patch + r'\s*\{[^}]*?value\s+uniform\s+\(([^)]*)\)', txt, re.S)
+    return [float(x) for x in m.group(1).split()] if m else None
+
+
+def main(case, extra=None):
+    cfg = CASES[case] if extra is None else extra
+    d, t = latest(case)
+    C = read_internal(os.path.join(d, t, 'C'))
+    S = read_internal(os.path.join(d, t, 'sigma'))
+    r = [math.sqrt(x * x + y * y + z * z) for x, y, z in C]
+    layers = [dict(a=a * UM, b=b * UM, **m) for (_, a, b, m) in cfg['layers']]
+    sph = Sphere(layers, cfg['p_in'], cfg['p_out'])
+    print('case %s, time %s, %d cells' % (case, t, len(r)))
+    order = sorted(range(len(r)), key=lambda k: r[k])
+    for li, (name, a, b, m) in enumerate(cfg['layers']):
+        ks = [k for k in order if a * UM <= r[k] <= b * UM]
+        worst_t = max(abs(S[k][5] - sph.at(r[k], li)['st']) for k in ks)
+        worst_r = max(abs(S[k][0] - sph.at(r[k], li)['sr']) for k in ks)
+        st_scale = max(abs(sph.at(r[k], li)['st']) for k in ks)
+        sr_scale = max(abs(sph.at(r[k], li)['sr']) for k in ks) or 1.0
+        k0 = ks[0]
+        print('  layer %-5s %2d cells: largest |sigma_t(OFFBEAT) - Lame| = %.4g Pa (%.3g %% of the layer max %.4g Pa); '
+              'sigma_r %.4g Pa (%.3g %% of %.4g Pa)' % (name, len(ks), worst_t, 100 * worst_t / st_scale, st_scale, worst_r, 100 * worst_r / sr_scale, sr_scale))
+        print('        first cell r = %.4f um: OFFBEAT sigma_t %.6g, Lame at that r %.6g, Lame at the layer inner face %.6g Pa'
+              % (r[k0] / UM, S[k0][5], sph.at(r[k0], li)['st'], sph.at(a * UM, li)['st']))
+    print('  yy and zz components equal (hoop symmetry): largest |yy - zz| = %.3g Pa' % max(abs(s[3] - s[5]) for s in S))
+    for p in ('inner', 'outer'):
+        v = read_patch(os.path.join(d, t, 'sigma'), p)
+        if v:
+            rr = cfg['layers'][0][1] * UM if p == 'inner' else cfg['layers'][-1][2] * UM
+            ex = sph.at(rr)
+            print('  %s face: OFFBEAT boundary value sigma_r %.6g sigma_t %.6g; Lame %.6g %.6g Pa' % (p, v[0], v[5], ex['sr'], ex['st']))
+
+
+if __name__ == '__main__':
+    main(sys.argv[1])
