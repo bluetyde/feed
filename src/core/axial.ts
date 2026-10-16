@@ -3,6 +3,7 @@
 // one-dimensional independent solutions do not (`axialConductionEstimate`, calibrated on docs/spike/axial-plate-probe.md).
 
 import { evaluate, lawOf } from "./conductivity";
+import { geometryOf } from "./geometry";
 import { quickLook } from "./quickLook";
 import type { Dimension } from "./units";
 import type { NormalizedCase } from "./validate";
@@ -384,8 +385,10 @@ export function axialConductionEstimate(c: NormalizedCase): AxialEstimate | unde
     for (let i = 0; i <= 8; i++) m = Math.max(m, evaluate(law, lo + ((hi - lo) * i) / 8));
     return m;
   };
-  const Af = Math.PI * (c.fuelRadius ** 2 - c.fuelInnerRadius ** 2);
-  const Ac = Math.PI * (c.claddingOuterRadius ** 2 - c.claddingInnerRadius ** 2);
+  // the cross-sections the heat flows along the height through: a pin's annuli, a plate's strips of one metre width (the geometry kernel's cell volume per unit height)
+  const g = geometryOf(c.plate);
+  const Af = g.volume(c.fuelInnerRadius, c.fuelRadius);
+  const Ac = g.volume(c.claddingInnerRadius, c.claddingOuterRadius);
   const span = (m: number) => [Math.max(1, m - 0.5 * hottest.centreRise), m + 0.5 * hottest.centreRise] as const;
   const [fl, fh] = span(hottest.fuelMeanT);
   const [cl, ch] = span(hottest.claddingMeanT);
