@@ -1,5 +1,5 @@
 // Mutation run for plan 13, milestone T3 (the particle's writer, results reader and dispatch).
-// usage: node scripts/mut-triso-t3.cjs [stage]     (stage: 1 (default) or 2 or 3 or all; commit first and keep a green baseline)
+// usage: node scripts/mut-triso-t3.cjs [stage] [name regex]     (stage: 1 (default) or 2 or 3 or all; commit first and keep a green baseline)
 // Each mutant is [file, from, to, name]: `from` is a unique single-line anchor in `file`. The file is changed, the focus tests are run, and the file is restored from the copy read
 // before (never from git, so uncommitted work is safe). A mutant is KILLED when the run exits non-zero AND prints a "Tests N ... " summary; it SURVIVES when the run exits 0; a run with
 // no summary line is BROKEN (a crashed run must not count as a kill). Judge the result by the printed table.
@@ -87,8 +87,9 @@ try {
   /* later stages are added in their own file */
 }
 const which = process.argv[2] ?? "1";
-const mutants = which === "all" ? Object.values(stages).flat() : stages[which];
-if (!mutants) throw new Error("unknown stage " + which);
+const only = process.argv[3] ? new RegExp(process.argv[3]) : null; // optional: run only the mutants whose name matches (to re-run survivors)
+const mutants = (which === "all" ? Object.values(stages).flat() : stages[which] || []).filter((m) => !only || only.test(m[3]));
+if (!mutants.length) throw new Error("no mutants for stage " + which);
 
 function runFocus() {
   const r = spawnSync(process.execPath, [path.join(root, "node_modules", "vitest", "vitest.mjs"), "run", ...FOCUS], { cwd: root, encoding: "utf8", timeout: 300000 });

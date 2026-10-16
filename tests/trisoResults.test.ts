@@ -5,7 +5,7 @@ import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { ResultsError, buildResults } from "../src/core/resultsParser";
 import { TrisoInput, buildTrisoResults, parseCellZones } from "../src/core/trisoResults";
-import { trisoClosedForm } from "../src/core/trisoSolve";
+import { trisoClosedForm, trisoTimeScale } from "../src/core/trisoSolve";
 import { TRISO_WEDGE_SCALE, wedgeEquivalent } from "../src/core/trisoWriter";
 
 const root = join(__dirname, "..");
@@ -200,6 +200,29 @@ describe("the same output judged as another particle fails, or is refused", () =
     expect(failed(read(x, undefined, { drift: { relativeRate: NaN } }))).toContain("steadyState");
     // without a log there is no steady-state check at all
     expect(read(x, undefined, { drift: undefined }).checks.map((c) => c.id)).not.toContain("steadyState");
+  });
+
+  it("a case whose radii are 0.15 % off the mesh that was run is refused (every cell is in its zone, but not where this case's mesh puts it)", () => {
+    const x = g("steady");
+    expect(() =>
+      read(x, (n) => {
+        const s = 1.0015;
+        n.kernelRadius *= s;
+        n.outerRadius *= s;
+        for (const l of n.layers) {
+          l.innerRadius *= s;
+          l.outerRadius *= s;
+        }
+      }),
+    ).toThrow(/cell centres differ from the case's mesh/);
+  });
+
+  it("the steady-state bound uses the hottest cell: a rate that puts it between the coldest and the hottest cell's bound fails", () => {
+    const x = g("steady");
+    const tau = trisoTimeScale(x.n).tauBound;
+    const rate = 0.01 / (tau * 1005); // 0.01 K is the threshold; the cells run from 1000.005 to 1009.775 K
+    expect(failed(read(x, undefined, { drift: { relativeRate: rate } }))).toContain("steadyState");
+    expect(failed(read(x, undefined, { drift: { relativeRate: rate * 0.98 } }))).not.toContain("steadyState");
   });
 
   it("two cells at one centre are refused before anything is judged", () => {
