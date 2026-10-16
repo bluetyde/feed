@@ -2,7 +2,8 @@
 // This file holds what the case says (parsed, in SI), what each slice is given (`sliceLoads`), and the estimate of the axial conduction that the solver includes and the
 // one-dimensional independent solutions do not (`axialConductionEstimate`, calibrated on docs/spike/axial-plate-probe.md).
 
-import { evaluate, lawOf } from "./conductivity";
+import { evaluate, lawOf, minimum } from "./conductivity";
+import { heatCapacityLaw } from "./heatCapacity";
 import { geometryOf } from "./geometry";
 import { quickLook } from "./quickLook";
 import type { Dimension } from "./units";
@@ -346,6 +347,14 @@ export function hottestLoad(c: NormalizedCase): SliceLoad {
   return sliceLoads(c).reduce((m, l) => (l.linearHeatRate > m.linearHeatRate ? l : m));
 }
 
+/** The largest conductivity a law reaches over a temperature range (nine samples; the laws of the catalogue are smooth). */
+function maxConductivity(k: NormalizedCase["fuelConductivity"], lo: number, hi: number): number {
+  const law = lawOf(k);
+  let m = 0;
+  for (let i = 0; i <= 8; i++) m = Math.max(m, evaluate(law, lo + ((hi - lo) * i) / 8));
+  return m;
+}
+
 export interface AxialEstimate {
   /** The estimate of the largest temperature change the axial conduction makes, as a fraction of the largest rise of any slice above its coolant. */
   fraction: number;
@@ -379,12 +388,7 @@ export function axialConductionEstimate(c: NormalizedCase): AxialEstimate | unde
     }
   }
   if (!hottest || !(hottest.centreRise > 0)) return undefined;
-  const kmax = (k: NormalizedCase["fuelConductivity"], lo: number, hi: number) => {
-    const law = lawOf(k);
-    let m = 0;
-    for (let i = 0; i <= 8; i++) m = Math.max(m, evaluate(law, lo + ((hi - lo) * i) / 8));
-    return m;
-  };
+  const kmax = maxConductivity;
   // the cross-sections the heat flows along the height through: a pin's annuli, a plate's strips of one metre width (the geometry kernel's cell volume per unit height)
   const g = geometryOf(c.plate);
   const Af = g.volume(c.fuelInnerRadius, c.fuelRadius);
@@ -408,6 +412,32 @@ export function axialConductionEstimate(c: NormalizedCase): AxialEstimate | unde
   return { fraction: lambdaSquared * curvature, lambdaSquared, curvature };
 }
 
+export interface AxialExchange {
+  /** kA / (C h^2) in 1/s: how fast neighbouring slices exchange heat along the height, as a rate on their temperature difference. */
+  rate: number;
+  /** The conductance along the height of the solids' cross-sections (W m / K) at their largest conductivities over the temperatures given. */
+  kA: number;
+  /** The heat capacity of the solids' cross-sections per unit height (J/m/K) at their smallest heat capacities over the same temperatures. */
+  heatCapacity: number;
+}
+
+/**
+ * The heat the slices of a TRANSIENT stack can exchange along the height, which the steady estimate above does not bound: a fin model that keeps only the exchange. With the slices'
+ * temperatures T_k(t) of the one-dimensional solutions, a slice gains the heat (kA / h^2) (T_{k+1} - 2 T_k + T_{k-1}) per unit height and time from its neighbours, so over a run it changes
+ * its temperature by at most (kA / (C h^2)) times the integral of the absolute second difference (the loss to the coolant, which damps it, is left out: a bound, not an estimate). The
+ * conductivity is taken at its largest and the heat capacity at its smallest over the temperatures the solids reach (`fuel` and `cladding`, K). Used by stackTransientResults.ts.
+ */
+export function axialExchange(c: NormalizedCase, fuel: readonly [number, number], cladding: readonly [number, number]): AxialExchange | undefined {
+  const a = c.axial;
+  if (!a || !c.fuelHeatCapacity || !c.claddingHeatCapacity) return undefined;
+  const g = geometryOf(c.plate);
+  const Af = g.volume(c.fuelInnerRadius, c.fuelRadius);
+  const Ac = g.volume(c.claddingInnerRadius, c.claddingOuterRadius);
+  const kA = maxConductivity(c.fuelConductivity, fuel[0], fuel[1]) * Af + maxConductivity(c.claddingConductivity, cladding[0], cladding[1]) * Ac;
+  const heatCapacity = minimum(heatCapacityLaw(c.fuelHeatCapacity), fuel[0], fuel[1]) * Af + minimum(heatCapacityLaw(c.claddingHeatCapacity), cladding[0], cladding[1]) * Ac;
+  const h = a.length / a.slices;
+  return { rate: kA / (heatCapacity * h * h), kA, heatCapacity };
+}
 
 export interface SliceSummary {
   index: number;

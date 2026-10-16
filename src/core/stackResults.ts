@@ -15,6 +15,10 @@ export const AXIAL_TOLERANCE_FACTOR = 3;
 
 export const STACK_TEXT = "One radial solution per axial slice, with the heat flow along the pin that the solver includes. The checks compare each slice with its own one-dimensional closed form within a bound that includes an estimate of that heat flow.";
 
+/** The same statement for a stack of plates (plan 12, A5): a slice is a slab through its thickness, the heat flows along the height. */
+export const STACK_TEXT_PLATE = "One through-thickness solution per axial slice of the plate, with the heat flow along the height that the solver includes. The checks compare each slice with its own one-dimensional slab closed form within a bound that includes an estimate of that heat flow.";
+export const stackText = (c: NormalizedCase): string => (c.plate ? STACK_TEXT_PLATE : STACK_TEXT);
+
 export interface SliceResult {
   index: number;
   /** Height of the slice's centre above the bottom of the heated length (m). */
@@ -162,7 +166,7 @@ export function buildStackResults(c: NormalizedCase, input: ParseInput): StackRe
     summary: { ...hot.summary, maxT: Math.max(...slices.map((s) => s.maxT)), minT: Math.min(...perSlice.map((s) => s.rec.summary.minT)) },
     checks,
     domain: { verdict: findings.length ? "out-of-domain" : "in-domain", findings },
-    thermalOnly: THERMAL_ONLY_TEXT + " " + STACK_TEXT,
+    thermalOnly: THERMAL_ONLY_TEXT + " " + stackText(c),
     axial: { length: a.length, slices, hottest, averageLinearHeatRate: c.qPrime, sampledAverageLinearHeatRate: sumQ / N, conduction: est, allowance: allow },
   };
 }

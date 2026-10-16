@@ -547,7 +547,7 @@ export function validateCase(doc: unknown): ValidationResult {
         est = undefined;
       }
       if (est && est.fraction > AXIAL_CONDUCTION_WARNING) {
-        result.warnings.push({ code: "W_AXIAL_CONDUCTION", severity: "warning", field: "/axial", message: "heat flow along the pin could change the temperatures by about " + (100 * est.fraction).toFixed(1) + " % of the largest rise (the solver includes it; FEED's one-dimensional checks per slice do not): the heated length is short for this shape and these conductivities" });
+        result.warnings.push({ code: "W_AXIAL_CONDUCTION", severity: "warning", field: "/axial", message: "heat flow along the height could change the temperatures by about " + (100 * est.fraction).toFixed(1) + " % of the largest rise (the solver includes it; FEED's one-dimensional checks per slice do not): the heated length is short for this shape and these conductivities" });
       }
     }
     const tn = normalized.transient;
