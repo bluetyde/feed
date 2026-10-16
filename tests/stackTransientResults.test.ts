@@ -128,6 +128,16 @@ describe("real OFFBEAT output of a transient stack, read slice by slice", () => 
     const cross = r.checks.find((c) => c.id === "crossCheckFv")!;
     expect(cross.value!).toBeGreaterThan(10);
     expect(cross.value!).toBeLessThan(r.axial.allowance.field);
+    // the exchange number of this 60 s run is 4.8, above the limit of 1 where the first-order bound of the heat the slices exchange holds: it is not counted, and the allowance is the steady one (136 K)
+    expect(r.axial.allowance.exchangeNumber!).toBeGreaterThan(4);
+    expect(r.axial.allowance.exchangeCounted).toBe(false);
+    expect(r.axial.allowance.field).toBeCloseTo(136.02, 1);
+    expect(r.checks.find((c) => c.id === "axialConduction")!.note).toMatch(/ABOVE 1.*NOT counted/);
+    // the pin's pump coastdown, over 60 s with its coolant, is below it: the exchange bound (10.7 K, undamped) is counted and exceeds the steady allowance (3.4 K), the measured change is 3.0 K
+    const cd = judge(cool);
+    expect(cd.axial.allowance.exchangeCounted).toBe(true);
+    expect(cd.axial.allowance.exchangeField!).toBeGreaterThan(cd.axial.allowance.field);
+    expect(cd.checks.find((c) => c.id === "crossCheckFv")!.value!).toBeLessThan(cd.axial.allowance.exchangeField!);
     // a pulse on the short stack is over in 0.1 s, before heat can flow along the pin: it passes with a deviation of a degree or two, and the allowance is loose there (a stated limit)
     const p = judge(g("short"));
     expect(p.checks.filter((c) => c.verdict === "fail")).toEqual([]);
