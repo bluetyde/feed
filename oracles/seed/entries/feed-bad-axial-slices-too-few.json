@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-axial-slices-too-few",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-axial-slices-too-few.case.json",
+      "sha256": "27280487aa3a57e5dc687a875bc0997da5c56e4602888bbdd012d5cc1de46fab"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_AXIAL"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a stack of fewer than 3 slices. FEED must refuse it before any run; SEED reports E_AXIAL.",
+    "check": "FEED's schema vectors (schema/vectors/bad/axial-slices-too-few.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "577a998e6cb96ef960140cca6561d4a24874a1d51f6f515c702124c67f59545b"
+}

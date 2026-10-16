@@ -1,0 +1,132 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "stack-warming-coolant-pin",
+  "name": "Synthetic pin stack, cosine power in 9 slices, 5 kW/m on average, the coolant warms from 573 K to 873 K up the pin (illustrative numbers)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.18,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 5,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 573,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 15,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 100,
+    "claddingCells": 20
+  },
+  "axial": {
+    "length": {
+      "value": 0.381,
+      "unit": "m"
+    },
+    "slices": 9,
+    "powerShape": {
+      "kind": "cosine"
+    },
+    "boundary": [
+      {
+        "height": {
+          "value": 0,
+          "unit": "m"
+        },
+        "bulkTemperature": {
+          "value": 573,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 30000,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "height": {
+          "value": 0.381,
+          "unit": "m"
+        },
+        "bulkTemperature": {
+          "value": 873,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 30000,
+          "unit": "W/m2/K"
+        }
+      }
+    ]
+  }
+}

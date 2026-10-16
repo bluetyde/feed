@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-skewed-pin-axial-hottest-slice",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-skewed-pin.case.json",
+      "sha256": "e0bcd171bd6f063bad9c702336df9df3bb590e016ff5fbf69c218b3a03c31547"
+    }
+  ],
+  "expected": {
+    "quantity": "axial_hottest_slice",
+    "value": 3,
+    "unit": "1"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The index of the slice with the hottest fuel, counted from 0 at the bottom (its centre is at 0.1333 m of 0.381 m). The next slice is cooler by 19.35 K, more than twice the largest tolerance of any slice (6.05 K), so the solver's own choice cannot differ. An integer: no tolerance.",
+    "check": "Second method: FEED's own per-slice closed form (src/core/closedForm.ts through axialSummary, tests/seedOracleStack.test.ts, to 1e-3 K apart from the cosine's table term), and the real solver (FEED_SOLVER=1): every check of the run passes and the solver's slice peaks are inside the tolerances."
+  },
+  "coverage": {
+    "quantities": [
+      "axial_hottest_slice"
+    ],
+    "domain": "synthetic pin as 10 radial slices over 0.381 m with a table power shape that peaks near 0.33 of the height and falls to 0.35 of the peak at both ends (0.35 + 0.65 sin(pi x^0.62) at eleven points, linear between them), 20 kW/m on average, flat coolant"
+  },
+  "toleranceHash": "4327b5f5c250da94d1ca884315568c5c67306c8cbf4b10e0c822a2290b9ff066"
+}

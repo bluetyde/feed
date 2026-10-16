@@ -1,0 +1,214 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "stack-lumped-pin-coastdown",
+  "name": "Synthetic pin stack, 1 kW/m on average from its steady states, the film coefficient decays from 3000 to 300 W/m2/K between 5 and 15 s (illustrative numbers)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": false,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.18,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 600,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 3000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 400,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the adiabatic-limit oracle"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 400,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the oracle"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 1000000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 10,
+    "claddingCells": 4
+  },
+  "transient": {
+    "powerHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 1,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 40,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 1,
+          "unit": "kW/m"
+        }
+      }
+    ],
+    "endTime": {
+      "value": 40,
+      "unit": "s"
+    },
+    "timeStep": {
+      "value": 0.05,
+      "unit": "s"
+    },
+    "outputs": 40,
+    "initialSteadyLinearHeatRate": {
+      "value": 1,
+      "unit": "kW/m"
+    },
+    "boundaryHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 600,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 3000,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 5,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 600,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 3000,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 15,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 600,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 300,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 40,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 600,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 300,
+          "unit": "W/m2/K"
+        }
+      }
+    ]
+  },
+  "axial": {
+    "length": {
+      "value": 2,
+      "unit": "m"
+    },
+    "slices": 10,
+    "powerShape": {
+      "kind": "cosine"
+    }
+  }
+}

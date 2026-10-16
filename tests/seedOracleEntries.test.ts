@@ -28,15 +28,15 @@ const NEW = /^feed-(synthetic-reciprocal-fuel-k|synthetic-reciprocal-clad-k|synt
 
 describe("the SEED oracle entries", () => {
   it("each entry pins its case by hash and its expected value and tolerance by hash", () => {
-    expect(entries.length).toBe(101);
+    expect(entries.length).toBe(125);
     for (const e of entries) {
       expect(e.inputs[0].sha256, e.oracleId).toBe(sha(readFileSync(join(dir, e.inputs[0].path))));
       expect(e.toleranceHash, e.oracleId).toBe(sha(canonical({ expected: e.expected, tolerance: e.tolerance === undefined ? null : e.tolerance })));
     }
   });
-  it("the set is 63 good, 35 bad-input and 3 known-limit entries", () => {
+  it("the set is 79 good, 43 bad-input and 3 known-limit entries (101 before the stack and plate entries of plan 12 A8: 63, 35, 3)", () => {
     const n = (t: string) => entries.filter((e) => e.tag === t).length;
-    expect([n("good"), n("bad-input"), n("known-limit")]).toEqual([63, 35, 3]);
+    expect([n("good"), n("bad-input"), n("known-limit")]).toEqual([79, 43, 3]);
   });
   it("every bad-input entry is refused by the validator with the code it names, and it is the first error", () => {
     for (const e of entries.filter((x) => x.tag === "bad-input")) {

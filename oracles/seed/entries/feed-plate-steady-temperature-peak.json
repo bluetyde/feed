@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-plate-steady-temperature-peak",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/plate-steady.case.json",
+      "sha256": "00b79db253dbb50553d41a87492d5b95a07391e8fbdf13cf53465d9b57e3ba80"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak",
+    "value": 592.0933,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.05,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Closed-form centre temperature of the slab: film q/h = 0.667 K, cladding q t / k = 0.76 K, gap q / h_gap = 4 K, meat q L / (2 k) = 13.667 K above 573 K. The observed value is the first fuel cell centre (x = L / 200 from the insulated plane); the tolerance is 5 x 13.667 K / 100^2 rounded up.",
+    "check": "Second method: FEED's slab closed form (compositeSlab, tests/plate.test.ts worked by hand to 592.093 K) and the real solver through tests/seedOracleStack.test.ts (FEED_SOLVER=1)."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak"
+    ],
+    "domain": "synthetic plate (meat half-thickness 4.1 mm, gap 0.08 mm and conductance 5000 W/m2/K, cladding 0.57 mm, constant conductivities 3 and 15 W/m/K), 20 kW per metre of height and width, one face cooled at 573 K and 30000 W/m2/K, the other plane insulated"
+  },
+  "toleranceHash": "2dc03b7f7bdcbd519467ecb65d732063d9713dc29317f938e41204bd6fe6782f"
+}
