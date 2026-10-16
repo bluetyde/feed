@@ -702,6 +702,17 @@ add("good", "triso-steady", trisoBase(), {});
   c.power = { kernelPowerDensity: qv(20000, "MW/m3") };
   add("good", "triso-power-warning", c, { warnings: ["W_POWER_RANGE"] });
 }
+{
+  // conductivities that fall with temperature (T3: the real solver is checked against the closed form of each); a film outside, the probe's 3000 MW/m3
+  const c = trisoBase();
+  c.power = { kernelPowerDensity: qv(3000, "MW/m3") };
+  c.boundary = { bulkTemperature: qv(900, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") };
+  const range = { min: qv(600, "K"), max: qv(2000, "K") };
+  c.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: qv(3.5, "W/m/K"), b: qv(-0.0008, "W/m/K2"), validRange: range, source: "synthetic: chosen for the conductivity-integral oracle" };
+  c.materials.buffer.sets["thermal.conductivity"] = { model: "linear", a: qv(0.4, "W/m/K"), b: qv(0.0001, "W/m/K2"), validRange: range, source: "synthetic: chosen for the conductivity-integral oracle" };
+  c.materials.sic.sets["thermal.conductivity"] = { model: "reciprocal", a: qv(17885, "W/m"), b: qv(2, "W/m/K"), validRange: range, source: "synthetic: a phonon-limited shape, k = a / T + b" };
+  add("good", "triso-temperature-dependent", c, {});
+}
 const badTr = (name, code, field, mutate) => { const c = trisoBase(); mutate(c); add("bad", name, c, { code, field }); };
 badTr("triso-linear-heat-rate", "E_UNSUPPORTED", "/power/linearHeatRate", (c) => (c.power = { linearHeatRate: qv(20, "kW/m") }));
 badTr("triso-two-power-forms", "E_SCHEMA_INVALID", "/power", (c) => (c.power.particlePower = qv(0.04, "W")));

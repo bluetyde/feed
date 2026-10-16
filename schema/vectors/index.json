@@ -1566,6 +1566,10 @@
     ]
   },
   {
+    "file": "good/triso-temperature-dependent.json",
+    "valid": true
+  },
+  {
     "file": "bad/triso-linear-heat-rate.json",
     "valid": false,
     "code": "E_UNSUPPORTED",

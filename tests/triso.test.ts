@@ -1,10 +1,12 @@
 // Plan 13, T1: the coated particle, a sphere of a kernel and two to four coating layers, thermal and steady. Ungated: the sphere's geometry kernel against formulas written out here and
-// a numerical quadrature, the case (what it normalises to, by hand), its refusals one by one, the units it brought (micrometres, volumetric power), that nothing runs it yet and says so,
+// a numerical quadrature, the case (what it normalises to, by hand), its refusals one by one, the units it brought (micrometres, volumetric power), that it is run (the run manager, the editor's check) and read back,
 // and that the pin and the plate are untouched.
 import { mkdtempSync, readFileSync, rmSync } from "fs";
+import type { TrisoResultsRecord } from "../src/core/trisoResults";
+import { FakeBackend, Script } from "./helpers/fakeBackend";
 import { tmpdir } from "os";
 import { join } from "path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { CYLINDER, SLAB, SPHERE } from "../src/core/geometry";
 import { RunManager } from "../src/core/runManager";
 import { PACKING_MAX, particleVolumes } from "../src/core/triso";
@@ -339,33 +341,72 @@ describe("what the particle case refuses", () => {
   });
 });
 
-describe("nothing runs a particle yet, and every entry says so", () => {
-  it("answers a valid particle with the statement that it cannot be run, never with an empty list of problems", () => {
+describe("a valid particle is run (T3), and an invalid one is refused with its own errors", () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+  const manager = (script: Script) => {
+    const runsRoot = mkdtempSync(join(tmpdir(), "feed-triso-"));
+    dirs.push(runsRoot);
+    const backend = new FakeBackend(script);
+    return { runsRoot, backend, mgr: new RunManager({ runsRoot, backend }) };
+  };
+  it("never answers a valid case with an error, and an invalid one with its own errors (or a statement when it has none)", () => {
     const v = validateCase(particle());
     expect(v.ok).toBe(true);
-    const e = unrunnableErrors(v);
-    expect(e).toHaveLength(1);
-    expect(e[0]!.code).toBe("E_UNSUPPORTED");
-    expect(e[0]!.message).toContain("plan 13");
-    // an invalid case keeps its own errors, and a pin has none to give
+    expect(unrunnableErrors(v)).toEqual([]);
     const bad = particle();
     bad.power = {};
     const vb = validateCase(bad);
     expect(unrunnableErrors(vb)).toEqual(vb.errors);
+    expect(unrunnableErrors({ ok: true, errors: [], warnings: [] }).map((e) => e.code)).toEqual(["E_SCHEMA_INVALID"]);
   });
-  it("is refused by the editor's check and by the run manager with that statement", () => {
-    const r = check(particle()) as { ok: boolean; errors: { code: string; message: string }[] };
-    expect(r.ok).toBe(false);
-    expect(r.errors.map((e) => e.code)).toEqual(["E_UNSUPPORTED"]);
-    const runsRoot = mkdtempSync(join(tmpdir(), "feed-triso-"));
-    try {
-      const mgr = new RunManager({ runsRoot, backend: { start: () => { throw new Error("the solver must not be started"); } } as never });
+  it("the editor's check accepts it and carries the particle's closed form and numbers", () => {
+    const r = check(particle()) as { ok: boolean; errors: unknown[]; triso?: { normalized: { kernelRadius: number }; quick: { closed: { centreT: number } }; derived: { particlePower: number } } };
+    expect(r.ok).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(r.triso!.normalized.kernelRadius).toBeCloseTo(250e-6, 15);
+    expect(r.triso!.quick.closed.centreT).toBeGreaterThan(1000);
+  });
+  it("the run manager writes the wedge case, runs it and reads the real saved output back: completed, every check passes, results.json carries the particle", async () => {
+    const { mgr, runsRoot } = manager("triso-good");
+    const s = mgr.start(particle());
+    expect(s.ok).toBe(true);
+    if (!s.ok) return;
+    const rec = await mgr.done(s.id);
+    expect(rec.state, JSON.stringify(rec.failure)).toBe("completed");
+    const r = mgr.results(s.id) as unknown as TrisoResultsRecord;
+    expect(r.kind).toBe("triso");
+    expect(r.checks.filter((c) => c.verdict === "fail")).toEqual([]);
+    expect(rec.headline!.centreCellT).toBeCloseTo(r.summary.kernelCentreCellT, 9);
+    expect(rec.headline!.claddingOuterWallT).toBeCloseTo(1000, 9);
+    // the files written are the particle's (a wedge mesh, a timeDependentVhgr), the run is marked as one, and the detail carries it
+    expect(readFileSync(join(runsRoot, s.id, "inputs", "constant", "solverDict"), "utf8")).toContain("timeDependentVhgr");
+    const d = mgr.detail(s.id)!;
+    expect(d.normalized.kind).toBe("triso");
+    expect((d.results as unknown as TrisoResultsRecord).caseId).toBe("triso-steady");
+  });
+  it("fails the run, in the run manager's own words, when the cell zones were not collected, name the wrong regions, or a patch is missing", async () => {
+    for (const [script, message] of [["triso-no-zones", /cell zones/], ["triso-wrong-zones", /zones and the cell centres do not belong together/], ["triso-no-patch", /no value for the bufferOuter patch/]] as const) {
+      const { mgr } = manager(script);
       const s = mgr.start(particle());
-      expect(s.ok).toBe(false);
-      if (!s.ok) expect(s.errors.map((e) => e.code)).toEqual(["E_UNSUPPORTED"]);
-    } finally {
-      rmSync(runsRoot, { recursive: true, force: true });
+      if (!s.ok) throw new Error("refused");
+      const rec = await mgr.done(s.id);
+      expect(rec.state, script).toBe("failed");
+      expect(rec.failure!.code, script).toBe("E_OUTPUT_INCOMPLETE");
+      expect(rec.failure!.message, script).toMatch(message);
+      expect(mgr.results(s.id)).toBeUndefined();
     }
+  });
+  it("refuses an invalid particle without starting anything", () => {
+    const { mgr, backend } = manager("triso-good");
+    const bad = particle();
+    bad.power = {};
+    const s = mgr.start(bad);
+    expect(s.ok).toBe(false);
+    if (!s.ok) expect(s.errors.map((e) => e.code)).toEqual(["E_SCHEMA_INVALID"]);
+    expect(backend.runs).toEqual([]);
   });
 });
 
