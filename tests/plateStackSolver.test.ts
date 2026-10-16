@@ -172,6 +172,17 @@ describe.skipIf(!solverOn)("a stack of plates through the real solver, steady (n
     expect(res.axial.hottest).toBe(9);
   }, 600_000);
 
+  it("a table with steep ends (0.3 of the maximum at both ends, 1.0 from a tenth of the length in; 20 slices): the end slices differ from their closed forms by 1.9 K and the allowance is 6.0 K (golden output kept)", async () => {
+    const d = plateStack({ length: q(0.381, "m"), slices: 20, powerShape: table([[0, 0.3], [0.038, 1.0], [0.343, 1.0], [0.381, 0.3]]) });
+    const { res } = await run(d, GOLDEN ? join(GOLDEN, "steep") : undefined);
+    expect(failing(res)).toEqual([]);
+    const dev = deviations(res, d);
+    // the end slices are warmed and the next ones cooled (the step in the shape drives the heat), and the allowance is more than twice the largest change
+    expect(dev[0]!).toBeGreaterThan(1);
+    expect(dev[1]!).toBeLessThan(-0.5);
+    expect(res.axial.allowance.field).toBeGreaterThan(2 * Math.max(...dev.map(Math.abs)));
+  }, 600_000);
+
   it("a control: five equal slices (a flat shape and a flat coolant) give every slice the temperatures of the one-slice plate at the same heat rate", async () => {
     const a = await run(plateStack({ length: q(0.5, "m"), slices: 5, powerShape: { kind: "flat" } }));
     expect(failing(a.res)).toEqual([]);

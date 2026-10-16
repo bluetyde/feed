@@ -68,6 +68,18 @@ describe("real OFFBEAT output of a stack of plates, read layer by layer", () => 
     expect(r.axial.conduction!.fraction * rise).toBeLessThan(2 * worst);
     expect(r.axial.allowance.flux).toBeGreaterThan(1000);
   });
+  it("a table with steep ends (20 slices): the end slices are warmed by about 1.9 K and the next ones cooled, the allowance is more than twice the largest change", () => {
+    const x = g("steep");
+    const r = judge(x);
+    expect(failingIds(r)).toEqual([]);
+    const loads = sliceLoads(x.n);
+    const dev = r.axial.slices.map((s, k) => s.centreCellT - byHand(loads[k]!.linearHeatRate, 573, 30000));
+    expect(dev[0]!).toBeGreaterThan(1.5);
+    expect(dev[0]!).toBeLessThan(2.3);
+    expect(dev[1]!).toBeLessThan(-0.5);
+    expect(r.axial.allowance.field).toBeGreaterThan(2 * Math.max(...dev.map(Math.abs)));
+    expect(r.axial.allowance.field).toBeLessThan(10 * Math.max(...dev.map(Math.abs)));
+  });
   it("a ramp shape (no curvature), where the estimate is zero: the end slices still pass, by the mesh bound; the limit is that the estimate sees only curvature", () => {
     const r = judge(g("ramp"));
     expect(failingIds(r)).toEqual([]);
