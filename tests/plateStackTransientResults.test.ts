@@ -126,8 +126,23 @@ describe("real OFFBEAT output of a transient on a stack of plates, read slice by
     p(5).forEach((x, j, a) => (integral += (j === 0 || j === a.length - 1 ? 0.5 : 1) * Math.abs(p(4)[j]! - 2 * x + p(6)[j]!) * dt));
     const kA = 3 * 4.1e-3 + 15 * 0.57e-3;
     const C = 3e6 * 4.1e-3 + 2.5e6 * 0.57e-3;
-    expect(e.field[5]! / (AXIAL_EXCHANGE_FACTOR * (kA / (C * 0.0381 ** 2)) * integral)).toBeGreaterThan(0.999);
-    expect(e.field[5]! / (AXIAL_EXCHANGE_FACTOR * (kA / (C * 0.0381 ** 2)) * integral)).toBeLessThan(1.001);
+    // (the trapezoid's half steps at both ends are in this to the ninth digit)
+    expect(e.field[5]! / (AXIAL_EXCHANGE_FACTOR * (kA / (C * 0.0381 ** 2)) * integral)).toBeCloseTo(1, 9);
+    // the temperature range the conductivity is taken over is the range the independent solutions reach, over ALL the slices: a fuel conductivity that falls with temperature has its
+    // largest value at the lowest temperature of any slice (the end slice's coolest cell), worked by hand from the traces
+    const falling = JSON.parse(JSON.stringify(n));
+    falling.fuelConductivity = { kind: "linear", a: 4, b: -0.0006, range: [250, 2500] };
+    const fs = computeIndependentStack(falling);
+    const fe2 = exchangeAllowances(falling, fs, sliceLoads(falling))!;
+    const lo = Math.min(...fs.map((x) => x.fv.trace!.fuelMin));
+    const hi = Math.max(...fs.map((x) => x.fv.trace!.fuelMax));
+    expect(lo).toBeLessThan(Math.max(...fs.map((x) => x.fv.trace!.fuelMin)) - 1);
+    const kAf = (4 - 0.0006 * lo) * 4.1e-3 + 15 * 0.57e-3;
+    const pf = (k: number) => fs[k]!.fv.trace!.peakByStep;
+    let integralF = 0;
+    pf(5).forEach((x, j, arr) => (integralF += (j === 0 || j === arr.length - 1 ? 0.5 : 1) * Math.abs(pf(4)[j]! - 2 * x + pf(6)[j]!) * dt));
+    expect(hi).toBeGreaterThan(lo);
+    expect(fe2.field[5]! / (AXIAL_EXCHANGE_FACTOR * (kAf / (C * 0.0381 ** 2)) * integralF)).toBeCloseTo(1, 9);
     // a flat stack with equal slices has no differences between them
     const flat = JSON.parse(JSON.stringify(n));
     flat.axial.shape = { kind: "flat" };
