@@ -8,20 +8,21 @@ const fs = require("fs");
 const path = require("path");
 const root = path.join(__dirname, "..");
 
-const FOCUS = ["tests/trisoWriter.test.ts", "tests/trisoResults.test.ts", "tests/triso.test.ts", "tests/trisoServer.test.ts", "tests/trisoSolve.test.ts", "tests/trisoLimits.test.ts"];
+const FOCUS = ["tests/trisoWriter.test.ts", "tests/trisoResults.test.ts", "tests/triso.test.ts", "tests/trisoServer.test.ts", "tests/trisoSolve.test.ts", "tests/trisoLimits.test.ts", "tests/trisoTransient.test.ts", "tests/trisoTransientResults.test.ts", "tests/validate.test.ts"];
 const W = "src/core/trisoWriter.ts";
+const WD = "src/core/trisoWedge.ts";
 const R = "src/core/trisoResults.ts";
 const M = "src/core/runManager.ts";
 const S = "src/server/server.ts";
 
 const stage1 = [
-  [W, "const HALF = (TRISO_WEDGE_HALF_ANGLE_DEG / 180) * Math.PI;", "const HALF = (TRISO_WEDGE_HALF_ANGLE_DEG / 90) * Math.PI;", "wedge angle doubled"],
-  [W, "export const TRISO_WEDGE_SCALE = Math.cos(HALF) / S;", "export const TRISO_WEDGE_SCALE = Math.cos(HALF);", "scale without the 1/s"],
-  [W, "export const TRISO_WEDGE_AREA_FRACTION = Math.sin(HALF) ** 2 / (Math.PI * S * S);", "export const TRISO_WEDGE_AREA_FRACTION = Math.sin(HALF) ** 2 / (Math.PI * S);", "area fraction formula"],
-  [W, "const y = (rUm * Math.sin(HALF)) / S;", "const y = rUm * Math.sin(HALF);", "vertex y not on the sphere"],
-  [W, "const x = (rUm * Math.cos(HALF)) / S;", "const x = rUm * Math.cos(HALF);", "vertex x not on the sphere"],
-  [W, "const particlePower = n.power.kernelPowerDensity * kernelVolume;", "const particlePower = n.power.particlePower;", "equivalent sphere keeps the nominal power"],
-  [W, "outerRadius: n.outerRadius * scale,", "outerRadius: n.outerRadius,", "equivalent sphere outer radius unscaled"],
+  [WD, "export const TRISO_WEDGE_HALF = (TRISO_WEDGE_HALF_ANGLE_DEG / 180) * Math.PI;", "export const TRISO_WEDGE_HALF = (TRISO_WEDGE_HALF_ANGLE_DEG / 90) * Math.PI;", "wedge angle doubled"],
+  [WD, "export const TRISO_WEDGE_SCALE = Math.cos(TRISO_WEDGE_HALF) / TRISO_WEDGE_S;", "export const TRISO_WEDGE_SCALE = Math.cos(TRISO_WEDGE_HALF);", "scale without the 1/s"],
+  [WD, "export const TRISO_WEDGE_AREA_FRACTION = Math.sin(TRISO_WEDGE_HALF) ** 2 / (Math.PI * TRISO_WEDGE_S * TRISO_WEDGE_S);", "export const TRISO_WEDGE_AREA_FRACTION = Math.sin(TRISO_WEDGE_HALF) ** 2 / (Math.PI * TRISO_WEDGE_S);", "area fraction formula"],
+  [W, "const y = (rUm * Math.sin(TRISO_WEDGE_HALF)) / TRISO_WEDGE_S;", "const y = rUm * Math.sin(TRISO_WEDGE_HALF);", "vertex y not on the sphere"],
+  [W, "const x = (rUm * Math.cos(TRISO_WEDGE_HALF)) / TRISO_WEDGE_S;", "const x = rUm * Math.cos(TRISO_WEDGE_HALF);", "vertex x not on the sphere"],
+  [WD, "const particlePower = n.power.kernelPowerDensity * kernelVolume;", "const particlePower = n.power.particlePower;", "equivalent sphere keeps the nominal power"],
+  [WD, "outerRadius: n.outerRadius * scale,", "outerRadius: n.outerRadius,", "equivalent sphere outer radius unscaled"],
   [W, "const levelsR = [radii[0]!, radii[1]!, radii[2]!, radii[2]!, ...radii.slice(3)];", "const levelsR = [radii[0]!, radii[1]!, radii[2]!, radii[3]!, ...radii.slice(3)];", "no coincident level for the gap"],
   [W, "const lower = (j: number) => (j === 0 ? 0 : j === 1 ? 1 : j + 1);", "const lower = (j: number) => (j === 0 ? 0 : j === 1 ? 1 : j);", "block level index"],
   [W, "return `    hex ( ${idx.join(\" \")} ) ${nm} (1 1 ${n.cells[j]}) simpleGrading (1 1 1)`;", "return `    hex ( ${idx.join(\" \")} ) ${nm} (1 1 ${n.cells[0]}) simpleGrading (1 1 1)`;", "every block gets the kernel's cell count"],
@@ -40,7 +41,7 @@ const stage1 = [
   [W, "type            resistiveGap;", "type            zeroGradient;", "gap is not a resistive gap"],
   [W, "T0 uniform ${num(n.boundary.bulkTemperature)};", "T0 uniform ${num(n.boundary.bulkTemperature + 1)};", "film's bulk temperature"],
   [W, "h uniform ${num(n.boundary.heatTransferCoefficient)};", "h uniform ${num(n.boundary.bulkTemperature)};", "film coefficient is the temperature"],
-  [W, "\"system/controlDict\": controlDict(endTime),", "\"system/controlDict\": controlDict(endTime / 10),", "control dictionary ends early"],
+  [W, ": controlDict(endTime),", ": controlDict(endTime / 10),", "control dictionary ends early"],
   [W, "ipyc: \"IPyC\"", "ipyc: \"Ipyc\"", "zone name"],
   [W, "if (!h.ok) throw new Error(\"cannot write a steady particle case: \" + h.message);", "if (!h.ok) { /* no refusal */ }", "unsettled particle written"],
   [R, "export const TRISO_CLOSED_FORM_RISE_FRACTION = 0.005;", "export const TRISO_CLOSED_FORM_RISE_FRACTION = 0.5;", "closed-form floor loosened"],
@@ -50,8 +51,8 @@ const stage1 = [
   [R, "export const TRISO_WALL_TOLERANCE = 0.05; // K", "export const TRISO_WALL_TOLERANCE = 50; // K", "wall tolerance loosened"],
   [R, "export const TRISO_CLOSED_FORM_DISCRETISATION = 5;", "export const TRISO_CLOSED_FORM_DISCRETISATION = 5000;", "discretisation allowance loosened"],
   [R, "const radius = C.map((p) => Math.hypot(p[0]!, p[1]!, p[2]!));", "const radius = C.map((p) => Math.hypot(p[1]!, p[2]!));", "radius from the wrong components"],
-  [R, "if (!(c.r > lo * (1 - 1e-9) && c.r < hi * (1 + 1e-9)))", "if (!(c.r > lo * (1 - 1e-9)))", "no upper bound for a cell's zone"],
-  [R, "if (!(cells[i]!.r - cells[i - 1]!.r > 1e-12))", "if (false)", "distinct centres not checked"],
+  [R, "if (!(r > lo * (1 - 1e-9) && r < hi * (1 + 1e-9)))", "if (!(r > lo * (1 - 1e-9)))", "no upper bound for a cell's zone"],
+  [R, "if (!(radius[order[i]!]! - radius[order[i - 1]!]! > 1e-12))", "if (false)", "distinct centres not checked"],
   [R, "const wall = patch(TRISO_PATCHES.outer);", "const wall = patch(TRISO_PATCHES.gapInner);", "wall read from the gap patch"],
   [R, "const gapMeasured = gapIn - gapOut;", "const gapMeasured = gapOut - gapIn;", "gap drop sign"],
   [R, "fvWorst = Math.max(fvWorst, Math.abs(c.T - fv.T[i]!));", "fvWorst = Math.max(fvWorst, Math.abs(c.T - c.T));", "finite-volume comparison void"],
@@ -65,7 +66,6 @@ const stage1 = [
   [R, "const innerFaceT = ri === 0 ? kernelCentre : ri === 2 ? gapOut : interfaces[ri - 1]!;", "const innerFaceT = ri === 0 ? kernelCentre : ri === 2 ? gapIn : interfaces[ri - 1]!;", "next layer's inner face from the wrong patch"],
   [R, "const outerFaceT = ri === names.length - 1 ? wall : ri === 1 ? gapIn : interfaces[ri]!;", "const outerFaceT = ri === names.length - 1 ? wall : ri === 1 ? gapOut : interfaces[ri]!;", "buffer's outer face from the wrong patch"],
   [R, "drop: innerFaceT - outerFaceT }", "drop: outerFaceT - innerFaceT }", "drop sign"],
-  [R, "if (a.region === b.region) {", "if (true) {", "balance without two cells in the layer"],
   [R, "if (fvCentre > TRISO_CENTRE_TOLERANCE) bad(", "if (false) bad(", "mesh mismatch not detected"],
   [M, "const normalized: any = v.normalized ?? { kind: \"triso\", ...v.triso };", "const normalized: any = v.normalized ?? { ...v.triso };", "run not marked as a particle"],
   [M, "if (!v.normalized && !v.triso) return { ok: false, errors: unrunnableErrors(v) };", "if (!v.normalized) return { ok: false, errors: unrunnableErrors(v) };", "particle refused by the run manager"],
