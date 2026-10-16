@@ -147,6 +147,7 @@ input.bad,select.bad{border-color:var(--err)}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl th{text-align:left;color:var(--faint);font-weight:500;padding:3px 8px;border-bottom:1px solid var(--line)}
 .tbl td{padding:3px 8px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.tbl td.nw,.tbl td.pass.nw,.tbl td.fail.nw,.tbl td.na.nw{white-space:nowrap}
 .chg{color:var(--warn)}.diff-note{color:var(--warn)}.ok-note{color:var(--ok)}
 .toolbar select{width:auto;max-width:230px}
 .toolbar #rTitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -799,6 +800,7 @@ $("prof").addEventListener("mouseleave", () => ($("readout").textContent = "Hove
 /* ---- flow */
 function draw() {
   const part = isParticle(); $("tabView").textContent = part ? "Particle and profile" : "Pin and profile"; $("pCol").textContent = part ? "Colour by T" : "Colour fuel by T";
+  document.querySelector(".vpwrap").style.gridTemplateRows = part ? "minmax(150px,46%) minmax(0,1fr)" : ""; /* the particle's picture needs more room than the pin's */
   if (part) { drawParticle(); drawParticleProfile(); drawBoundaryHistoryPlotParticle(); return; }
   $("prof")._pplot = null; drawPin(); drawProfile(); drawBoundaryHistoryPlot(); drawStackSummary();
 }
@@ -828,7 +830,7 @@ function refreshErrors() {  /* update inline error text without rebuilding field
 }
 function renderPropsKeepFocus() { const id = document.activeElement && document.activeElement.id; const pos = document.activeElement && document.activeElement.selectionStart; renderProps(); if (id) { const e = $(id); if (e) { e.focus(); try { if (pos != null) e.setSelectionRange(pos, pos); } catch (_) {} } } }
 function changed(rebuild) { if (study) { study = null; clearTimeout(studyTimer); } if (solverRes) { solverRes = null; runRec = null; logText += "Solver result cleared: the case changed.\n"; setChip(); } clearTimeout(timer); timer = setTimeout(() => runCheck(!!rebuild), rebuild ? 0 : 150); renderTreeMetaOnly(); }
-function renderTreeMetaOnly() { document.querySelectorAll("#tree .titem").forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(items()[i][0]); }); }
+function renderTreeMetaOnly() { const its = items(), bs = document.querySelectorAll("#tree .titem"); if (bs.length !== its.length) return; /* the items changed (a layer added or removed): the check that follows rebuilds the tree */ bs.forEach((b, i) => { const m = b.querySelector(".tmeta"); if (m) m.textContent = meta(its[i][0]); }); }
 let lib = { pins: [], materials: [], limits: [], expansion: [], strengths: [] }, menuEl = null;
 function closeMenu() { if (menuEl) { const had = menuEl.contains(document.activeElement), opener = menuEl.dataset.for && document.getElementById(menuEl.dataset.for); menuEl.remove(); menuEl = null; if (had && opener) opener.focus(); /* focus goes back to the button that opened it */ } }
 function openMenu(btn, heading, groups) {
@@ -1348,7 +1350,7 @@ function applyMaterial(region, entry) {
   doc.materials[region] = JSON.parse(JSON.stringify(entry.material));
   /* a fuel that depends on burnup needs the case to state one (0 is fresh fuel, to be given a source); any other fuel must not have one */
   if (region === "fuel") { const km = entry.material.sets["thermal.conductivity"]; if (km && km.model === "uo2-nfi") { if (!doc.burnup) doc.burnup = { value: { value: 0, unit: "MWd/kgHM" }, basis: "heavy-metal", source: "" }; } else delete doc.burnup; } logText += "Set " + region + " to " + entry.name + " (" + entry.label + ").\n"; changed(true); }
-$("bPins").onclick = (e) => openMenu(e.currentTarget, "Pins", [["Pin presets", lib.pins.map((p) => ({ name: p.name, label: p.label, description: p.description, pick: () => loadPin(p.id, p.name) }))], ["Coated particle (plan 13)", [{ name: "New coated particle", label: "synthetic", description: "A kernel and four layers (250, 100, 40, 35, 35 µm), thermal only, one-dimensional in the radius. Synthetic numbers: replace them and state their sources.", pick: loadParticle }]]]);
+$("bPins").onclick = (e) => openMenu(e.currentTarget, "Pins", [["Coated particle (plan 13)", [{ name: "New coated particle", label: "synthetic", description: "A kernel and four layers (250, 100, 40, 35, 35 µm), thermal only, one-dimensional in the radius. Synthetic numbers: replace them and state their sources.", pick: loadParticle }]], ["Pin presets", lib.pins.map((p) => ({ name: p.name, label: p.label, description: p.description, pick: () => loadPin(p.id, p.name) }))]]);
 $("bMats").onclick = (e) => openMenu(e.currentTarget, "Materials", [["Fuel", lib.materials.filter((x) => x.region === "fuel").map((x) => ({ ...x, pick: () => applyMaterial("fuel", x) }))], ["Cladding", lib.materials.filter((x) => x.region === "cladding").map((x) => ({ ...x, pick: () => applyMaterial("cladding", x) }))]]);
 async function loadExample() { doc = await (await fetch("/api/example")).json(); dropParticleRun(); logText += "Loaded the synthetic example pin.\n"; await runCheck(true); renderAll(); }
 
@@ -2365,7 +2367,15 @@ function paintCross(x, w, h, o) {
   x.fillStyle = "#e6b455"; x.fillText(PARTICLE_LABEL, 14, 16);
   const rad = o.rad;
   if (!rad) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText("Particle cross-section appears when the kernel radius and the thicknesses are valid", 14, h / 2); return; }
-  const R = Math.min(h * 0.4, w * 0.2), cx = R + 24, cy = h / 2 + 8, s = R / rad.outer;
+  /* the text to the right of the circle sets the circle's size: the text shrinks to 9 px, then the circle gives way, so that neither is cut off at the canvas's edge */
+  const texts = o.lines.map((l) => l[0]).concat(["to scale · outside: the matrix or coolant"], o.note ? [o.note] : []);
+  const rows = texts.length, lh = Math.max(11, Math.min(15, (h - 30) / rows));
+  let px = Math.round((lh - 3.5) * 2) / 2, tw = 0;
+  const measure = () => { x.font = px + "px ui-monospace,Consolas,monospace"; tw = Math.max(...texts.map((t) => x.measureText(t).width)); };
+  measure();
+  const R0 = Math.min(h * 0.4, w * 0.2);
+  while (px > 9 && (w - 56 - tw) / 2 < Math.min(R0, 55)) { px -= 0.5; measure(); }
+  const R = Math.max(28, Math.min(R0, (w - 56 - tw) / 2)), cx = R + 24, cy = h / 2 + 8, s = R / rad.outer;
   const regions = [{ name: "kernel", inner: 0, outer: rad.kernel }].concat(rad.layers);
   const colour = o.colour && o.temp;
   for (let ri = regions.length - 1; ri >= 0; ri--) {
@@ -2382,11 +2392,11 @@ function paintCross(x, w, h, o) {
   if (rad.layers.length) { /* the gap lies on the buffer's outer face: no width, only a conductance */
     x.strokeStyle = "#0e1013"; x.lineWidth = 2.2; x.setLineDash([3, 2]); x.beginPath(); x.arc(cx, cy, rad.layers[0].outer * s, 0, 7); x.stroke(); x.setLineDash([]); x.lineWidth = 1;
   }
-  const lx = cx + R + 24; let y = cy - (o.lines.length * 15) / 2;
-  x.font = "11.5px ui-monospace,Consolas,monospace";
-  for (const [text, col] of o.lines) { x.fillStyle = col || "#8c949e"; x.fillText(text, lx, y); y += 15; }
-  x.fillStyle = "#5e6670"; x.fillText("to scale · outside the outer layer: the matrix or coolant", lx, y + 6);
-  if (o.note) { x.fillText(o.note, lx, y + 22); }
+  const lx = cx + R + 24; let y = Math.max(32, h / 2 - (rows * lh) / 2 + 8);
+  x.font = px + "px ui-monospace,Consolas,monospace";
+  for (const [text, col] of o.lines) { x.fillStyle = col || "#8c949e"; x.fillText(text, lx, y); y += lh; }
+  x.fillStyle = "#5e6670"; x.fillText(texts[o.lines.length], lx, y + 3);
+  if (o.note) x.fillText(o.note, lx, y + 3 + lh);
 }
 function crossLines(rows, gapText) { /* rows: {name, inner, outer, innerT, outerT} */
   const out = rows.map((g) => [g.name.padEnd(6) + " " + fmtUm(g.inner) + "–" + fmtUm(g.outer) + " µm  " + K(g.innerT) + " → " + K(g.outerT), PARTICLE_COLOUR[g.name]]);
@@ -2402,14 +2412,14 @@ function drawParticle() {
     const cl = t.quick.closed;
     o = { rad, colour: $("pCol").getAttribute("aria-pressed") === "true", temp: (region, r) => tempInRegion(t.profile, region, r), tmin: cl.wallT, tmax: cl.centreT,
       lines: crossLines(cl.regions.map((g) => ({ name: g.name, inner: g.innerRadius, outer: g.outerRadius, innerT: g.innerT, outerT: g.outerT })), "gap at the buffer: " + sig(cl.gapDeltaT, 3) + " K drop"),
-      note: particleTransient() ? "colour: the steady closed form at the table's peak power, not the transient" : "colour: the closed form" };
+      note: particleTransient() ? "colour: steady closed form at the peak power" : "colour: the closed form" };
   } else o.lines = [["The case is not valid yet: the colours need a valid case", "#e6b455"]];
   paintCross(x, w, h, o);
 }
 /* ---- the radial plot: regions as bands, one line per region (a jump at the gap), optional cell dots */
 function drawRadial(c, o) {
   const [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); c._plot = null; c._pplot = null;
-  if (!o || !o.rad || !o.lines.length) { plotText(c, "", "", []); x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText(o && o.empty ? o.empty : "Fix the problems to see the profile", 14, h / 2); return; }
+  if (!o || !o.rad || !o.lines.length) { plotText(c, "", "", []); if (o && o.empty) { x.fillStyle = "#5e6670"; x.font = "12px sans-serif"; x.fillText(o.empty, 14, h / 2); } return; }
   const L = 62, Rr = 16, Tp = 22, Bt = 30, rad = o.rad, rmax = rad.outer * 1e6;
   const all = o.lines.flatMap((q) => q.pts.map((p) => showT(p.T)));
   let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
@@ -2478,7 +2488,7 @@ function particleChecks(o, row) {
   row("Film drop", sig(cl.filmDeltaT, 4) + " K", "", "outside the outer layer");
   row("Outer wall", K(cl.wallT));
   row("Property range", t.quick.verdict === "in-domain" ? "in range" : "OUT OF RANGE", t.quick.verdict === "in-domain" ? "pass" : "fail", t.quick.findings.map((f) => f.region + " " + f.temperatureRange.map((v) => v.toFixed(0)).join("–") + " K vs valid " + f.validRange.join("–") + " K").join("; "));
-  const head = (s) => { const h2 = el("div", "psec"); h2.setAttribute("role", "heading"); h2.setAttribute("aria-level", "3"); h2.style.padding = "8px 0 2px"; h2.textContent = s; o.append(h2); };
+  const head = (s) => { const h2 = elt("div", s, { class: "psec" }); h2.style.padding = "8px 0 2px"; o.append(h2); }; /* elt gives a psec its heading role */
   const sr = solverRes && String(solverRes.kind).startsWith("triso") ? solverRes : null;
   if (sr) {
     head("Solver result (OFFBEAT, thermal only)");
@@ -2499,7 +2509,7 @@ function particleChecks(o, row) {
 /* ---- the results view of a particle run (steady and transient) */
 function particleResultsOff() { for (const id of ["rpartWrap", "rradWrap"]) $(id).hidden = true; $("rpTable").hidden = true; $("rpTable").replaceChildren(); $("rprof")._pplot = null; $("rrad")._pplot = null; }
 const verdictCls = (v) => (v === "pass" ? "pass" : v === "fail" ? "fail" : "na");
-function checkRows(checks) { return checks.map((c) => [{ text: c.label }, { text: c.value === null ? "n/a" : c.unit === "relative" ? (c.value * 100).toFixed(3) + " %" : sig(c.value, 4) + " " + c.unit, mono: true }, { text: c.verdict, cls: verdictCls(c.verdict) }, { text: c.note }]); }
+function checkRows(checks) { return checks.map((c) => [{ text: c.label }, { text: c.value === null ? "n/a" : c.unit === "relative" ? (c.value * 100).toFixed(3) + " %" : sig(c.value, 4) + " " + c.unit, mono: true, cls: "nw" }, { text: c.verdict, cls: verdictCls(c.verdict) + " nw" }, { text: c.note }]); }
 function renderParticleResults(d, m) {
   const r = d.results, n = d.normalized, transient = r.kind === "triso-transient", box = $("rpTable");
   const rad = { kernel: n.kernelRadius, layers: n.layers.map((l) => ({ name: l.name, inner: l.innerRadius, outer: l.outerRadius })), outer: n.outerRadius };
