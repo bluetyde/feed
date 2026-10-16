@@ -87,6 +87,15 @@ describe("the section as it is read", () => {
     expect(r.triso.normalized.transient).toBeDefined();
     expect(r.triso.derived.particlePower).toBe(0.4);
   });
+  it("the steady start has to exist even when the table never reaches its power: a start at 30 W under a table of 0.01 W is refused at the start field", () => {
+    const d = vec("triso-outside-ramp");
+    d.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: q(3, "W/m/K"), b: q(-0.002, "W/m/K2"), validRange: { min: q(500, "K"), max: q(1400, "K") }, source: "s" };
+    d.transient.initialSteadyParticlePower = q(30, "W");
+    d.transient.powerHistory = [{ time: q(0, "ms"), particlePower: q(0.01, "W") }, { time: q(500, "ms"), particlePower: q(0.01, "W") }];
+    expect(codes(d)).toEqual(["E_OUT_OF_RANGE /materials"]);
+    d.transient.initialSteadyParticlePower = q(0.2, "W");
+    expect(codes(d)).toEqual([]);
+  });
   it("the steady start has to exist: a conductivity that reaches zero at the start power is refused at the start power", () => {
     const d = vec("triso-outside-ramp");
     d.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: q(3, "W/m/K"), b: q(-0.002, "W/m/K2"), validRange: { min: q(500, "K"), max: q(1400, "K") }, source: "s" };
