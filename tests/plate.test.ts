@@ -78,13 +78,14 @@ describe("the plate case", () => {
     noGap.geometry.gapThickness = q(0, "mm");
     expect(validateCase(noGap).errors).toEqual([]);
   });
-  it("refuses a hot-dimension, mechanics, burnup, axial or kinetics section on a plate: each is for pins in this release", () => {
+  it("refuses a hot-dimension, mechanics, burnup or kinetics section on a plate: each is for pins in this release (an axial section is accepted since A5)", () => {
     const hot = plate();
     hot.hotDimensions = { referenceTemperature: q(20, "degC"), fuel: { linearExpansion: q(12, "ppm/K"), source: "x" }, cladding: { linearExpansion: q(10, "ppm/K"), source: "x" } };
     expect(codes(hot)).toContain("E_UNSUPPORTED /hotDimensions");
     const ax = plate();
     ax.axial = { length: q(0.381, "m"), slices: 10, powerShape: { kind: "cosine" } };
-    expect(codes(ax)).toContain("E_UNSUPPORTED /axial");
+    expect(validateCase(ax).errors).toEqual([]);
+    expect(validateCase(ax).normalized!.axial!.slices).toBe(10);
     const kin = JSON.parse(readFileSync(join(root, "examples/synthetic-pulse-kinetics.json"), "utf8"));
     kin.geometry = plate().geometry;
     kin.assumptions.geometry = "1D-slab";

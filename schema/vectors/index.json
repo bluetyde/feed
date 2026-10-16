@@ -1497,10 +1497,66 @@
     "field": "/assumptions/geometry"
   },
   {
-    "file": "bad/plate-with-axial-stack.json",
+    "file": "good/plate-with-axial-stack.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-axial-table-shape-coolant-rise.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-axial-prescribed-wall.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-axial-shape-step-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_AXIAL_SHAPE_STEP"
+    ]
+  },
+  {
+    "file": "good/plate-axial-short-conduction-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_AXIAL_CONDUCTION"
+    ]
+  },
+  {
+    "file": "good/plate-axial-transient-pulse.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-axial-transient-steady-start-boundary-history.json",
+    "valid": true
+  },
+  {
+    "file": "good/plate-axial-transient-coolant-table.json",
+    "valid": true
+  },
+  {
+    "file": "bad/plate-axial-coolant-table-with-boundary-history.json",
     "valid": false,
     "code": "E_UNSUPPORTED",
-    "field": "/axial"
+    "field": "/axial/boundary"
+  },
+  {
+    "file": "bad/plate-axial-slices-too-few.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/slices"
+  },
+  {
+    "file": "bad/plate-axial-length-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/axial/length"
+  },
+  {
+    "file": "bad/plate-axial-boundary-form-differs-from-case.json",
+    "valid": false,
+    "code": "E_AXIAL",
+    "field": "/axial/boundary"
   },
   {
     "file": "bad/pin-assumed-slab.json",

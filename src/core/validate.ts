@@ -328,7 +328,6 @@ export function validateCase(doc: unknown): ValidationResult {
     if (c.hotDimensions !== undefined) err("E_UNSUPPORTED", "/hotDimensions", "hot dimensions are for pins: the plate's expansion is not modelled");
     if (c.mechanics !== undefined) err("E_UNSUPPORTED", "/mechanics", "mechanics is for pins: a plate has no thermo-elastic solution here");
     if (c.burnup !== undefined) err("E_UNSUPPORTED", "/burnup", "a burnup is for pins in this release");
-    if (c.axial !== undefined) err("E_UNSUPPORTED", "/axial", "a plate stack along the height comes with milestone A5 of plan 12; use one slice of the plate, or remove the axial section");
     if (c.transient?.pointKinetics !== undefined) err("E_UNSUPPORTED", "/transient/pointKinetics", "a generated pulse is for pins: its feedback is that of the pin's fuel");
   } else {
     for (const k of ["fuelRadius", "claddingInnerRadius", "claddingOuterRadius"]) if (c.geometry[k] === undefined) err("E_SCHEMA_INVALID", "/geometry/" + k, "missing: a pin needs fuelRadius, claddingInnerRadius and claddingOuterRadius");
@@ -529,7 +528,7 @@ export function validateCase(doc: unknown): ValidationResult {
     if (normalized.axial) {
       const loads = sliceLoads(normalized);
       const peak = Math.max(...loads.map((l) => l.linearHeatRate));
-      if (peak > POWER_SANITY_MAX && !normalized.transient) {
+      if (peak > POWER_SANITY_MAX && !normalized.transient && !normalized.plate) {
         result.warnings.push({ code: "W_POWER_RANGE", severity: "warning", field: "/power/linearHeatRate", message: "the hottest slice's linear heat rate " + peak.toFixed(0) + " W/m is above the sanity range (" + POWER_SANITY_MAX + " W/m); kept as given", unit: "W/m", range: [0, POWER_SANITY_MAX] });
       }
       // a shape that changes a great deal between two neighbouring slices is not resolved by this many slices
