@@ -422,6 +422,18 @@ describe("a valid particle is run (T3), and an invalid one is refused with its o
     expect(readFileSync(join(runsRoot, s.id, "inputs", "feed-transient.json"), "utf8")).toContain('"outputs":50');
     expect(mgr.detail(s.id)!.normalized.transient.steps).toBe(1000);
   });
+  it("the headline of a transient run carries the hottest cell and the outside's temperature at the END of the run (a quenched wall: 900 K, not the 1000 K it started at)", async () => {
+    const { mgr } = manager("triso-transient-quench");
+    const s = mgr.start(read("schema/vectors/good/triso-wall-quench.json"));
+    if (!s.ok) throw new Error("refused");
+    const rec = await mgr.done(s.id);
+    expect(rec.state, JSON.stringify(rec.failure)).toBe("completed");
+    expect(rec.headline!.transient).toBe(true);
+    expect(rec.headline!.claddingOuterWallT).toBeCloseTo(900, 6);
+    const r = mgr.results(s.id) as unknown as TrisoTransientResultsRecord;
+    expect(r.checks.filter((c) => c.verdict === "fail")).toEqual([]);
+    expect(r.times).toHaveLength(101);
+  });
   it("fails the transient run when the zones were not collected or a write time is missing", async () => {
     for (const [script, message] of [["triso-transient-no-zones", /cell zones/], ["triso-transient-missing-time", /expected 50 write times after 0, found 49/]] as const) {
       const { mgr } = manager(script);

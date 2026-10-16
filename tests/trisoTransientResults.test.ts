@@ -76,6 +76,54 @@ describe("real OFFBEAT output of a particle's transient", () => {
     expect(lim(1016.7).verdict).toBe("fail"); // above the outputs' peak, below the steps': the steps decide
   });
 
+  it("the series starts at the table's first value, so a steady start shows its power at time 0", () => {
+    const r = read(g("outside-ramp"));
+    expect(r.series.power[0]).toBe(0.2);
+    expect(r.series.power[r.series.power.length - 1]).toBe(0.2);
+    expect(r.series.depositedByScheme[1]).toBeCloseTo(0.2 * 0.01, 12);
+    expect(read(g("pulse")).series.power[0]).toBe(0);
+  });
+
+  it("the energies are the nominal sphere's: the stored energy is the sum of capacity x nominal cell volume x rise, the rejected is the film's heat on the nominal outer area, each to 1e-5 of itself (the wedge holds 0.9991 of them)", () => {
+    const x = g("outside-ramp");
+    const r = read(x);
+    const n = x.n;
+    // stored, by hand: equal cells between the case's own radii (the wedge's cells hold lambda^3 of these volumes), c in J/m3/K
+    const radii = [0, n.kernelRadius, ...n.layers.map((l: { outerRadius: number }) => l.outerRadius)];
+    const caps = [3e6, 1.5e6, 2.5e6, 3.5e6, 2.5e6];
+    const vols: number[] = [];
+    const reg: number[] = [];
+    n.cells.forEach((nc: number, ri: number) => {
+      for (let i = 0; i < nc; i++) {
+        const a = radii[ri] + ((radii[ri + 1] - radii[ri]) * i) / nc;
+        const b = radii[ri] + ((radii[ri + 1] - radii[ri]) * (i + 1)) / nc;
+        vols.push((4 / 3) * Math.PI * (b ** 3 - a ** 3));
+        reg.push(ri);
+      }
+    });
+    r.profiles.forEach((p, k) => {
+      const stored = p.reduce((a, T, i) => a + caps[reg[i]!]! * vols[i]! * (T - r.profiles[0]![i]!), 0);
+      if (k > 0) expect(Math.abs(r.series.stored[k]! / stored - 1), "stored at output " + k).toBeLessThan(1e-5);
+    });
+    // rejected, by hand: the film's h A (wall - bulk) on the case's own outer surface over the wedge's volume ratio... the wedge's film area is lambda^2 of it and its heat divided by lambda^3 is 1/lambda of it
+    const L = Math.cos((1 * Math.PI) / 180) / Math.sqrt(1 + Math.sin((1 * Math.PI) / 180) ** 2);
+    const A = 4 * Math.PI * n.outerRadius ** 2;
+    const bulk = (t: number) => (t <= 0.05 ? 900 : t <= 0.25 ? 900 + (100 * (t - 0.05)) / 0.2 : 1000);
+    let rej = 0;
+    for (let k = 1; k < r.times.length; k++) {
+      const t0 = r.times[k - 1]!;
+      const t1 = r.times[k]!;
+      const N = 4000;
+      for (let s = 0; s < N; s++) {
+        const a = t0 + ((t1 - t0) * s) / N;
+        const b = t0 + ((t1 - t0) * (s + 1)) / N;
+        const f = (t: number) => (2000 * A) / L * ((r.series.wallT[k - 1]! + ((r.series.wallT[k]! - r.series.wallT[k - 1]!) * (t - t0)) / (t1 - t0)) - bulk(t));
+        rej += 0.5 * (f(a) + f(b)) * (b - a);
+      }
+      expect(Math.abs(r.series.rejected[k]! / rej - 1), "rejected at output " + k).toBeLessThan(2e-5);
+    }
+  });
+
   it("the loss of the outside's cooling and the quench: the wall follows the table; the particle ends up where the table takes it", () => {
     const ramp = read(g("outside-ramp"));
     expect(ramp.initialState.kind).toBe("steady");
