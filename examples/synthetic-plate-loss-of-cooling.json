@@ -1,0 +1,216 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "synthetic-plate-loss-of-cooling",
+  "name": "Synthetic plate stack, cooling lost: the film coefficient falls from 30000 to 100 W/m2/K at full power (illustrative)",
+  "label": "synthetic",
+  "description": "ILLUSTRATIVE and SYNTHETIC, not a real plate design and not a safety analysis. The question it answers (finding F17 of the outside test of the suite): how fast does a plate heat up when its cooling is lost? A flat plate (4.1 mm of meat on each side of the mid-plane, a 0.08 mm gap, 0.57 mm of cladding: the synthetic pin of the oracle cases as a slab, with synthetic conductivities 3 and 15 W/m/K and synthetic heat capacities 3 and 2.5 MJ/m3/K) is a stack of 10 slices over 0.381 m with a cosine power shape and 100 kW per metre of height and width on average. It starts from its steady state with the coolant at 300 K and a film coefficient of 30000 W/m2/K. At 2 s the film coefficient falls to 100 W/m2/K over 1 s (an ASSUMED round number for the cooling lost, with the coolant still at 300 K) and the power stays on for 60 s: the stored heat and the power have nowhere to go, and each slice warms at its own rate. No scram, no decay heat, no boiling, no critical heat flux, no melting and no radiation are modelled: the boundary history and the power history are inputs. The numbers are chosen so that the heat the slices exchange along the height stays small (an exchange number of 0.06 over the run, below the limit of 1 that docs/axial-stack.md states); a shorter plate or a much longer run would need a different method.",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": false,
+    "geometry": "1D-slab"
+  },
+  "geometry": {
+    "kind": "plate",
+    "fuelHalfThickness": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "gapThickness": {
+      "value": 0.08,
+      "unit": "mm"
+    },
+    "claddingThickness": {
+      "value": 0.57,
+      "unit": "mm"
+    }
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 300,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the adiabatic-limit oracle"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 15,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 2.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 300,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the oracle"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 20,
+    "claddingCells": 6
+  },
+  "transient": {
+    "powerHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 100,
+          "unit": "kW/m"
+        }
+      },
+      {
+        "time": {
+          "value": 60,
+          "unit": "s"
+        },
+        "linearHeatRate": {
+          "value": 100,
+          "unit": "kW/m"
+        }
+      }
+    ],
+    "endTime": {
+      "value": 60,
+      "unit": "s"
+    },
+    "timeStep": {
+      "value": 0.05,
+      "unit": "s"
+    },
+    "outputs": 30,
+    "initialSteadyLinearHeatRate": {
+      "value": 100,
+      "unit": "kW/m"
+    },
+    "boundaryHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 300,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 30000,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 2,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 300,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 30000,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 3,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 300,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 100,
+          "unit": "W/m2/K"
+        }
+      },
+      {
+        "time": {
+          "value": 60,
+          "unit": "s"
+        },
+        "bulkTemperature": {
+          "value": 300,
+          "unit": "K"
+        },
+        "heatTransferCoefficient": {
+          "value": 100,
+          "unit": "W/m2/K"
+        }
+      }
+    ]
+  },
+  "axial": {
+    "length": {
+      "value": 0.381,
+      "unit": "m"
+    },
+    "slices": 10,
+    "powerShape": {
+      "kind": "cosine"
+    }
+  }
+}

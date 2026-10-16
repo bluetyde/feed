@@ -1,0 +1,330 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "synthetic-triso-compact-pulse",
+  "name": "Generic coated particle: a 10 ms overpower to about 51 times the compact's steady power, from the steady state (illustrative)",
+  "label": "synthetic",
+  "description": "ILLUSTRATIVE and SYNTHETIC: the generic coated particle of synthetic-triso-compact-steady (the same dimensions, synthetic conductivities, gap and 900 K matrix), started from its steady state at the compact's 11.65 mW per particle, then given a 10 ms triangular overpower to 0.6 W (about 51 times the steady power) at 10 ms, back to 11.65 mW at 20 ms. The power history is an input in W per particle, not a result: FEED computes no kinetics here. The heat capacity of each region is a synthetic number of the right order for the material (kernel 3, buffer 1.5, inner and outer PyC 2.5, SiC 3.5 MJ/m3/K), not a sourced property. The five limits are ILLUSTRATIVE numbers chosen for this example (1000 K in every region), not design limits of any particle; each says so in its source. The case shows the heat wave: the kernel rises first, the layers follow, and by 0.5 s the particle is within about 1 K of its starting state. No statement is made about failure; stress, swelling, fission gas and kernel migration are not modelled. Thermal only.",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": false,
+    "geometry": "1D-sphere"
+  },
+  "geometry": {
+    "kind": "triso",
+    "kernelRadius": {
+      "value": 250,
+      "unit": "um"
+    },
+    "layers": [
+      {
+        "name": "buffer",
+        "thickness": {
+          "value": 100,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "ipyc",
+        "thickness": {
+          "value": 40,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "sic",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "opyc",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      }
+    ]
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 900,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 2000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "kernel": {
+      "materialId": "synthetic-kernel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle, not a sourced property"
+        }
+      }
+    },
+    "buffer": {
+      "materialId": "synthetic-buffer",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 0.5,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 1.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle, not a sourced property"
+        }
+      }
+    },
+    "ipyc": {
+      "materialId": "synthetic-ipyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 2.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle, not a sourced property"
+        }
+      }
+    },
+    "sic": {
+      "materialId": "synthetic-sic",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 13.9,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 3.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle, not a sourced property"
+        }
+      }
+    },
+    "opyc": {
+      "materialId": "synthetic-opyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "thermal.volumetricHeatCapacity": {
+          "model": "constant",
+          "value": {
+            "value": 2.5,
+            "unit": "MJ/m3/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: a number of the right order for the material, chosen for the independent oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 150000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "kernelCells": 12,
+    "bufferCells": 12,
+    "ipycCells": 12,
+    "sicCells": 16,
+    "opycCells": 12
+  },
+  "transient": {
+    "powerHistory": [
+      {
+        "time": {
+          "value": 0,
+          "unit": "ms"
+        },
+        "particlePower": {
+          "value": 0.01165,
+          "unit": "W"
+        }
+      },
+      {
+        "time": {
+          "value": 10,
+          "unit": "ms"
+        },
+        "particlePower": {
+          "value": 0.6,
+          "unit": "W"
+        }
+      },
+      {
+        "time": {
+          "value": 20,
+          "unit": "ms"
+        },
+        "particlePower": {
+          "value": 0.01165,
+          "unit": "W"
+        }
+      },
+      {
+        "time": {
+          "value": 500,
+          "unit": "ms"
+        },
+        "particlePower": {
+          "value": 0.01165,
+          "unit": "W"
+        }
+      }
+    ],
+    "endTime": {
+      "value": 500,
+      "unit": "ms"
+    },
+    "timeStep": {
+      "value": 0.5,
+      "unit": "ms"
+    },
+    "outputs": 50,
+    "initialSteadyParticlePower": {
+      "value": 0.01165,
+      "unit": "W"
+    }
+  },
+  "limits": [
+    {
+      "name": "kernel, illustrative",
+      "region": "kernel",
+      "maxTemperature": {
+        "value": 1000,
+        "unit": "K"
+      },
+      "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
+    },
+    {
+      "name": "buffer, illustrative",
+      "region": "buffer",
+      "maxTemperature": {
+        "value": 1000,
+        "unit": "K"
+      },
+      "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
+    },
+    {
+      "name": "inner PyC, illustrative",
+      "region": "ipyc",
+      "maxTemperature": {
+        "value": 1000,
+        "unit": "K"
+      },
+      "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
+    },
+    {
+      "name": "SiC, illustrative",
+      "region": "sic",
+      "maxTemperature": {
+        "value": 1000,
+        "unit": "K"
+      },
+      "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
+    },
+    {
+      "name": "outer PyC, illustrative",
+      "region": "opyc",
+      "maxTemperature": {
+        "value": 1000,
+        "unit": "K"
+      },
+      "source": "synthetic: an illustrative number chosen for this example, not a design limit or a sourced value"
+    }
+  ]
+}
