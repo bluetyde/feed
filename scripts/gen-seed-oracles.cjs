@@ -1376,7 +1376,7 @@ for (const c of STACK_TRANSIENTS) {
     tolerance: { abs: tol, rel: 0 },
     source: {
       kind: "analytic",
-      text: c.text + " Heat capacity per " + (c.plate ? "square metre" : "metre") + " " + round(lump.C, 3) + ", surface " + round(lump.A, 5) + ". Slice " + hotI + " of 10 (the hottest, " + round(qPeak / 1e3, 3) + " kW/m) warms monotonically from " + round(hot.T0, 4) + " K to " + round(hot.T, 4) + " K at 40 s, which is the largest peak of the run. The tolerance " + tol +
+      text: c.text + " Heat capacity per " + (c.plate ? "square metre" : "metre") + " " + round(lump.C, 3) + ", surface " + round(lump.A, 5) + ". Slice " + hotI + " of 10 (one of the two middle slices, equally hot, " + round(qPeak / 1e3, 3) + " kW/m) warms monotonically from " + round(hot.T0, 4) + " K to " + round(hot.T, 4) + " K at 40 s, which is the largest peak of the run. The tolerance " + tol +
       " K is the sum, rounded up to 0.05 K, of 1 % of the rise (" + round(t1, 3) + " K), twice the bound on the heat the slices exchange along the height (rate " + round(lump.rate, 6) + " /s, exchange number " + round(exchangeNumber, 3) + " over the run, bound " + round(lump.bounds[hotI], 3) + " K, twice " + round(t2, 3) + " K) and the internal rise of the hottest cell above the lumped mean (at most " + round(internal, 3) + " K); fixed before any run.",
       check: "Second method: FEED's independent finite-volume solution of every slice (tests/seedOracleStack.test.ts, the same bound added) and the real solver with FEED_SOLVER=1; FEED's own checks of the stack run (cross-check, energy balance, time step) all pass.",
     },
