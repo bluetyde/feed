@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-axial-boundary-unordered",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-axial-boundary-unordered.case.json",
+      "sha256": "3e272ef0fa5e910d68fb48ea200ffd24fa06f581b4ba32d37437eeaf56efa462"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_AXIAL"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a coolant table whose heights do not increase strictly. FEED must refuse it before any run; SEED reports E_AXIAL.",
+    "check": "FEED's schema vectors (schema/vectors/bad/axial-boundary-unordered.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "577a998e6cb96ef960140cca6561d4a24874a1d51f6f515c702124c67f59545b"
+}

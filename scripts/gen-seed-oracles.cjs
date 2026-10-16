@@ -17,7 +17,9 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 
 const root = path.join(__dirname, "..");
-const out = path.join(root, "oracles", "seed");
+// FEED_ORACLE_OUT (a folder whose name starts with feed-oracle-) writes the set there instead, so that a test can compare a fresh run with the committed files; the folder is emptied first.
+const out = process.env.FEED_ORACLE_OUT ? path.resolve(process.env.FEED_ORACLE_OUT) : path.join(root, "oracles", "seed");
+if (process.env.FEED_ORACLE_OUT && !path.basename(out).startsWith("feed-oracle-")) throw new Error("FEED_ORACLE_OUT must be a folder named feed-oracle-*");
 const NL = String.fromCharCode(10);
 const MESH = { fuelCells: 100, claddingCells: 20 };
 
@@ -1035,6 +1037,379 @@ for (const b of TVB_BAD) {
   tvbBad++;
 }
 
+// ---- an axial stack and a plate (plan 12 A8). Closed forms written here with plain formulas, nothing from src/core and no solver output. A stack is N slices along the heated length;
+// each slice is the radial problem (a pin) or the through-thickness problem (a plate) of its own heat rate and its own coolant, so the expected value of a slice is the series (pin)
+// or slab (plate) solution of that slice. The solver's slices exchange a little heat along the height (docs/axial-stack.md), which the per-slice closed form does not contain, so
+// the tolerance of a stack entry is the SUM of three terms, each fixed here before any run and each stated in the entry:
+//   (1) the mesh bound of every steady entry: 5 x (the slice's centre-to-surface rise) / N^2, N = 100 fuel cells;
+//   (2) the axial conduction allowance of FEED's checks: 3 x (the estimate as a fraction of the largest rise) x (the largest rise of any slice above its coolant). The estimate is
+//       a fin model: lambda^2 = (k A of the two solids) / U, U the hottest slice's heat rate over its centre-to-coolant rise, times the largest second difference of the shape over
+//       the interior slices relative to its largest value (docs/axial-stack.md, "The axial conduction"); the factor 3 is the margin the A1 and A2 calibration gave it;
+//   (3) the representation of a cosine: the writer gives OFFBEAT a table of 41 points and FEED normalises it by the trapezoid rule, which differs from the exact cosine by at most
+//       1e-3 of a slice's heat rate (interpolation error (1/40)^2 pi^2 / 8 = 7.7e-4, normalisation (1/40)^2 pi^2 / 12 = 5.1e-4, opposite signs), that is 1e-3 of the slice's rise
+//       above its coolant. A table shape has no such term: its definition is the table.
+// The sum is rounded up to 0.05 K. The expected values use the exact cosine and the exact table, never FEED's writer.
+// Three quantities are new to SEED (docs/seed-stack-request.md): `axial_hottest_slice` (the index of the slice with the hottest fuel, 0 at the bottom, unit 1), and
+// `temperature_peak_slice_min` (the lowest of the slices' hottest cell, K), which is a scalar summary of the new series quantity `temperature_peak_by_slice`; the oracle format
+// holds one number, so the series itself cannot be pinned, only these.
+const AX = { factor: 3, cosineTable: 1e-3, exchangeFactor: 2 };
+const ceil005 = (x) => Number(Math.max(0.05, Math.ceil(x / 0.05 - 1e-9) * 0.05).toFixed(2));
+const qty = (v, u) => ({ value: v, unit: u });
+const cosineFactors = (N) => Array.from({ length: N }, (_, k) => (Math.PI / 2) * Math.cos(Math.PI * ((k + 0.5) / N - 0.5)));
+/** Factors of a table shape [[fraction of the length, relative power], ...] at the slice centres, normalised to an average of 1 over the length (the trapezoid integral is exact for a piecewise linear shape). */
+function tableFactors(points, N) {
+  let integral = 0;
+  for (let i = 1; i < points.length; i++) integral += 0.5 * (points[i][1] + points[i - 1][1]) * (points[i][0] - points[i - 1][0]);
+  const at = (x) => {
+    for (let i = 1; i < points.length; i++) if (x <= points[i][0]) return points[i - 1][1] + ((points[i][1] - points[i - 1][1]) * (x - points[i - 1][0])) / (points[i][0] - points[i - 1][0]);
+    return points[points.length - 1][1];
+  };
+  return Array.from({ length: N }, (_, k) => at((k + 0.5) / N) / integral);
+}
+const linear = (xs, ys, x) => {
+  if (x <= xs[0]) return ys[0];
+  for (let i = 1; i < xs.length; i++) if (x <= xs[i]) return ys[i - 1] + ((ys[i] - ys[i - 1]) * (x - xs[i - 1])) / (xs[i] - xs[i - 1]);
+  return ys[ys.length - 1];
+};
+
+/** Through-thickness solution of a plate per metre of height and width: film q/h, cladding q t / k, gap q / h_gap, meat q L / (2 k) from the insulated plane to its face (plain slab results). */
+function slabSeries(doc) {
+  const q = si(doc.power.linearHeatRate);
+  const L = si(doc.geometry.fuelHalfThickness);
+  const t = si(doc.geometry.claddingThickness);
+  const fk = conductivity(doc.materials.fuel.sets, doc);
+  const ck = conductivity(doc.materials.cladding.sets, doc);
+  const wall = doc.boundary.surfaceTemperature ? si(doc.boundary.surfaceTemperature) : si(doc.boundary.bulkTemperature) + q / si(doc.boundary.heatTransferCoefficient);
+  const cladInner = hotSideK(ck, wall, q * t);
+  const fuelSurface = cladInner + q / si(doc.gap.conductance);
+  const centre = hotSideK(fk, fuelSurface, (q * L) / 2);
+  return { q, wall, cladInner, fuelSurface, centre, fuelRise: centre - fuelSurface };
+}
+const isPlate = (doc) => doc.geometry.kind === "plate";
+const constantK = (set) => {
+  const k = conductivity(set, {});
+  if (!("a" in k) || k.b !== 0) throw new Error("the stack generator's axial estimate is for constant conductivities");
+  return k.a;
+};
+
+/** The slices of a steady stack: each with its factor, heat rate, coolant and closed-form temperatures. */
+function stackSteady(doc) {
+  const a = doc.axial;
+  const N = a.slices;
+  const L = si(a.length);
+  const avg = si(doc.power.linearHeatRate);
+  const factors = a.powerShape.kind === "cosine" ? cosineFactors(N) : tableFactors(a.powerShape.points.map((p) => [si(p.position) / L, p.relativePower.value]), N);
+  const b = a.boundary;
+  const slices = factors.map((f, k) => {
+    const z = ((k + 0.5) * L) / N;
+    const sdoc = JSON.parse(JSON.stringify(doc));
+    delete sdoc.axial;
+    sdoc.power.linearHeatRate = qty(avg * f, "W/m");
+    let Tb = si(doc.boundary.bulkTemperature);
+    let h = si(doc.boundary.heatTransferCoefficient);
+    if (b) {
+      const zs = b.map((p) => si(p.height));
+      Tb = linear(zs, b.map((p) => si(p.bulkTemperature)), z);
+      h = linear(zs, b.map((p) => si(p.heatTransferCoefficient)), z);
+      sdoc.boundary = { bulkTemperature: qty(Tb, "K"), heatTransferCoefficient: qty(h, "W/m2/K") };
+    }
+    const s = isPlate(doc) ? slabSeries(sdoc) : analytic(sdoc);
+    return { k, z, factor: f, q: avg * f, Tb, h, centre: s.centre, fuelRise: s.fuelRise, wall: s.wall, rise: s.centre - Tb };
+  });
+  return { N, L, avg, slices };
+}
+/** The cross-sections the heat flows along the height through, per metre of width for a plate: the meat and the cladding. */
+function crossSections(doc) {
+  if (isPlate(doc)) return { Af: si(doc.geometry.fuelHalfThickness), Ac: si(doc.geometry.claddingThickness) };
+  const Rf = si(doc.geometry.fuelRadius), Rci = si(doc.geometry.claddingInnerRadius), Rco = si(doc.geometry.claddingOuterRadius);
+  return { Af: Math.PI * Rf * Rf, Ac: Math.PI * (Rco * Rco - Rci * Rci) };
+}
+/** The fin-model estimate of docs/axial-stack.md, in plain arithmetic: lambda^2 x the largest interior second difference of the shape relative to its largest value. */
+function axialEstimateOf(doc, st) {
+  const hot = st.slices.reduce((m, s) => (s.centre > m.centre ? s : m));
+  const { Af, Ac } = crossSections(doc);
+  const kA = constantK(doc.materials.fuel.sets) * Af + constantK(doc.materials.cladding.sets) * Ac;
+  const U = hot.q / hot.rise;
+  const lambda2 = kA / U;
+  const v = st.slices.map((s) => s.factor);
+  const top = Math.max(...v);
+  const h = st.L / st.N;
+  let curvature = 0;
+  for (let i = 1; i < v.length - 1; i++) curvature = Math.max(curvature, Math.abs(v[i + 1] - 2 * v[i] + v[i - 1]) / (h * h) / top);
+  return { lambda2, curvature, fraction: lambda2 * curvature, hot };
+}
+/** The tolerance of one slice's hottest cell: the three terms above, rounded up to 0.05 K. */
+function stackTolerance(est, st, s, cosine) {
+  const peakRise = Math.max(...st.slices.map((x) => x.rise));
+  const mesh = (5 * s.fuelRise) / (MESH.fuelCells * MESH.fuelCells);
+  const allow = AX.factor * est.fraction * peakRise;
+  const table = cosine ? AX.cosineTable * s.rise : 0;
+  return { total: ceil005(mesh + allow + table), mesh, allow, table };
+}
+
+function stackCase(o) {
+  const doc = load(o.from);
+  doc.caseId = o.name;
+  doc.name = o.title;
+  delete doc.description;
+  if (o.plate) {
+    doc.assumptions.geometry = "1D-slab";
+    doc.geometry = { kind: "plate", fuelHalfThickness: qty(4.1, "mm"), gapThickness: qty(0.08, "mm"), claddingThickness: qty(0.57, "mm") };
+  }
+  doc.power.linearHeatRate = qty(o.avgKW, "kW/m");
+  doc.axial = { length: qty(o.length, "m"), slices: o.slices, powerShape: o.shape };
+  if (o.coolant) doc.axial.boundary = o.coolant.map(([z, Tb, h]) => ({ height: qty(z, "m"), bulkTemperature: qty(Tb, "K"), heatTransferCoefficient: qty(h, "W/m2/K") }));
+  return withMesh(doc);
+}
+
+let stackGood = 0;
+const STACKS = [
+  {
+    name: "stack-cosine-pin",
+    from: "examples/synthetic-pin.json",
+    title: "Synthetic pin stack, cosine power over 0.381 m in 9 slices, 20 kW/m on average, flat coolant (illustrative numbers)",
+    avgKW: 20, length: 0.381, slices: 9, shape: { kind: "cosine" },
+    domain: "synthetic pin (constant conductivities, convective boundary 573 K and 30000 W/m2/K on every slice) as 9 radial slices over 0.381 m with a cosine power shape, 20 kW/m on average (31.4 kW/m at the peak)",
+    shapeText: "a cosine, normalised to an average of 1 (the slice at the middle has (pi/2) cos(0) = 1.571 of the average)",
+  },
+  {
+    name: "stack-warming-coolant-pin",
+    from: "examples/synthetic-pin.json",
+    title: "Synthetic pin stack, cosine power in 9 slices, 5 kW/m on average, the coolant warms from 573 K to 873 K up the pin (illustrative numbers)",
+    avgKW: 5, length: 0.381, slices: 9, shape: { kind: "cosine" },
+    coolant: [[0, 573, 30000], [0.381, 873, 30000]],
+    domain: "synthetic pin as 9 radial slices over 0.381 m with a cosine power shape, 5 kW/m on average (7.9 kW/m at the peak), a coolant table that warms linearly from 573 K at the bottom to 873 K at the top (a sodium-like rise; film coefficient 30000 W/m2/K)",
+    shapeText: "a cosine, normalised to an average of 1, with the coolant read from the table at each slice's centre (linear between the two points)",
+  },
+  {
+    name: "stack-skewed-pin",
+    from: "examples/synthetic-pin.json",
+    title: "Synthetic pin stack, a power shape skewed towards the bottom, 10 slices, 20 kW/m on average, flat coolant (illustrative numbers)",
+    avgKW: 20, length: 0.381, slices: 10,
+    shape: { kind: "table", points: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1].map((x) => ({ position: qty(Number((x * 0.381).toFixed(4)), "m"), relativePower: qty(Number((0.35 + 0.65 * Math.sin(Math.PI * x ** 0.62)).toFixed(4)), "1") })) },
+    domain: "synthetic pin as 10 radial slices over 0.381 m with a table power shape that peaks near 0.33 of the height and falls to 0.35 of the peak at both ends (0.35 + 0.65 sin(pi x^0.62) at eleven points, linear between them), 20 kW/m on average, flat coolant",
+    shapeText: "the table as written (relative power at eleven heights, linear between them), normalised so that its integral over the length is 1, read at each slice's centre; the shape is not symmetric, so a stack read from the top gives a different answer",
+  },
+  {
+    name: "stack-cosine-plate",
+    from: "schema/vectors/good/plate-steady.json",
+    plate: true,
+    title: "Synthetic plate stack, cosine power over 0.381 m in 9 slices, 200 kW/m of height and width on average, flat coolant (illustrative numbers)",
+    avgKW: 200, length: 0.381, slices: 9, shape: { kind: "cosine" },
+    domain: "synthetic plate (meat half-thickness 4.1 mm, gap 0.08 mm, cladding 0.57 mm, constant conductivities, one face cooled at 573 K and 30000 W/m2/K) as 9 through-thickness slices over 0.381 m with a cosine power shape, 200 kW per metre of height and width on average",
+    shapeText: "a cosine, normalised to an average of 1 (the heat rate is per metre of height and per metre of width)",
+  },
+];
+for (const c of STACKS) {
+  const doc = stackCase(c);
+  const st = stackSteady(doc);
+  const est = axialEstimateOf(doc, st);
+  const cosine = c.shape.kind === "cosine";
+  const hotI = st.slices.findIndex((s) => s === est.hot);
+  const coldI = st.slices.reduce((m, s, i) => (s.centre < st.slices[m].centre ? i : m), 0);
+  const tolHot = stackTolerance(est, st, st.slices[hotI], cosine);
+  const tolCold = stackTolerance(est, st, st.slices[coldI], cosine);
+  const sorted = st.slices.map((s) => s.centre).sort((x, y) => y - x);
+  const gap = sorted[0] - sorted[1];
+  const tolMax = Math.max(...st.slices.map((s) => stackTolerance(est, st, s, cosine).total));
+  if (process.env.GEN_DEBUG) console.log(c.name, "hot", hotI, st.slices[hotI].centre.toFixed(3), "cold", coldI, st.slices[coldI].centre.toFixed(3), "gap", gap.toFixed(2), "tol", tolHot, tolCold, "frac", est.fraction.toFixed(5), tolHot.mesh.toFixed(3), tolHot.allow.toFixed(3), tolHot.table.toFixed(3));
+  if (!(gap > 2 * tolMax)) throw new Error(c.name + ": the hottest slice leads the next by " + gap + " K, not more than twice the largest tolerance " + tolMax + ": its index would not be a safe answer");
+  if (!(est.fraction < 0.02)) throw new Error(c.name + ": the axial conduction estimate is above the validator's 2 % warning");
+  const rel = writeCase(c.name, doc);
+  const heightOf = (i) => round(st.slices[i].z, 4);
+  const common = (which, t) =>
+    "Slice " + which + " of " + st.N + " (centre at " + heightOf(which) + " m, heat rate " + round(st.slices[which].q / 1e3, 3) + " kW/m, coolant " + round(st.slices[which].Tb, 2) + " K): the closed-form " + (isPlate(doc) ? "slab" : "series") +
+    " solution of that slice gives " + round(st.slices[which].centre, 4) + " K at the centre. The power shape is " + c.shapeText + ". The solver's slices exchange a little heat along the height, which this solution does not have, so the tolerance is the sum of: the mesh bound 5 x " + round(st.slices[which].fuelRise, 2) + " K / 100^2 = " +
+    round(t.mesh, 3) + " K; the axial conduction allowance 3 x " + round(est.fraction, 5) + " (the estimate as a fraction of the largest rise) x " + round(Math.max(...st.slices.map((x) => x.rise)), 1) + " K (the largest rise of any slice above its coolant) = " + round(t.allow, 3) + " K" +
+    (cosine ? "; the cosine's 41-point table, 1e-3 of the slice's rise of " + round(st.slices[which].rise, 1) + " K = " + round(t.table, 3) + " K" : "; no table term (the shape is the table)") + "; rounded up to 0.05 K (" + t.total + " K), fixed before any run.";
+  const check = "Second method: FEED's own per-slice closed form (src/core/closedForm.ts through axialSummary, tests/seedOracleStack.test.ts, to 1e-3 K apart from the cosine's table term), and the real solver (FEED_SOLVER=1): every check of the run passes and the solver's slice peaks are inside the tolerances.";
+  const add = (quantity, value, unit, tolerance, text, qs) => {
+    entry({ id: "feed-" + c.name + "-" + quantity.replace(/_/g, "-"), tag: "good", casePath: rel, expected: { quantity, value, unit }, tolerance, source: { kind: "analytic", text, check }, coverage: { quantities: [quantity], domain: c.domain } });
+    stackGood++;
+  };
+  add("temperature_peak", round(st.slices[hotI].centre, 4), "K", { abs: tolHot.total, rel: 0 }, "The hottest fuel of the stack, the hottest slice's. " + common(hotI, tolHot));
+  add("axial_hottest_slice", hotI, "1", { abs: 0, rel: 0 }, "The index of the slice with the hottest fuel, counted from 0 at the bottom (its centre is at " + heightOf(hotI) + " m of " + st.L + " m). The next slice is cooler by " + round(gap, 2) + " K, more than twice the largest tolerance of any slice (" + tolMax + " K), so the solver's own choice cannot differ. An integer: no tolerance.");
+  add("temperature_peak_slice_min", round(st.slices[coldI].centre, 4), "K", { abs: tolCold.total, rel: 0 }, "The lowest of the slices' hottest cells: the end slice (index " + coldI + "), which makes the least heat. " + common(coldI, tolCold));
+}
+
+// ---- a plate alone: the through-thickness closed form (docs/plate.md); the pin entries of the set have the series
+{
+  const doc = withMesh(load("schema/vectors/good/plate-steady.json"));
+  doc.caseId = "plate-steady";
+  doc.name = "Synthetic plate, 20 kW per metre of height and width, one face cooled (illustrative numbers)";
+  const s = slabSeries(doc);
+  const rel = writeCase("plate-steady", doc);
+  const check = "Second method: FEED's slab closed form (compositeSlab, tests/plate.test.ts worked by hand to 592.093 K) and the real solver through tests/seedOracleStack.test.ts (FEED_SOLVER=1).";
+  const domain = "synthetic plate (meat half-thickness 4.1 mm, gap 0.08 mm and conductance 5000 W/m2/K, cladding 0.57 mm, constant conductivities 3 and 15 W/m/K), 20 kW per metre of height and width, one face cooled at 573 K and 30000 W/m2/K, the other plane insulated";
+  const tol = peakTolerance(s);
+  entry({ id: "feed-plate-steady-temperature-peak", tag: "good", casePath: rel, expected: { quantity: "temperature_peak", value: round(s.centre, 4), unit: "K" }, tolerance: { abs: tol, rel: 0 }, source: { kind: "analytic", text: "Closed-form centre temperature of the slab: film q/h = " + round(s.q / 30000, 3) + " K, cladding q t / k = " + round(s.q * 0.00057 / 15, 3) + " K, gap q / h_gap = " + round(s.q / 5000, 3) + " K, meat q L / (2 k) = " + round(s.fuelRise, 3) + " K above 573 K. The observed value is the first fuel cell centre (x = L / 200 from the insulated plane); the tolerance is 5 x " + round(s.fuelRise, 3) + " K / 100^2 rounded up.", check }, coverage: { quantities: ["temperature_peak"], domain } });
+  entry({ id: "feed-plate-steady-temperature-surface", tag: "good", casePath: rel, expected: { quantity: "temperature_surface", value: round(s.wall, 4), unit: "K" }, tolerance: { abs: 0.2, rel: 0 }, source: { kind: "analytic", text: "Outer face of the cladding: the bulk temperature plus the film drop q/h = 20000 / 30000 W/m2/K (the heat rate is per metre of height and width, so the flux through the face is 20 kW/m2).", check }, coverage: { quantities: ["temperature_surface"], domain } });
+  stackGood += 2;
+}
+
+// ---- a stack in a transient, only where the lumped limit is a reference that is not the solver (plan 11's lumped pins): a body of high conductivity (400 W/m/K, Biot number about 0.001)
+// is one temperature, so each slice obeys C dT/dt = q_k - h(t) A (T - T_b), integrated here by RK4 (step 1 ms) through the film history as written, from the slice's own steady start.
+// What the lumped slice leaves out is paid for in the tolerance, each term fixed here before any run:
+//   (1) 1 % of the slice's rise (the policy of the boundary-history entries: the first-order error of the 0.05 s step and the lumped approximation);
+//   (2) twice FEED's bound on the heat the slices exchange along the height (docs/axial-stack.md, "The heat the slices exchange during a transient"): the rate k A / (C h^2) times the
+//       integral of the absolute second difference of the slices' temperatures (here the lumped ones), the factor 2 being the margin the A5 measurements gave it; counted only where the
+//       exchange number (the rate times the run time) is at most 1, and checked below;
+//   (3) the hottest cell is above the mean the lumped model follows by at most the steady internal rise at the peak slice's heat rate (conduction in the meat, the gap and the cladding).
+const STACK_T = { k: 400, c: 3e6, fuelCells: 10, claddingCells: 4, dt: 0.05, endT: 40 };
+const histPt = (t, Tb, h) => ({ time: qty(t, "s"), bulkTemperature: qty(Tb, "K"), heatTransferCoefficient: qty(h, "W/m2/K") });
+function lumpedStack(doc) {
+  const plate = isPlate(doc);
+  const a = doc.axial;
+  const N = a.slices;
+  const L = si(a.length);
+  const avg = si(doc.transient.initialSteadyLinearHeatRate);
+  const factors = cosineFactors(N);
+  const H = doc.transient.boundaryHistory.map((p) => ({ t: p.time.value, Tb: si(p.bulkTemperature), h: si(p.heatTransferCoefficient) }));
+  const at = (t, key) => {
+    if (t <= H[0].t) return H[0][key];
+    for (let i = 1; i < H.length; i++) if (t <= H[i].t) return H[i - 1][key] + ((H[i][key] - H[i - 1][key]) * (t - H[i - 1].t)) / (H[i].t - H[i - 1].t);
+    return H[H.length - 1][key];
+  };
+  let C, A;
+  if (plate) {
+    C = STACK_T.c * (si(doc.geometry.fuelHalfThickness) + si(doc.geometry.claddingThickness));
+    A = 1;
+  } else {
+    const Rf = si(doc.geometry.fuelRadius), Rci = si(doc.geometry.claddingInnerRadius), Rco = si(doc.geometry.claddingOuterRadius);
+    C = STACK_T.c * (Math.PI * Rf * Rf + Math.PI * (Rco * Rco - Rci * Rci));
+    A = 2 * Math.PI * Rco;
+  }
+  const dt = 1e-3;
+  const every = 50;
+  const traj = factors.map((f) => {
+    const q = avg * f;
+    let T = H[0].Tb + q / (H[0].h * A);
+    const T0 = T;
+    const fn = (t, x) => (q - at(t, "h") * A * (x - at(t, "Tb"))) / C;
+    const samples = [T];
+    let t = 0;
+    let Tmax = T;
+    for (let step = 1; t < STACK_T.endT - 1e-9; step++) {
+      const k1 = fn(t, T), k2 = fn(t + dt / 2, T + (dt / 2) * k1), k3 = fn(t + dt / 2, T + (dt / 2) * k2), k4 = fn(t + dt, T + dt * k3);
+      T += (dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
+      t += dt;
+      if (T < Tmax - 1e-9) throw new Error(doc.caseId + ": a slice cools, so the largest peak is not the value at the end");
+      Tmax = Math.max(Tmax, T);
+      if (step % every === 0) samples.push(T);
+    }
+    return { q, T0, T, samples };
+  });
+  // the exchange bound of each slice: rate x the integral (trapezoid on the samples, 0.05 s apart) of the absolute second difference to the neighbours (an end slice has one neighbour)
+  const kA = constantK(doc.materials.fuel.sets) * crossSections(doc).Af + constantK(doc.materials.cladding.sets) * crossSections(doc).Ac;
+  const rate = kA / (C * (L / N) ** 2);
+  const bounds = traj.map((s, i) => {
+    const lo = traj[i > 0 ? i - 1 : i], hi = traj[i < N - 1 ? i + 1 : i];
+    const d = s.samples.map((_, j) => Math.abs(hi.samples[j] - 2 * s.samples[j] + lo.samples[j]));
+    let integral = 0;
+    for (let j = 1; j < d.length; j++) integral += 0.5 * (d[j] + d[j - 1]) * every * dt;
+    return rate * integral;
+  });
+  return { traj, bounds, rate, C, A, N, L, avg };
+}
+const STACK_TRANSIENTS = [
+  {
+    name: "stack-lumped-plate-loss-of-cooling",
+    base: "stack-cosine-plate",
+    plate: true,
+    title: "Synthetic plate stack, 50 kW/m on average from its steady states, the film coefficient falls from 3000 to 100 W/m2/K between 2 and 3 s (illustrative numbers)",
+    avgKW: 50,
+    domain: "synthetic plate with a conductivity of 400 W/m/K and a heat capacity of 3 MJ/m3/K (Biot number about 0.001) as 10 slices over 2 m with a cosine power shape, 50 kW per metre of height and width on average, each slice started from its own steady state at a film coefficient of 3000 W/m2/K, coolant 600 K, the film coefficient falling to 100 W/m2/K between 2 and 3 s (the loss of cooling of finding F17), 40 s",
+    text: "A lumped plate per slice, started at its steady state T_b + q_k/h and then cooled less and less well.",
+  },
+  {
+    name: "stack-lumped-pin-coastdown",
+    base: "stack-cosine-pin",
+    plate: false,
+    title: "Synthetic pin stack, 1 kW/m on average from its steady states, the film coefficient decays from 3000 to 300 W/m2/K between 5 and 15 s (illustrative numbers)",
+    avgKW: 1,
+    domain: "synthetic pin with a conductivity of 400 W/m/K and a heat capacity of 3 MJ/m3/K (Biot number about 0.01) as 10 slices over 2 m with a cosine power shape, 1 kW/m on average, each slice started from its own steady state at a film coefficient of 3000 W/m2/K, coolant 600 K, the film coefficient decaying linearly to 300 W/m2/K between 5 and 15 s, 40 s",
+    text: "A lumped pin per slice, started at its steady state T_b + q_k/(h A) and then cooled less and less well.",
+    history: [histPt(0, 600, 3000), histPt(5, 600, 3000), histPt(15, 600, 300), histPt(40, 600, 300)],
+  },
+];
+for (const c of STACK_TRANSIENTS) {
+  const history = c.history || [histPt(0, 600, 3000), histPt(2, 600, 3000), histPt(3, 600, 100), histPt(40, 600, 100)];
+  const doc = load(c.plate ? "schema/vectors/good/plate-steady.json" : "examples/synthetic-pulse.json");
+  doc.caseId = c.name;
+  doc.name = c.title;
+  delete doc.description;
+  doc.assumptions = { thermalOnly: true, steadyState: false, geometry: c.plate ? "1D-slab" : "1D-radial" };
+  if (c.plate) doc.geometry = { kind: "plate", fuelHalfThickness: qty(4.1, "mm"), gapThickness: qty(0.08, "mm"), claddingThickness: qty(0.57, "mm") };
+  delete doc.power;
+  doc.boundary = { bulkTemperature: { ...history[0].bulkTemperature }, heatTransferCoefficient: { ...history[0].heatTransferCoefficient } };
+  doc.gap = { model: "constant-conductance", conductance: qty(1e6, "W/m2/K"), source: "synthetic: chosen for the closed-form oracle" };
+  doc.mesh = { fuelCells: STACK_T.fuelCells, claddingCells: STACK_T.claddingCells };
+  const pulse = load("examples/synthetic-pulse.json");
+  doc.materials = pulse.materials;
+  for (const m of ["fuel", "cladding"]) {
+    doc.materials[m].sets["thermal.conductivity"].value = qty(STACK_T.k, "W/m/K");
+    doc.materials[m].sets["thermal.volumetricHeatCapacity"].value = qty(STACK_T.c / 1e6, "MJ/m3/K");
+  }
+  doc.axial = { length: qty(2, "m"), slices: 10, powerShape: { kind: "cosine" } };
+  doc.transient = { powerHistory: [{ time: qty(0, "s"), linearHeatRate: qty(c.avgKW, "kW/m") }, { time: qty(STACK_T.endT, "s"), linearHeatRate: qty(c.avgKW, "kW/m") }], endTime: qty(STACK_T.endT, "s"), timeStep: qty(STACK_T.dt, "s"), outputs: 40, initialSteadyLinearHeatRate: qty(c.avgKW, "kW/m"), boundaryHistory: history };
+  const lump = lumpedStack(doc);
+  const hotI = lump.traj.reduce((m, s, i) => (s.T > lump.traj[m].T ? i : m), 0);
+  const hot = lump.traj[hotI];
+  const rise = hot.T - hot.T0;
+  const exchangeNumber = lump.rate * STACK_T.endT;
+  if (!(exchangeNumber <= 1)) throw new Error(c.name + ": the exchange number " + exchangeNumber + " is above 1; FEED does not count its bound there");
+  if (!(rise > 20)) throw new Error(c.name + ": the rise is too small to test anything: " + rise);
+  const qPeak = hot.q;
+  const internal = c.plate
+    ? qPeak * (si(doc.geometry.fuelHalfThickness) / (2 * STACK_T.k) + 1 / 1e6 + si(doc.geometry.claddingThickness) / STACK_T.k)
+    : qPeak * (1 / (4 * Math.PI * STACK_T.k) + 1 / (2 * Math.PI * si(doc.geometry.fuelRadius) * 1e6) + Math.log(si(doc.geometry.claddingOuterRadius) / si(doc.geometry.claddingInnerRadius)) / (2 * Math.PI * STACK_T.k));
+  const t1 = 0.01 * rise;
+  const t2 = AX.exchangeFactor * lump.bounds[hotI];
+  const tol = ceil005(t1 + t2 + internal);
+  if (process.env.GEN_DEBUG) console.log(c.name, "hot", hotI, hot.T.toFixed(3), "from", hot.T0.toFixed(3), "rise", rise.toFixed(2), "rate", lump.rate, "exchange number", exchangeNumber.toFixed(3), "bound", lump.bounds[hotI].toFixed(3), "terms", t1.toFixed(3), t2.toFixed(3), internal.toFixed(3), "tol", tol);
+  const rel = writeCase(c.name, doc);
+  entry({
+    id: "feed-" + c.name + "-temperature-peak-max",
+    tag: "good",
+    casePath: rel,
+    expected: { quantity: "temperature_peak_max", value: round(hot.T, 4), unit: "K" },
+    tolerance: { abs: tol, rel: 0 },
+    source: {
+      kind: "analytic",
+      text: c.text + " Heat capacity per " + (c.plate ? "square metre" : "metre") + " " + round(lump.C, 3) + ", surface " + round(lump.A, 5) + ". Slice " + hotI + " of 10 (the hottest, " + round(qPeak / 1e3, 3) + " kW/m) warms monotonically from " + round(hot.T0, 4) + " K to " + round(hot.T, 4) + " K at 40 s, which is the largest peak of the run. The tolerance " + tol +
+      " K is the sum, rounded up to 0.05 K, of 1 % of the rise (" + round(t1, 3) + " K), twice the bound on the heat the slices exchange along the height (rate " + round(lump.rate, 6) + " /s, exchange number " + round(exchangeNumber, 3) + " over the run, bound " + round(lump.bounds[hotI], 3) + " K, twice " + round(t2, 3) + " K) and the internal rise of the hottest cell above the lumped mean (at most " + round(internal, 3) + " K); fixed before any run.",
+      check: "Second method: FEED's independent finite-volume solution of every slice (tests/seedOracleStack.test.ts, the same bound added) and the real solver with FEED_SOLVER=1; FEED's own checks of the stack run (cross-check, energy balance, time step) all pass.",
+    },
+    coverage: { quantities: ["temperature_peak_max"], domain: c.domain },
+  });
+  stackGood++;
+}
+
+// the refusals: FEED's vectors, each with the code the validator gives first
+const STACK_BAD = [
+  { file: "axial-slices-too-few", code: "E_AXIAL", what: "a stack of fewer than 3 slices" },
+  { file: "axial-shape-all-zero", code: "E_AXIAL", what: "a power shape that is zero everywhere" },
+  { file: "axial-boundary-unordered", code: "E_AXIAL", what: "a coolant table whose heights do not increase strictly" },
+  { file: "axial-with-mechanics", code: "E_UNSUPPORTED", what: "a stack together with the mechanics (stress and displacement are for one slice)" },
+  { file: "axial-coolant-table-with-boundary-history", code: "E_UNSUPPORTED", what: "a coolant table along the height together with a boundary history (the coolant would depend on both)" },
+  { file: "plate-with-a-hole", code: "E_GEOMETRY", what: "a plate with a central hole (a plate has none)" },
+  { file: "plate-assumed-radial", code: "E_UNSUPPORTED", what: "a plate whose assumptions say the geometry is radial" },
+  { file: "plate-thickness-wrong-unit", code: "E_UNITS", what: "a plate's half-thickness given in a unit that is not a length" },
+];
+let stackBad = 0;
+for (const b of STACK_BAD) {
+  const rel = writeCase("bad-" + b.file, load("schema/vectors/bad/" + b.file + ".json"));
+  entry({
+    id: "feed-bad-" + b.file,
+    tag: "bad-input",
+    casePath: rel,
+    expected: { refusalCode: b.code },
+    source: { kind: "hand", text: "A case with one fault: " + b.what + ". FEED must refuse it before any run; SEED reports " + b.code + ".", check: "FEED's schema vectors (schema/vectors/bad/" + b.file + ".json) assert the same code in FEED's own test suite." },
+    coverage: { quantities: ["case-validation"], domain: "FEED case validation" },
+  });
+  stackBad++;
+}
+
 write(
   path.join(out, "README.md"),
   [
@@ -1044,10 +1419,10 @@ write(
     "Expected values are the closed-form series solution computed by the generator, never the output of a solver run. A tolerance is part of the",
     "entry's hash: changing it needs a new `entryVersion` made by a human.",
     "",
-    (good + transientGood + kineticsGood + limitGood + gaGood + mechGood + tvbGood) + " good entries (steady: peak, outer-wall temperature, flux and energy balance over eight pins, two of them with a cubic and a tabulated fuel conductivity; pulses: adiabatic peak and energy deposited over four tabulated-power cases, two generated by point kinetics, and a steady-start hold; mechanics: displacements, axial stress, a closing gap, a gas pressure, the hydrogen pressure and a stress-limit margin; a coolant side that changes with time: three lumped pins with a film step, a ramp in the coolant temperature and a decaying film, and the energy of the first), " + (BAD.length + mechBad + tvbBad) + " bad-input entries, " + (2 + mechKnown) + " known-limit entries.",
+    (good + transientGood + kineticsGood + limitGood + gaGood + mechGood + tvbGood + stackGood) + " good entries (steady: peak, outer-wall temperature, flux and energy balance over eight pins, two of them with a cubic and a tabulated fuel conductivity; pulses: adiabatic peak and energy deposited over four tabulated-power cases, two generated by point kinetics, and a steady-start hold; mechanics: displacements, axial stress, a closing gap, a gas pressure, the hydrogen pressure and a stress-limit margin; a coolant side that changes with time: three lumped pins with a film step, a ramp in the coolant temperature and a decaying film, and the energy of the first; an axial stack and a plate: the hottest slice, its index and the coolest slice of a cosine, a warming-coolant and a skewed stack of pins and a cosine stack of plates, a plate alone, and two lumped stacks in a transient), " + (BAD.length + mechBad + tvbBad + stackBad) + " bad-input entries, " + (2 + mechKnown) + " known-limit entries.",
     "All cases use the mesh " + MESH.fuelCells + "/" + MESH.claddingCells + " (fuel/cladding cells), except the mechanics cases, which use " + MECH_MESH.fuelCells + "/" + MECH_MESH.claddingCells + " (see the generator). The peak is the first fuel cell centre of that mesh.",
-    "Pulse entries test the adiabatic limit only: heat leaving the fuel during a long transient has no entry here (FEED checks it against its own independent solution). Mechanics (plan 09 M6) is covered by the entries named feed-mechanics-*: free thermal expansion, an axially fixed solid, a closing gap, a gas pressure, the hydrogen pressure, a stress-limit margin, one known limit (a soft fuel) and six refusals. A boundary history (plan 11) is covered by the entries named feed-synthetic-lumped-* (peak against an RK4 lumped solution, tolerance 1 % of the rise) and five refusals (feed-bad-boundary-history-*); a violent change between two saved outputs is not covered. Not covered: stress of a real design, a central hole whose surface is not insulated, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
+    "Pulse entries test the adiabatic limit only: heat leaving the fuel during a long transient has no entry here (FEED checks it against its own independent solution). Mechanics (plan 09 M6) is covered by the entries named feed-mechanics-*: free thermal expansion, an axially fixed solid, a closing gap, a gas pressure, the hydrogen pressure, a stress-limit margin, one known limit (a soft fuel) and six refusals. A boundary history (plan 11) is covered by the entries named feed-synthetic-lumped-* (peak against an RK4 lumped solution, tolerance 1 % of the rise) and five refusals (feed-bad-boundary-history-*); a violent change between two saved outputs is not covered. An axial stack (plan 12) is covered by the entries named feed-stack-* (peak, the index of the hottest slice and the lowest slice peak against the per-slice closed form, tolerance = mesh bound + 3 x the axial conduction estimate + the cosine table), a plate by feed-plate-steady-* and feed-stack-cosine-plate-*, a stack in a transient by feed-stack-lumped-* (RK4 lumped slices, tolerance = 1 % of the rise + twice the bound on the heat the slices exchange + the internal rise) and eight refusals (feed-bad-axial-*, feed-bad-plate-*). The new quantities are axial_hottest_slice and temperature_peak_slice_min (docs/seed-stack-request.md). Not covered: stress of a real design, a central hole whose surface is not insulated, gap closure and contact, fission gas, burnup, any real design. FEED results are thermal only.",
     "",
   ].join(NL)
 );
-console.log("wrote " + (good + transientGood + kineticsGood + limitGood + gaGood + mechGood + tvbGood) + " good, " + (BAD.length + mechBad + tvbBad) + " bad-input and " + (2 + mechKnown) + " known-limit entries to " + out);
+console.log("wrote " + (good + transientGood + kineticsGood + limitGood + gaGood + mechGood + tvbGood + stackGood) + " good, " + (BAD.length + mechBad + tvbBad + stackBad) + " bad-input and " + (2 + mechKnown) + " known-limit entries to " + out);

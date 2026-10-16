@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-plate-with-a-hole",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-plate-with-a-hole.case.json",
+      "sha256": "4497476a6e644062920067bf39bc4246720f23e8556e2b83d7e7d5559dbc4aea"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_GEOMETRY"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a plate with a central hole (a plate has none). FEED must refuse it before any run; SEED reports E_GEOMETRY.",
+    "check": "FEED's schema vectors (schema/vectors/bad/plate-with-a-hole.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "2ac4c8ee578adcb9c21465b31553721c112a1715886b44f70d6e577d12363c83"
+}

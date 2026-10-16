@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-skewed-pin-temperature-peak-slice-min",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-skewed-pin.case.json",
+      "sha256": "e0bcd171bd6f063bad9c702336df9df3bb590e016ff5fbf69c218b3a03c31547"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_peak_slice_min",
+    "value": 970.7189,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 5.85,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The lowest of the slices' hottest cells: the end slice (index 9), which makes the least heat. Slice 9 of 10 (centre at 0.3619 m, heat rate 10.819 kW/m, coolant 573 K): the closed-form series solution of that slice gives 970.7189 K at the centre. The power shape is the table as written (relative power at eleven heights, linear between them), normalised so that its integral over the length is 1, read at each slice's centre; the shape is not symmetric, so a stack read from the top gives a different answer. The solver's slices exchange a little heat along the height, which this solution does not have, so the tolerance is the sum of: the mesh bound 5 x 286.97 K / 100^2 = 0.143 K; the axial conduction allowance 3 x 0.002 (the estimate as a fraction of the largest rise) x 952.5 K (the largest rise of any slice above its coolant) = 5.703 K; no table term (the shape is the table); rounded up to 0.05 K (5.85 K), fixed before any run.",
+    "check": "Second method: FEED's own per-slice closed form (src/core/closedForm.ts through axialSummary, tests/seedOracleStack.test.ts, to 1e-3 K apart from the cosine's table term), and the real solver (FEED_SOLVER=1): every check of the run passes and the solver's slice peaks are inside the tolerances."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_peak_slice_min"
+    ],
+    "domain": "synthetic pin as 10 radial slices over 0.381 m with a table power shape that peaks near 0.33 of the height and falls to 0.35 of the peak at both ends (0.35 + 0.65 sin(pi x^0.62) at eleven points, linear between them), 20 kW/m on average, flat coolant"
+  },
+  "toleranceHash": "6f19d55be15fbb657e3f73daeb4c471eef78aacb79fc1f4244463230dd729e43"
+}

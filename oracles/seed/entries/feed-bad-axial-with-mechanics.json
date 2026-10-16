@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-axial-with-mechanics",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-axial-with-mechanics.case.json",
+      "sha256": "d96a5f8e419df3c873f4e5e537a7ab1718a349662b6c40ee5fe30e8c2dd06002"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_UNSUPPORTED"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a stack together with the mechanics (stress and displacement are for one slice). FEED must refuse it before any run; SEED reports E_UNSUPPORTED.",
+    "check": "FEED's schema vectors (schema/vectors/bad/axial-with-mechanics.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "be0cd25da730942e7f9784bcfc09d2f79454f857d7c497d9037ce42ff2ab7c7e"
+}

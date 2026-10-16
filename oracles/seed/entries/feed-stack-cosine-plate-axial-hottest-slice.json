@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-cosine-plate-axial-hottest-slice",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-cosine-plate.case.json",
+      "sha256": "bec1008d20e1d4fb978bad91353b628e2aed90fd42a9cabd768f4698d7bae790"
+    }
+  ],
+  "expected": {
+    "quantity": "axial_hottest_slice",
+    "value": 4,
+    "unit": "1"
+  },
+  "tolerance": {
+    "abs": 0,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The index of the slice with the hottest fuel, counted from 0 at the bottom (its centre is at 0.1905 m of 0.381 m). The next slice is cooler by 18.09 K, more than twice the largest tolerance of any slice (1.65 K), so the solver's own choice cannot differ. An integer: no tolerance.",
+    "check": "Second method: FEED's own per-slice closed form (src/core/closedForm.ts through axialSummary, tests/seedOracleStack.test.ts, to 1e-3 K apart from the cosine's table term), and the real solver (FEED_SOLVER=1): every check of the run passes and the solver's slice peaks are inside the tolerances."
+  },
+  "coverage": {
+    "quantities": [
+      "axial_hottest_slice"
+    ],
+    "domain": "synthetic plate (meat half-thickness 4.1 mm, gap 0.08 mm, cladding 0.57 mm, constant conductivities, one face cooled at 573 K and 30000 W/m2/K) as 9 through-thickness slices over 0.381 m with a cosine power shape, 200 kW per metre of height and width on average"
+  },
+  "toleranceHash": "8e8e2ab99d270246a41ec651f0ed1912dcb1dd8f3011a42cbfb5a4bd065aee75"
+}

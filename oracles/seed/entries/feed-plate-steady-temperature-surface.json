@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-plate-steady-temperature-surface",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/plate-steady.case.json",
+      "sha256": "00b79db253dbb50553d41a87492d5b95a07391e8fbdf13cf53465d9b57e3ba80"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_surface",
+    "value": 573.6667,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.2,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Outer face of the cladding: the bulk temperature plus the film drop q/h = 20000 / 30000 W/m2/K (the heat rate is per metre of height and width, so the flux through the face is 20 kW/m2).",
+    "check": "Second method: FEED's slab closed form (compositeSlab, tests/plate.test.ts worked by hand to 592.093 K) and the real solver through tests/seedOracleStack.test.ts (FEED_SOLVER=1)."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_surface"
+    ],
+    "domain": "synthetic plate (meat half-thickness 4.1 mm, gap 0.08 mm and conductance 5000 W/m2/K, cladding 0.57 mm, constant conductivities 3 and 15 W/m/K), 20 kW per metre of height and width, one face cooled at 573 K and 30000 W/m2/K, the other plane insulated"
+  },
+  "toleranceHash": "4eb11ab57e39dd4004cd60e5ad3bbc24afde54ddad397248987b203b6149e374"
+}
