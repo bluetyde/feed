@@ -267,6 +267,22 @@ describe("the heat the slices of a transient stack can exchange along the height
     const h = 0.381 / 10;
     expect(ex.rate / (kA / (C * h * h))).toBeCloseTo(1, 12);
   });
+  it("takes the conductivity at its largest and the heat capacity at its smallest over the temperatures given (laws that depend on temperature, worked by hand)", () => {
+    const d = slab(example("synthetic-coastdown"));
+    d.axial = cosine(0.381);
+    // fuel k = 4 - 0.0006 T (falls with temperature: largest at the cool end of a range), cladding k = 15; fuel c = 2.4 + 0.002 T MJ/m3/K (rises: smallest at the cool end)
+    d.materials.fuel.sets["thermal.conductivity"] = { model: "linear", a: q(4, "W/m/K"), b: q(-0.0006, "W/m/K2"), validRange: { min: q(300, "K"), max: q(2500, "K") }, source: "synthetic: a test" };
+    d.materials.fuel.sets["thermal.volumetricHeatCapacity"] = { model: "linear", a: q(2.4, "MJ/m3/K"), b: q(0.002, "MJ/m3/K2"), validRange: { min: q(250, "K"), max: q(2500, "K") }, source: "synthetic: a test" };
+    const nn = norm(d);
+    const ex = axialExchange(nn, [400, 900], [300, 600])!;
+    const kA = (4 - 0.0006 * 400) * 4.1e-3 + 15 * 0.57e-3;
+    const C = (2.4e6 + 2000 * 400) * 4.1e-3 + 2.5e6 * 0.57e-3;
+    expect(ex.kA / kA).toBeCloseTo(1, 9);
+    expect(ex.heatCapacity / C).toBeCloseTo(1, 9);
+    // a range the other way round gives a different answer: the range matters
+    expect(axialExchange(nn, [800, 1200], [300, 600])!.kA).toBeLessThan(ex.kA);
+    expect(axialExchange(nn, [800, 1200], [300, 600])!.heatCapacity).toBeGreaterThan(ex.heatCapacity);
+  });
   it("there is none for a case without a stack or without heat capacities", () => {
     const one = slab(example("synthetic-coastdown"));
     expect(axialExchange(norm(one), [300, 600], [300, 600])).toBeUndefined();
