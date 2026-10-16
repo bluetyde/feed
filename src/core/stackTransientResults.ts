@@ -3,9 +3,9 @@
 // (the case's average history times its factor) and its own coolant. The tolerances are widened by the estimated axial conduction exactly as for the steady stack (stackResults.ts).
 // A slice is handed to the one-slice builder as the text of its own fields, so the one-slice code is the same code and is not changed for the stack.
 
-import { axialConductionEstimate, axialSummary, sliceCase, sliceLoads } from "./axial";
+import { axialExchange, axialSummary, sliceCase, sliceLoads, SliceLoad } from "./axial";
 import { Check, DomainFinding, ResultsError, THERMAL_ONLY_TEXT, parsePatchValues, parseScalarField, parseVectorField } from "./resultsParser";
-import { AXIAL_TOLERANCE_FACTOR, STACK_TEXT, worstOf } from "./stackResults";
+import { AXIAL_TOLERANCE_FACTOR, stackText, worstOf } from "./stackResults";
 import { IndependentSet, TransientInput, TransientResultsRecord, TransientAllowance, buildTransientResults, computeIndependent, ENERGY_BALANCE_TOLERANCE } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
@@ -16,6 +16,50 @@ const bad = (message: string): never => {
 /** The independent solutions of every slice (each is the three runs of a one-slice transient), for the run manager's worker. */
 export function computeIndependentStack(c: NormalizedCase): IndependentSet[] {
   return sliceLoads(c).map((l) => computeIndependent(sliceCase(c, l)));
+}
+
+/**
+ * The factor on the transient exchange bound (below). The bound leaves out the damping by the coolant, but it takes the hottest cell of each slice for the slice's temperature and
+ * the one-dimensional solutions for the neighbours', and on the real solver it was 1.1 to 1.6 times the measured change in the runs where it applies (the loss of cooling of a
+ * plate, 60 and 200 s, and a short one), so 2 is a margin over that, as 3 is over the steady estimate.
+ */
+export const AXIAL_EXCHANGE_FACTOR = 2;
+/** The product of the exchange rate and the run time above which the first-order bound no longer holds: measured, 0.9 held and 1.5 did not (docs/axial-stack.md). */
+export const AXIAL_EXCHANGE_NUMBER_LIMIT = 1;
+
+/**
+ * What the heat exchanged along the height can add to a slice's temperature and to its energy balance over the whole run (axialExchange in axial.ts): the rate kA / (C h^2) times the
+ * integral of the absolute second difference of the slices' independent peak temperatures (an end slice has a neighbour on one side only), as kelvin and as a fraction of the energy
+ * the slice is given. It is a first-order bound for a run whose slices stay near the one-dimensional solutions: the steady estimate does not cover a transient in which the
+ * coolant cannot carry the heat away (a loss of cooling), where the axial path is the only one left.
+ */
+export function exchangeAllowances(c: NormalizedCase, solutions: IndependentSet[], loads: SliceLoad[]): { field: number[]; energy: number[]; number: number } | undefined {
+  const a = c.axial;
+  const t = c.transient;
+  if (!a || !t) return undefined;
+  const traces = solutions.map((s) => s.fv.trace);
+  if (traces.some((x) => x === undefined)) return undefined;
+  const fuel: [number, number] = [Math.min(...traces.map((x) => x!.fuelMin)), Math.max(...traces.map((x) => x!.fuelMax))];
+  const cladding: [number, number] = [Math.min(...traces.map((x) => x!.claddingMin)), Math.max(...traces.map((x) => x!.claddingMax))];
+  const ex = axialExchange(c, fuel, cladding);
+  if (!ex) return undefined;
+  const dt = t.timeStep;
+  const field: number[] = [];
+  const energy: number[] = [];
+  for (let k = 0; k < a.slices; k++) {
+    const p = traces[k]!.peakByStep;
+    const below = traces[k > 0 ? k - 1 : k]!.peakByStep;
+    const above = traces[k < a.slices - 1 ? k + 1 : k]!.peakByStep;
+    let integral = 0;
+    for (let j = 0; j < p.length; j++) integral += (j === 0 || j === p.length - 1 ? 0.5 : 1) * Math.abs(below[j]! - 2 * p[j]! + above[j]!) * dt;
+    // the energy the slice is given over the run (J per unit height): its factor times the trapezoid of the average history
+    let given = 0;
+    for (let j = 1; j < t.times.length; j++) given += 0.5 * (t.linearHeatRate[j]! + t.linearHeatRate[j - 1]!) * (t.times[j]! - t.times[j - 1]!);
+    given *= loads[k]!.factor;
+    field.push(AXIAL_EXCHANGE_FACTOR * ex.rate * integral);
+    energy.push(given > 0 ? (AXIAL_EXCHANGE_FACTOR * ex.kA * integral) / (a.length / a.slices) ** 2 / given : 0);
+  }
+  return { field, energy, number: ex.rate * t.endTime };
 }
 
 const FOOTER = "// ************************************************************************* //";
@@ -42,7 +86,7 @@ export interface StackTransientRecord extends TransientResultsRecord {
     hottest: number;
     conduction: { fraction: number } | null;
     /** What was added to each slice's tolerances: kelvin on the cross-check, and on the energy balance a fraction of the slice's own energy (this is for the slice of the largest factor; the others scale with the ratio of the largest factor to their own). */
-    allowance: { field: number; energy: number };
+    allowance: { field: number; energy: number; exchangeField?: number; exchangeEnergy?: number; exchangeNumber?: number; exchangeCounted?: boolean };
   };
 }
 
@@ -92,10 +136,15 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
   const largestRise = Math.max(...solutions.map((s, k) => Math.max(...s.fv.trace!.peakByStep) - refOf(loads[k]!.boundary)));
   const field = widen * Math.max(largestRise, 1);
 
+  // the heat exchanged along the height during the run, from the independent solutions; each slice takes the larger of this and the steady estimate's allowance
+  // (only where the first-order bound holds: beyond the exchange number limit it is not counted, so a run that long keeps exactly the allowance the steady estimate gives)
+  const exchange = exchangeAllowances(c, solutions, loads);
+  const counted = exchange !== undefined && exchange.number <= AXIAL_EXCHANGE_NUMBER_LIMIT ? exchange : undefined;
   const recs: TransientResultsRecord[] = [];
   for (let k = 0; k < N; k++) {
     const sc = sliceCase(c, loads[k]!);
-    const allow: TransientAllowance = { field, energy: loads[k]!.factor > 0 ? (AXIAL_TOLERANCE_FACTOR * fraction * maxFactor) / loads[k]!.factor : 0 };
+    const steadyEnergy = loads[k]!.factor > 0 ? (AXIAL_TOLERANCE_FACTOR * fraction * maxFactor) / loads[k]!.factor : 0;
+    const allow: TransientAllowance = { field: Math.max(field, counted?.field[k] ?? 0), energy: Math.max(steadyEnergy, counted?.energy[k] ?? 0) };
     const Ck = foamVector([...fi(k), ...ci(k)].map((i) => C[i]!));
     recs.push(buildTransientResults(sc, { C: Ck, fields: perSliceFields[k]! }, solutions[k], allow));
   }
@@ -130,7 +179,7 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
     value: fraction,
     unit: "relative",
     verdict: "na",
-    note: summary.conduction ? `the steady estimate is ${(fraction * 100).toPrecision(3)} % of the largest rise (src/core/axial.ts); the per-slice cross-check is widened by ${AXIAL_TOLERANCE_FACTOR} times it as a fraction of the largest rise of any slice (${field.toPrecision(3)} K), and the per-slice energy balance by ${AXIAL_TOLERANCE_FACTOR} times it as a fraction of the slice's own power (the end slices make little heat and take a larger share). A transient's axial flow is not larger than the steady one for the same shape, but it was measured on the real solver only in the tests of docs/axial-stack.md` : "no estimate could be made; the per-slice tolerances are the one-dimensional ones",
+    note: summary.conduction ? `the steady estimate is ${(fraction * 100).toPrecision(3)} % of the largest rise (src/core/axial.ts); the per-slice cross-check is widened by ${AXIAL_TOLERANCE_FACTOR} times it as a fraction of the largest rise of any slice (${field.toPrecision(3)} K), and the per-slice energy balance by ${AXIAL_TOLERANCE_FACTOR} times it as a fraction of the slice's own power (the end slices make little heat and take a larger share). A transient's axial flow is not larger than the steady one for the same shape, but it was measured on the real solver only in the tests of docs/axial-stack.md${exchange ? `. The heat the slices can exchange along the height during the run is bounded from the independent solutions (up to ${Math.max(...exchange.field).toPrecision(3)} K and ${(100 * Math.max(...exchange.energy)).toPrecision(3)} % of a slice's energy; the steady estimate does not bound a run in which the coolant cannot carry the heat away). The exchange number (rate x run time) is ${exchange.number.toPrecision(3)}${counted ? `, below ${AXIAL_EXCHANGE_NUMBER_LIMIT}, where the bound held on the real solver: each slice's allowance is the larger of the two` : `, ABOVE ${AXIAL_EXCHANGE_NUMBER_LIMIT}: the heat has time to spread over several slices, the first-order bound no longer holds (measured) and is NOT counted, the allowance is the steady estimate's alone, and the one-dimensional solutions are no longer a good reference for the slices next to the ends; a failing cross-check there says so rather than a fault of the solver`}` : ""}` : "no estimate could be made; the per-slice tolerances are the one-dimensional ones",
   });
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value})`);
 
@@ -146,7 +195,7 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
     caseId: c.caseId,
     checks,
     domain: { verdict: findings.length ? "out-of-domain" : "in-domain", findings },
-    thermalOnly: THERMAL_ONLY_TEXT + " " + STACK_TEXT,
-    axial: { length: a.length, slices, hottest, conduction: summary.conduction ? { fraction } : null, allowance: { field, energy: widen } },
+    thermalOnly: THERMAL_ONLY_TEXT + " " + stackText(c),
+    axial: { length: a.length, slices, hottest, conduction: summary.conduction ? { fraction } : null, allowance: { field, energy: widen, ...(exchange ? { exchangeField: Math.max(...exchange.field), exchangeEnergy: Math.max(...exchange.energy), exchangeNumber: exchange.number, exchangeCounted: counted !== undefined } : {}) } },
   };
 }

@@ -621,7 +621,61 @@ badP("plate-negative-gap-thickness", "E_GEOMETRY", "/geometry/gapThickness", (c)
 badP("plate-zero-cladding-thickness", "E_GEOMETRY", "/geometry/claddingThickness", (c) => (c.geometry.claddingThickness = qv(0, "mm")));
 badP("plate-thickness-wrong-unit", "E_UNITS", "/geometry/fuelHalfThickness", (c) => (c.geometry.fuelHalfThickness = qv(4.1, "W/m")));
 badP("plate-assumed-radial", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-radial"));
-badP("plate-with-axial-stack", "E_UNSUPPORTED", "/axial", (c) => (c.axial = axialBase()));
+// a stack of plates (plan 12, A5): the axial section is as for a pin (a plate's heat rate is per metre of height and width); what stays refused is refused with the reason
+{
+  const c = asPlate(clone());
+  c.axial = axialBase();
+  add("good", "plate-with-axial-stack", c, {});
+}
+{
+  const c = asPlate(clone());
+  c.axial = axialBase({ powerShape: { kind: "table", points: [[0, 0.4], [0.1, 0.9], [0.19, 1.3], [0.29, 1.0], [0.381, 0.5]].map(([z, r]) => ({ position: qv(z, "m"), relativePower: qv(r, "1") })) }, boundary: [bt(0, 573, 30000), bt(0.381, 633, 30000)] });
+  add("good", "plate-axial-table-shape-coolant-rise", c, {});
+}
+{
+  const c = asPlate(clone());
+  delete c.boundary.bulkTemperature;
+  delete c.boundary.heatTransferCoefficient;
+  c.boundary.surfaceTemperature = qv(573, "K");
+  c.axial = axialBase({ boundary: [wallPt(0, 573), wallPt(0.381, 613)] });
+  add("good", "plate-axial-prescribed-wall", c, {});
+}
+{
+  const c = asPlate(clone());
+  c.axial = axialBase({ slices: 3 });
+  add("good", "plate-axial-shape-step-warning", c, { warnings: ["W_AXIAL_SHAPE_STEP"] });
+}
+{
+  const c = asPlate(clone());
+  c.axial = axialBase({ length: qv(0.05, "m"), slices: 20 });
+  add("good", "plate-axial-short-conduction-warning", c, { warnings: ["W_AXIAL_CONDUCTION"] });
+}
+{
+  const c = asPlate(pulse());
+  c.axial = axialBase();
+  add("good", "plate-axial-transient-pulse", c, {});
+}
+{
+  const c = asPlate(pulse());
+  delete c.transient.initialTemperature;
+  c.transient.initialSteadyLinearHeatRate = qv(20, "kW/m");
+  c.transient.boundaryHistory = convHistory();
+  c.axial = axialBase();
+  add("good", "plate-axial-transient-steady-start-boundary-history", c, {});
+}
+{
+  const c = asPlate(pulse());
+  c.axial = axialBase({ boundary: [bt(0, 300, 30000), bt(0.381, 330, 30000)] });
+  add("good", "plate-axial-transient-coolant-table", c, {});
+}
+{
+  const c = asPlate(withHistory(convHistory()));
+  c.axial = axialBase({ boundary: [bt(0, 300, 30000), bt(0.381, 330, 30000)] });
+  add("bad", "plate-axial-coolant-table-with-boundary-history", c, { code: "E_UNSUPPORTED", field: "/axial/boundary" });
+}
+badP("plate-axial-slices-too-few", "E_AXIAL", "/axial/slices", (c) => (c.axial = axialBase({ slices: 2 })));
+badP("plate-axial-length-wrong-unit", "E_UNITS", "/axial/length", (c) => (c.axial = axialBase({ length: qv(0.381, "W/m") })));
+badP("plate-axial-boundary-form-differs-from-case", "E_AXIAL", "/axial/boundary", (c) => (c.axial = axialBase({ boundary: [wallPt(0, 573), wallPt(0.381, 600)] })));
 bad("pin-assumed-slab", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-slab"));
 bad("geometry-unknown-kind", "E_GEOMETRY", "/geometry/kind", (c) => (c.geometry.kind = "disc"));
 bad("geometry-pin-missing-radius", "E_SCHEMA_INVALID", "/geometry/claddingInnerRadius", (c) => delete c.geometry.claddingInnerRadius);
