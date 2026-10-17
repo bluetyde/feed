@@ -7,6 +7,9 @@
 //     0.5 % of the particle's rise (centre above the outside), at least 0.01 K. The probe's buffer deviates by up to 0.076 K of a 48 K rise on the finest mesh without shrinking
 //     (unexplained), and a 12-cell kernel by 0.05 K; 0.5 % of 48 K is 0.24 K, 0.3 K being the plan's own figure.
 //   - against the independent finite-volume solution on the same mesh: 0.3 % of the rise (the two saved runs of T2 agree to 0.2 % of the rise), at least 0.02 K.
+//     Plus an interface allowance (plan 16, docs/spike/triso-interface-probe.md): OFFBEAT interpolates the conductivity linearly to the face across a jump (kernel to buffer, inner
+//     carbon to silicon carbide, silicon carbide to outer carbon) where the independent solution puts the two half cells in series; the difference is proportional to the cell width and
+//     is computed from the case (trisoInterfaceAllowance), times a safety factor of 1.25.
 //   - the energy balance: 0.5 % of the power plus the rounding of the output, from the first and last cell of the outermost layer (exact for the 1/r profile of a shell, whatever the conductivity law).
 //   - the gap's drop: 1 % of the closed-form drop plus 0.005 K (the probe found it to 0.04 %).
 //   - the wall: 0.05 K (the pin's), the steadiness: 0.01 K still to change (the pin's).
@@ -31,6 +34,11 @@ export const TRISO_CLOSED_FORM_RISE_FRACTION = 0.005;
 export const TRISO_CLOSED_FORM_FLOOR = 0.01; // K
 export const TRISO_FV_RISE_FRACTION = 0.003;
 export const TRISO_FV_FLOOR = 0.02; // K
+/**
+ * The factor on the interface allowance. The probe's 30 real runs measured 0.98 to 1.07 times the estimate, the 7 saved runs of T3 up to 1.22 (a thin particle where the second-order
+ * interior term is a larger part); the measured largest deviation was at most 0.72 of the whole bound (the 0.3 % of the rise plus 1.25 x the estimate) over every saved run (the probe's 30, the 7 of T3, the 5 of T6, the 8 of tests/golden/offbeat-triso-mesh).
+ */
+export const TRISO_INTERFACE_SAFETY = 1.25;
 export const TRISO_BALANCE_TOLERANCE = 0.005;
 /** OFFBEAT writes its fields with this many significant digits; a temperature is therefore known to half a unit of the last digit. */
 export const TRISO_OUTPUT_DIGITS = 8;
@@ -145,6 +153,53 @@ function interfaceT(rA: number, TA: number, kA: Law, rB: number, TB: number, kB:
   return (gA * TA + gB * TB) / (gA + gB);
 }
 
+export interface TrisoInterfaceShift {
+  /** The two regions either side, for example "kernel/buffer". */
+  between: string;
+  /** The index of the region just inside the interface (0 is the kernel): the interface moves the cells of this region and of every region inside it. */
+  outside: number;
+  /** K: the heat through the face times (the resistance of OFFBEAT's face minus that of two half cells in series); negative where OFFBEAT is cooler inside the face. */
+  shift: number;
+}
+
+/**
+ * How far OFFBEAT's cells may sit from FEED's finite-volume solution because of the way OFFBEAT puts the conductivity at a cell face (plan 16, docs/spike/triso-interface-probe.md).
+ * OFFBEAT interpolates the two cells' conductivities linearly to the face and uses a conductance of k_face x face area / distance between the cell centres; the independent solution
+ * puts the exact half cells of the two shells in series. They agree inside a region and across the gap (a coupled patch, which OFFBEAT treats as the two half cells and the gap's
+ * conductance in series), and differ at an interface between two regions with different conductivities by
+ *     P x ((d1 + d2) / k_face - d1 / k1 - d2 / k2) / (face area),   k_face = (k1 d2 + k2 d1) / (d1 + d2),
+ * with d1 and d2 the distances from the two cells' centroids to the face and P the heat that crosses it (all of the kernel's heat, outside the kernel). This is proportional to the
+ * cell width. Every cell inside an interface sits that far from the independent solution, so the largest deviation is at most the sum of the absolute shifts. The conductivities are
+ * taken at the closed-form temperatures of the face. `eq` is the sphere the wedge solves (wedgeEquivalent).
+ *
+ * The heat crosses every face from the kernel outward, so an interface moves the cells INSIDE it (the temperature of a cell is the outside's plus the drops across the faces outside
+ * it), not the cells outside: `forRegion[i]` is the sum of the absolute shifts of the interfaces outside region i (region 0 is the kernel; the outermost region has none).
+ */
+export function trisoInterfaceAllowance(eq: NormalizedTriso): { total: number; interfaces: TrisoInterfaceShift[]; forRegion: number[] } {
+  const names = regionNames(eq);
+  const closed = trisoClosedForm(eq);
+  const laws = lawsOf(eq);
+  const bounds = [0, eq.kernelRadius, ...eq.layers.map((l) => l.outerRadius)];
+  const P = eq.power.particlePower;
+  const interfaces: TrisoInterfaceShift[] = [];
+  for (let ri = 0; ri + 1 < names.length; ri++) {
+    if (ri === 1) continue; // the gap sits on the buffer's outer face
+    const face = bounds[ri + 1]!;
+    const hIn = (bounds[ri + 1]! - bounds[ri]!) / eq.cells[ri]!;
+    const hOut = (bounds[ri + 2]! - bounds[ri + 1]!) / eq.cells[ri + 1]!;
+    const d1 = face - SPHERE.centroid(face - hIn, face);
+    const d2 = SPHERE.centroid(face, face + hOut) - face;
+    const k1 = evaluate(laws[ri]!, closed.regions[ri]!.outerT);
+    const k2 = evaluate(laws[ri + 1]!, closed.regions[ri + 1]!.innerT);
+    const kFace = (k1 * d2 + k2 * d1) / (d1 + d2);
+    const shift = (P * ((d1 + d2) / kFace - d1 / k1 - d2 / k2)) / SPHERE.area(face);
+    interfaces.push({ between: names[ri] + "/" + names[ri + 1], outside: ri, shift });
+  }
+  // interface j lies between regions j and j+1: it moves regions 0 to j
+  const forRegion = names.map((_, ri) => interfaces.filter((i) => i.outside >= ri).reduce((s, i) => s + Math.abs(i.shift), 0));
+  return { total: forRegion[0]!, interfaces, forRegion };
+}
+
 export interface ParticleCells {
   /** The region (index into the case's regions, kernel first) and the radius (the length of the cell-centre vector, m) of each cell by its number in the mesh. */
   regionOf: number[];
@@ -231,6 +286,7 @@ export function buildTrisoResults(n: NormalizedTriso, input: TrisoInput): TrisoR
   const fv = steadyTrisoFv(trisoModelOf(eq), eq.power.particlePower);
   const rise = Math.max(closed.centreT - closed.wallT, 0);
   const checks: Check[] = [];
+  const interfaceShift = trisoInterfaceAllowance(eq);
 
   // --- the closed form at each cell's own radius, region by region
   regionNames(n).forEach((name, ri) => {
@@ -239,14 +295,15 @@ export function buildTrisoResults(n: NormalizedTriso, input: TrisoInput): TrisoR
     for (const c of mine) worst = Math.max(worst, Math.abs(c.T - closed.temperatureAt(Math.min(c.r, eq.outerRadius))));
     const reg = closed.regions[ri]!;
     const regionDrop = Math.abs(reg.innerT - reg.outerT);
-    const bound = (TRISO_CLOSED_FORM_DISCRETISATION * regionDrop) / (n.cells[ri]! * n.cells[ri]!) + Math.max(TRISO_CLOSED_FORM_RISE_FRACTION * rise, TRISO_CLOSED_FORM_FLOOR);
+    const interfaceAllowance = TRISO_INTERFACE_SAFETY * interfaceShift.forRegion[ri]!;
+    const bound = (TRISO_CLOSED_FORM_DISCRETISATION * regionDrop) / (n.cells[ri]! * n.cells[ri]!) + Math.max(TRISO_CLOSED_FORM_RISE_FRACTION * rise, TRISO_CLOSED_FORM_FLOOR) + interfaceAllowance;
     checks.push({
       id: "closedForm" + name[0]!.toUpperCase() + name.slice(1),
       label: `${TRISO_ZONE[name as keyof typeof TRISO_ZONE]} vs closed form (max deviation)`,
       value: worst,
       unit: "K",
       verdict: worst < bound ? "pass" : "fail",
-      note: `each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound ${bound.toFixed(3)} K = 5 x ${regionDrop.toPrecision(3)} K / ${n.cells[ri]}^2 + ${Math.max(TRISO_CLOSED_FORM_RISE_FRACTION * rise, TRISO_CLOSED_FORM_FLOOR).toPrecision(3)} K (0.5 % of the ${rise.toPrecision(3)} K rise)`,
+      note: `each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound ${bound.toFixed(3)} K = 5 x ${regionDrop.toPrecision(3)} K / ${n.cells[ri]}^2 + ${Math.max(TRISO_CLOSED_FORM_RISE_FRACTION * rise, TRISO_CLOSED_FORM_FLOOR).toPrecision(3)} K (0.5 % of the ${rise.toPrecision(3)} K rise)${interfaceAllowance > 0 ? ` + ${interfaceAllowance.toPrecision(3)} K interface allowance (OFFBEAT's linear conductivity at the interfaces outside this region, docs/spike/triso-interface-probe.md)` : ""}`,
     });
   });
 
@@ -258,8 +315,17 @@ export function buildTrisoResults(n: NormalizedTriso, input: TrisoInput): TrisoR
     fvCentre = Math.max(fvCentre, Math.abs(c.r / fv.r[i]! - 1));
   });
   if (fvCentre > TRISO_CENTRE_TOLERANCE) bad(`the cell centres differ from the case's mesh by up to ${(fvCentre * 100).toPrecision(3)} %: this output is not the mesh the case would give`);
-  const fvBound = Math.max(TRISO_FV_RISE_FRACTION * rise, TRISO_FV_FLOOR);
-  checks.push({ id: "crossCheckFv", label: "Cells vs the independent finite-volume solution (max deviation)", value: fvWorst, unit: "K", verdict: fvWorst < fvBound ? "pass" : "fail", note: `the same mesh solved by FEED's own finite-volume code (src/core/trisoSolve.ts); bound ${fvBound.toPrecision(3)} K (0.3 % of the ${rise.toPrecision(3)} K rise, at least ${TRISO_FV_FLOOR} K)` });
+  const fvBase = Math.max(TRISO_FV_RISE_FRACTION * rise, TRISO_FV_FLOOR);
+  const fvAllowance = TRISO_INTERFACE_SAFETY * interfaceShift.total;
+  const fvBound = fvBase + fvAllowance;
+  checks.push({
+    id: "crossCheckFv",
+    label: "Cells vs the independent finite-volume solution (max deviation)",
+    value: fvWorst,
+    unit: "K",
+    verdict: fvWorst < fvBound ? "pass" : "fail",
+    note: `the same mesh solved by FEED's own finite-volume code (src/core/trisoSolve.ts); bound ${fvBound.toPrecision(3)} K = ${fvBase.toPrecision(3)} K (0.3 % of the ${rise.toPrecision(3)} K rise, at least ${TRISO_FV_FLOOR} K) + ${fvAllowance.toPrecision(3)} K interface allowance (${TRISO_INTERFACE_SAFETY} x ${interfaceShift.total.toPrecision(3)} K: OFFBEAT interpolates the conductivity linearly to the face across ${interfaceShift.interfaces.map((i) => i.between + " " + Math.abs(i.shift).toPrecision(2) + " K").join(", ")}; proportional to the cell width, docs/spike/triso-interface-probe.md)`,
+  });
 
   // --- energy balance from the outermost layer (its first and last cell): the flux through a shell is 4 pi (K(Ta) - K(Tb)) / (1/ra - 1/rb), whatever the conductivity law
   {
