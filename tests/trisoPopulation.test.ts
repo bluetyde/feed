@@ -23,6 +23,7 @@ import {
   POPULATION_TEMPERATURE_RANGE,
   Rng,
   drawFrom,
+  drawParticle,
   histogramOf,
   keptFractions,
   nominalDraw,
@@ -31,6 +32,7 @@ import {
   particleOf,
   percentile,
   probabilityIn,
+  rejectionOf,
   runPopulation,
   statOf,
   type Distribution,
@@ -589,5 +591,167 @@ describe("the size cap and the worker", () => {
   it("a population is at most 100000 particles", () => {
     expect(POPULATION_MAX_SIZE).toBe(100000);
     expect(validateCase({ ...vec("triso-steady"), population: { size: 100000, seed: 1, distributions: {} } }).errors).toEqual([]);
+  });
+});
+
+// ---- found by the mutation run (scripts/mut-triso-t6.cjs): each of these was a mutant of src/core that nothing above caught
+describe("what the mutation run found", () => {
+  it("rejectionOf draws the line where the validator does: a length from 1 nm to 1 km (the lower end is a layer), a power factor above 0 and at most 100, a temperature above 0 K and at most 10000 K", () => {
+    const n = ok({ size: 1, seed: 1, distributions: {} });
+    const d = nominalDraw(n);
+    const at = (over: Record<string, unknown>) => rejectionOf({ ...d, ...over } as any);
+    expect(at({})).toBeUndefined();
+    expect(at({ kernelRadius: 1e-9 })).toBeUndefined();
+    expect(at({ kernelRadius: 0.99e-9 })).toBe("geometry");
+    expect(at({ kernelRadius: 1e3 })).toBeUndefined();
+    expect(at({ kernelRadius: 1.001e3 })).toBe("geometry");
+    expect(at({ thicknesses: [1e-9, 1e-6, 1e-6, 1e-6] })).toBeUndefined();
+    expect(at({ thicknesses: [1e-6, 1e-6, 0, 1e-6] })).toBe("geometry");
+    expect(at({ thicknesses: [1e-6, 1e-6, 1e-6, -1e-6] })).toBe("geometry");
+    expect(at({ powerFactor: 0 })).toBe("powerFactor");
+    expect(at({ powerFactor: 100 })).toBeUndefined();
+    expect(at({ powerFactor: 100.001 })).toBe("powerFactor");
+    expect(at({ matrixTemperature: 0 })).toBe("matrixTemperature");
+    expect(at({ matrixTemperature: 1e4 })).toBeUndefined();
+    expect(at({ matrixTemperature: 1.0001e4 })).toBe("matrixTemperature");
+    expect(at({ matrixTemperature: NaN })).toBe("matrixTemperature");
+  });
+  it("a kernel radius that is sometimes not a length is counted as such: a radius of 2 +- 3 um loses Phi(-0.666) of its draws, and the particle is drawn again", () => {
+    const n = 20000;
+    const r = runPopulation(ok({ size: n, seed: 17, distributions: { kernelRadius: N(2, 3) } }));
+    const p = normalCdf((0.001 - 2) / 3);
+    const expected = (n * p) / (1 - p);
+    expect(r.rejected.byReason.geometry).toBe(r.rejected.total);
+    expect(Math.abs(r.rejected.total - expected)).toBeLessThan(4 * Math.sqrt(expected / (1 - p)));
+  }, 60000);
+  it("a population stops where its allowance is: ten rejected draws for each particle kept plus 100, exactly (a run with that many passes, one more fails)", () => {
+    // a buffer of -0.67 +- 0.5 um is a layer in 9 % of its draws: about ten rejections for each particle kept
+    const thin = { kind: "normal", mean: q(-0.67, "um"), stdDev: q(0.5, "um") };
+    const base = ok({ size: 1, seed: 1, distributions: { buffer: thin } });
+    const pop = base.population!;
+    /** The rejections that have happened when the k-th particle is kept, for k = 1 to kMax. */
+    const rejectionsByKept = (seed: number, kMax: number) => {
+      const rng = new Rng(seed);
+      const out: number[] = [];
+      let rej = 0;
+      while (out.length < kMax) {
+        if (rejectionOf(drawParticle(base, pop, rng))) rej++;
+        else out.push(rej);
+      }
+      return out;
+    };
+    let exact: [number, number] | undefined;
+    let over: [number, number] | undefined;
+    for (let seed = 1; seed <= 60 && !(exact && over); seed++) {
+      rejectionsByKept(seed, 400).forEach((r, i) => {
+        const k = i + 1;
+        const cap = 10 * k + 100;
+        if (r === cap && !exact) exact = [seed, k];
+        if (r === cap + 1 && !over) over = [seed, k];
+      });
+    }
+    expect(exact).toBeDefined();
+    expect(over).toBeDefined();
+    const run = (s: [number, number]) => runPopulation(ok({ size: s[1], seed: s[0], distributions: { buffer: thin } }));
+    expect(() => run(exact!)).not.toThrow();
+    expect(() => run(over!)).toThrow(/too many particles that are not valid/);
+  }, 120000);
+  it("keptFractions measures the loss to the valid range against the truncated law: a buffer of 100 +- 45 um truncated to -50 to 100 um keeps the part of that range that is a layer", () => {
+    const d: Distribution = { kind: "normal", mean: 100e-6, stdDev: 45e-6, truncate: { min: -50e-6, max: 100e-6 } };
+    const k = keptFractions(d, "buffer");
+    const s = 45e-6;
+    const mass = (a: number, b: number) => simpson((x) => phi((x - 100e-6) / s) / s, a, b, 4000);
+    const inT = mass(-50e-6, 100e-6);
+    const valid = mass(0.001e-6, 100e-6);
+    expect(Math.abs(k.inTruncation - inT)).toBeLessThan(5e-7);
+    expect(Math.abs(k.valid - valid)).toBeLessThan(5e-7);
+    expect(Math.abs(k.lossToRange - (1 - valid / inT))).toBeLessThan(2e-6);
+    expect(k.lossToRange).toBeGreaterThan(0.01);
+  });
+  it("the particle of a draw carries the volume of its whole sphere (the drawn outer radius), beside the kernel's", () => {
+    const n = ok({ size: 1, seed: 1, distributions: {} });
+    const d = { ...nominalDraw(n), kernelRadius: 260e-6, thicknesses: [90e-6, 45e-6, 30e-6, 38e-6] };
+    const p = particleOf(n, d);
+    expect(p.power.particleVolume).toBeCloseTo((4 / 3) * PI * 463e-6 ** 3, 20);
+    expect(p.power.kernelVolume).toBeCloseTo((4 / 3) * PI * 260e-6 ** 3, 20);
+  });
+  it("a convective matrix: the rise is the peak above the DRAWN bulk temperature, the film's drop is a quantity of its own, and a prescribed wall has no film", () => {
+    const c = vec("triso-convective-outside");
+    c.population = { size: 150, seed: 61, distributions: { kernelRadius: N(250, 8), matrixTemperature: N(900, 10, "K") } };
+    const n = norm(c);
+    const r = runPopulation(n, { keepSamples: true });
+    const g = new Rng(61);
+    const rises: number[] = [];
+    const films: number[] = [];
+    r.samples!.forEach((peak) => {
+      const R = 250e-6 + 8e-6 * g.normal();
+      const Tm = 900 + 10 * g.normal();
+      const Ro = R + 210e-6;
+      const P = 600e6 * (4 / 3) * PI * R ** 3;
+      const film = P / (4 * PI * Ro * Ro * 2000);
+      rises.push(peak - Tm);
+      films.push(film);
+      expect(peak).toBeCloseTo(hand(R, T0, 1, Tm + film).peak, 8);
+    });
+    const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+    expect(r.quantities.find((x) => x.id === "rise")!.stat.mean).toBeCloseTo(mean(rises), 9);
+    expect(r.quantities.find((x) => x.id === "drop:film")!.stat.mean).toBeCloseTo(mean(films), 9);
+    expect(r.quantities.map((x) => x.id)).toEqual(["kernelPeakT", "rise", "drop:kernel", "drop:buffer", "drop:ipyc", "drop:sic", "drop:opyc", "drop:gap", "drop:film"]);
+    expect(r.nominal.drops.film).toBeGreaterThan(1);
+    const wall = runPopulation(ok({ size: 5, seed: 1, distributions: { matrixTemperature: N(1000, 10, "K") } }));
+    expect(wall.quantities.map((x) => x.id)).not.toContain("drop:film");
+    expect(wall.nominal.drops.film).toBeUndefined();
+    // and the rise of a prescribed wall is the peak above the drawn wall
+    expect(wall.quantities.find((x) => x.id === "rise")!.stat.mean).toBeLessThan(11);
+    expect(wall.quantities.find((x) => x.id === "rise")!.stat.min).toBeGreaterThan(9);
+  });
+  it("the document of a drawn particle in a convective matrix carries the drawn bulk temperature, and keeps the film coefficient", () => {
+    const c = vec("triso-convective-outside");
+    c.population = { size: 5, seed: 2, distributions: { matrixTemperature: N(900, 10, "K") } };
+    const n = norm(c);
+    const d = runPopulation(n).maximum.draw;
+    const doc = particleDocument(c, n, d);
+    expect(doc.boundary.bulkTemperature).toEqual({ value: d.matrixTemperature, unit: "K" });
+    expect(doc.boundary.heatTransferCoefficient).toEqual(q(2000, "W/m2/K"));
+    expect(d.matrixTemperature).not.toBe(900);
+  });
+  it("the thickest buffer and the thinnest SiC of the representatives are the extremes of the whole sample (the draws replayed)", () => {
+    const pop = { size: 300, seed: 44, distributions: { kernelRadius: N(250, 15), buffer: N(100, 10), sic: N(35, 2) } };
+    const n = ok(pop);
+    const r = runPopulation(n);
+    const g = new Rng(44);
+    const buffers: number[] = [];
+    const sics: number[] = [];
+    while (buffers.length < 300) {
+      const d = drawParticle(n, n.population!, g);
+      if (rejectionOf(d)) continue;
+      buffers.push(d.thicknesses[0]!);
+      sics.push(d.thicknesses[2]!);
+    }
+    expect(r.representatives.find((x) => x.role === "thickestBuffer")!.draw.thicknesses[0]).toBe(Math.max(...buffers));
+    expect(r.representatives.find((x) => x.role === "thinnestSic")!.draw.thicknesses[2]).toBe(Math.min(...sics));
+  });
+  it("a limit equal to the hottest particle's peak is not exceeded by it (strictly above), and one just under is", () => {
+    const pop = { size: 100, seed: 8, distributions: { kernelRadius: N(250, 10) } };
+    const top = runPopulation(ok(pop)).quantities[0]!.stat.max;
+    const lim = (v: number) => ({ name: "k", region: "kernel", maxTemperature: q(v, "K"), source: "synthetic: a number chosen for this test" });
+    const at = (v: number) => {
+      const c = particle(pop);
+      c.limits = [lim(v)];
+      return runPopulation(norm(c)).limits[0]!.above;
+    };
+    expect(at(top)).toBe(0);
+    expect(at(top - 1e-6)).toBe(1);
+  });
+  it("the case accepts the first and last seed and a power factor of 100, and refuses a uniform of one point, a truncation of one point and a power factor of 100.5", () => {
+    const withPop = (distributions: Record<string, unknown>, seed = 1) => ({ ...vec("triso-steady"), population: { size: 3, seed, distributions } });
+    expect(validateCase(withPop({}, 0)).errors).toEqual([]);
+    expect(validateCase(withPop({}, 4294967295)).errors).toEqual([]);
+    expect(validateCase(withPop({}, -1)).errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+    expect(validateCase(withPop({}, 4294967296)).errors.map((e) => e.code)).toEqual(["E_OUT_OF_RANGE"]);
+    expect(validateCase(withPop({ powerFactor: { kind: "constant", value: q(100, "1") } })).errors).toEqual([]);
+    expect(validateCase(withPop({ powerFactor: { kind: "constant", value: q(100.5, "1") } })).errors.map((e) => e.code + " " + e.field)).toEqual(["E_OUT_OF_RANGE /population/distributions/powerFactor/value"]);
+    expect(validateCase(withPop({ ipyc: { kind: "uniform", min: q(36, "um"), max: q(36, "um") } })).errors.map((e) => e.code + " " + e.field)).toEqual(["E_OUT_OF_RANGE /population/distributions/ipyc/max"]);
+    expect(validateCase(withPop({ kernelRadius: { kind: "normal", mean: q(250, "um"), stdDev: q(5, "um"), truncate: { min: q(250, "um"), max: q(250, "um") } } })).errors.map((e) => e.code + " " + e.field)).toEqual(["E_OUT_OF_RANGE /population/distributions/kernelRadius/truncate"]);
   });
 });
