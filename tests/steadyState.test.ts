@@ -121,7 +121,7 @@ describe("the steady end time", () => {
     for (const f of files) {
       const doc = readJson("examples/" + f);
       const v = validateCase(doc);
-      if (!v.ok || v.triso || v.normalized!.transient) continue; // a coated particle has its own steady end time (trisoSteadyEndTime, tests/trisoSolve.test.ts)
+      if (!v.ok || v.triso || v.pebble || v.normalized!.transient) continue; // a coated particle has its own steady end time (trisoSteadyEndTime, tests/trisoSolve.test.ts)
       steady++;
       expect({ f, h: steadyEndTime(v.normalized!) }).toMatchObject({ f, h: { ok: true, endTime: MIN_STEADY_END_TIME } });
     }

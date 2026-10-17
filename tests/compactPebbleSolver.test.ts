@@ -8,6 +8,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { twoScaleCase } from "../src/core/compact";
+import { quickLook } from "../src/core/quickLook";
 import { RunManager } from "../src/core/runManager";
 import { lastRelativeRate } from "../src/core/steadyState";
 import { validateCase } from "../src/core/validate";
@@ -44,6 +45,7 @@ async function run(doc: unknown, saveAs?: string) {
     copyFileSync(join(native, "final", "T"), join(save, "T"));
     if (existsSync(join(native, "final", "cellZones"))) copyFileSync(join(native, "final", "cellZones"), join(save, "cellZones"));
     const log = readFileSync(join(native, "log.offbeat"), "utf8");
+    writeFileSync(join(save, "log.offbeat.txt"), log);
     writeFileSync(join(save, "rate.json"), JSON.stringify({ relativeRate: lastRelativeRate(log), time: res.time, exitCode: rec.exitCode }, null, 2) + "\n");
     writeFileSync(join(save, "results.json"), JSON.stringify(res, null, 2) + "\n");
   }
@@ -66,12 +68,20 @@ describe.skipIf(!solverOn)("compact, pebble and the hottest particle through the
     expect(res.checks.some((c) => c.id === "conductivityFitFuelled")).toBe(true);
   }, 600_000);
 
+  it("the pebble on a coarse mesh (40 + 10 cells): only the cross-check fails, by the 0.49 K that OFFBEAT's face interpolation at the jump in conductivity adds, and the validator warned", async () => {
+    const doc = example("synthetic-pebble-steady");
+    doc.mesh = { fuelledCells: 40, shellCells: 10 };
+    expect(validateCase(doc).warnings.map((w) => w.code)).toEqual(["W_MESH_INTERFACE"]);
+    const res = await run(doc, "offbeat-pebble-coarse");
+    expect(res.checks.filter((c) => c.verdict === "fail").map((c) => c.id)).toEqual(["crossCheckFv"]);
+  }, 600_000);
+
   it("the compact's hottest particle (matrix shell as a film) through the real solver: the kernel's centre agrees with the two-scale closed form", async () => {
     const doc = example("synthetic-compact-steady");
     const v = validateCase(doc);
     expect(v.ok).toBe(true);
     const spec = v.normalized!.compact!;
-    const matrixT = 905.8720321992823; // the compact's centre by the closed form (see the test of the compact's record)
+    const matrixT = quickLook(v.normalized!).temperatures.centreT; // the compact's hottest point by the closed form
     const { n } = twoScaleCase(spec, matrixT);
     const particle = example("synthetic-triso-compact-steady");
     particle.caseId = "two-scale-hottest-particle";

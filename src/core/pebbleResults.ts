@@ -191,7 +191,7 @@ export function buildPebbleResults(p: NormalizedPebble, input: PebbleInput): Peb
   // the two-scale step on the fuelled zone's cells, against the wedge sphere's closed form (the radii asked for are the case's, so they are scaled to the wedge's)
   const fuelledCells = cells.filter((c) => c.region === "fuelled");
   const spec = { ...p.compact, twoScale: p.compact.twoScale.map((x) => (typeof x === "number" ? x * TRISO_WEDGE_SCALE : x)) };
-  const compact = buildCompactRecord(spec, fuelledCells.map((c) => ({ r: c.r, T: c.T })), (r) => closed.temperatureAt(r), { inner: 0, outer: eq.fuelledRadius }, SPHERE);
+  const compact = buildCompactRecord(spec, fuelledCells.map((c) => ({ r: c.r, T: c.T })), (r) => closed.temperatureAt(r), { inner: 0, outer: eq.fuelledRadius }, SPHERE, Math.max(PEBBLE_CLOSED_FORM_RISE_FRACTION * rise, PEBBLE_CLOSED_FORM_FLOOR));
   checks.push(...compact.checks);
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value}); the cell geometry is inconsistent`);
 
