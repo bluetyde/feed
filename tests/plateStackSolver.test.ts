@@ -99,6 +99,12 @@ async function run(d: unknown, save?: string) {
   }
   return { res: mgr.results(s.id) as unknown as StackRecord & StackTransientRecord, T, C, fields, normalized };
 }
+/**
+ * Plan 15 (B2, B3): the run manager's record of a stack of plates is judged against the two-dimensional reference. The tests below that are about the one-dimensional closed forms and
+ * solutions with the allowance and the exchange bound (the fallback, and the contrast) rebuild the record from the same fields with the reference left out (null).
+ */
+const oneD = (out: { res: { time: number }; T: string; C: string; fields: { time: number; T: string }[]; normalized: any }) =>
+  (out.normalized.transient ? buildStackTransientResults(out.normalized, { C: out.C, fields: out.fields }, computeIndependentStack(out.normalized), null) : buildStackResults(out.normalized, { T: out.T, C: out.C, time: out.res.time }, null)) as unknown as StackRecord & StackTransientRecord;
 const failing = (r: { checks: { id: string; verdict: string; value: number | null; note: string }[] }) => r.checks.filter((c) => c.verdict === "fail").map((c) => c.id + " " + c.value + ": " + c.note.slice(0, 200));
 
 /** The slab closed form of a slice written out by hand (constant conductivities): coolant + film q/h + cladding q t / k + gap q/h + meat q L / 2 k. */
@@ -156,12 +162,19 @@ describe.skipIf(!solverOn)("a stack of plates through the real solver, steady (n
 
   it("a short plate (0.06 m, 12 slices), where the axial conduction is large: the checks pass only because their tolerance includes the estimate of it (the golden output is kept to show that)", async () => {
     const d = plateStack(cosine(0.06, 12));
-    const { res, normalized } = await run(d, GOLDEN ? join(GOLDEN, "short") : undefined);
+    const out = await run(d, GOLDEN ? join(GOLDEN, "short") : undefined);
+    const { res, normalized } = out;
+    // plan 15 B2: the run's record is against the two-dimensional reference, which includes the heat flow along the height: no allowance, the cells agree with it to 0.01 K
     expect(failing(res)).toEqual([]);
-    expect(res.axial.conduction!.fraction).toBeGreaterThan(0.02);
+    expect((res.axial.reference as { kind: string; deviation: number }).kind).toBe("two-dimensional");
+    expect((res.axial.reference as { deviation: number }).deviation).toBeLessThan(0.01);
+    // the one-dimensional closed form with the allowance (the fallback): the checks pass only because their tolerance includes the estimate
+    const res1 = oneD(out);
+    expect(failing(res1)).toEqual([]);
+    expect(res1.axial.conduction!.fraction).toBeGreaterThan(0.02);
     // the measured difference from the one-dimensional closed form is many times what the mesh alone allows
-    expect(res.checks.find((c) => c.id === "closedFormFuel")!.value!).toBeGreaterThan(5);
-    expect(Math.max(...deviations(res, d).map(Math.abs))).toBeLessThan(res.axial.allowance.field);
+    expect(res1.checks.find((c) => c.id === "closedFormFuel")!.value!).toBeGreaterThan(5);
+    expect(Math.max(...deviations(res, d).map(Math.abs))).toBeLessThan(res1.axial.allowance.field);
     expect(normalized.plate).toBe(true);
   }, 600_000);
 
@@ -271,7 +284,12 @@ describe.skipIf(!solverOn)("a transient on a stack of plates through the real so
   }, 600_000);
 
   it("a long loss of cooling (200 s, the film coefficient down to 10 W/m2/K, the plate almost isolated): every check passes with the heat the slices can exchange along the height counted, and the exchange number is far below its limit", async () => {
-    const { res } = await run(lossOfCooling(0.381, 10, 200, 10, 100), GOLDEN ? join(GOLDEN, "transient-lossofcooling-long") : undefined);
+    const out = await run(lossOfCooling(0.381, 10, 200, 10, 100), GOLDEN ? join(GOLDEN, "transient-lossofcooling-long") : undefined);
+    // plan 15 B3: against the two-dimensional solution every check passes with no allowance and the cells agree with it to 0.02 K (the one-dimensional solutions are 64 K away)
+    expect(failing(out.res)).toEqual([]);
+    expect((out.res.axial.reference as { deviation: number; oneDimensionalDeviation: number }).deviation).toBeLessThan(0.02);
+    expect((out.res.axial.reference as { oneDimensionalDeviation: number }).oneDimensionalDeviation).toBeGreaterThan(60);
+    const res = oneD(out);
     expect(failing(res)).toEqual([]);
     expect(res.axial.allowance.exchangeNumber!).toBeLessThan(0.5);
     // the steady estimate's allowance is far too small for this run: the change the checks accept is the exchange bound
@@ -280,7 +298,10 @@ describe.skipIf(!solverOn)("a transient on a stack of plates through the real so
   }, 900_000);
 
   it("a loss of cooling on a short plate (0.1 m, 10 slices of 10 mm, 60 s): heat spreads along it (exchange number 0.9) and the checks pass only because the exchange bound is counted (golden output kept)", async () => {
-    const { res } = await run(lossOfCooling(0.1, 10, 60, 100, 60), GOLDEN ? join(GOLDEN, "transient-lossofcooling-short") : undefined);
+    const out = await run(lossOfCooling(0.1, 10, 60, 100, 60), GOLDEN ? join(GOLDEN, "transient-lossofcooling-short") : undefined);
+    expect(failing(out.res)).toEqual([]);
+    expect((out.res.axial.reference as { deviation: number }).deviation).toBeLessThan(0.02);
+    const res = oneD(out);
     expect(failing(res)).toEqual([]);
     expect(res.axial.allowance.exchangeNumber!).toBeGreaterThan(0.5);
     expect(res.axial.allowance.exchangeNumber!).toBeLessThan(1);
@@ -289,7 +310,11 @@ describe.skipIf(!solverOn)("a transient on a stack of plates through the real so
   }, 900_000);
 
   it("THE LIMIT, measured: a loss of cooling on a 0.2 m plate of 20 slices over 100 s (exchange number 1.5): the slice next to the end differs from the one-dimensional solution by more than the first-order bound, the bound is not counted, the cross-check and the slice energy balance fail and the note says why; the checks that do not depend on the neighbours pass", async () => {
-    const { res } = await run(lossOfCooling(0.2, 20, 100, 100, 50), GOLDEN ? join(GOLDEN, "transient-lossofcooling-limit") : undefined);
+    const out = await run(lossOfCooling(0.2, 20, 100, 100, 50), GOLDEN ? join(GOLDEN, "transient-lossofcooling-limit") : undefined);
+    // plan 15 B3: the case that failed every one-dimensional check passes them all against the two-dimensional solution
+    expect(failing(out.res)).toEqual([]);
+    expect((out.res.axial.reference as { deviation: number }).deviation).toBeLessThan(0.02);
+    const res = oneD(out);
     expect(res.axial.allowance.exchangeNumber!).toBeGreaterThan(1);
     expect(crossOf(res).verdict).toBe("fail");
     expect(res.axial.allowance.exchangeCounted).toBe(false);
