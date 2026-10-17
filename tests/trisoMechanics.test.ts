@@ -105,6 +105,32 @@ describe("the mechanics section", () => {
   });
 });
 
+describe("the section's bounds", () => {
+  const ok = () => vec("triso-mechanics-pressure");
+  const codes = (d: unknown) => validateCase(d).errors.map((e) => e.code + " " + e.field);
+  it("a gas pressure above 1 GPa, an outside pressure above it and a reference temperature above 10000 K are out of range; an outside pressure of 0 is valid", () => {
+    const g = ok();
+    g.mechanics.gasPressure.pressure = q(2, "GPa");
+    expect(codes(g)).toEqual(["E_OUT_OF_RANGE /mechanics/gasPressure/pressure"]);
+    const o = ok();
+    o.mechanics.outsidePressure = q(2, "GPa");
+    expect(codes(o)).toEqual(["E_OUT_OF_RANGE /mechanics/outsidePressure"]);
+    const t = ok();
+    t.mechanics.referenceTemperature = q(20000, "K");
+    expect(codes(t)).toEqual(["E_OUT_OF_RANGE /mechanics/referenceTemperature"]);
+    const z = ok();
+    z.mechanics.outsidePressure = q(0, "MPa");
+    expect(codes(z)).toEqual([]);
+  });
+  it("a free strain of exactly the bound is accepted and a positive one beyond it is refused", () => {
+    const f = ok();
+    f.mechanics.freeStrains = [{ layer: "ipyc", radial: q(0.2, "1"), tangential: q(-0.2, "1"), source: "x" }];
+    expect(codes(f)).toEqual([]);
+    f.mechanics.freeStrains[0].tangential = q(0.21, "1");
+    expect(codes(f)).toEqual(["E_OUT_OF_RANGE /mechanics/freeStrains/0/tangential"]);
+  });
+});
+
 describe("the constants OFFBEAT is given", () => {
   it("constant laws are written as they are; the expansion of a constant coefficient is itself", () => {
     const ks = trisoMechanicsConstants(norm(vec("triso-mechanics-pressure")));
@@ -196,6 +222,25 @@ describe("the files written for the mechanics of a particle", () => {
     expect(w.files["constant/solverDict"]).toContain("thermalSolver           constant;");
     const field = w.files["0/T"]!;
     expect(field).toContain("List<scalar>\n40\n(");
+  });
+
+  it("puts the inner patch on the inside face of the first block and the outer patch on the outside face of the last, and gives the faces the closed form's temperatures", () => {
+    const mesh = trisoMechanicsBlockMeshDict(n);
+    expect(mesh).toMatch(/inner\s*\{\s*type patch;\s*faces\s*\(\s*\(0 1 2 3\)\s*\);/);
+    expect(mesh).toMatch(/outer\s*\{\s*type patch;\s*faces\s*\(\s*\(12 13 14 15\)\s*\);/);
+    const cf = trisoClosedForm(n);
+    const T = w.files["0/T"]!;
+    const block = (name: string) => T.slice(T.indexOf("    " + name + "\n    {"));
+    expect(block("inner")).toContain("value           uniform " + cf.regions[2]!.innerT + ";");
+    expect(block("outer")).toContain("value           uniform " + cf.wallT + ";");
+  });
+
+  it("one step of 10 s, a flux table that runs past the end time (OFFBEAT aborts on a table point equal to it), a displacement criterion in fvSolution", () => {
+    expect(w.files["system/controlDict"]).toMatch(/deltaT\s+10;/);
+    expect(w.files["system/controlDict"]).toMatch(/writeInterval\s+1;/);
+    expect(w.files["constant/solverDict"]).toContain("timePoints  (0 20);");
+    expect(w.files["constant/solverDict"]).toContain("fastFlux    (100000000000000000000 100000000000000000000);");
+    expect(w.files["system/fvSolution"]).toMatch(/stressAnalysis/);
   });
 
   it("states the pressures on the inner and outer patch and the Tref and the thermal expansion", () => {

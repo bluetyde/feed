@@ -80,6 +80,23 @@ describe("real OFFBEAT output of a particle's mechanics", () => {
     expect(pr.summary.interfaceRadialStress[0]).toBeGreaterThan(-25e6);
   });
 
+  it("the radial stress at each interface (the summary) is the independent solution's within the interface tolerance, and the SiC's peak is the largest tangential stress of its cells", () => {
+    const x = g("pressure");
+    const r = read(x);
+    const sic0 = r.cells.find((c) => c.layer === "sic")!;
+    const ipycLast = r.cells.filter((c) => c.layer === "ipyc").slice(-1)[0]!;
+    // the independent radial stress at the interface lies between its two neighbouring cells'
+    const lo = Math.min(sic0.ind.sigmaR, ipycLast.ind.sigmaR);
+    const hi = Math.max(sic0.ind.sigmaR, ipycLast.ind.sigmaR);
+    const tol = 0.02 * Math.max(...r.cells.flatMap((c) => [Math.abs(c.ind.sigmaR), Math.abs(c.ind.sigmaT)]));
+    expect(r.summary.interfaceRadialStress).toHaveLength(1);
+    expect(r.summary.interfaceRadialStress[0]!).toBeGreaterThan(lo - tol);
+    expect(r.summary.interfaceRadialStress[0]!).toBeLessThan(hi + tol);
+    expect(r.summary.sicPeakTangential).toBe(Math.max(...r.cells.filter((c) => c.layer === "sic").map((c) => c.sigmaT)));
+    // a particle without a SiC has none to report
+    expect(read(g("ipyc")).summary.sicPeakTangential).toBeNull();
+  });
+
   it("the library case: the PARFUME sets are used as the reduced constants and warned about outside their range", () => {
     const x = g("library");
     const ks = trisoMechanicsConstants(x.n);

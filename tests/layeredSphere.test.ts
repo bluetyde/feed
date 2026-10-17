@@ -264,3 +264,49 @@ describe("a thermal strain that varies with the radius: the hollow sphere of Tim
     expect(sigmaT(b)).toBeGreaterThan(0);
   });
 });
+
+describe("input the solver refuses", () => {
+  const a = 350 * um;
+  const ok = { a, b: 385 * um, ...SiC };
+  it("an empty stack, a layer that is not between 0 and its outer radius, layers that do not touch, a non-positive modulus and a Poisson ratio of 0.5 or more", () => {
+    expect(() => new LayeredSphere([], 0, 0)).toThrow(/at least one layer/);
+    expect(() => new LayeredSphere([{ ...ok, a: 0 }], 0, 0)).toThrow(/radii/);
+    expect(() => new LayeredSphere([{ ...ok, b: a }], 0, 0)).toThrow(/radii/);
+    expect(() => new LayeredSphere([{ ...ok, b: a / 2 }], 0, 0)).toThrow(/radii/);
+    expect(() => new LayeredSphere([ok, { a: 390 * um, b: 420 * um, ...IPyC }], 0, 0)).toThrow(/does not touch/);
+    expect(() => new LayeredSphere([{ ...ok, E: 0 }], 0, 0)).toThrow(/E must be positive/);
+    expect(() => new LayeredSphere([{ ...ok, nu: 0.5 }], 0, 0)).toThrow(/nu in/);
+    expect(() => new LayeredSphere([{ ...ok, nu: -0.1 }], 0, 0)).toThrow(/nu in/);
+    expect(() => new LayeredSphere([ok], 0, 0).at(500 * um)).toThrow(/outside the layered sphere/);
+  });
+});
+
+describe("a thermal strain that is not a polynomial in the radius (the quadrature must be accurate, not only exact for 1/r profiles)", () => {
+  // theta(r) = 1e-3 exp(4 (r - a) / (b - a)): T&G's hollow sphere with J(r) = integral of theta s^2 ds by Simpson's rule on 4000 intervals, written here
+  const a = 350 * um;
+  const b = 385 * um;
+  const E = 3.7e11;
+  const nu = 0.13;
+  const theta = (r: number) => 1e-3 * Math.exp((4 * (r - a)) / (b - a));
+  const J = (r: number) => {
+    const n = 4000;
+    const h = (r - a) / n;
+    let sum = theta(a) * a * a + theta(r) * r * r;
+    for (let i = 1; i < n; i++) sum += (i % 2 === 1 ? 4 : 2) * theta(a + i * h) * (a + i * h) ** 2;
+    return (sum * h) / 3;
+  };
+  const k = E / (1 - nu);
+  const Jt = J(b);
+  const sigmaR = (r: number) => 2 * k * (((r ** 3 - a ** 3) / ((b ** 3 - a ** 3) * r ** 3)) * Jt - J(r) / r ** 3);
+  const sigmaT = (r: number) => k * (((2 * r ** 3 + a ** 3) / ((b ** 3 - a ** 3) * r ** 3)) * Jt + J(r) / r ** 3 - theta(r));
+  it("matches the closed form at 21 radii", () => {
+    const s = new LayeredSphere([{ a, b, E, nu, theta }], 0, 0);
+    const peak = Math.max(...[a, (a + b) / 2, b].map((r) => Math.abs(sigmaT(r))));
+    expect(peak).toBeGreaterThan(1e8);
+    for (let n = 0; n <= 20; n++) {
+      const r = a + ((b - a) * n) / 20;
+      expect(Math.abs(s.at(r).sigmaT - sigmaT(r)) / peak).toBeLessThan(HOLLOW);
+      expect(Math.abs(s.at(r).sigmaR - sigmaR(r)) / peak).toBeLessThan(HOLLOW);
+    }
+  });
+});
