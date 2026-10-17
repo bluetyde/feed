@@ -5,6 +5,10 @@
 // them on every edit. In the server's thread that froze status polling and cancel. Here each job gets a worker thread, a deadline after which the
 // thread is terminated, a cancel, and a queue (at most `maxConcurrent` threads at once). A queued preview is superseded by a newer one.
 //
+// Plan 15, B4: the two-dimensional reference of a stack of plates (what: "stackReference") is one more kind of job. It is solved in a thread of its own, with its own deadline;
+// a reference that cannot finish (deadline, cap, solver failure) is an answer with the reason (`{ fallback }`), and the caller keeps the allowance. In-process, the deadline is
+// the solver's own (it checks the clock between steps), so even then it is enforced.
+//
 // If the compiled worker file is not there (running from source without a build) the job runs in this thread and the outcome says so:
 // the numbers are the same, only the deadline cannot be enforced.
 
@@ -13,15 +17,17 @@ import { join } from "path";
 import { Worker } from "worker_threads";
 import { FvTransient } from "./transientFv";
 import { hottestLoad, sliceCase } from "./axial";
+import { StackTransientSolveResult, solveStackTransientReference } from "./stackReference";
 import { computeIndependentStack } from "./stackTransientResults";
 import { IndependentSet, computeIndependent } from "./transientResults";
 import { independentSolution } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
-export type IndependentWhat = "full" | "single";
+export type IndependentWhat = "full" | "single" | "stackReference";
 export type IndependentOutcome =
   | { ok: true; what: "full"; set: IndependentSet | IndependentSet[]; mode: "worker" | "in-process"; ms: number }
   | { ok: true; what: "single"; set: { fv: FvTransient }; mode: "worker" | "in-process"; ms: number }
+  | { ok: true; what: "stackReference"; set: StackTransientSolveResult; mode: "worker" | "in-process"; ms: number }
   | { ok: false; reason: "deadline" | "cancelled" | "superseded" | "worker-failed"; message: string; ms: number };
 
 export interface IndependentHandle {
@@ -148,20 +154,20 @@ export class IndependentRunner {
       this.pump();
     };
     try {
-      j.worker = new Worker(file, { workerData: { c: forWorker(j.c), what: j.what } });
+      j.worker = new Worker(file, { workerData: { c: forWorker(j.c), what: j.what, deadlineMs: j.deadlineMs } });
     } catch (e) {
       return fail("worker-failed", "the worker could not be started: " + String((e as Error).message));
     }
     this.live++;
     this.timers++;
     j.worker.once("exit", () => this.live--);
-    j.timer = setTimeout(() => fail("deadline", `the independent solution did not finish within ${(j.deadlineMs / 1000).toFixed(j.deadlineMs < 1000 ? 3 : 0)} s and was stopped`), j.deadlineMs);
+    j.timer = setTimeout(() => fail("deadline", `the ${j.what === "stackReference" ? "two-dimensional reference" : "independent solution"} did not finish within ${(j.deadlineMs / 1000).toFixed(j.deadlineMs < 1000 ? 3 : 0)} s and was stopped`), j.deadlineMs);
     j.worker.once("message", (m: { ok: boolean; set?: any; message?: string; ms: number }) => {
       if (j.settled) return;
       if (m.ok) {
         this.settle(j, { ok: true, what: j.what, set: m.set, mode: "worker", ms: m.ms } as IndependentOutcome);
         this.pump();
-      } else fail("worker-failed", "the independent solution failed: " + String(m.message));
+      } else fail("worker-failed", `the ${j.what === "stackReference" ? "two-dimensional reference" : "independent solution"} failed: ` + String(m.message));
     });
     j.worker.once("error", (e) => {
       if (!j.settled) fail("worker-failed", "the worker thread failed: " + String((e as Error).message));
@@ -175,7 +181,7 @@ export class IndependentRunner {
     setImmediate(() => {
       if (j.settled) return;
       try {
-        const set = j.what === "full" ? (j.c.axial ? computeIndependentStack(j.c) : computeIndependent(j.c)) : { fv: independentSolution(j.c.axial ? sliceCase(j.c, hottestLoad(j.c)) : j.c) };
+        const set = j.what === "stackReference" ? solveStackTransientReference(j.c, { deadlineMs: j.deadlineMs }) : j.what === "full" ? (j.c.axial ? computeIndependentStack(j.c) : computeIndependent(j.c)) : { fv: independentSolution(j.c.axial ? sliceCase(j.c, hottestLoad(j.c)) : j.c) };
         this.settle(j, { ok: true, what: j.what, set, mode: "in-process", ms: Date.now() - j.started! } as IndependentOutcome);
       } catch (e) {
         this.settle(j, { ok: false, reason: "worker-failed", message: "the independent solution failed: " + String((e as Error).message), ms: Date.now() - j.started! });

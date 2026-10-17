@@ -97,9 +97,26 @@ export function stackReference(c: NormalizedCase, o: { axialConduction?: boolean
 
 // ---- the transient (plan 15, B3) ----------------------------------------------------------------------------------------------------------------------------------------
 
-/** The most unknowns x steps a transient reference solves (the largest case the validator's work budget allows is 50 x 26 x 2300 = 3e6), and the wall-clock time it may take (ms). */
+/**
+ * What a transient reference is allowed to cost (plan 15, B4). The validator already bounds cells x steps x slices (MAX_TRANSIENT_WORK, 3e6): STACK_TRANSIENT_WORK_MAX repeats it as
+ * the unknowns x steps the reference solves. That alone does not bound the time, because the banded solve costs rows x n^2 per step (n the cells of one layer): 10 layers of 100 cells
+ * and 3000 steps are 3e6 unknown-steps and took 38 s, 50 layers of 26 cells and 1200 steps (1.6e6) took 1.7 s. So the second bound is the work of the banded solves,
+ * unknowns x cells per layer x steps (STACK_TRANSIENT_BAND_WORK_MAX, 4e8: 3e8 took 38 s with constant properties on this machine, and a temperature-dependent law costs a few times
+ * more), and the deadline (STACK_TRANSIENT_DEADLINE_MS, ms of wall-clock time) is the last guard. A reference that exceeds any of them is not solved and the allowance stays, with the reason.
+ */
 export const STACK_TRANSIENT_WORK_MAX = 3e6;
+export const STACK_TRANSIENT_BAND_WORK_MAX = 4e8;
 export const STACK_TRANSIENT_DEADLINE_MS = 60000;
+
+/** The size of the transient reference of a case: its unknowns, steps, and the two works the caps above bound. */
+export function stackTransientWork(c: NormalizedCase): { unknowns: number; steps: number; work: number; bandWork: number } | undefined {
+  const a = c.axial;
+  const t = c.transient;
+  if (!a || !t) return undefined;
+  const n = c.mesh.fuelCells + c.mesh.claddingCells;
+  const unknowns = a.slices * n;
+  return { unknowns, steps: t.steps, work: unknowns * t.steps, bandWork: unknowns * n * t.steps };
+}
 
 /** The temperature field the writer gives OFFBEAT to start from: every slice at its OWN steady state (or the uniform start), layer by layer. */
 export function runStartField(c: NormalizedCase): Float64Array {
@@ -138,15 +155,26 @@ export interface StackTransientReference {
 export type StackTransientReferenceResult = { reference: StackTransientReference } | { fallback: string };
 
 /**
- * The transient two-dimensional reference of the case: the stack's solution from the field the run started from, with the run's step and the powers and coolants it was given.
- * Not solved (with the reason, and the caller then keeps the allowance) when the unknowns times the steps exceed STACK_TRANSIENT_WORK_MAX or the deadline passes.
+ * The part of the transient reference that is computed (and, in the server, computed in a worker thread): the solution, the field the run started from and the distance of that
+ * from the coupled steady state. Plain numbers and typed arrays, so a worker can send it; `stackTransientReferenceFrom` makes the reference of it.
  */
-export function stackTransientReference(c: NormalizedCase, o: { axialConduction?: boolean; deadlineMs?: number } = {}): StackTransientReferenceResult {
-  const a = c.axial;
-  const t = c.transient;
-  if (!a || !t) return { fallback: "the case is not a transient stack" };
-  const n = c.mesh.fuelCells + c.mesh.claddingCells;
-  if (a.slices * n * t.steps > STACK_TRANSIENT_WORK_MAX) return { fallback: `the two-dimensional reference was not computed: ${a.slices * n} unknowns x ${t.steps} steps is more than the ${STACK_TRANSIENT_WORK_MAX} the reference solves` };
+export interface StackTransientSolved {
+  solution: StackTransient;
+  start: Float64Array;
+  startDistance: number | null;
+}
+export type StackTransientSolveResult = { solved: StackTransientSolved } | { fallback: string };
+
+/**
+ * Solve the transient two-dimensional reference of the case: the stack's solution from the field the run started from, with the run's step and the powers and coolants it was given.
+ * Not solved (with the reason, and the caller then keeps the allowance) when the case is over a cap above, the solver refuses, or the deadline passes.
+ */
+export function solveStackTransientReference(c: NormalizedCase, o: { axialConduction?: boolean; deadlineMs?: number } = {}): StackTransientSolveResult {
+  const w = stackTransientWork(c);
+  if (!w) return { fallback: "the case is not a transient stack" };
+  if (w.work > STACK_TRANSIENT_WORK_MAX) return { fallback: `the two-dimensional reference was not computed: ${w.unknowns} unknowns x ${w.steps} steps is more than the ${STACK_TRANSIENT_WORK_MAX} the reference solves` };
+  if (w.bandWork > STACK_TRANSIENT_BAND_WORK_MAX) return { fallback: `the two-dimensional reference was not computed: ${w.unknowns} unknowns x ${c.mesh.fuelCells + c.mesh.claddingCells} cells per layer x ${w.steps} steps is more work (${w.bandWork.toExponential(2)}) than the ${STACK_TRANSIENT_BAND_WORK_MAX.toExponential(0)} the reference solves in its deadline` };
+  const t = c.transient!;
   let solution: StackTransient;
   let start: Float64Array;
   try {
@@ -164,45 +192,57 @@ export function stackTransientReference(c: NormalizedCase, o: { axialConduction?
       startDistance = null;
     }
   }
+  return { solved: { solution, start, startDistance } };
+}
+
+/** The transient two-dimensional reference of the case in this thread (solve, then build). */
+export function stackTransientReference(c: NormalizedCase, o: { axialConduction?: boolean; deadlineMs?: number } = {}): StackTransientReferenceResult {
+  const r = solveStackTransientReference(c, o);
+  return "solved" in r ? { reference: stackTransientReferenceFrom(c, r.solved) } : r;
+}
+
+/** The reference of a case from a solution computed elsewhere (a worker thread): the cut into slices and the error estimates of each slice. */
+export function stackTransientReferenceFrom(c: NormalizedCase, solved: StackTransientSolved): StackTransientReference {
+  const a = c.axial!;
+  const { solution, startDistance } = solved;
+  const n = c.mesh.fuelCells + c.mesh.claddingCells;
   const height = a.length / a.slices;
   const nf = c.mesh.fuelCells;
   return {
-    reference: {
-      kind: "two-dimensional",
-      solution,
-      startDistance,
-      received: (k) => solution.states.map((s) => s.layerAxialIn[k]! / height),
-      sliceIndependent: (k, own) => {
-        const cells = (j: number) => Array.from(solution.states[j]!.T.subarray(k * n, (k + 1) * n));
-        const fv: FvTransient = {
-          r: solution.r,
-          states: solution.states.map((s, j) => ({ time: s.time, T: cells(j), deposited: s.layerDeposited[k]!, rejected: s.layerRejected[k]!, wall: s.wall[k]! })),
-          trace: solution.traces![k]!,
-        };
-        // The error estimates of a slice (what its cross-check bound is made of) come from its own one-dimensional runs on the doubled mesh and at half the step: the radial mesh and the
-        // Euler step do not depend on the conduction along the height to first order. Each is carried over as the same difference, added to the two-dimensional solution.
-        const shift = (j: number) => ({ dT: fv.states[j]!.T.map((x, i) => x - own.fv.states[j]!.T[i]!), dw: fv.states[j]!.wall - own.fv.states[j]!.wall });
-        const fv2: FvTransient = {
-          ...own.fv2,
-          states: own.fv2.states.map((s, j) => {
-            const { dT } = shift(j);
-            const T = s.T.map((x, i) => x + (i < 2 * nf ? dT[Math.floor(i / 2)]! : dT[nf + Math.floor((i - 2 * nf) / 2)]!));
-            return { ...s, T };
-          }),
-        };
-        const fvh: FvTransient = {
-          ...own.fvh,
-          states: own.fvh.states.map((s, j) => {
-            const { dT, dw } = shift(j);
-            return { ...s, T: s.T.map((x, i) => x + dT[i]!), wall: s.wall + dw };
-          }),
-          trace: {
-            ...own.fvh.trace!,
-            peakByStep: own.fvh.trace!.peakByStep.map((x, m) => x + (fv.trace!.peakByStep[Math.floor(m / 2)]! - own.fv.trace!.peakByStep[Math.floor(m / 2)]!)),
-          },
-        };
-        return { fv, fv2, fvh };
-      },
+    kind: "two-dimensional",
+    solution,
+    startDistance,
+    received: (k) => solution.states.map((s) => s.layerAxialIn[k]! / height),
+    sliceIndependent: (k, own) => {
+      const cells = (j: number) => Array.from(solution.states[j]!.T.subarray(k * n, (k + 1) * n));
+      const fv: FvTransient = {
+        r: solution.r,
+        states: solution.states.map((s, j) => ({ time: s.time, T: cells(j), deposited: s.layerDeposited[k]!, rejected: s.layerRejected[k]!, wall: s.wall[k]! })),
+        trace: solution.traces![k]!,
+      };
+      // The error estimates of a slice (what its cross-check bound is made of) come from its own one-dimensional runs on the doubled mesh and at half the step: the radial mesh and the
+      // Euler step do not depend on the conduction along the height to first order. Each is carried over as the same difference, added to the two-dimensional solution.
+      const shift = (j: number) => ({ dT: fv.states[j]!.T.map((x, i) => x - own.fv.states[j]!.T[i]!), dw: fv.states[j]!.wall - own.fv.states[j]!.wall });
+      const fv2: FvTransient = {
+        ...own.fv2,
+        states: own.fv2.states.map((s, j) => {
+          const { dT } = shift(j);
+          const T = s.T.map((x, i) => x + (i < 2 * nf ? dT[Math.floor(i / 2)]! : dT[nf + Math.floor((i - 2 * nf) / 2)]!));
+          return { ...s, T };
+        }),
+      };
+      const fvh: FvTransient = {
+        ...own.fvh,
+        states: own.fvh.states.map((s, j) => {
+          const { dT, dw } = shift(j);
+          return { ...s, T: s.T.map((x, i) => x + dT[i]!), wall: s.wall + dw };
+        }),
+        trace: {
+          ...own.fvh.trace!,
+          peakByStep: own.fvh.trace!.peakByStep.map((x, m) => x + (fv.trace!.peakByStep[Math.floor(m / 2)]! - own.fv.trace!.peakByStep[Math.floor(m / 2)]!)),
+        },
+      };
+      return { fv, fv2, fvh };
     },
   };
 }
