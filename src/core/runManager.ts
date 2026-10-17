@@ -8,8 +8,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, w
 import { dirname, join } from "path";
 import { writeOffbeatCase } from "./caseWriter";
 import { buildTrisoResults, TrisoResultsRecord } from "./trisoResults";
+import { buildTrisoMechanicsResults, TrisoMechanicsResultsRecord } from "./trisoMechanicsResults";
 import { buildTrisoTransientResults, computeTrisoIndependent, TrisoTransientResultsRecord } from "./trisoTransientResults";
-import { writeTrisoCase } from "./trisoWriter";
+import { writeTrisoParticleCase } from "./trisoMechanicsWriter";
 import { buildPebbleResults, PebbleResultsRecord } from "./pebbleResults";
 import { writePebbleCase } from "./pebbleWriter";
 import { judgeConvergence, judgeMechanicsConvergence, readCriterion, readMechanicsCriterion } from "./convergence";
@@ -195,7 +196,7 @@ export class RunManager {
     const normalized: any = v.normalized ?? (v.triso ? { kind: "triso", ...v.triso } : { kind: "pebble", ...v.pebble });
     let written;
     try {
-      written = v.normalized ? writeOffbeatCase(v.normalized) : v.triso ? writeTrisoCase(v.triso) : writePebbleCase(v.pebble!);
+      written = v.normalized ? writeOffbeatCase(v.normalized) : v.triso ? writeTrisoParticleCase(v.triso) : writePebbleCase(v.pebble!);
     } catch (e) {
       return { ok: false, errors: [], message: String((e as Error).message) };
     }
@@ -226,7 +227,7 @@ export class RunManager {
     return [...this.records.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((r) => ({ ...r }));
   }
   /** The results record, present only when the run is `completed`. */
-  results(id: string): ResultsRecord | TransientResultsRecord | TrisoResultsRecord | TrisoTransientResultsRecord | PebbleResultsRecord | undefined {
+  results(id: string): ResultsRecord | TransientResultsRecord | TrisoResultsRecord | TrisoTransientResultsRecord | TrisoMechanicsResultsRecord | PebbleResultsRecord | undefined {
     const r = this.records.get(id);
     const f = join(this.dir(id), "results.json");
     if (!r || r.state !== "completed" || !existsSync(f)) return undefined;
@@ -391,9 +392,11 @@ export class RunManager {
     // so the log is the only evidence: the last outer iteration of the final step (steady), of every step (transient), must meet
     // OFFBEAT's own thermal criterion with the tolerances this run was given (src/core/convergence.ts).
     const fvSolution = read(join(dir, "inputs", "system", "fvSolution"));
+    // a particle's mechanics run is given the temperatures (thermalSolver constant): there is no thermal solve to judge, only the displacement's
+    const temperaturesGiven = normalizedHead.kind === "triso" && hasMechanics;
     const criterion = fvSolution === undefined ? ({ ok: false, message: "the run's system/fvSolution is missing" } as const) : readCriterion(fvSolution);
     if (!criterion.ok) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "Convergence cannot be judged: " + criterion.message + ". The run is not accepted as a result.", native });
-    const convergence = judgeConvergence(log, criterion.criterion, isTransient ? "every-step" : "final-step", exit.finalTime);
+    const convergence = temperaturesGiven ? ({ ok: true, stepsChecked: 0, iterationsInLastStep: 0 } as const) : judgeConvergence(log, criterion.criterion, isTransient ? "every-step" : "final-step", exit.finalTime);
     if (!convergence.ok) {
       const evidence = log.split(/\r?\n/).filter((l) => /^(Time = |OuterIteration|relResidualT|absErrT)|Solving for T/.test(l)).slice(-16).join("\n");
       return fail({ code: convergence.code, message: convergence.message, native: evidence || native });
@@ -461,6 +464,20 @@ export class RunManager {
         const pr = buildPebbleResults(normalized, { T, C, cellZones, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
         atomicWrite(join(dir, "results.json"), JSON.stringify(pr, null, 2) + "\n");
         r.headline = { centreCellT: pr.summary.centreCellT, claddingOuterWallT: pr.summary.wallT };
+        r.state = "completed";
+        if (exit.offbeatExit !== 0) r.notes.push(`The solver exited with code ${exit.offbeatExit}${SIGNALS[exit.offbeatExit] ? " (" + SIGNALS[exit.offbeatExit] + ")" : ""} after writing a complete output. This is a known OFFBEAT shutdown crash; the result was accepted because the output is complete and finite.`);
+        return;
+      }
+      if (normalized.kind === "triso" && normalized.mechanics) {
+        // a coated particle's mechanics: the temperatures, the cell centres and zones, the displacement, the stress and the swelling strain OFFBEAT applied
+        const cellZones = read(join(nativeDir, "final", "cellZones"));
+        if (cellZones === undefined) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "The solver output is not a complete result: the mesh's cell zones (constant/polyMesh/cellZones) were not collected, so the cells cannot be put into the layers.", native });
+        const Dtext = read(join(nativeDir, "final", "D"));
+        const sigma = read(join(nativeDir, "final", "sigma"));
+        if (Dtext === undefined || sigma === undefined) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "The solver output is not a complete result: the displacement (D) or the stress (sigma) was not collected.", native });
+        const tm = buildTrisoMechanicsResults(normalized, { T, C, D: Dtext, sigma, ...(read(join(nativeDir, "final", "epsilonSwelling")) !== undefined ? { epsilonSwelling: read(join(nativeDir, "final", "epsilonSwelling"))! } : {}), cellZones, time: exit.finalTime });
+        atomicWrite(join(dir, "results.json"), JSON.stringify(tm, null, 2) + "\n");
+        r.headline = { centreCellT: tm.cells[0]!.T, claddingOuterWallT: tm.cells[tm.cells.length - 1]!.T };
         r.state = "completed";
         if (exit.offbeatExit !== 0) r.notes.push(`The solver exited with code ${exit.offbeatExit}${SIGNALS[exit.offbeatExit] ? " (" + SIGNALS[exit.offbeatExit] + ")" : ""} after writing a complete output. This is a known OFFBEAT shutdown crash; the result was accepted because the output is complete and finite.`);
         return;

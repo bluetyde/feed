@@ -1004,6 +1004,7 @@ async function runCheck(rebuildProps) {
   if (doc && doc.transient && doc.transient.boundaryHistory) $("caseBanner").textContent = "The coolant side changes with time: a table this case states (an input), not a thermal-hydraulic calculation. " + $("caseBanner").textContent;
   if (doc && doc.axial && result && result.axialNote) $("caseBanner").textContent = result.axialNote + " " + $("caseBanner").textContent;
   if (isParticle()) $("caseBanner").textContent = (doc.transient && doc.transient.boundaryHistory ? "The outside changes with time: a table this case states (an input), not a calculation. " : "") + PARTICLE_TEXT;
+  if (isParticle() && doc.mechanics) $("caseBanner").textContent = PARTICLE_MECH_TEXT;
   $("burnupBanner").textContent = (result && result.burnupNote) || ""; $("burnupBanner").hidden = !(result && result.burnupNote);
   if (sweepFor !== "" && sweepFor !== JSON.stringify(doc)) { sweepData = null; sweepFor = ""; }
   $("jsonView").textContent = JSON.stringify(doc, null, 2); renderTree(); renderOutput(); draw(); update3dTab();
@@ -2118,7 +2119,14 @@ function renderResults() {
   if (d.results && d.normalized && d.normalized.transient && d.normalized.transient.boundaryHistory) $("rBanner").textContent = "The coolant side changed with time (a table the case stated, not a calculation). " + $("rBanner").textContent;
   if (d.results && warns.length) $("rBanner").textContent += "  WARNING at run time: " + warns.map((w) => w.code + " (" + w.message + ")").join("; ");
   $("rBanner").style.color = ood ? "var(--err)" : ""; $("rBanner").style.background = ood ? "rgba(240,117,117,.12)" : "";
-  if (d.results && (d.results.kind === "triso" || d.results.kind === "triso-transient")) {
+  if (d.results && d.results.kind === "triso-mechanics") {
+    /* a coated particle's mechanics (plan 14, stage E): a card per layer and the checks; the plots and the editor panel for it are a later milestone (M5) */
+    $("rBanner").textContent = PARTICLE_MECH_LABEL + ". " + d.results.text + (ood ? " OUT OF PROPERTY RANGE: " + d.results.domain.findings.map((f) => f.layer + " " + f.what).join("; ") + "." : "");
+    for (const l of d.results.layers) m.append(card((PARTICLE_LAYER_LABEL[l.name] || l.name) + ": tangential stress", (l.sigmaTMin / 1e6).toFixed(1) + " to " + (l.sigmaTMax / 1e6).toFixed(1) + " MPa", "radial " + (l.sigmaRMin / 1e6).toFixed(1) + " to " + (l.sigmaRMax / 1e6).toFixed(1) + " MPa · E " + (l.E / 1e9).toFixed(1) + " GPa" + (l.freeStrain ? " · free strain " + l.freeStrain.radial + " / " + l.freeStrain.tangential : "")));
+    const mbad = d.results.checks.filter((c) => c.verdict === "fail").length, mok = d.results.checks.filter((c) => c.verdict === "pass").length;
+    m.append(card("Checks", mok + " pass" + (mbad ? ", " + mbad + " fail" : ""), d.results.checks.map((c) => c.label.split(" (")[0] + ": " + c.verdict).join(" · ")));
+    drawGeneric($("rprof"), null);
+  } else if (d.results && (d.results.kind === "triso" || d.results.kind === "triso-transient")) {
     /* a coated particle (plan 13, T5): cards per region, the checks, the cross-section and the profile (steady) or the peak against time (transient) */
     $("rBanner").textContent = PARTICLE_LABEL + ". " + $("rBanner").textContent;
     renderParticleResults(d, m);
@@ -2224,6 +2232,9 @@ const PARTICLE_LAYER_NAMES = ["buffer", "ipyc", "sic", "opyc"];
 const PARTICLE_LAYER_LABEL = { kernel: "Kernel", buffer: "Buffer", ipyc: "Inner PyC", sic: "SiC", opyc: "Outer PyC" };
 const PARTICLE_LABEL = "1D, spherically symmetric: thermal only";
 const PARTICLE_TEXT = PARTICLE_LABEL + ". Thermal-only result. It says nothing about stress, failure or fission-gas release: no stress in the silicon carbide, no swelling or creep of the carbon, no gas pressure, no kernel migration. All the heat is made in the kernel (no gamma heating of the coatings).";
+/* plan 14, stage E: a particle that asks for mechanics is elastic and steady; free strains are inputs, not an irradiation result */
+const PARTICLE_MECH_LABEL = "1D, spherically symmetric: elastic, steady; free strains are inputs, not an irradiation result";
+const PARTICLE_MECH_TEXT = PARTICLE_MECH_LABEL + ". Thermal plus elastic screening, not a fuel-failure code: the stress and displacement of the coating layers (inner carbon, SiC, outer carbon) from the gas pressure and outside pressure the case states, FEED's own temperatures and the free strains the case states. No swelling or creep is computed, no fission-gas or CO inventory, no contact with the buffer, no failure criterion: it does not say that the particle survives or fails.";
 const isParticle = () => !!(doc && doc.geometry && doc.geometry.kind === "triso");
 const particleTransient = () => !!(doc && doc.assumptions && doc.assumptions.steadyState === false);
 const uq = (value, unit) => ({ value, unit });
@@ -2680,7 +2691,12 @@ function particleChecks(o, row) {
   row("Property range", t.quick.verdict === "in-domain" ? "in range" : "OUT OF RANGE", t.quick.verdict === "in-domain" ? "pass" : "fail", t.quick.findings.map((f) => f.region + " " + f.temperatureRange.map((v) => v.toFixed(0)).join("–") + " K vs valid " + f.validRange.join("–") + " K").join("; "));
   const head = (s) => { const h2 = elt("div", s, { class: "psec" }); h2.style.padding = "8px 0 2px"; o.append(h2); }; /* elt gives a psec its heading role */
   const sr = solverRes && String(solverRes.kind).startsWith("triso") ? solverRes : null;
-  if (sr) {
+  if (sr && sr.kind === "triso-mechanics") {
+    head("Solver result (OFFBEAT, elastic mechanics of the coating)");
+    for (const l of sr.layers) row(PARTICLE_LAYER_LABEL[l.name] || l.name, (l.sigmaTMin / 1e6).toFixed(1) + " to " + (l.sigmaTMax / 1e6).toFixed(1) + " MPa", "", "tangential stress (tension positive), the solver's cell values");
+    for (const c of sr.checks) row(c.label, c.value === null ? "n/a" : c.value.toPrecision(4) + " " + c.unit, c.verdict === "na" ? "na" : c.verdict, c.verdict.toUpperCase() + ": " + c.note);
+    const mb = el("div", "log"); mb.style.paddingTop = "6px"; mb.textContent = PARTICLE_MECH_LABEL + ". " + sr.text; o.append(mb);
+  } else if (sr) {
     head("Solver result (OFFBEAT, thermal only)");
     const s = sr.summary;
     if (sr.kind === "triso") { row("Kernel centre", K(s.kernelCentreT), "", "extrapolated from the first cell"); row("Kernel surface", K(s.kernelSurfaceT)); row("Outer wall", K(s.wallT)); row("Gap drop", s.gapDeltaT.toFixed(3) + " K"); }

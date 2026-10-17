@@ -5,6 +5,7 @@
 import { SPHERE } from "./geometry";
 import type { Dimension } from "./units";
 import type { TrisoLimitRule } from "./trisoLimits";
+import type { TrisoMechanicsSpec } from "./trisoMechanics";
 import type { NormalizedTrisoTransient } from "./trisoTransient";
 import type { Conductivity, HeatCapacity } from "./validate";
 
@@ -67,6 +68,8 @@ export interface NormalizedTriso {
   transient?: NormalizedTrisoTransient;
   /** A transient's volumetric heat capacity of each region, kernel first. */
   capacities?: HeatCapacity[];
+  /** Present when the case asks for the stress in the coating (plan 14, stage E): elastic and steady, with the gas pressure, the outside pressure and the free strains the case states. */
+  mechanics?: TrisoMechanicsSpec;
 }
 
 type ErrFn = (code: string, field: string, message: string, extra?: Record<string, unknown>) => void;
