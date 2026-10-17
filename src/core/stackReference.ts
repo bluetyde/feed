@@ -7,6 +7,7 @@ import { StackModel, StackSteady, StackTransient, solveStackSteady, solveStackTr
 import { boundaryAtTime } from "./boundaryHistory";
 import { lawOf } from "./conductivity";
 import { heatCapacityLaw } from "./heatCapacity";
+import type { ProfilePoint } from "./quickLook";
 import { SliceReference } from "./resultsParser";
 import { IndependentSet, initialState } from "./transientResults";
 import { FvTransient, TransientPin } from "./transientFv";
@@ -92,6 +93,50 @@ export function stackReference(c: NormalizedCase, o: { axialConduction?: boolean
         return { fuel: cells.slice(0, nf), clad: cells.slice(nf), wall: solution.wall[k]! };
       },
     },
+  };
+}
+
+// ---- the editor's steady field (plan 15, B5) ---------------------------------------------------------------------------------------------------------------------------
+
+/** What the check offers the case view's 3D picture besides the closed forms: the steady two-dimensional field of a stack of plates, or the reason it is not offered. */
+export type AxialField2d =
+  | {
+      available: true;
+      /** The field of every slice in the form of the closed-form profile (radius from the mid-plane, temperature, region): one point per cell. */
+      slices: { index: number; height: number; points: ProfilePoint[] }[];
+      /** The largest change the conduction along the height makes to any cell (K): the field against the same solution with the conduction between the layers off. */
+      effect: number;
+      note: string;
+    }
+  | { available: false; reason: string };
+
+export const FIELD_2D_NOTE = "FEED's own finite-volume solution of the whole stack on the writer's mesh (radius and height, the end faces insulated), steady. A second method on the same mesh as the run, not OFFBEAT's result and not a measurement.";
+export const FIELD_2D_PIN_REASON = "not offered for a stack of pins: the pin's radial reference is 3 to 4 K from OFFBEAT's in cell-middle nodes and a logarithmic conductance (docs/axial-stack.md), which hides the 1 K the conduction along the height changes at TRIGA length. A pin keeps the closed forms and the allowance.";
+
+/** The steady two-dimensional field of a steady stack for the case view; undefined for a case that is not a steady stack. */
+export function axialField2d(c: NormalizedCase): AxialField2d | undefined {
+  if (!c.axial || c.transient) return undefined;
+  if (!c.plate) return { available: false, reason: FIELD_2D_PIN_REASON };
+  const ref = stackReference(c);
+  if ("fallback" in ref) return { available: false, reason: ref.fallback };
+  const off = stackReference(c, { axialConduction: false });
+  let effect = NaN;
+  if ("reference" in off) {
+    effect = 0;
+    ref.reference.solution.T.forEach((x, i) => (effect = Math.max(effect, Math.abs(x - (off.reference.solution.T[i] as number)))));
+  } else return { available: false, reason: off.fallback };
+  const loads = sliceLoads(c);
+  const nf = c.mesh.fuelCells;
+  const r = ref.reference.solution.r;
+  return {
+    available: true,
+    effect,
+    note: FIELD_2D_NOTE,
+    slices: loads.map((l, k) => {
+      const s = ref.reference.slice(k);
+      const cells = [...s.fuel, ...s.clad];
+      return { index: l.index, height: l.height, points: cells.map((T, i) => ({ r: r[i]!, T, region: i < nf ? "fuel" : "cladding" }) as ProfilePoint) };
+    }),
   };
 }
 
