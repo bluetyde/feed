@@ -2509,5 +2509,252 @@
     "valid": false,
     "code": "E_FIT",
     "field": "/compact/fit"
+  },
+  {
+    "file": "good/triso-population.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-population-constants.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-population-empty-distributions.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-population-convective.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-population-degc.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-population-two-layers.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-population-rejection-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_POPULATION_REJECTION"
+    ]
+  },
+  {
+    "file": "bad/triso-population-not-an-object.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population"
+  },
+  {
+    "file": "bad/triso-population-unknown-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/count"
+  },
+  {
+    "file": "bad/triso-population-no-size.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/population/size"
+  },
+  {
+    "file": "bad/triso-population-size-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/size"
+  },
+  {
+    "file": "bad/triso-population-size-over-cap.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/size"
+  },
+  {
+    "file": "bad/triso-population-size-fraction.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/size"
+  },
+  {
+    "file": "bad/triso-population-no-seed.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/population/seed"
+  },
+  {
+    "file": "bad/triso-population-seed-negative.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/seed"
+  },
+  {
+    "file": "bad/triso-population-seed-too-large.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/seed"
+  },
+  {
+    "file": "bad/triso-population-seed-fraction.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/seed"
+  },
+  {
+    "file": "bad/triso-population-no-distributions.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/population/distributions"
+  },
+  {
+    "file": "bad/triso-population-distributions-list.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions"
+  },
+  {
+    "file": "bad/triso-population-unknown-variable.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions/gapWidth"
+  },
+  {
+    "file": "bad/triso-population-layer-absent.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/population/distributions/sic"
+  },
+  {
+    "file": "bad/triso-population-unknown-kind.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions/buffer/kind"
+  },
+  {
+    "file": "bad/triso-population-distribution-not-an-object.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions/buffer"
+  },
+  {
+    "file": "bad/triso-population-unknown-parameter.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions/buffer/variance"
+  },
+  {
+    "file": "bad/triso-population-no-stddev.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/population/distributions/buffer/stdDev"
+  },
+  {
+    "file": "bad/triso-population-stddev-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/distributions/buffer/stdDev"
+  },
+  {
+    "file": "bad/triso-population-thickness-in-kelvin.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/population/distributions/buffer/mean"
+  },
+  {
+    "file": "bad/triso-population-bare-number.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/population/distributions/powerFactor/sigmaLog"
+  },
+  {
+    "file": "bad/triso-population-temperature-spread-in-degc.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/population/distributions/matrixTemperature/stdDev"
+  },
+  {
+    "file": "bad/triso-population-uniform-inverted.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/distributions/ipyc/max"
+  },
+  {
+    "file": "bad/triso-population-uniform-no-max.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/population/distributions/ipyc/max"
+  },
+  {
+    "file": "bad/triso-population-lognormal-median-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/distributions/sic/median"
+  },
+  {
+    "file": "bad/triso-population-lognormal-sigma-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/distributions/sic/sigmaLog"
+  },
+  {
+    "file": "bad/triso-population-truncation-empty.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/distributions/kernelRadius/truncate"
+  },
+  {
+    "file": "bad/triso-population-truncation-no-bound.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions/kernelRadius/truncate"
+  },
+  {
+    "file": "bad/triso-population-truncation-unknown-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions/kernelRadius/truncate/mid"
+  },
+  {
+    "file": "bad/triso-population-truncation-on-uniform.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions/ipyc/truncate"
+  },
+  {
+    "file": "bad/triso-population-truncation-cannot-be-sampled.json",
+    "valid": false,
+    "code": "E_POPULATION_UNSAMPLABLE",
+    "field": "/population/distributions/kernelRadius"
+  },
+  {
+    "file": "bad/triso-population-mostly-invalid-thickness.json",
+    "valid": false,
+    "code": "E_POPULATION_UNSAMPLABLE",
+    "field": "/population/distributions/buffer"
+  },
+  {
+    "file": "bad/triso-population-constant-power-factor-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/population/distributions/powerFactor/value"
+  },
+  {
+    "file": "bad/triso-population-constant-extra-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/population/distributions/opyc/stdDev"
+  },
+  {
+    "file": "bad/pin-with-population.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/population"
+  },
+  {
+    "file": "bad/triso-population-on-a-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/population"
   }
 ]

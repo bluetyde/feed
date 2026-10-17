@@ -6,6 +6,7 @@ import { SPHERE } from "./geometry";
 import type { Dimension } from "./units";
 import type { TrisoLimitRule } from "./trisoLimits";
 import type { TrisoMechanicsSpec } from "./trisoMechanics";
+import type { NormalizedPopulation } from "./trisoPopulation";
 import type { NormalizedTrisoTransient } from "./trisoTransient";
 import type { Conductivity, HeatCapacity } from "./validate";
 
@@ -70,6 +71,8 @@ export interface NormalizedTriso {
   capacities?: HeatCapacity[];
   /** Present when the case asks for the stress in the coating (plan 14, stage E): elastic and steady, with the gas pressure, the outside pressure and the free strains the case states. */
   mechanics?: TrisoMechanicsSpec;
+  /** The population section (plan 13, T6): how many particles to draw and from which distributions. A run of the case runs the nominal particle; the population is run by trisoPopulation.ts. */
+  population?: NormalizedPopulation;
 }
 
 type ErrFn = (code: string, field: string, message: string, extra?: Record<string, unknown>) => void;

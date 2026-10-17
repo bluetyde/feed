@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-triso-pop-hottest-temperature-drop-gap",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/triso-pop-hottest.case.json",
+      "sha256": "a0b5fbabfb20553fce51e97646da4bbad3e6036d9e1c7133765e920776eee43b"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_drop_gap",
+    "value": 0.2752,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.01,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Particle 1355 of the 2000 drawn with the seed 20261016 from the population of examples/synthetic-triso-population.json: the hottest kernel of the 2000 (kernel peak 978.387 K). The drop across the buffer-to-inner-PyC gap: P / (4 pi R_buffer^2 h) = 0.2752 K for the gap conductance 1.5e5 W/m2/K at the buffer's outer radius 345.109 um. The observed value is the difference of the two patch values of the gap in the solver's output. Tolerance 0.01 K = 1 % of the drop + 0.005 K (FEED's gapDrop check) + (1 - lambda) of the drop (the wedge's gap drop is lambda = 0.999695 times the sphere's), rounded up to 0.005 K, fixed before any run.",
+    "check": "Second method: FEED's own closed form (src/core/trisoSolve.ts, tests/seedOracleTriso.test.ts, to 1e-6 K) and FEED's finite-volume solution; the real solver (FEED_SOLVER=1, tests/seedOracleTriso.test.ts) with every check of the run passing, and its saved output (tests/golden/seed-oracles-triso/) inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_drop_gap"
+    ],
+    "domain": "synthetic coated particle (kernel 241.611 um, buffer 103.497, inner PyC 41.1, SiC 33.338, outer PyC 30.699 um; constant conductivities 3 / 0.5 / 4 / 13.9 / 4 W/m/K; gap 1.5e5 W/m2/K; kernel power density 1045.74 MW/m3; convective matrix 949.74 K, 2000 W/m2/K), mesh 48 cells per region, steady"
+  },
+  "toleranceHash": "c2ae411fea12e6c9718a9744b92039a16f4b2e5f448a8dab59a57444a0afdf71"
+}

@@ -1,0 +1,1356 @@
+{
+  "schema": "feed.results/0.1",
+  "kind": "triso",
+  "caseId": "synthetic-triso-population",
+  "time": 50000000,
+  "cells": [
+    {
+      "r": 0.0000038957236,
+      "T": 930.60567,
+      "region": "kernel"
+    },
+    {
+      "r": 0.0000083479792,
+      "T": 930.60304,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000013327476,
+      "T": 930.59716,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00001842572,
+      "T": 930.58812,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000023565935,
+      "T": 930.57598,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00002872561,
+      "T": 930.56074,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000033895863,
+      "T": 930.54242,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000039072494,
+      "T": 930.52101,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000044253266,
+      "T": 930.49653,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000049436876,
+      "T": 930.46897,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000054622517,
+      "T": 930.43834,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000059809661,
+      "T": 930.40464,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000064997947,
+      "T": 930.36787,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000070187123,
+      "T": 930.32802,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000075377004,
+      "T": 930.2851,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000080567455,
+      "T": 930.23911,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000085758371,
+      "T": 930.19005,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000090949674,
+      "T": 930.13793,
+      "region": "kernel"
+    },
+    {
+      "r": 0.0000961413,
+      "T": 930.08273,
+      "region": "kernel"
+    },
+    {
+      "r": 0.0001013332,
+      "T": 930.02446,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00010652533,
+      "T": 929.96312,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00011171767,
+      "T": 929.89872,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00011691018,
+      "T": 929.83124,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00012210284,
+      "T": 929.76069,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00012729564,
+      "T": 929.68708,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00013248855,
+      "T": 929.6104,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00013768157,
+      "T": 929.53064,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00014287468,
+      "T": 929.44782,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00014806787,
+      "T": 929.36193,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00015326114,
+      "T": 929.27297,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00015845448,
+      "T": 929.18095,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00016364787,
+      "T": 929.08585,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00016884133,
+      "T": 928.98769,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00017403483,
+      "T": 928.88645,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00017922838,
+      "T": 928.78215,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00018442197,
+      "T": 928.67478,
+      "region": "kernel"
+    },
+    {
+      "r": 0.0001896156,
+      "T": 928.56434,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00019480926,
+      "T": 928.45083,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00020000296,
+      "T": 928.33426,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00020519669,
+      "T": 928.21461,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00021039045,
+      "T": 928.0919,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00021558423,
+      "T": 927.96612,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00022077804,
+      "T": 927.83727,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00022597187,
+      "T": 927.70535,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00023116572,
+      "T": 927.57036,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00023635959,
+      "T": 927.43231,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00024155348,
+      "T": 927.29118,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00024674739,
+      "T": 927.14699,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00025053219,
+      "T": 926.89869,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00025293622,
+      "T": 926.49751,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00025534025,
+      "T": 926.10387,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00025774427,
+      "T": 925.71758,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0002601483,
+      "T": 925.33843,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026255234,
+      "T": 924.96623,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026495637,
+      "T": 924.60077,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0002673604,
+      "T": 924.24189,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026976443,
+      "T": 923.88941,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027216846,
+      "T": 923.54315,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0002745725,
+      "T": 923.20296,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027697653,
+      "T": 922.86867,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027938057,
+      "T": 922.54013,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0002817846,
+      "T": 922.2172,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00028418864,
+      "T": 921.89973,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00028659267,
+      "T": 921.58759,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00028899671,
+      "T": 921.28065,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029140075,
+      "T": 920.97876,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029380479,
+      "T": 920.68182,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029620882,
+      "T": 920.3897,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029861286,
+      "T": 920.10228,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0003010169,
+      "T": 919.81945,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00030342094,
+      "T": 919.5411,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00030582498,
+      "T": 919.26713,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00030822902,
+      "T": 918.99744,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031063306,
+      "T": 918.73191,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0003130371,
+      "T": 918.47047,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031544114,
+      "T": 918.21301,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031784519,
+      "T": 917.95945,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032024923,
+      "T": 917.70969,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032265327,
+      "T": 917.46365,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032505731,
+      "T": 917.22126,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032746136,
+      "T": 916.98242,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0003298654,
+      "T": 916.74706,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00033226944,
+      "T": 916.51511,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00033467349,
+      "T": 916.28649,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00033707753,
+      "T": 916.06114,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00033948157,
+      "T": 915.83897,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00034188562,
+      "T": 915.61993,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00034428966,
+      "T": 915.40395,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00034669371,
+      "T": 915.19096,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00034909775,
+      "T": 914.98091,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0003515018,
+      "T": 914.77373,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00035390585,
+      "T": 914.56936,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00035630989,
+      "T": 914.36775,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00035871394,
+      "T": 914.16885,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00036111799,
+      "T": 913.97259,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00036352203,
+      "T": 913.77893,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00036511676,
+      "T": 913.41466,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036590686,
+      "T": 913.40684,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036669697,
+      "T": 913.39906,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036748708,
+      "T": 913.39131,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036827719,
+      "T": 913.38359,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003690673,
+      "T": 913.37591,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003698574,
+      "T": 913.36825,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037064751,
+      "T": 913.36064,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037143762,
+      "T": 913.35305,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037222773,
+      "T": 913.3455,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037301784,
+      "T": 913.33797,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037380794,
+      "T": 913.33048,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037459805,
+      "T": 913.32302,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037538816,
+      "T": 913.3156,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037617827,
+      "T": 913.3082,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037696838,
+      "T": 913.30084,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037775848,
+      "T": 913.2935,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037854859,
+      "T": 913.2862,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003793387,
+      "T": 913.27893,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038012881,
+      "T": 913.27168,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038091892,
+      "T": 913.26447,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038170902,
+      "T": 913.25729,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038249913,
+      "T": 913.25013,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038328924,
+      "T": 913.24301,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038407935,
+      "T": 913.23591,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038486946,
+      "T": 913.22885,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038565956,
+      "T": 913.22181,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038644967,
+      "T": 913.2148,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038723978,
+      "T": 913.20783,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038802989,
+      "T": 913.20087,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038882,
+      "T": 913.19395,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003896101,
+      "T": 913.18706,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039040021,
+      "T": 913.18019,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039119032,
+      "T": 913.17335,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039198043,
+      "T": 913.16654,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039277054,
+      "T": 913.15976,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039356065,
+      "T": 913.153,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039435075,
+      "T": 913.14627,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039514086,
+      "T": 913.13957,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039593097,
+      "T": 913.13289,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039672108,
+      "T": 913.12624,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039751119,
+      "T": 913.11962,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039830129,
+      "T": 913.11302,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003990914,
+      "T": 913.10645,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00039988151,
+      "T": 913.09991,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00040067162,
+      "T": 913.09339,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00040146173,
+      "T": 913.0869,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00040225183,
+      "T": 913.08043,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00040296586,
+      "T": 913.07797,
+      "region": "sic"
+    },
+    {
+      "r": 0.000403604,
+      "T": 913.07648,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040424213,
+      "T": 913.07499,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040488026,
+      "T": 913.07351,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040551839,
+      "T": 913.07203,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040615652,
+      "T": 913.07056,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040679466,
+      "T": 913.06909,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040743279,
+      "T": 913.06762,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040807092,
+      "T": 913.06616,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040870905,
+      "T": 913.06471,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040934718,
+      "T": 913.06326,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040998531,
+      "T": 913.06181,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041062345,
+      "T": 913.06037,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041126158,
+      "T": 913.05893,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041189971,
+      "T": 913.0575,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041253784,
+      "T": 913.05607,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041317597,
+      "T": 913.05465,
+      "region": "sic"
+    },
+    {
+      "r": 0.0004138141,
+      "T": 913.05323,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041445224,
+      "T": 913.05181,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041509037,
+      "T": 913.0504,
+      "region": "sic"
+    },
+    {
+      "r": 0.0004157285,
+      "T": 913.04899,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041636663,
+      "T": 913.04759,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041700476,
+      "T": 913.04619,
+      "region": "sic"
+    },
+    {
+      "r": 0.0004176429,
+      "T": 913.0448,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041828103,
+      "T": 913.04341,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041891916,
+      "T": 913.04202,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041955729,
+      "T": 913.04064,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042019542,
+      "T": 913.03927,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042083355,
+      "T": 913.03789,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042147169,
+      "T": 913.03652,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042210982,
+      "T": 913.03516,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042274795,
+      "T": 913.0338,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042338608,
+      "T": 913.03244,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042402421,
+      "T": 913.03109,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042466235,
+      "T": 913.02974,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042530048,
+      "T": 913.0284,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042593861,
+      "T": 913.02706,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042657674,
+      "T": 913.02572,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042721487,
+      "T": 913.02439,
+      "region": "sic"
+    },
+    {
+      "r": 0.000427853,
+      "T": 913.02306,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042849114,
+      "T": 913.02174,
+      "region": "sic"
+    },
+    {
+      "r": 0.00042912927,
+      "T": 913.02042,
+      "region": "sic"
+    },
+    {
+      "r": 0.0004297674,
+      "T": 913.0191,
+      "region": "sic"
+    },
+    {
+      "r": 0.00043040553,
+      "T": 913.01779,
+      "region": "sic"
+    },
+    {
+      "r": 0.00043104366,
+      "T": 913.01648,
+      "region": "sic"
+    },
+    {
+      "r": 0.0004316818,
+      "T": 913.01518,
+      "region": "sic"
+    },
+    {
+      "r": 0.00043231993,
+      "T": 913.01388,
+      "region": "sic"
+    },
+    {
+      "r": 0.00043295806,
+      "T": 913.01258,
+      "region": "sic"
+    },
+    {
+      "r": 0.00043364487,
+      "T": 913.0105,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043438026,
+      "T": 913.00534,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043511564,
+      "T": 913.0002,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043585103,
+      "T": 912.99507,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043658642,
+      "T": 912.98996,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004373218,
+      "T": 912.98487,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043805719,
+      "T": 912.9798,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043879258,
+      "T": 912.97474,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043952796,
+      "T": 912.9697,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044026335,
+      "T": 912.96468,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044099874,
+      "T": 912.95967,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044173412,
+      "T": 912.95468,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044246951,
+      "T": 912.94971,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004432049,
+      "T": 912.94475,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044394028,
+      "T": 912.93981,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044467567,
+      "T": 912.93488,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044541106,
+      "T": 912.92998,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044614644,
+      "T": 912.92508,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044688183,
+      "T": 912.92021,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044761722,
+      "T": 912.91535,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004483526,
+      "T": 912.91051,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044908799,
+      "T": 912.90568,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044982338,
+      "T": 912.90087,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045055876,
+      "T": 912.89607,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045129415,
+      "T": 912.89129,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045202954,
+      "T": 912.88652,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045276492,
+      "T": 912.88177,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045350031,
+      "T": 912.87704,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004542357,
+      "T": 912.87232,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045497108,
+      "T": 912.86762,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045570647,
+      "T": 912.86293,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045644186,
+      "T": 912.85825,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045717724,
+      "T": 912.8536,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045791263,
+      "T": 912.84895,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045864802,
+      "T": 912.84432,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045938341,
+      "T": 912.83971,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046011879,
+      "T": 912.83511,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046085418,
+      "T": 912.83053,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046158957,
+      "T": 912.82596,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046232495,
+      "T": 912.8214,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046306034,
+      "T": 912.81686,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046379573,
+      "T": 912.81234,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046453111,
+      "T": 912.80782,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004652665,
+      "T": 912.80333,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046600189,
+      "T": 912.79884,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046673727,
+      "T": 912.79437,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046747266,
+      "T": 912.78992,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00046820805,
+      "T": 912.78548,
+      "region": "opyc"
+    }
+  ],
+  "regions": [
+    {
+      "name": "kernel",
+      "innerRadius": 0,
+      "outerRadius": 0.00024932631103946585,
+      "innerFaceT": 930.606532917193,
+      "outerFaceT": 927.0810082100851,
+      "hottestCellT": 930.60567,
+      "coldestCellT": 927.14699,
+      "drop": 3.525524707107934
+    },
+    {
+      "name": "buffer",
+      "innerRadius": 0.00024932631103946585,
+      "outerRadius": 0.00036472141612442727,
+      "innerFaceT": 927.0810082100851,
+      "outerFaceT": 913.68358,
+      "hottestCellT": 926.89869,
+      "coldestCellT": 913.77893,
+      "drop": 13.397428210085081
+    },
+    {
+      "name": "ipyc",
+      "innerRadius": 0.00036472141612442727,
+      "outerRadius": 0.00040264662995294717,
+      "innerFaceT": 913.41859,
+      "outerFaceT": 913.078433691636,
+      "hottestCellT": 913.41466,
+      "coldestCellT": 913.08043,
+      "drop": 0.340156308364044
+    },
+    {
+      "name": "sic",
+      "innerRadius": 0.00040264662995294717,
+      "outerRadius": 0.0004332769681233808,
+      "innerFaceT": 913.078433691636,
+      "outerFaceT": 913.0121642090492,
+      "hottestCellT": 913.07797,
+      "coldestCellT": 913.01258,
+      "drop": 0.06626948258679022
+    },
+    {
+      "name": "opyc",
+      "innerRadius": 0.0004332769681233808,
+      "outerRadius": 0.0004685755473178729,
+      "innerFaceT": 913.0121642090492,
+      "outerFaceT": 912.78326,
+      "hottestCellT": 913.0105,
+      "coldestCellT": 912.78548,
+      "drop": 0.22890420904911934
+    }
+  ],
+  "summary": {
+    "kernelCentreT": 930.606532917193,
+    "kernelCentreCellT": 930.60567,
+    "kernelSurfaceT": 927.0810082100851,
+    "wallT": 912.78326,
+    "gapDeltaT": 0.2649900000000116,
+    "maxT": 930.60567,
+    "minT": 912.78548
+  },
+  "checks": [
+    {
+      "id": "closedFormKernel",
+      "label": "Kernel vs closed form (max deviation)",
+      "value": 0.03372560459081342,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.097 K = 5 x 3.53 K / 48^2 + 0.0893 K (0.5 % of the 17.9 K rise)"
+    },
+    {
+      "id": "closedFormBuffer",
+      "label": "Buffer vs closed form (max deviation)",
+      "value": 0.002981666472237521,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.118 K = 5 x 13.4 K / 48^2 + 0.0893 K (0.5 % of the 17.9 K rise)"
+    },
+    {
+      "id": "closedFormIpyc",
+      "label": "IPyC vs closed form (max deviation)",
+      "value": 0.0026746729690785287,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.090 K = 5 x 0.341 K / 48^2 + 0.0893 K (0.5 % of the 17.9 K rise)"
+    },
+    {
+      "id": "closedFormSic",
+      "label": "SiC vs closed form (max deviation)",
+      "value": 0.001162120931780919,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.089 K = 5 x 0.0668 K / 48^2 + 0.0893 K (0.5 % of the 17.9 K rise)"
+    },
+    {
+      "id": "closedFormOpyc",
+      "label": "OPyC vs closed form (max deviation)",
+      "value": 0.0000066711183990264544,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.090 K = 5 x 0.230 K / 48^2 + 0.0893 K (0.5 % of the 17.9 K rise)"
+    },
+    {
+      "id": "crossCheckFv",
+      "label": "Cells vs the independent finite-volume solution (max deviation)",
+      "value": 0.03264278053063663,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "the same mesh solved by FEED's own finite-volume code (src/core/trisoSolve.ts); bound 0.0536 K (0.3 % of the 17.9 K rise, at least 0.02 K)"
+    },
+    {
+      "id": "energyBalance",
+      "label": "Energy balance (heat through the outer layer vs the power made)",
+      "value": -0.0002949172850852726,
+      "unit": "relative",
+      "verdict": "pass",
+      "note": "heat through the two outermost cells = 0.0664248 W against 0.0664444 W made in the wedge's kernel (the input 0.0665051 W times 0.999087: the wedge is the sphere with its radii times 0.999695); threshold 0.5 %"
+    },
+    {
+      "id": "gapDrop",
+      "label": "Drop across the gap vs power / (area x conductance)",
+      "value": -0.000003147802799918775,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "bufferOuter 913.68358 K minus ipycInner 913.41859 K = 0.26499 K against 0.26499 K from P / (4 pi R^2 h); bound 0.00765 K"
+    },
+    {
+      "id": "wallTemperature",
+      "label": "Outer wall temperature vs closed form",
+      "value": 0.000004460788773030799,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "solver 912.78326 K, closed form 912.783 K; threshold 0.05 K"
+    },
+    {
+      "id": "steadyState",
+      "label": "Steady state reached (bound on what is still to change)",
+      "value": 1.4119972100671312e-14,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "at most 1.41e-14 K is still to change after the last step (OFFBEAT's last relative rate 3.7166587e-17, hottest cell 930.6 K); threshold 0.01 K"
+    }
+  ],
+  "domain": {
+    "verdict": "in-domain",
+    "findings": []
+  },
+  "thermalOnly": "Thermal-only result. It says nothing about stress, failure or fuel integrity. For a coated particle: the temperatures of the kernel and the layers, not the stress in the silicon carbide, the swelling and creep of the carbon, the gas pressure or a failure fraction."
+}

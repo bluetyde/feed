@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-triso-population-truncation-cannot-be-sampled",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-triso-population-truncation-cannot-be-sampled.case.json",
+      "sha256": "30f6899c1d4abd7b91c38fbd6f14f9b7f9b25daceb8dda6f755a62450839fdb0"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_POPULATION_UNSAMPLABLE"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a kernel radius distribution truncated to a range that keeps under 1 % of its draws. FEED must refuse it before any run; SEED reports E_POPULATION_UNSAMPLABLE.",
+    "check": "FEED's schema vectors (schema/vectors/bad/triso-population-truncation-cannot-be-sampled.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "18f812fb2c2cb075b35383296c3b16eb8e25aaa3592bdc87f5d3983cf4014e00"
+}
