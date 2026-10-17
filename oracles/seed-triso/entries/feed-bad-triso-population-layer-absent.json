@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-triso-population-layer-absent",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-triso-population-layer-absent.case.json",
+      "sha256": "df7501c0acb33fb14c2518b01016d824bcbea7240b3decf41b9cdfb2503bea4e"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_GEOMETRY"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a thickness distribution for a layer the particle does not have. FEED must refuse it before any run; SEED reports E_GEOMETRY.",
+    "check": "FEED's schema vectors (schema/vectors/bad/triso-population-layer-absent.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "2ac4c8ee578adcb9c21465b31553721c112a1715886b44f70d6e577d12363c83"
+}

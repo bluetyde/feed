@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-triso-pop-thickest-buffer-temperature-drop-gap",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/triso-pop-thickest-buffer.case.json",
+      "sha256": "56a0759e91eb52796e44061999197a8426617907443cf7bc2334eb4c963f648d"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_drop_gap",
+    "value": 0.22643,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.01,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Particle 1098 of the 2000 drawn with the seed 20261016 from the population of examples/synthetic-triso-population.json: the thickest buffer of the 2000 (buffer 123.516 um). The drop across the buffer-to-inner-PyC gap: P / (4 pi R_buffer^2 h) = 0.22643 K for the gap conductance 1.5e5 W/m2/K at the buffer's outer radius 374.886 um. The observed value is the difference of the two patch values of the gap in the solver's output. Tolerance 0.01 K = 1 % of the drop + 0.005 K (FEED's gapDrop check) + (1 - lambda) of the drop (the wedge's gap drop is lambda = 0.999695 times the sphere's), rounded up to 0.005 K, fixed before any run.",
+    "check": "Second method: FEED's own closed form (src/core/trisoSolve.ts, tests/seedOracleTriso.test.ts, to 1e-6 K) and FEED's finite-volume solution; the real solver (FEED_SOLVER=1, tests/seedOracleTriso.test.ts) with every check of the run passing, and its saved output (tests/golden/seed-oracles-triso/) inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_drop_gap"
+    ],
+    "domain": "synthetic coated particle (kernel 251.37 um, buffer 123.516, inner PyC 38.724, SiC 35.265, outer PyC 34.132 um; constant conductivities 3 / 0.5 / 4 / 13.9 / 4 W/m/K; gap 1.5e5 W/m2/K; kernel power density 901.58 MW/m3; convective matrix 889.49 K, 2000 W/m2/K), mesh 48 cells per region, steady"
+  },
+  "toleranceHash": "d2fecd39d38609cb36012ab7e1483e3f4cb9031da97c2d5c3794e0ced0f265ff"
+}

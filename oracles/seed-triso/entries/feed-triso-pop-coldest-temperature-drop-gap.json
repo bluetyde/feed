@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-triso-pop-coldest-temperature-drop-gap",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/triso-pop-coldest.case.json",
+      "sha256": "4cfcb23633a280d33aedda3ce92b042e77876b26f5501c44c94d0db3812628b5"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_drop_gap",
+    "value": 0.25315,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.01,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Particle 817 of the 2000 drawn with the seed 20261016 from the population of examples/synthetic-triso-population.json: the coldest kernel of the 2000 (kernel peak 867.63 K). The drop across the buffer-to-inner-PyC gap: P / (4 pi R_buffer^2 h) = 0.25315 K for the gap conductance 1.5e5 W/m2/K at the buffer's outer radius 343.338 um. The observed value is the difference of the two patch values of the gap in the solver's output. Tolerance 0.01 K = 1 % of the drop + 0.005 K (FEED's gapDrop check) + (1 - lambda) of the drop (the wedge's gap drop is lambda = 0.999695 times the sphere's), rounded up to 0.005 K, fixed before any run.",
+    "check": "Second method: FEED's own closed form (src/core/trisoSolve.ts, tests/seedOracleTriso.test.ts, to 1e-6 K) and FEED's finite-volume solution; the real solver (FEED_SOLVER=1, tests/seedOracleTriso.test.ts) with every check of the run passing, and its saved output (tests/golden/seed-oracles-triso/) inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_drop_gap"
+    ],
+    "domain": "synthetic coated particle (kernel 243.618 um, buffer 99.72, inner PyC 38.341, SiC 34.754, outer PyC 36.883 um; constant conductivities 3 / 0.5 / 4 / 13.9 / 4 W/m/K; gap 1.5e5 W/m2/K; kernel power density 928.77 MW/m3; convective matrix 842.13 K, 2000 W/m2/K), mesh 48 cells per region, steady"
+  },
+  "toleranceHash": "c3f2948dbb6a650a92a2876151125439a56c48b6a30a3b64423dc4300bbac630"
+}
