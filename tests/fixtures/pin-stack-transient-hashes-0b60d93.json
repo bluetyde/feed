@@ -1,0 +1,157 @@
+{
+ "asym": {
+  "bytes": 23682,
+  "sha256": "f11f909bf217d353d75b7d75f5441f3c0398352b0334a1d336392e8e88a2b504",
+  "checks": [
+   [
+    "energyBalance",
+    "pass",
+    0.019608916706266185
+   ],
+   [
+    "crossCheckFv",
+    "pass",
+    1.02120072577668
+   ],
+   [
+    "timeStep",
+    "pass",
+    2.140800206768972
+   ],
+   [
+    "energyBalanceTotal",
+    "pass",
+    0.00961439265440472
+   ],
+   [
+    "axialConduction",
+    "na",
+    0.000001598125098720512
+   ]
+  ]
+ },
+ "coastdown": {
+  "bytes": 55459,
+  "sha256": "384ff7dce668ad10d7e13e83802c64399de0d3e351735c3ac8020afa342533b4",
+  "checks": [
+   [
+    "energyBalance",
+    "pass",
+    0.007974626856605282
+   ],
+   [
+    "crossCheckFv",
+    "pass",
+    2.9661165072002404
+   ],
+   [
+    "timeStep",
+    "pass",
+    2.222523667784344
+   ],
+   [
+    "energyBalanceTotal",
+    "pass",
+    0.0039551481180741584
+   ],
+   [
+    "axialConduction",
+    "na",
+    0.0009873888225302404
+   ]
+  ]
+ },
+ "pulse": {
+  "bytes": 23622,
+  "sha256": "77c2c849fa1d178cd879208ab015d70f5f8f299150970e2d75b353ec1c7fb2de",
+  "checks": [
+   [
+    "energyBalance",
+    "pass",
+    0.019630578776543364
+   ],
+   [
+    "crossCheckFv",
+    "pass",
+    1.1703315137485788
+   ],
+   [
+    "timeStep",
+    "pass",
+    2.4445270038440867
+   ],
+   [
+    "energyBalanceTotal",
+    "pass",
+    0.009614395549941788
+   ],
+   [
+    "axialConduction",
+    "na",
+    0.0009873888225302402
+   ]
+  ]
+ },
+ "short": {
+  "bytes": 25579,
+  "sha256": "2ede0f4338c5263d25cc2ec92bfb1142a8b830226e3452d33ba3eb4c1ff7f419",
+  "checks": [
+   [
+    "energyBalance",
+    "pass",
+    0.020975544861835446
+   ],
+   [
+    "crossCheckFv",
+    "pass",
+    1.5990550884180266
+   ],
+   [
+    "timeStep",
+    "pass",
+    2.4521409180777027
+   ],
+   [
+    "energyBalanceTotal",
+    "pass",
+    0.009614389360458518
+   ],
+   [
+    "axialConduction",
+    "na",
+    0.03953961149727884
+   ]
+  ]
+ },
+ "shortcool": {
+  "bytes": 60720,
+  "sha256": "70e05cbaadabd9e77fd6553bc0133df11de181748b27f464006ff5f849e909e0",
+  "checks": [
+   [
+    "energyBalance",
+    "pass",
+    0.308787825785238
+   ],
+   [
+    "crossCheckFv",
+    "pass",
+    30.674468677602704
+   ],
+   [
+    "timeStep",
+    "pass",
+    2.2294576017714007
+   ],
+   [
+    "energyBalanceTotal",
+    "pass",
+    0.0039554015159585145
+   ],
+   [
+    "axialConduction",
+    "na",
+    0.03953961149727883
+   ]
+  ]
+ }
+}
