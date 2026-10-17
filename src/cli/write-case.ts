@@ -5,7 +5,7 @@ import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { writeOffbeatCase } from "../core/caseWriter";
-import { writeTrisoCase } from "../core/trisoWriter";
+import { writeTrisoParticleCase } from "../core/trisoMechanicsWriter";
 import { unrunnableErrors, validateCase } from "../core/validate";
 
 function main(argv: string[]): number {
@@ -27,7 +27,7 @@ function main(argv: string[]): number {
     return 1;
   }
   rmSync(out, { recursive: true, force: true });
-  const w = v.normalized ? writeOffbeatCase(v.normalized) : writeTrisoCase(v.triso!);
+  const w = v.normalized ? writeOffbeatCase(v.normalized) : writeTrisoParticleCase(v.triso!);
   const hashes: Record<string, string> = {};
   for (const [rel, text] of Object.entries(w.files)) {
     const p = join(out, rel);

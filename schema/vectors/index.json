@@ -1750,12 +1750,6 @@
     "field": "/materials/fuel"
   },
   {
-    "file": "bad/triso-with-mechanics.json",
-    "valid": false,
-    "code": "E_UNSUPPORTED",
-    "field": "/mechanics"
-  },
-  {
     "file": "bad/triso-with-axial-stack.json",
     "valid": false,
     "code": "E_UNSUPPORTED",
@@ -2022,6 +2016,212 @@
     "valid": false,
     "code": "E_SCHEMA_INVALID",
     "field": "/limits/0/name"
+  },
+  {
+    "file": "good/triso-mechanics-ipyc.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-mechanics-pressure.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-mechanics-swelling.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-mechanics-anisotropic.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-mechanics-thermal.json",
+    "valid": true
+  },
+  {
+    "file": "good/triso-mechanics-library.json",
+    "valid": true,
+    "warnings": [
+      "W_EXPANSION_RANGE",
+      "W_EXPANSION_RANGE"
+    ]
+  },
+  {
+    "file": "good/triso-mechanics-range-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_ELASTICITY_RANGE",
+      "W_EXPANSION_RANGE",
+      "W_ELASTICITY_RANGE",
+      "W_EXPANSION_RANGE"
+    ]
+  },
+  {
+    "file": "bad/triso-mechanics-flag-without-section.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics"
+  },
+  {
+    "file": "bad/triso-mechanics-section-with-thermal-only.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mechanics"
+  },
+  {
+    "file": "bad/triso-mechanics-no-reference-temperature.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/referenceTemperature"
+  },
+  {
+    "file": "bad/triso-mechanics-reference-temperature-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/referenceTemperature"
+  },
+  {
+    "file": "bad/triso-mechanics-no-outside-pressure.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/outsidePressure"
+  },
+  {
+    "file": "bad/triso-mechanics-outside-pressure-negative.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/outsidePressure"
+  },
+  {
+    "file": "bad/triso-mechanics-gas-pressure-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/gasPressure/source"
+  },
+  {
+    "file": "bad/triso-mechanics-gas-pressure-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/gasPressure/pressure"
+  },
+  {
+    "file": "bad/triso-mechanics-gas-pressure-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/mechanics/gasPressure/pressure"
+  },
+  {
+    "file": "bad/triso-mechanics-gas-pressure-not-an-object.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mechanics/gasPressure"
+  },
+  {
+    "file": "bad/triso-mechanics-free-strain-no-source.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/freeStrains/0/source"
+  },
+  {
+    "file": "bad/triso-mechanics-free-strain-no-tangential.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/mechanics/freeStrains/0/tangential"
+  },
+  {
+    "file": "bad/triso-mechanics-free-strain-buffer.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics/freeStrains/0/layer"
+  },
+  {
+    "file": "bad/triso-mechanics-free-strain-unknown-layer.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mechanics/freeStrains/0/layer"
+  },
+  {
+    "file": "bad/triso-mechanics-free-strain-absent-layer.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/mechanics/freeStrains/0/layer"
+  },
+  {
+    "file": "bad/triso-mechanics-free-strain-duplicate.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mechanics/freeStrains/1/layer"
+  },
+  {
+    "file": "bad/triso-mechanics-free-strain-too-large.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/freeStrains/0/radial"
+  },
+  {
+    "file": "bad/triso-mechanics-free-strain-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/mechanics/freeStrains/0/radial"
+  },
+  {
+    "file": "bad/triso-mechanics-history.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics/history"
+  },
+  {
+    "file": "bad/triso-mechanics-gas-inventory.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics/gasInventory"
+  },
+  {
+    "file": "bad/triso-mechanics-swelling-correlation.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics/swelling"
+  },
+  {
+    "file": "bad/triso-mechanics-unknown-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mechanics/plenumVolume"
+  },
+  {
+    "file": "bad/triso-mechanics-no-elasticity.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/ipyc/sets/mechanical.elasticity"
+  },
+  {
+    "file": "bad/triso-mechanics-no-expansion.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/sic/sets/mechanical.thermalExpansion"
+  },
+  {
+    "file": "bad/triso-mechanics-no-source-on-elasticity.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/materials/opyc/sets/mechanical.elasticity/source"
+  },
+  {
+    "file": "bad/triso-mechanics-poisson-too-large.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/materials/sic/sets/mechanical.elasticity/poissonRatio"
+  },
+  {
+    "file": "bad/triso-mechanics-with-limits.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/limits"
+  },
+  {
+    "file": "bad/triso-mechanics-with-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics"
   },
   {
     "file": "bad/pin-missing-fuel-material.json",

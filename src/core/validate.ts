@@ -20,7 +20,8 @@ import { Dimension, toSI } from "./units";
 import { trisoClosedForm, trisoSteadyEndTime } from "./trisoSolve";
 import { MAX_TRISO_TRANSIENT_WORK, NormalizedTrisoTransient, parseTrisoTransient } from "./trisoTransient";
 import { trisoInitialField } from "./trisoTransientModel";
-import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, parseTrisoGeometry, parseTrisoLimits, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
+import { parseTrisoMechanics, trisoMechanicsConstants } from "./trisoMechanics";
+import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, TrisoLayerName, parseTrisoGeometry, parseTrisoLimits, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
 
 export interface Issue {
   code: string;
@@ -746,13 +747,17 @@ function parseBoundary(b: Record<string, unknown>, err: ErrFn, positive: Positiv
 function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty: QtyFn, positive: PositiveFn): ValidationResult {
   const warn = (code: string, field: string, message: string, extra: Record<string, unknown> = {}) => issues.push({ code, severity: "warning", field, message, ...extra } as Issue);
   if (c.assumptions.geometry !== "1D-sphere") err("E_UNSUPPORTED", "/assumptions/geometry", "a particle is geometry '1D-sphere', got '" + String(c.assumptions.geometry) + "'");
-  if (c.assumptions.thermalOnly !== true) err("E_UNSUPPORTED", "/assumptions/thermalOnly", "a particle is thermal only: its mechanics (the stress in the SiC, the swelling and creep of the carbon, the gas pressure) are decision D1 of plan 13 and not offered");
+  // mechanics (plan 14, stage E: elastic, steady, free strains stated): the flag and the section go together, as for a pin
+  const hasMechanics = c.mechanics !== undefined;
+  if (c.assumptions.thermalOnly !== true && !hasMechanics) err("E_PROP_MISSING", "/mechanics", "assumptions.thermalOnly is false, so the case needs a mechanics section (reference temperature, outside pressure; optionally the gas pressure and the free strains of the layers, each with its source)");
+  if (c.assumptions.thermalOnly === true && hasMechanics) err("E_SCHEMA_INVALID", "/mechanics", "the case has a mechanics section but assumptions.thermalOnly is true; set it to false to ask for the stress in the coating, or remove the section");
   // steadyState false means a thermal transient: it needs the transient section and the regions' heat capacities (checked below), as for a pin. Nothing is assumed.
   const isTransient = c.assumptions.steadyState === false;
   if (!isTransient && c.transient !== undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "the case has a transient section but assumptions.steadyState is true; set it to false to run the transient, or remove the section");
   if (isTransient && c.transient === undefined) err("E_TRANSIENT_INCOMPLETE", "/transient", "assumptions.steadyState is false, so the case needs a transient section (power history, end time, time step, outputs, initial temperature)");
+  if (hasMechanics && isTransient) err("E_UNSUPPORTED", "/mechanics", "the mechanics of a particle is elastic and steady (stage E of plan 14); a transient is thermal only");
+  if (hasMechanics && c.limits !== undefined) err("E_UNSUPPORTED", "/limits", "temperature limits judge the kernel's and the layers' temperatures, which a mechanics run (the coating shells only) does not compute through the solver; ask for them in the thermal run of the same particle");
   for (const [key, why] of [
-    ["mechanics", "a particle has no mechanics here"],
     ["hotDimensions", "hot dimensions are for pins"],
     ["burnup", "a burnup is for pins in this release"],
     ["axial", "an axial stack is for pins and plates"],
@@ -809,6 +814,18 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
     return conductivity(m, n, err, qty);
   });
   const cells = geo && isObject(c.mesh) ? parseTrisoMesh(c.mesh, names, err) : undefined;
+  // the mechanics section and the mechanical sets of the coating layers (the buffer's are checked if present, but it carries no load in stage E)
+  let mechBase: ReturnType<typeof parseTrisoMechanics>;
+  const mechLayers: { name: TrisoLayerName; props: MechanicalProps }[] = [];
+  if (hasMechanics && geo) {
+    mechBase = parseTrisoMechanics(c.mechanics, names, err, qty);
+    for (const n of names) {
+      const m = materials[n];
+      if (!isObject(m)) continue;
+      const props = mechanicalSets(m, n, err, qty, n !== "buffer");
+      if (props && n !== "buffer") mechLayers.push({ name: n as TrisoLayerName, props });
+    }
+  }
   // the transient (stage 3 of T3): the heat capacity of every region and the section itself; the outside's table follows the pin's rules
   let transient: NormalizedTrisoTransient | undefined;
   let capacities: HeatCapacity[] | undefined;
@@ -880,7 +897,14 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
       r += l.thickness;
       return { name: l.name, innerRadius: inner, outerRadius: r, conductivity: layerK[i]! };
     });
-    const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells, ...(limits ? { limits } : {}), ...(transient && capacities ? { transient, capacities } : {}) };
+    const mechanicalLayerCount = names.filter((x) => x !== "buffer").length;
+    const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells, ...(limits ? { limits } : {}), ...(transient && capacities ? { transient, capacities } : {}), ...(mechBase && mechLayers.length === mechanicalLayerCount ? { mechanics: { ...mechBase, layers: mechLayers } } : {}) };
+    if (hasMechanics && !triso.mechanics) {
+      // a refused section or a missing set was reported above; a particle that asks for mechanics is never run without it
+      result.ok = false;
+      if (result.errors.length === 0) result.errors.push({ code: "E_SCHEMA_INVALID", severity: "error", field: "/mechanics", message: "the mechanics section could not be normalised" });
+      return result;
+    }
     // The temperatures come from integrating each conductivity: a law that is positive over its stated range can still reach zero further out, where the particle runs; and a steady run has to be able to settle
     try {
       if (triso.transient) {
@@ -897,6 +921,14 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
       if (!(e instanceof RangeError)) throw e;
       result.ok = false;
       result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/materials", message: "the temperatures of this particle cannot be found: " + e.message + ". A conductivity that is positive over its stated range can still reach zero outside it, where the particle runs; widen the range with a law that stays positive, or change the case" });
+    }
+    if (result.ok && triso.mechanics) {
+      // a layer that runs outside the range of its law is reported, not refused (as for a pin)
+      for (const k of trisoMechanicsConstants(triso)) {
+        const range = "from " + k.temperatureRange[0].toFixed(1) + " to " + k.temperatureRange[1].toFixed(1) + " K";
+        if (k.elasticityOutOfRange) result.warnings.push({ code: "W_ELASTICITY_RANGE", severity: "warning", field: "/materials/" + k.name + "/sets/mechanical.elasticity", message: "the " + k.name + " layer runs " + range + ", outside the range its Young's modulus law is stated for: the modulus is applied beyond it as given" });
+        if (k.expansionOutOfRange) result.warnings.push({ code: "W_EXPANSION_RANGE", severity: "warning", field: "/materials/" + k.name + "/sets/mechanical.thermalExpansion", message: "the " + k.name + " layer runs " + range + " (and the reference temperature counts), outside the range its expansion law is stated for: the formula is applied beyond it as given" });
+      }
     }
     if (result.ok) result.triso = triso;
   } else if (result.ok) {
