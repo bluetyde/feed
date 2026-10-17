@@ -17,6 +17,7 @@ import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./po
 import { fuelMean, initialState } from "./transientResults";
 import { AXIAL_CONDUCTION_WARNING, AXIAL_STEP_WARNING, AxialSpec, axialConductionEstimate, parseAxial, sliceCase, sliceLoads } from "./axial";
 import { Dimension, toSI } from "./units";
+import { parsePopulation } from "./trisoPopulationCase";
 import { trisoClosedForm, trisoSteadyEndTime } from "./trisoSolve";
 import { MAX_TRISO_TRANSIENT_WORK, NormalizedTrisoTransient, parseTrisoTransient } from "./trisoTransient";
 import { trisoInitialField } from "./trisoTransientModel";
@@ -278,6 +279,8 @@ export function validateCase(doc: unknown): ValidationResult {
   for (const k of ["fuel", "cladding"]) if (!isObject(c.materials[k])) err("E_SCHEMA_INVALID", "/materials/" + k, "missing: the " + k + " material (an object with a materialId, a revision and sets)");
   for (const k of ["fuelCells", "claddingCells"]) if (!isObject(c.mesh) || c.mesh[k] === undefined) err("E_SCHEMA_INVALID", "/mesh/" + k, "missing: the number of " + (k === "fuelCells" ? "fuel" : "cladding") + " cells");
   if (issues.length > 0) return finish(issues);
+
+  if (c.population !== undefined) err("E_UNSUPPORTED", "/population", "a population is for a coated particle (geometry.kind 'triso'); a pin or a plate has none");
 
   // Scope of V1
   // A case either is thermal-only or asks for mechanics, which needs its section (docs/plans/09-mechanics.md M2); irradiation is not offered.
@@ -867,6 +870,12 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
   }
   // temperature limits on the kernel and the layers, each with its source (a pin's whileCladding condition has no meaning here)
   const limits = c.limits === undefined ? undefined : parseTrisoLimits(c.limits, geo ? ["kernel", ...names] : ["kernel", "buffer", "ipyc", "sic", "opyc"], err, qty);
+  // a population of particles drawn from distributions (T6): steady only, because a transient is one particle's history
+  let population: ReturnType<typeof parsePopulation>;
+  if (c.population !== undefined) {
+    if (isTransient) err("E_UNSUPPORTED", "/population", "a population is for a steady particle: the transient is one particle's history, and its power is a table, not a power density that a power factor can scale");
+    else population = parsePopulation(c.population, names, err, qty, warn);
+  }
   const result = finish(issues);
   // a transient's power is its table: the particle's `power` is then the table's peak (the steady closed form below is taken at it)
   if (isTransient && transient && volumes) {
@@ -880,7 +889,7 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
       r += l.thickness;
       return { name: l.name, innerRadius: inner, outerRadius: r, conductivity: layerK[i]! };
     });
-    const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells, ...(limits ? { limits } : {}), ...(transient && capacities ? { transient, capacities } : {}) };
+    const triso: NormalizedTriso = { caseId: c.caseId, kernelRadius: geo.kernelRadius, kernelConductivity: kernelK, layers, outerRadius: geo.outerRadius, gapConductance: hGap, boundary, power, cells, ...(limits ? { limits } : {}), ...(transient && capacities ? { transient, capacities } : {}), ...(population ? { population } : {}) };
     // The temperatures come from integrating each conductivity: a law that is positive over its stated range can still reach zero further out, where the particle runs; and a steady run has to be able to settle
     try {
       if (triso.transient) {

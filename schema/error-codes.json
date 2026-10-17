@@ -18,5 +18,7 @@
   "W_GAP_CONTACT": { "severity": "warning", "meaning": "a coated particle's gap conductance is above 3e5 W/m2/K, a buffer in contact with the next layer: an irradiated particle usually has a gap, so the kernel temperature is understated (plan 13)" },
   "W_POWER_RANGE": { "severity": "warning", "meaning": "linear heat rate above the sanity range; not clamped, not an error" },
   "W_ELASTICITY_RANGE": { "severity": "warning", "meaning": "a solid's temperatures leave the range its Young's modulus law is stated for; the modulus is applied beyond it as given, and the warning says where" },
-  "W_EXPANSION_RANGE": { "severity": "warning", "meaning": "a solid's temperatures leave the range its linear expansion coefficient is stated for; the formula is applied beyond it as given, and the warning says where" }
+  "W_EXPANSION_RANGE": { "severity": "warning", "meaning": "a solid's temperatures leave the range its linear expansion coefficient is stated for; the formula is applied beyond it as given, and the warning says where" },
+  "E_POPULATION_UNSAMPLABLE": { "severity": "error", "meaning": "a distribution of a coated particle's population cannot be sampled: once it is truncated and cut to the valid values of its variable it keeps under 1 % of its draws (plan 13, T6)" },
+  "W_POPULATION_REJECTION": { "severity": "warning", "meaning": "more than 1 % of a population distribution's draws are not valid values (a thickness of zero or less, a power factor of zero or less): they are thrown away and counted, and the sample is the distribution conditioned on being valid (plan 13, T6)" }
 }
