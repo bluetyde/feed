@@ -1,0 +1,887 @@
+{
+ "examples/annular-synthetic-pin.json": {
+  "0/D": "ab6281bbcdf6deba",
+  "0/T": "263dc9311c1f0e43",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "c3f553e4c4b8b111",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ksu-triga-1p25mw-film-limits.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "9958b5c91613665f",
+  "constant/solverDict": "44d86e2f8d76f59a",
+  "system/blockMeshDict": "2a7a17b0fea6a82f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ksu-triga-1p25mw-film.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "9958b5c91613665f",
+  "constant/solverDict": "44d86e2f8d76f59a",
+  "system/blockMeshDict": "2a7a17b0fea6a82f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ksu-triga-cosine-stack.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f092e8936a94243a",
+  "constant/solverDict": "c52a5d6cd1af5613",
+  "system/blockMeshDict": "ee3b54e34754076a",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ksu-triga-hot-element.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "1527b8545f52c762",
+  "constant/solverDict": "44d86e2f8d76f59a",
+  "system/blockMeshDict": "2a7a17b0fea6a82f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ksu-triga-loss-of-pool.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "6b1d9b3588c7fba9",
+  "constant/solverDict": "13dac64a1e7412e8",
+  "feed-transient.json": "f5badd7e0399b447",
+  "system/blockMeshDict": "2a7a17b0fea6a82f",
+  "system/controlDict": "c7a910c17f107cfa",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/lwr-uo2-burnup.json": {
+  "0/Bu": "4d6b0e7f3890f81e",
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "3674d4fbe728b8fb",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-coastdown.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "8e37d0f50f88b40d",
+  "constant/solverDict": "ba743267f0017b36",
+  "feed-transient.json": "be1b14cf05e8e6e3",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "095f8f7052e91e45",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-pin-hot.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "786e36b8459876e2",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-pin.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-plate-loss-of-cooling.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "43a029e0ea190d9b",
+  "constant/solverDict": "63c383557292ebda",
+  "feed-transient.json": "8e29f024040a8505",
+  "system/blockMeshDict": "93db2a9bcb35ef38",
+  "system/controlDict": "524a8840df9c5f90",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-pulse-kinetics.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "78d9ee1c5c74c3ca",
+  "feed-transient.json": "b95ce49c2c3a1aff",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "91f2254ef399954f",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-pulse-operating.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "7c78121bc37b5463",
+  "constant/solverDict": "ca45cd61415c3111",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-pulse.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "1068fbe3a59f59ff",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-triso-compact-pulse.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "a96b1d87274081ab",
+  "constant/solverDict": "2ad65fd65a5d4339",
+  "feed-transient.json": "3de65ce365382e32",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "39b3fceac9ca7fb6",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/synthetic-triso-compact-steady.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "5618bee37adbcd95",
+  "constant/solverDict": "c69c82fbea738809",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ut-triga-hot-channel-annular.json": {
+  "0/D": "ab6281bbcdf6deba",
+  "0/T": "020fc8d8fa5f1ea1",
+  "constant/solverDict": "04eb2e9dcb07af2e",
+  "system/blockMeshDict": "8cc3bbb05318c6d9",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ut-triga-hot-channel-trace.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "5c30fd03724cb884",
+  "constant/solverDict": "04eb2e9dcb07af2e",
+  "system/blockMeshDict": "2a7a17b0fea6a82f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ut-triga-pulse-4p40-limits.json": {
+  "0/D": "ab6281bbcdf6deba",
+  "0/T": "919e21153221b642",
+  "constant/solverDict": "21d74585efd82e41",
+  "feed-transient.json": "d3516003b4dcd515",
+  "system/blockMeshDict": "32dc0a8a0a2d0ded",
+  "system/controlDict": "ba1366c426d26cd4",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "examples/ut-triga-pulse-4p40.json": {
+  "0/D": "ab6281bbcdf6deba",
+  "0/T": "919e21153221b642",
+  "constant/solverDict": "21d74585efd82e41",
+  "feed-transient.json": "d3516003b4dcd515",
+  "system/blockMeshDict": "32dc0a8a0a2d0ded",
+  "system/controlDict": "ba1366c426d26cd4",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/annular-fuel.json": {
+  "0/D": "ab6281bbcdf6deba",
+  "0/T": "263dc9311c1f0e43",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "0f441cfd3ad6adfe",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-cosine.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "68f98fa875949ee3",
+  "system/blockMeshDict": "fb4c94f8042d2933",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-flat-shape.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "2b74f2963b8a5f2c",
+  "system/blockMeshDict": "7c38a41014528fd6",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-prescribed-wall.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "67457fd13db04e5c",
+  "constant/solverDict": "68f98fa875949ee3",
+  "system/blockMeshDict": "fb4c94f8042d2933",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-shape-step-warning.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "68f98fa875949ee3",
+  "system/blockMeshDict": "fcf694eb3e7ab971",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-short-pin-conduction-warning.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "b8882799ef420fac",
+  "system/blockMeshDict": "d104758ae9eb2823",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-table-shape-coolant-rise.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "515fd1d8306c3df1",
+  "constant/solverDict": "032bced8b0bf9aee",
+  "system/blockMeshDict": "fb4c94f8042d2933",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-transient-boundary-history.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "aa0256b9e68fb067",
+  "constant/solverDict": "60d2fe35eeb08c27",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "fb4c94f8042d2933",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-transient-coolant-table.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "b1e3933649e7e689",
+  "constant/solverDict": "60d2fe35eeb08c27",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "fb4c94f8042d2933",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-transient-pulse.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "60d2fe35eeb08c27",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "fb4c94f8042d2933",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/axial-transient-steady-start.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "530f6073efd022a9",
+  "constant/solverDict": "60d2fe35eeb08c27",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "fb4c94f8042d2933",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/closed-gap-effective-conductance.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "70d4c95b4a8e91db",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/cubic-conductivity-zero-terms.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "02e60e2162c00ff0",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/cubic-conductivity.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "7876c6c66907066e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/hole-zero-is-solid.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/hot-dimensions-range-warning.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "f0c67282c157fa8e",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/hot-dimensions.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "786e36b8459876e2",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/limits-cladding-and-band.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/limits-triga-fuel.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/linear-conductivity.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "d1ab7f7e426acd7c",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/mechanical-sets.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/mechanics-elasticity-range-warning.json": {
+  "0/D": "19b396204bd53100",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "6a20c3b7f17daca1",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "e37b0c731937ee4a"
+ },
+ "good/mechanics-internal-pressure-constant.json": {
+  "0/D": "19b396204bd53100",
+  "0/T": "d1e81facd9f6a52b",
+  "0/uniform/gapGas": "b528e812e1a6a9ab",
+  "constant/solverDict": "e2f9430bf7c92886",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "e37b0c731937ee4a"
+ },
+ "good/mechanics-internal-pressure-hydrogen.json": {
+  "0/D": "19b396204bd53100",
+  "0/T": "d1e81facd9f6a52b",
+  "0/uniform/gapGas": "28255f8da950c18a",
+  "constant/solverDict": "c0bef1139ca8744f",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "e37b0c731937ee4a"
+ },
+ "good/mechanics-section.json": {
+  "0/D": "19b396204bd53100",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "e1fd20b5bfa906fa",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "e37b0c731937ee4a"
+ },
+ "good/mechanics-stress-limit.json": {
+  "0/D": "19b396204bd53100",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "e1fd20b5bfa906fa",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "e37b0c731937ee4a"
+ },
+ "good/plate-axial-prescribed-wall.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "69813c92bc6872c4",
+  "constant/solverDict": "9cbcb67f33d7c5e4",
+  "system/blockMeshDict": "93db2a9bcb35ef38",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-axial-shape-step-warning.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "719dbc6fcb7c4b45",
+  "constant/solverDict": "9cbcb67f33d7c5e4",
+  "system/blockMeshDict": "0f6e1cbc80397f14",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-axial-short-conduction-warning.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "719dbc6fcb7c4b45",
+  "constant/solverDict": "852b58bb348449b7",
+  "system/blockMeshDict": "6818dbc47a15751e",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-axial-table-shape-coolant-rise.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "969aa9d274efa2c4",
+  "constant/solverDict": "c65c2944e877f5bf",
+  "system/blockMeshDict": "93db2a9bcb35ef38",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-axial-transient-coolant-table.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "e07d816a5f82bfab",
+  "constant/solverDict": "7b9335d21089479a",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "93db2a9bcb35ef38",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-axial-transient-pulse.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "3253888bd90147c4",
+  "constant/solverDict": "7b9335d21089479a",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "93db2a9bcb35ef38",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-axial-transient-steady-start-boundary-history.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "af25efdac4312c9f",
+  "constant/solverDict": "7b9335d21089479a",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "93db2a9bcb35ef38",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-no-cold-gap.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "719dbc6fcb7c4b45",
+  "constant/solverDict": "ac65090f6c6b0cfe",
+  "system/blockMeshDict": "66a77c9a11f11b45",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-prescribed-wall.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "b92eaea0b5093936",
+  "constant/solverDict": "ac65090f6c6b0cfe",
+  "system/blockMeshDict": "bf2af499f43588f3",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-pulse.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "3253888bd90147c4",
+  "constant/solverDict": "6efde749c5b713d9",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "bf2af499f43588f3",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-steady-start-boundary-history.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "f8615a1499aa136b",
+  "constant/solverDict": "6efde749c5b713d9",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "bf2af499f43588f3",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-steady.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "719dbc6fcb7c4b45",
+  "constant/solverDict": "ac65090f6c6b0cfe",
+  "system/blockMeshDict": "bf2af499f43588f3",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/plate-with-axial-stack.json": {
+  "0/D": "f094816e515d3426",
+  "0/T": "719dbc6fcb7c4b45",
+  "constant/solverDict": "9cbcb67f33d7c5e4",
+  "system/blockMeshDict": "93db2a9bcb35ef38",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/power-warning.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "a08203a19f0c74c3",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-boundary-history-no-power.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "ef7f8abbe1a5a8ec",
+  "constant/solverDict": "c8b0df1299b5ea6e",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-boundary-history-steady-start.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "bd58fae45228cc3f",
+  "constant/solverDict": "1068fbe3a59f59ff",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-boundary-history-wall.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "0eef22fc44812811",
+  "constant/solverDict": "1068fbe3a59f59ff",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-boundary-history.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "23da4c575fa9773e",
+  "constant/solverDict": "1068fbe3a59f59ff",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-linear-heat-capacity.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "ffb2bd732898cd45",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-point-kinetics-linear-feedback.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "628305f2f2687f28",
+  "feed-transient.json": "b95ce49c2c3a1aff",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "91f2254ef399954f",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-point-kinetics-steady-start.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "25f3791c23507364",
+  "constant/solverDict": "0a2670af33e682b4",
+  "feed-transient.json": "b95ce49c2c3a1aff",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "91f2254ef399954f",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-point-kinetics.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "78d9ee1c5c74c3ca",
+  "feed-transient.json": "b95ce49c2c3a1aff",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "91f2254ef399954f",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-quadratic-heat-capacity-zero-term.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "baab820afed68f4c",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-quadratic-heat-capacity.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "476c3e05589361cf",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-steady-start.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "7c78121bc37b5463",
+  "constant/solverDict": "1068fbe3a59f59ff",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/pulse-table-heat-capacity.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "cb28a63e55e9e6b3",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/surface-temperature.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "ad18c49f17574ac7",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/synthetic-pin.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/synthetic-pulse.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "f45d4371d6f00295",
+  "constant/solverDict": "1068fbe3a59f59ff",
+  "feed-transient.json": "66e008a928fe3cf9",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "c5dc34c22a3e1b2b",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/table-conductivity-celsius.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "735a4896dcd6403c",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/table-conductivity.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "b9a8adb6a7c7f707",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-compact.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "c69c82fbea738809",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-convective-outside.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "5618bee37adbcd95",
+  "constant/solverDict": "a3d18ca7b14efdc3",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-gap-contact-warning.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "285609e6927e5669",
+  "constant/solverDict": "a3d18ca7b14efdc3",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-lengths-in-mm.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "a3d18ca7b14efdc3",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-limits.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "c8b44ec07d2e2017",
+  "constant/solverDict": "f3e934a75e9104d2",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-outside-ramp.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "61eb0102f32f2b42",
+  "constant/solverDict": "8528788d29e26711",
+  "feed-transient.json": "3de65ce365382e32",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "39b3fceac9ca7fb6",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-packing-warning.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "67b9e0bc079033ed",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-particle-power.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "0a4f5560b7055ef1",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-power-warning.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "3c4ec4e5e813eb99",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-pulse-limits.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "62d261a0c53a77c4",
+  "feed-transient.json": "3de65ce365382e32",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "39b3fceac9ca7fb6",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-pulse.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "62d261a0c53a77c4",
+  "feed-transient.json": "3de65ce365382e32",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "39b3fceac9ca7fb6",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-steady.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "a3d18ca7b14efdc3",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-temperature-dependent.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "5618bee37adbcd95",
+  "constant/solverDict": "a0c84534dcd89387",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-two-layers.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "e4887edc4a5b72f5",
+  "constant/solverDict": "8418ecc73ff73a9d",
+  "system/blockMeshDict": "7cad106acb5ac7da",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/triso-wall-quench.json": {
+  "0/D": "b1a2597aa970d7cc",
+  "0/T": "dbebff6db09d6415",
+  "constant/solverDict": "8528788d29e26711",
+  "feed-transient.json": "5f2d1fc6785b4030",
+  "system/blockMeshDict": "515f45b7d133af8f",
+  "system/controlDict": "a84cdd374af5dc50",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/unknown-fields-kept.json": {
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "dd5493fa65bfb32e",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ },
+ "good/uo2-nfi-burnup.json": {
+  "0/Bu": "4d6b0e7f3890f81e",
+  "0/D": "652b6decd5a1fa88",
+  "0/T": "d1e81facd9f6a52b",
+  "constant/solverDict": "b896eb00ef259d35",
+  "system/blockMeshDict": "016976a7c550986f",
+  "system/controlDict": "07c4baa1b3fa7472",
+  "system/fvSchemes": "59331be722ce2cfa",
+  "system/fvSolution": "96c0956d3411562e"
+ }
+}

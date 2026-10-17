@@ -1,0 +1,331 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "triso-mechanics-library",
+  "name": "Synthetic coated particle (illustrative numbers, not a real fuel design)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": false,
+    "steadyState": true,
+    "geometry": "1D-sphere"
+  },
+  "geometry": {
+    "kind": "triso",
+    "kernelRadius": {
+      "value": 250,
+      "unit": "um"
+    },
+    "layers": [
+      {
+        "name": "buffer",
+        "thickness": {
+          "value": 100,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "ipyc",
+        "thickness": {
+          "value": 40,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "sic",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "opyc",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      }
+    ]
+  },
+  "power": {
+    "kernelPowerDensity": {
+      "value": 600,
+      "unit": "MW/m3"
+    }
+  },
+  "boundary": {
+    "surfaceTemperature": {
+      "value": 1000,
+      "unit": "K"
+    }
+  },
+  "materials": {
+    "kernel": {
+      "materialId": "synthetic-kernel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "buffer": {
+      "materialId": "synthetic-buffer",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 0.5,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "ipyc": {
+      "materialId": "synthetic-ipyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "mechanical.elasticity": {
+          "model": "linear",
+          "a": {
+            "value": 24842871720,
+            "unit": "Pa"
+          },
+          "b": {
+            "value": 3897828,
+            "unit": "Pa/K"
+          },
+          "poissonRatio": {
+            "value": 0.23,
+            "unit": "1"
+          },
+          "validRange": {
+            "min": {
+              "value": 873.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1573.15,
+              "unit": "K"
+            }
+          },
+          "source": "INL/EXT-08-14497 (PARFUME Theory and Model Basis Report, 2009) eq. 7-2/7-3 with density 1.96 Mg/m3, BAF 1, fluence 0, Lc 30 Angstrom: E = 25.5 GPa x 1.01904 x (1 + 0.00015 (T - 20 C)), rewritten in kelvin; nu = 0.23 (section 7.1.3.1). Range 600 to 1300 C is the report's stated limit for its models; unirradiated: the fluence factor is not applied"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "model": "linear",
+            "a": {
+              "value": 0.000004471096429,
+              "unit": "1/K"
+            },
+            "b": {
+              "value": 7.857142857e-10,
+              "unit": "1/K2"
+            },
+            "validRange": {
+              "min": {
+                "value": 873.15,
+                "unit": "K"
+              },
+              "max": {
+                "value": 1573.15,
+                "unit": "K"
+              }
+            }
+          },
+          "source": "INL/EXT-08-14497 section 7.2.3.1: alpha = 5.0e-6 x (1 + 0.11 (T - 400 C)/700) per K for BAF 1 (R = 2/3, both directions 5.0e-6 A), rewritten in kelvin; range 600 to 1300 C is the report's limit for the layer models. Whether the report's alpha is the instantaneous or a mean coefficient is not stated; it is used as the instantaneous one"
+        }
+      }
+    },
+    "sic": {
+      "materialId": "synthetic-sic",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 13.9,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "mechanical.elasticity": {
+          "model": "linear",
+          "a": {
+            "value": 444674382500,
+            "unit": "Pa"
+          },
+          "b": {
+            "value": -57267759.56,
+            "unit": "Pa/K"
+          },
+          "poissonRatio": {
+            "value": 0.13,
+            "unit": "1"
+          },
+          "validRange": {
+            "min": {
+              "value": 298.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1213.15,
+              "unit": "K"
+            }
+          },
+          "source": "INL/EXT-08-14497 Table 7-1: 4.276e+05 MPa at 25 C and 3.752e+05 MPa at 940 C, linear between; nu = 0.13 (section 7.1.3.3)"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 0.0000049,
+            "unit": "1/K"
+          },
+          "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C; free carbon in the SiC could lower it by 40 %"
+        }
+      }
+    },
+    "opyc": {
+      "materialId": "synthetic-opyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "mechanical.elasticity": {
+          "model": "linear",
+          "a": {
+            "value": 24842871720,
+            "unit": "Pa"
+          },
+          "b": {
+            "value": 3897828,
+            "unit": "Pa/K"
+          },
+          "poissonRatio": {
+            "value": 0.23,
+            "unit": "1"
+          },
+          "validRange": {
+            "min": {
+              "value": 873.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1573.15,
+              "unit": "K"
+            }
+          },
+          "source": "INL/EXT-08-14497 (PARFUME Theory and Model Basis Report, 2009) eq. 7-2/7-3 with density 1.96 Mg/m3, BAF 1, fluence 0, Lc 30 Angstrom: E = 25.5 GPa x 1.01904 x (1 + 0.00015 (T - 20 C)), rewritten in kelvin; nu = 0.23 (section 7.1.3.1). Range 600 to 1300 C is the report's stated limit for its models; unirradiated: the fluence factor is not applied"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "model": "linear",
+            "a": {
+              "value": 0.000004471096429,
+              "unit": "1/K"
+            },
+            "b": {
+              "value": 7.857142857e-10,
+              "unit": "1/K2"
+            },
+            "validRange": {
+              "min": {
+                "value": 873.15,
+                "unit": "K"
+              },
+              "max": {
+                "value": 1573.15,
+                "unit": "K"
+              }
+            }
+          },
+          "source": "INL/EXT-08-14497 section 7.2.3.1: alpha = 5.0e-6 x (1 + 0.11 (T - 400 C)/700) per K for BAF 1 (R = 2/3, both directions 5.0e-6 A), rewritten in kelvin; range 600 to 1300 C is the report's limit for the layer models. Whether the report's alpha is the instantaneous or a mean coefficient is not stated; it is used as the instantaneous one"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 150000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "kernelCells": 12,
+    "bufferCells": 12,
+    "ipycCells": 12,
+    "sicCells": 16,
+    "opycCells": 12
+  },
+  "mechanics": {
+    "referenceTemperature": {
+      "value": 300,
+      "unit": "K"
+    },
+    "outsidePressure": {
+      "value": 0.1,
+      "unit": "MPa"
+    },
+    "gasPressure": {
+      "pressure": {
+        "value": 10,
+        "unit": "MPa"
+      },
+      "source": "synthetic: an input for the example"
+    },
+    "freeStrains": [
+      {
+        "layer": "ipyc",
+        "radial": {
+          "value": -0.012,
+          "unit": "1"
+        },
+        "tangential": {
+          "value": 0.004,
+          "unit": "1"
+        },
+        "source": "synthetic: an input chosen for the closed-form oracle, not a measured dimensional change"
+      }
+    ]
+  }
+}

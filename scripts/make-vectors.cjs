@@ -800,7 +800,6 @@ badTr("triso-material-missing", "E_SCHEMA_INVALID", "/materials/sic", (c) => del
 badTr("triso-material-for-absent-layer", "E_GEOMETRY", "/materials/opyc", (c) => { c.geometry.layers = c.geometry.layers.slice(0, 3); delete c.mesh.opycCells; });
 badTr("triso-material-without-conductivity", "E_PROP_MISSING", "/materials/buffer/sets/thermal.conductivity", (c) => delete c.materials.buffer.sets["thermal.conductivity"]);
 badTr("triso-pin-material-names", "E_GEOMETRY", "/materials/fuel", (c) => (c.materials.fuel = trisoMat("synthetic-fuel", 3, 1000)));
-badTr("triso-with-mechanics", "E_UNSUPPORTED", "/mechanics", (c) => (c.mechanics = {}));
 badTr("triso-with-axial-stack", "E_UNSUPPORTED", "/axial", (c) => (c.axial = axialBase()));
 badTr("triso-assumed-radial", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-radial"));
 badTr("triso-closed-gap", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "closed" }));
@@ -913,6 +912,101 @@ badTr("triso-limit-too-hot", "E_OUT_OF_RANGE", "/limits/0/maxTemperature", (c) =
 badTr("triso-limit-wrong-unit", "E_UNITS", "/limits/0/maxTemperature", (c) => (c.limits = [limitRule({ maxTemperature: qv(1500, "W") })]));
 badTr("triso-limit-duplicate-name", "E_SCHEMA_INVALID", "/limits/1/name", (c) => (c.limits = [limitRule({}), limitRule({ region: "buffer" })]));
 badTr("triso-limit-no-name", "E_SCHEMA_INVALID", "/limits/0/name", (c) => (c.limits = [limitRule({ name: "" })]));
+// ---- the particle's mechanics (plan 14, stage E): elastic, steady, the gas pressure and the free strains stated with their sources; the numbers are illustrative, the moduli of the carbon and
+// SiC are those of Boer et al. 2010 (INL/CON-10-18055, Table 1: 3.96e4 MPa and 0.33, 4.0e5 MPa and 0.13), the expansion coefficients are synthetic
+const SRC_E = "Boer et al., Inter-comparison of computer codes for TRISO-based fuel micro-modeling and performance assessment, HTR 2010 (INL/CON-10-18055), Table 1";
+const mechE = (E, nu) => ({ model: "constant", youngModulus: qv(E, "MPa"), poissonRatio: qv(nu, "1"), source: SRC_E });
+const mechX = (a) => ({ linearExpansion: qv(a, "1/K"), source: "synthetic: an illustrative coefficient chosen for the closed-form oracle, not a sourced property" });
+const addMech = (c, over = {}) => {
+  c.assumptions.thermalOnly = false;
+  for (const [r, E, nu, a] of [["ipyc", 3.96e4, 0.33, 5.5e-6], ["sic", 4.0e5, 0.13, 4.9e-6], ["opyc", 3.96e4, 0.33, 5.5e-6]]) {
+    if (c.materials[r]) { c.materials[r].sets["mechanical.elasticity"] = mechE(E, nu); c.materials[r].sets["mechanical.thermalExpansion"] = mechX(a); }
+  }
+  c.mechanics = Object.assign({ referenceTemperature: qv(1000, "K"), outsidePressure: qv(0.1, "MPa"), gasPressure: { pressure: qv(25, "MPa"), source: "synthetic: an input of the benchmark's order (25 MPa inside, 0.1 MPa outside)" } }, over);
+  return c;
+};
+const fs0 = (layer, radial, tangential) => ({ layer, radial: qv(radial, "1"), tangential: qv(tangential, "1"), source: "synthetic: an input chosen for the closed-form oracle, not a measured dimensional change" });
+const trisoNoOpyc = () => { const c = trisoBase(); c.geometry.layers = c.geometry.layers.slice(0, 3); delete c.materials.opyc; delete c.mesh.opycCells; return c; };
+const coatingLib = () => Object.fromEntries(JSON.parse(fs.readFileSync(path.join(__dirname, "..", "library", "coatings.json"), "utf8")).map((e) => [e.id, e]));
+{
+  // analogues of the first benchmark cases of the IAEA coated-particle exercise: pressure only on the carbon (case 2) and on the carbon and the SiC (case 3), a flat temperature (Tref = the wall)
+  const c = trisoBase();
+  c.geometry.layers = c.geometry.layers.slice(0, 2);
+  c.geometry.layers[1].thickness = qv(90, "um");
+  for (const k of ["sic", "opyc"]) delete c.materials[k];
+  delete c.mesh.sicCells; delete c.mesh.opycCells;
+  c.mesh.ipycCells = 16;
+  add("good", "triso-mechanics-ipyc", addMech(c), {});
+}
+add("good", "triso-mechanics-pressure", addMech(trisoNoOpyc()), {});
+add("good", "triso-mechanics-swelling", addMech(trisoNoOpyc(), { freeStrains: [fs0("ipyc", -0.015, -0.015)] }), {});
+add("good", "triso-mechanics-anisotropic", addMech(trisoBase(), { referenceTemperature: qv(300, "K"), gasPressure: { pressure: qv(10, "MPa"), source: "synthetic: an input for the oracle" }, freeStrains: [fs0("ipyc", -0.012, 0.004), fs0("opyc", -0.01, -0.01)] }), {});
+{
+  // a particle with a poorly conducting SiC and a high power: a drop of about a hundred kelvin across the coating, no pressure: a thermal stress only
+  const c = trisoBase();
+  c.power = { kernelPowerDensity: qv(6000, "MW/m3") };
+  c.materials.sic.sets["thermal.conductivity"] = kConst(0.05, 1000, "a poorly conducting SiC chosen to make a large temperature drop for the thermal-stress oracle, not a property of SiC");
+  c.materials.ipyc.sets["thermal.conductivity"] = kConst(0.2, 1000, "chosen to make a large temperature drop for the thermal-stress oracle, not a property of the carbon");
+  addMech(c, { referenceTemperature: qv(300, "K"), outsidePressure: qv(0, "MPa") });
+  delete c.mechanics.gasPressure;
+  add("good", "triso-mechanics-thermal", c, {});
+}
+{
+  // the library's coating sets (PARFUME report: dense carbon, SiC between 25 and 940 C) for the carbon, the SiC and the outer carbon
+  const lib = coatingLib();
+  const c = trisoBase();
+  c.materials.ipyc.sets = { ...c.materials.ipyc.sets, ...lib["pyc-dense-parfume-unirradiated"].sets };
+  c.materials.opyc.sets = { ...c.materials.opyc.sets, ...lib["pyc-dense-parfume-unirradiated"].sets };
+  c.materials.sic.sets = { ...c.materials.sic.sets, ...lib["sic-parfume-25-940"].sets };
+  c.assumptions.thermalOnly = false;
+  c.mechanics = { referenceTemperature: qv(300, "K"), outsidePressure: qv(0.1, "MPa"), gasPressure: { pressure: qv(10, "MPa"), source: "synthetic: an input for the example" }, freeStrains: [fs0("ipyc", -0.012, 0.004)] };
+  add("good", "triso-mechanics-library", c, { warnings: ["W_EXPANSION_RANGE", "W_EXPANSION_RANGE"] });
+}
+{
+  // a layer that runs outside the range of its law: the library's carbon is stated for 873 to 1573 K, a wall at 700 K is below it
+  const lib = coatingLib();
+  const c = trisoBase();
+  c.boundary = { surfaceTemperature: qv(700, "K") };
+  c.materials.ipyc.sets = { ...c.materials.ipyc.sets, ...lib["pyc-dense-parfume-unirradiated"].sets };
+  c.materials.opyc.sets = { ...c.materials.opyc.sets, ...lib["pyc-dense-parfume-unirradiated"].sets };
+  c.materials.sic.sets = { ...c.materials.sic.sets, ...lib["sic-parfume-25-940"].sets };
+  c.assumptions.thermalOnly = false;
+  c.mechanics = { referenceTemperature: qv(300, "K"), outsidePressure: qv(0.1, "MPa") };
+  add("good", "triso-mechanics-range-warning", c, { warnings: ["W_ELASTICITY_RANGE", "W_EXPANSION_RANGE", "W_ELASTICITY_RANGE", "W_EXPANSION_RANGE"] });
+}
+const badTm = (name, code, field, mutate) => { const c = addMech(trisoBase()); mutate(c); add("bad", name, c, { code, field }); };
+badTm("triso-mechanics-flag-without-section", "E_PROP_MISSING", "/mechanics", (c) => delete c.mechanics);
+badTm("triso-mechanics-section-with-thermal-only", "E_SCHEMA_INVALID", "/mechanics", (c) => (c.assumptions.thermalOnly = true));
+badTm("triso-mechanics-no-reference-temperature", "E_PROP_MISSING", "/mechanics/referenceTemperature", (c) => delete c.mechanics.referenceTemperature);
+badTm("triso-mechanics-reference-temperature-zero", "E_OUT_OF_RANGE", "/mechanics/referenceTemperature", (c) => (c.mechanics.referenceTemperature = qv(0, "K")));
+badTm("triso-mechanics-no-outside-pressure", "E_PROP_MISSING", "/mechanics/outsidePressure", (c) => delete c.mechanics.outsidePressure);
+badTm("triso-mechanics-outside-pressure-negative", "E_OUT_OF_RANGE", "/mechanics/outsidePressure", (c) => (c.mechanics.outsidePressure = qv(-1, "MPa")));
+badTm("triso-mechanics-gas-pressure-no-source", "E_PROP_MISSING", "/mechanics/gasPressure/source", (c) => delete c.mechanics.gasPressure.source);
+badTm("triso-mechanics-gas-pressure-zero", "E_OUT_OF_RANGE", "/mechanics/gasPressure/pressure", (c) => (c.mechanics.gasPressure.pressure = qv(0, "MPa")));
+badTm("triso-mechanics-gas-pressure-wrong-unit", "E_UNITS", "/mechanics/gasPressure/pressure", (c) => (c.mechanics.gasPressure.pressure = qv(25, "K")));
+badTm("triso-mechanics-gas-pressure-not-an-object", "E_SCHEMA_INVALID", "/mechanics/gasPressure", (c) => (c.mechanics.gasPressure = 25));
+badTm("triso-mechanics-free-strain-no-source", "E_PROP_MISSING", "/mechanics/freeStrains/0/source", (c) => { c.mechanics.freeStrains = [fs0("ipyc", -0.01, -0.01)]; delete c.mechanics.freeStrains[0].source; });
+badTm("triso-mechanics-free-strain-no-tangential", "E_PROP_MISSING", "/mechanics/freeStrains/0/tangential", (c) => { c.mechanics.freeStrains = [fs0("ipyc", -0.01, -0.01)]; delete c.mechanics.freeStrains[0].tangential; });
+badTm("triso-mechanics-free-strain-buffer", "E_UNSUPPORTED", "/mechanics/freeStrains/0/layer", (c) => (c.mechanics.freeStrains = [fs0("buffer", -0.01, -0.01)]));
+badTm("triso-mechanics-free-strain-unknown-layer", "E_SCHEMA_INVALID", "/mechanics/freeStrains/0/layer", (c) => (c.mechanics.freeStrains = [fs0("kernel", -0.01, -0.01)]));
+badTm("triso-mechanics-free-strain-absent-layer", "E_GEOMETRY", "/mechanics/freeStrains/0/layer", (c) => { c.geometry.layers = c.geometry.layers.slice(0, 3); delete c.materials.opyc; delete c.mesh.opycCells; c.mechanics.freeStrains = [fs0("opyc", -0.01, -0.01)]; });
+badTm("triso-mechanics-free-strain-duplicate", "E_SCHEMA_INVALID", "/mechanics/freeStrains/1/layer", (c) => (c.mechanics.freeStrains = [fs0("ipyc", -0.01, -0.01), fs0("ipyc", -0.02, -0.02)]));
+badTm("triso-mechanics-free-strain-too-large", "E_OUT_OF_RANGE", "/mechanics/freeStrains/0/radial", (c) => (c.mechanics.freeStrains = [fs0("ipyc", -0.5, -0.01)]));
+badTm("triso-mechanics-free-strain-wrong-unit", "E_UNITS", "/mechanics/freeStrains/0/radial", (c) => { c.mechanics.freeStrains = [fs0("ipyc", -0.01, -0.01)]; c.mechanics.freeStrains[0].radial = qv(-0.01, "K"); });
+badTm("triso-mechanics-history", "E_UNSUPPORTED", "/mechanics/history", (c) => (c.mechanics.history = []));
+badTm("triso-mechanics-gas-inventory", "E_UNSUPPORTED", "/mechanics/gasInventory", (c) => (c.mechanics.gasInventory = { moles: 1e-9 }));
+badTm("triso-mechanics-swelling-correlation", "E_UNSUPPORTED", "/mechanics/swelling", (c) => (c.mechanics.swelling = "PyCCorrelation"));
+badTm("triso-mechanics-unknown-key", "E_SCHEMA_INVALID", "/mechanics/plenumVolume", (c) => (c.mechanics.plenumVolume = 1));
+badTm("triso-mechanics-no-elasticity", "E_PROP_MISSING", "/materials/ipyc/sets/mechanical.elasticity", (c) => delete c.materials.ipyc.sets["mechanical.elasticity"]);
+badTm("triso-mechanics-no-expansion", "E_PROP_MISSING", "/materials/sic/sets/mechanical.thermalExpansion", (c) => delete c.materials.sic.sets["mechanical.thermalExpansion"]);
+badTm("triso-mechanics-no-source-on-elasticity", "E_PROP_MISSING", "/materials/opyc/sets/mechanical.elasticity/source", (c) => delete c.materials.opyc.sets["mechanical.elasticity"].source);
+badTm("triso-mechanics-poisson-too-large", "E_OUT_OF_RANGE", "/materials/sic/sets/mechanical.elasticity/poissonRatio", (c) => (c.materials.sic.sets["mechanical.elasticity"].poissonRatio = qv(0.5, "1")));
+badTm("triso-mechanics-with-limits", "E_UNSUPPORTED", "/limits", (c) => (c.limits = [{ name: "k", region: "kernel", maxTemperature: qv(1500, "K"), source: "synthetic: a number chosen for this test" }]));
+{
+  const c = trisoPulse();
+  addMech(c);
+  add("bad", "triso-mechanics-with-transient", c, { code: "E_UNSUPPORTED", field: "/mechanics" });
+}
 bad("pin-missing-fuel-material", "E_SCHEMA_INVALID", "/materials/fuel", (c) => delete c.materials.fuel);
 bad("pin-missing-cladding-cells", "E_SCHEMA_INVALID", "/mesh/claddingCells", (c) => delete c.mesh.claddingCells);
 

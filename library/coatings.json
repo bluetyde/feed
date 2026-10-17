@@ -1,0 +1,324 @@
+[
+  {
+    "id": "pyc-dense-parfume-unirradiated",
+    "regions": [
+      "ipyc",
+      "opyc"
+    ],
+    "name": "Dense pyrolytic carbon (inner or outer PyC), unirradiated, isotropic: PARFUME model basis",
+    "label": "sourced",
+    "description": "The pyrocarbon correlations of the PARFUME report for a dense layer (density 1.96 Mg/m3, Bacon anisotropy factor 1, so the radial and tangential values are equal) at zero fast fluence: Young's modulus 25.5 GPa x (0.384 + 0.324 rho) x (1 + 0.00015 (T - 20 C)) = 25.99 GPa at 20 C, Poisson's ratio 0.23, linear expansion 5.0e-6 x (1 + 0.11 (T - 400 C) / 700) per K. The report applies these models to 600 to 1300 C and fluences to 4e25 n/m2 (E > 0.18 MeV); the fluence factor (1 + 0.23 phi) of the modulus and every irradiation effect are NOT included (set phi = 0): irradiation changes the modulus and shrinks or swells the layer, which FEED takes as a stated free strain, never from a correlation. The report says most PyC test data have densities of 1.5 Mg/m3 or more, that the modulus data come from strip samples, and that its source for all of these is the CEGA report CEGA-002820 (not read here). Other published values for the same layer are 39.6 GPa and 0.33 (Boer et al. 2010), which is 1.5 times the modulus here: the spread is real and the case's choice should say which it uses (docs/spike/triso-mechanics-data.md).",
+    "citation": "G. K. Miller, D. A. Petti, J. T. Maki, D. L. Knudson, 'PARFUME Theory and Model Basis Report', Idaho National Laboratory report INL/EXT-08-14497 (2009), OSTI 968587, chapter 7.1 (mechanical properties) and 7.2.3 (thermal expansion): equations 7-2 and 7-3 (modulus, E01 = E03 = 25.5 GPa, crystallite factor 1 at Lc = 30 Angstrom), section 7.1.3.1 (nu = 0.23 'prescribed in Reference 25 for isotropic pyrocarbon'), section 7.2.3.1 (alpha_r = A (-37.5 R_r + 30), alpha_t = A (36 (R_t - 1)^2 + 1), in 1e-6/C, A = 1 + 0.11 (T - 400)/700, T in C; R_r = 2/(2 + BAF), R_t = 1 - R_r/2). Read in the published PDF, pages 68, 69 and 78.",
+    "sets": {
+      "mechanical.elasticity": {
+        "model": "linear",
+        "a": {
+          "value": 24842871720.0,
+          "unit": "Pa"
+        },
+        "b": {
+          "value": 3897828.0,
+          "unit": "Pa/K"
+        },
+        "poissonRatio": {
+          "value": 0.23,
+          "unit": "1"
+        },
+        "validRange": {
+          "min": {
+            "value": 873.15,
+            "unit": "K"
+          },
+          "max": {
+            "value": 1573.15,
+            "unit": "K"
+          }
+        },
+        "source": "INL/EXT-08-14497 (PARFUME Theory and Model Basis Report, 2009) eq. 7-2/7-3 with density 1.96 Mg/m3, BAF 1, fluence 0, Lc 30 Angstrom: E = 25.5 GPa x 1.01904 x (1 + 0.00015 (T - 20 C)), rewritten in kelvin; nu = 0.23 (section 7.1.3.1). Range 600 to 1300 C is the report's stated limit for its models; unirradiated: the fluence factor is not applied"
+      },
+      "mechanical.thermalExpansion": {
+        "linearExpansion": {
+          "model": "linear",
+          "a": {
+            "value": 4.471096429e-06,
+            "unit": "1/K"
+          },
+          "b": {
+            "value": 7.857142857e-10,
+            "unit": "1/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 873.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1573.15,
+              "unit": "K"
+            }
+          }
+        },
+        "source": "INL/EXT-08-14497 section 7.2.3.1: alpha = 5.0e-6 x (1 + 0.11 (T - 400 C)/700) per K for BAF 1 (R = 2/3, both directions 5.0e-6 A), rewritten in kelvin; range 600 to 1300 C is the report's limit for the layer models. Whether the report's alpha is the instantaneous or a mean coefficient is not stated; it is used as the instantaneous one"
+      }
+    }
+  },
+  {
+    "id": "buffer-parfume-unirradiated",
+    "regions": [
+      "buffer"
+    ],
+    "name": "Porous carbon buffer, unirradiated: PARFUME model basis",
+    "label": "sourced",
+    "description": "The buffer of the PARFUME report: density 1.0 Mg/m3 (porosity 56 %), isotropic, Young's modulus 5e6 psi x exp(-2.03 p) x (1 + 0.00015 (T - 20 C)) = 11.06 GPa at 20 C (the fluence factor 1 + 0.23 phi is not applied), Poisson's ratio 0.23, linear expansion as the isotropic pyrocarbon (5.0e-6 x (1 + 0.11 (T - 400 C)/700) per K). The report warns that the buffer's modulus is a large extrapolation of PyC data (most data are for 1.5 Mg/m3 and above) and may be inaccurate. Another published value is 20 GPa with 0.23 (a 2021 finite-element paper citing MacDonald and Thompson 1976, the original not read): a factor 1.8 apart, so the buffer's modulus is uncertain by about that much. In a FEED particle the buffer is not meshed for mechanics (it is detached from the inner carbon): these values are used only if a later stage meshes it.",
+    "citation": "G. K. Miller, D. A. Petti, J. T. Maki, D. L. Knudson, 'PARFUME Theory and Model Basis Report', Idaho National Laboratory report INL/EXT-08-14497 (2009), OSTI 968587, chapter 7.1 (mechanical properties) and 7.2.3 (thermal expansion): equation 7-4 and the text above it (density 1 Mg/m3 -> porosity 56 %), section 7.1.3.2 (nu = 0.23), section 7.2.3.2 (the buffer uses the pyrocarbon expansion with R = 2/3). Read in the published PDF, pages 68, 69 and 79.",
+    "sets": {
+      "mechanical.elasticity": {
+        "model": "linear",
+        "a": {
+          "value": 10574343280.0,
+          "unit": "Pa"
+        },
+        "b": {
+          "value": 1659106.555,
+          "unit": "Pa/K"
+        },
+        "poissonRatio": {
+          "value": 0.23,
+          "unit": "1"
+        },
+        "validRange": {
+          "min": {
+            "value": 873.15,
+            "unit": "K"
+          },
+          "max": {
+            "value": 1573.15,
+            "unit": "K"
+          }
+        },
+        "source": "INL/EXT-08-14497 eq. 7-4: E = 5e6 psi exp(-2.03 p)(1 + 0.00015 (T - 20 C)) with p = 0.56, fluence factor omitted (unirradiated), rewritten in kelvin; nu = 0.23 (section 7.1.3.2); range 600 to 1300 C is the report's limit"
+      },
+      "mechanical.thermalExpansion": {
+        "linearExpansion": {
+          "model": "linear",
+          "a": {
+            "value": 4.471096429e-06,
+            "unit": "1/K"
+          },
+          "b": {
+            "value": 7.857142857e-10,
+            "unit": "1/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 873.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1573.15,
+              "unit": "K"
+            }
+          }
+        },
+        "source": "INL/EXT-08-14497 section 7.2.3.2: the buffer takes the pyrocarbon expansion with R_r = R_t = 2/3, i.e. 5.0e-6 x (1 + 0.11 (T - 400 C)/700) per K, rewritten in kelvin"
+      }
+    }
+  },
+  {
+    "id": "sic-parfume-25-940",
+    "regions": [
+      "sic"
+    ],
+    "name": "Silicon carbide (CVD), unirradiated: PARFUME model basis, modulus table between 25 and 940 C",
+    "label": "sourced",
+    "description": "Young's modulus of the SiC layer from Table 7-1 of the PARFUME report (427.6 GPa at 25 C, 375.2 GPa at 940 C, linear between, as the report says), Poisson's ratio 0.13 and the constant linear expansion 4.9e-6 per K. The table has four points, so the modulus is three entries, one per interval: pick the one that covers the layer's temperatures (a layer that spans an interval boundary gets a range warning). Irradiation does not change the report's SiC modulus. Other published values: 340 GPa at the high end of this table matches a 2021 paper's SiC value (citing Snead et al. 2007, not read), and 400 GPa (Boer et al. 2010) at room temperature is within 7 % of 427.6 GPa; measured values of CVD SiC differ with grain orientation (391 to 442 GPa by nanoindentation, a search summary, not read).",
+    "citation": "G. K. Miller, D. A. Petti, J. T. Maki, D. L. Knudson, 'PARFUME Theory and Model Basis Report', Idaho National Laboratory report INL/EXT-08-14497 (2009), OSTI 968587, chapter 7.1 (mechanical properties) and 7.2.3 (thermal expansion): Table 7-1 (modulus against temperature, page 69), section 7.1.3.3 (nu = 0.13 'in accordance with recommendations of Reference 25'), section 7.2.3.3 (alpha, page 79). Read in the published PDF.",
+    "sets": {
+      "mechanical.elasticity": {
+        "model": "linear",
+        "a": {
+          "value": 444674382500.0,
+          "unit": "Pa"
+        },
+        "b": {
+          "value": -57267759.56,
+          "unit": "Pa/K"
+        },
+        "poissonRatio": {
+          "value": 0.13,
+          "unit": "1"
+        },
+        "validRange": {
+          "min": {
+            "value": 298.15,
+            "unit": "K"
+          },
+          "max": {
+            "value": 1213.15,
+            "unit": "K"
+          }
+        },
+        "source": "INL/EXT-08-14497 Table 7-1: 4.276e+05 MPa at 25 C and 3.752e+05 MPa at 940 C, linear between; nu = 0.13 (section 7.1.3.3)"
+      },
+      "mechanical.thermalExpansion": {
+        "linearExpansion": {
+          "value": 4.9e-06,
+          "unit": "1/K"
+        },
+        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C; free carbon in the SiC could lower it by 40 %"
+      }
+    }
+  },
+  {
+    "id": "sic-parfume-940-1215",
+    "regions": [
+      "sic"
+    ],
+    "name": "Silicon carbide (CVD), unirradiated: PARFUME model basis, modulus table between 940 and 1215 C",
+    "label": "sourced",
+    "description": "Young's modulus of the SiC layer from Table 7-1 of the PARFUME report (375.2 GPa at 940 C, 340.0 GPa at 1215 C, linear between, as the report says), Poisson's ratio 0.13 and the constant linear expansion 4.9e-6 per K. The table has four points, so the modulus is three entries, one per interval: pick the one that covers the layer's temperatures (a layer that spans an interval boundary gets a range warning). Irradiation does not change the report's SiC modulus. Other published values: 340 GPa at the high end of this table matches a 2021 paper's SiC value (citing Snead et al. 2007, not read), and 400 GPa (Boer et al. 2010) at room temperature is within 7 % of 427.6 GPa; measured values of CVD SiC differ with grain orientation (391 to 442 GPa by nanoindentation, a search summary, not read).",
+    "citation": "G. K. Miller, D. A. Petti, J. T. Maki, D. L. Knudson, 'PARFUME Theory and Model Basis Report', Idaho National Laboratory report INL/EXT-08-14497 (2009), OSTI 968587, chapter 7.1 (mechanical properties) and 7.2.3 (thermal expansion): Table 7-1 (modulus against temperature, page 69), section 7.1.3.3 (nu = 0.13 'in accordance with recommendations of Reference 25'), section 7.2.3.3 (alpha, page 79). Read in the published PDF.",
+    "sets": {
+      "mechanical.elasticity": {
+        "model": "linear",
+        "a": {
+          "value": 530483200000.0,
+          "unit": "Pa"
+        },
+        "b": {
+          "value": -128000000.0,
+          "unit": "Pa/K"
+        },
+        "poissonRatio": {
+          "value": 0.13,
+          "unit": "1"
+        },
+        "validRange": {
+          "min": {
+            "value": 1213.15,
+            "unit": "K"
+          },
+          "max": {
+            "value": 1488.15,
+            "unit": "K"
+          }
+        },
+        "source": "INL/EXT-08-14497 Table 7-1: 3.752e+05 MPa at 940 C and 3.4e+05 MPa at 1215 C, linear between; nu = 0.13 (section 7.1.3.3)"
+      },
+      "mechanical.thermalExpansion": {
+        "linearExpansion": {
+          "value": 4.9e-06,
+          "unit": "1/K"
+        },
+        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C; free carbon in the SiC could lower it by 40 %"
+      }
+    }
+  },
+  {
+    "id": "sic-parfume-1215-1600",
+    "regions": [
+      "sic"
+    ],
+    "name": "Silicon carbide (CVD), unirradiated: PARFUME model basis, modulus table between 1215 and 1600 C",
+    "label": "sourced",
+    "description": "Young's modulus of the SiC layer from Table 7-1 of the PARFUME report (340.0 GPa at 1215 C, 197.9 GPa at 1600 C, linear between, as the report says), Poisson's ratio 0.13 and the constant linear expansion 4.9e-6 per K. The table has four points, so the modulus is three entries, one per interval: pick the one that covers the layer's temperatures (a layer that spans an interval boundary gets a range warning). Irradiation does not change the report's SiC modulus. Other published values: 340 GPa at the high end of this table matches a 2021 paper's SiC value (citing Snead et al. 2007, not read), and 400 GPa (Boer et al. 2010) at room temperature is within 7 % of 427.6 GPa; measured values of CVD SiC differ with grain orientation (391 to 442 GPa by nanoindentation, a search summary, not read).",
+    "citation": "G. K. Miller, D. A. Petti, J. T. Maki, D. L. Knudson, 'PARFUME Theory and Model Basis Report', Idaho National Laboratory report INL/EXT-08-14497 (2009), OSTI 968587, chapter 7.1 (mechanical properties) and 7.2.3 (thermal expansion): Table 7-1 (modulus against temperature, page 69), section 7.1.3.3 (nu = 0.13 'in accordance with recommendations of Reference 25'), section 7.2.3.3 (alpha, page 79). Read in the published PDF.",
+    "sets": {
+      "mechanical.elasticity": {
+        "model": "linear",
+        "a": {
+          "value": 889262636400.0,
+          "unit": "Pa"
+        },
+        "b": {
+          "value": -369090909.1,
+          "unit": "Pa/K"
+        },
+        "poissonRatio": {
+          "value": 0.13,
+          "unit": "1"
+        },
+        "validRange": {
+          "min": {
+            "value": 1488.15,
+            "unit": "K"
+          },
+          "max": {
+            "value": 1873.15,
+            "unit": "K"
+          }
+        },
+        "source": "INL/EXT-08-14497 Table 7-1: 3.4e+05 MPa at 1215 C and 1.979e+05 MPa at 1600 C, linear between; nu = 0.13 (section 7.1.3.3)"
+      },
+      "mechanical.thermalExpansion": {
+        "linearExpansion": {
+          "value": 4.9e-06,
+          "unit": "1/K"
+        },
+        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C; free carbon in the SiC could lower it by 40 %"
+      }
+    }
+  },
+  {
+    "id": "sic-parfume-25-940-xrd-expansion",
+    "regions": [
+      "sic"
+    ],
+    "name": "Silicon carbide (CVD), 25 to 940 C: PARFUME modulus with the measured X-ray expansion",
+    "label": "sourced",
+    "description": "The modulus and Poisson's ratio of the entry 'sic-parfume-25-940' with a measured expansion coefficient: the lattice expansion of CVD SiC shells of coated particles by high-temperature X-ray diffraction, 25 to 1200 C, alpha = 3.3047e-6 + 2.7705e-9 T (T in C) per K, an instantaneous coefficient (4.7e-6 averaged over 25 to 1000 C, 4 % below the PARFUME 4.9e-6). A lattice measurement, not a dilatometer measurement.",
+    "citation": "N. Ngoepe and J. P. R. de Villiers, 'The thermal expansion of 3C-SiC in TRISO particles by high temperature X-ray diffraction', Journal of Nuclear Materials 438 (2013) 88-93, equation (9) for the disaggregated SiC shells (sample CR14-UP, 25 to 1200 C); modulus as in the PARFUME entry. Read in the author manuscript (University of Pretoria repository).",
+    "sets": {
+      "mechanical.elasticity": {
+        "model": "linear",
+        "a": {
+          "value": 444674382500.0,
+          "unit": "Pa"
+        },
+        "b": {
+          "value": -57267759.56,
+          "unit": "Pa/K"
+        },
+        "poissonRatio": {
+          "value": 0.13,
+          "unit": "1"
+        },
+        "validRange": {
+          "min": {
+            "value": 298.15,
+            "unit": "K"
+          },
+          "max": {
+            "value": 1213.15,
+            "unit": "K"
+          }
+        },
+        "source": "INL/EXT-08-14497 Table 7-1: 4.276e5 MPa at 25 C and 3.752e5 MPa at 940 C, linear between; nu = 0.13 (section 7.1.3.3)"
+      },
+      "mechanical.thermalExpansion": {
+        "linearExpansion": {
+          "model": "linear",
+          "a": {
+            "value": 2.547937925e-06,
+            "unit": "1/K"
+          },
+          "b": {
+            "value": 2.7705e-09,
+            "unit": "1/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 298.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1473.15,
+              "unit": "K"
+            }
+          }
+        },
+        "source": "Ngoepe and de Villiers, J. Nucl. Mater. 438 (2013) 88, eq. (9): alpha = 3.3047e-6 + 2.7705e-9 T(C) per K for CVD SiC shells of TRISO particles, 25 to 1200 C, rewritten in kelvin"
+      }
+    }
+  }
+]
