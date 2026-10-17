@@ -521,3 +521,129 @@ describe("the pebble through the real solver (saved output)", () => {
     expect(readdirSync(join(root, "tests", "golden", "offbeat-pebble")).sort()).toEqual(["C", "T", "cellZones", "log.offbeat.txt", "normalized.json", "rate.json", "results.json"]);
   });
 });
+
+// Added after the mutation run (scripts/mut-t4.cjs): each of these kills a mutant the first tests let live.
+describe("what the mutation run found missing", () => {
+  it("the particle's layers are evaluated at the temperature asked for: a kernel conductivity that rises with T moves the equivalent sphere, by Hashin's formula by hand", () => {
+    const d = constantCompact();
+    d.compact.particle.materials.kernel.sets["thermal.conductivity"] = { model: "linear", a: qv(2, "W/m/K"), b: qv(0.001, "W/m/K2"), validRange: { min: qv(600, "K"), max: qv(1500, "K") }, source: "synthetic: rises with temperature" };
+    const spec = validateCase(d).normalized!.compact!;
+    for (const T of [700, 1100]) {
+      const kA = hashin(2 + 0.001 * T, 0.5, (250 / 350) ** 3);
+      const kB = hashin(kA, 4, (350 / 390) ** 3);
+      const kC = hashin(kB, 13.9, (390 / 425) ** 3);
+      expect(particleEquivalentK(spec.particle, T)).toBeCloseTo(hashin(kC, 4, (425 / 460) ** 3), 6);
+    }
+    expect(particleEquivalentK(spec.particle, 1100)).toBeGreaterThan(particleEquivalentK(spec.particle, 700));
+  });
+
+  it("the matrix shell uses the matrix conductivity at the temperature asked for", () => {
+    const base = validateCase(example("synthetic-compact-steady")).normalized!.compact!;
+    // k(T) = 30 - 0.012 T: 19.2 at 900 K, 16.8 at 1100 K; the shell's drop is inversely proportional
+    const a = twoScaleParticle(base, 900);
+    const b = twoScaleParticle(base, 1100);
+    expect(a.matrixConductivity).toBeCloseTo(19.2, 9);
+    expect(b.matrixConductivity).toBeCloseTo(16.8, 9);
+    expect(b.shellDeltaT / a.shellDeltaT).toBeCloseTo(19.2 / 16.8, 9);
+  });
+
+  it("a packing fraction above random close packing is warned (with the mixture's own warning), and the two together are the warnings of 0.7", () => {
+    const d = example("synthetic-compact-steady");
+    d.compact.packingFraction = qv(0.7, "1");
+    expect(validateCase(d).warnings.map((w) => w.code).sort()).toEqual(["W_MIXTURE_RANGE", "W_PACKING_FRACTION"]);
+    d.compact.packingFraction = qv(0.64, "1"); // exactly random close packing: not above it
+    expect(validateCase(d).warnings.map((w) => w.code)).toEqual(["W_MIXTURE_RANGE"]);
+  });
+
+  it("a range that is not a range is refused at its field", () => {
+    const d = example("synthetic-compact-steady");
+    d.compact.validRange = { min: qv(1100, "K"), max: qv(700, "K") };
+    expect(validateCase(d).errors.map((e) => e.code + e.field)).toEqual(["E_OUT_OF_RANGE/compact/validRange"]);
+    d.compact.validRange = { min: qv(0, "K"), max: qv(700, "K") };
+    expect(validateCase(d).errors.map((e) => e.code + e.field)).toEqual(["E_OUT_OF_RANGE/compact/validRange"]);
+  });
+
+  it("the matrix temperature bound is the pin's, not a loose one: a 1 K error fails and a 0.05 K one passes", () => {
+    const n = JSON.parse(read("tests", "golden", "offbeat-compact", "normalized.json"));
+    const cells = buildResults(n, { T: read("tests", "golden", "offbeat-compact", "T"), C: read("tests", "golden", "offbeat-compact", "C"), time: 5e7 }).radial.filter((p) => p.region === "fuel").map((p) => ({ r: p.r, T: p.T }));
+    const q = quickLook(n).temperatures;
+    const closed = (r: number) => q.fuelSurfaceT + (q.centreT - q.fuelSurfaceT) * (1 - (r / n.fuelRadius) ** 2);
+    const run = (offset: number) => buildCompactRecord(n.compact, cells, (r) => closed(r) + offset, { inner: 0, outer: n.fuelRadius });
+    expect(run(0.05).checks.filter((c) => c.verdict === "fail")).toEqual([]);
+    expect(run(1).checks.filter((c) => c.verdict === "fail").map((c) => c.id)).toEqual(["twoScaleMatrix0", "twoScaleMatrix1"]);
+    // the bound is 5 x the fuel's rise / N^2 + 0.01 K: 5 x 21.3 / 900 + 0.01 = 0.128 K for 30 cells
+    const bound = Number(/bound ([\d.]+) K/.exec(run(0.05).checks[0]!.note)![1]);
+    expect(bound).toBeCloseTo((5 * (q.centreT - q.fuelSurfaceT)) / 900 + 0.01, 2);
+  });
+});
+
+describe("what the mutation run found missing in the pebble's reading", () => {
+  const d = (...q: string[]) => read("tests", "golden", "offbeat-pebble", ...q);
+  const n = JSON.parse(d("normalized.json"));
+  const rate = JSON.parse(d("rate.json")) as { relativeRate: number; time: number };
+  const input = () => ({ T: d("T"), C: d("C"), cellZones: d("cellZones"), time: rate.time, drift: { relativeRate: rate.relativeRate } });
+
+  it("the control dictionary runs to the pebble's own end time, which the manifest states", () => {
+    const p = validateCase(example("synthetic-pebble-steady")).pebble!;
+    const w = writePebbleCase(p);
+    const end = pebbleSteadyEndTime(p);
+    expect(end.ok && w.choices.endTime).toBe(end.ok ? end.endTime : -1);
+    expect(/endTime\s+([\d.e+]+);/.exec(w.files["system/controlDict"]!)![1]).toBe(String(w.choices.endTime));
+  });
+
+  it("the cross-check against the finite-volume solution fails on the coarse mesh's real output (0.49 K of a 0.25 K bound), judged by the code, not by the saved verdict", () => {
+    const c = (...q: string[]) => read("tests", "golden", "offbeat-pebble-coarse", ...q);
+    const m = JSON.parse(c("normalized.json"));
+    const r = buildPebbleResults(m, { T: c("T"), C: c("C"), cellZones: c("cellZones"), time: 5e7, drift: { relativeRate: 0 } });
+    expect(notPassing(r)).toEqual(["crossCheckFv fail"]);
+    const fv = r.checks.find((x) => x.id === "crossCheckFv")!;
+    expect(fv.value!).toBeGreaterThan(0.48);
+    expect(fv.value!).toBeLessThan(0.5);
+  });
+
+  it("a conductivity 3 % off fails the closed-form check of that region by about the 2 K it changes the rise (the allowance is the pin's 5 dT / N^2, not a loose one)", () => {
+    const m = JSON.parse(JSON.stringify(n));
+    m.fuelledConductivity.coefficients = m.fuelledConductivity.coefficients.map((x: number) => x * 1.03);
+    const r = buildPebbleResults(m, input());
+    expect(notPassing(r)).toContain("closedFormFuelled fail");
+    expect(r.checks.find((x) => x.id === "closedFormFuelled")!.value!).toBeGreaterThan(1.5);
+  });
+
+  it("an outside 1 K off the case's fails the wall check (0.05 K)", () => {
+    const m = JSON.parse(JSON.stringify(n));
+    m.boundary.bulkTemperature += 1;
+    expect(notPassing(buildPebbleResults(m, input()))).toContain("wallTemperature fail");
+  });
+
+  it("the centre is the first cell's temperature plus q r^2 / (6 k) at that cell: 1.6 mK here", () => {
+    const r = buildPebbleResults(n, input());
+    const first = r.cells[0]!;
+    const co = n.fuelledConductivity.coefficients as number[];
+    const k = co[0]! + co[1]! * first.T + co[2]! * first.T ** 2 + co[3]! * first.T ** 3;
+    expect(r.summary.centreT - first.T).toBeCloseTo((n.power.powerDensity * first.r ** 2) / (6 * k), 5);
+  });
+
+  it("a case whose radii are 0.15 % off the mesh that was run is refused (every cell is in its zone, but not where this case's mesh puts it)", () => {
+    const m = JSON.parse(JSON.stringify(n));
+    m.fuelledRadius *= 1.0015;
+    m.outerRadius *= 1.0015;
+    expect(() => buildPebbleResults(m, input())).toThrow(/cell centres differ from the case's mesh/);
+  });
+
+  it("two cells at one centre are refused before anything is judged", () => {
+    const i = input();
+    const lines = i.C.split("\n");
+    const at = lines.findIndex((l) => /^\(\d/.test(l));
+    lines[at + 1] = lines[at]!;
+    expect(() => buildPebbleResults(n, { ...i, C: lines.join("\n") })).toThrow(/share a centre/);
+  });
+
+  it("the steady-state bound uses the hottest cell: a rate that puts it just over the threshold fails and just under passes", () => {
+    const tau = pebbleTimeScale(n).tauBound;
+    const hottest = 1098.65;
+    const failing = buildPebbleResults(n, { ...input(), drift: { relativeRate: 0.011 / (tau * hottest) } });
+    expect(notPassing(failing)).toEqual(["steadyState fail"]);
+    const passing = buildPebbleResults(n, { ...input(), drift: { relativeRate: 0.009 / (tau * hottest) } });
+    expect(notPassing(passing)).toEqual([]);
+  });
+});
