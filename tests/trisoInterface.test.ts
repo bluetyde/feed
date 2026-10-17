@@ -116,6 +116,61 @@ describe("the interface allowance of a particle", () => {
   });
 });
 
+describe("the allowance in detail (found by the mutation run: three changes of it had survived)", () => {
+  it("takes the conductivity of a temperature-dependent material at the temperature of the interface: the kernel's at its surface and the buffer's at its inner face", () => {
+    const n = JSON.parse(JSON.stringify(g("median-12").n));
+    // k = a + b T: the kernel's falls with temperature, the buffer's rises, so that the value at the centre or at the buffer's outer face is a visibly different number
+    n.kernelConductivity = { kind: "linear", a: 6, b: -0.003, referenceTemperature: 1000 };
+    n.layers[0].conductivity = { kind: "linear", a: 0.2, b: 0.0004, referenceTemperature: 1000 };
+    const eq = wedgeEquivalent(n);
+    const closed = trisoClosedForm(eq);
+    const T = closed.regions[0]!.outerT;
+    expect(closed.regions[1]!.innerT).toBeCloseTo(T, 9);
+    // the centre and the buffer's outer face are not at that temperature (so a conductivity read there would be another number)
+    expect(Math.abs(closed.regions[0]!.innerT - T)).toBeGreaterThan(3);
+    expect(Math.abs(closed.regions[1]!.outerT - T)).toBeGreaterThan(3);
+    const k1 = 6 - 0.003 * T;
+    const k2 = 0.2 + 0.0004 * T;
+    const P = eq.power.particlePower;
+    const Rk = eq.kernelRadius;
+    const centroid = (a: number, b: number) => (0.75 * (b ** 4 - a ** 4)) / (b ** 3 - a ** 3);
+    const d1 = Rk - centroid(Rk - Rk / eq.cells[0]!, Rk);
+    const d2 = centroid(Rk, Rk + (eq.layers[0]!.outerRadius - Rk) / eq.cells[1]!) - Rk;
+    const hand = Math.abs(P * (((k1 - k2) * (d1 * d1 / k1 - d2 * d2 / k2)) / (k1 * k2 * (d1 / k1 + d2 / k2) * 4 * Math.PI * Rk * Rk)));
+    expect(Math.abs(trisoInterfaceAllowance(eq).interfaces[0]!.shift)).toBeCloseTo(hand, 9);
+  });
+
+  it("each region's closed-form bound carries the allowance of the interfaces outside it, and the outermost region none (the notes say how much)", () => {
+    const x = g("median-12");
+    const r = read(x);
+    const a = trisoInterfaceAllowance(wedgeEquivalent(x.n));
+    ["closedFormKernel", "closedFormBuffer", "closedFormIpyc", "closedFormSic", "closedFormOpyc"].forEach((id, ri) => {
+      const note = r.checks.find((c) => c.id === id)!.note;
+      if (a.forRegion[ri]! > 0) expect(note, id).toContain((SAFETY * a.forRegion[ri]!).toPrecision(3) + " K interface allowance");
+      else expect(note, id).not.toMatch(/interface allowance/);
+    });
+    // the kernel's is the largest, the buffer's and the inner carbon's are equal (the gap is not an interface), the outermost has none
+    expect(a.forRegion[0]!).toBeGreaterThan(a.forRegion[1]!);
+    expect(a.forRegion[1]!).toBeCloseTo(a.forRegion[2]!, 15);
+    expect(a.forRegion[4]!).toBe(0);
+  });
+
+  it("keeps the floor of 0.02 K under the 0.3 % of a small rise: a particle whose rise is 3 K has a bound of 0.02 K plus the allowance", () => {
+    const x = g("median-12");
+    const mutate = (n: any) => {
+      n.power.particlePower *= 0.2;
+      n.power.kernelPowerDensity *= 0.2;
+    };
+    const r = read(x, mutate);
+    const n = JSON.parse(JSON.stringify(x.n));
+    mutate(n);
+    const closed = trisoClosedForm(wedgeEquivalent(n));
+    expect(0.003 * (closed.centreT - closed.wallT)).toBeLessThan(0.02);
+    const want = 0.02 + SAFETY * trisoInterfaceAllowance(wedgeEquivalent(n)).total;
+    expect(Number(/bound ([0-9.]+) K/.exec(fv(r).note)![1])).toBeCloseTo(want, 3);
+  });
+});
+
 describe("real OFFBEAT output on coarse meshes (tests/golden/offbeat-triso-mesh)", () => {
   for (const role of ROLES) {
     it(role + " on 12 cells per region: every check passes now; without the allowance the cross-check would fail, and the estimate predicts the deviation", () => {
