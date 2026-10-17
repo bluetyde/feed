@@ -1,0 +1,371 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 9-c96968adf6d8
+Exec   : offbeat
+Date   : Oct 16 2026
+Time   : 20:39:57
+Host   : "2ndJohnComputer"
+PID    : 2067
+I/O    : uncollated
+Case   : /home/feed/runs/feed-d121d543a760
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Selected time unit: seconds
+Selected end time: 10 seconds
+
+Create mesh for time = 0
+
+Selecting materials model byZone
+     For cellzone IPyC: 
+     Selecting material model --> constant
+
+     For cellzone SiC: 
+     Selecting material model --> constant
+
+     For cellzone OPyC: 
+     Selecting material model --> constant
+
+Selecting sliceMapper model autoAxialSlices
+
+     Thermal expansion: on
+     Plane stress: off
+     Modified plane strain: off
+
+     For material constant: 
+     Selecting rheology model elasticity
+     Selecting constitutiveLaw type --> elasticity
+
+     For material constant: 
+     Selecting rheology model elasticity
+     Selecting constitutiveLaw type --> elasticity
+
+     For material constant: 
+     Selecting rheology model elasticity
+     Selecting constitutiveLaw type --> elasticity
+
+Selecting heatSource none
+Selecting burnup: none
+Selecting neutronicsSolver model none
+Selecting fastFlux none
+Selecting thermalSolver model constant
+Selecting mechanicsSolver model smallStrain
+
+Axisymmetric case: disabling the solution in the out-of-plane direction
+    out-of-plane direction: y
+
+    out-of-plane direction: z
+
+Selecting multi-material interface type uniform
+Selecting fgr: none
+Selecting gapGasModel none
+--> FOAM Warning : 
+    From function elementTransport::New(fvMesh&, const materials&, const dictinoary&)
+    in file corrosion/corrosion.C at line 130
+    Type 'fromLatestTime' for `corrosion` is deprecated. Please use 'constant' instead.
+Selecting corrosion: constant
+Selecting elementTransportSolver none
+No flow solver selected. Flow solver is disabled.
+List of user-supplied parameters:
+
+List of all registered (default) user parameters:
+	behavioralModels::densification::F_epsilonDensification	behavioralModels::densification::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::UO2FRAPCON::F_epsilonDensification	behavioralModels::densification::UO2FRAPCON::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::UO2FRAPCON::delta_epsilonDensification	behavioralModels::densification::UO2FRAPCON::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::densification::delta_epsilonDensification	behavioralModels::densification::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::densification::empirical::F_epsilonDensification	behavioralModels::densification::empirical::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::empirical::delta_epsilonDensification	behavioralModels::densification::empirical::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::phaseTransition::F_betaFraction	behavioralModels::phaseTransition::F_betaFraction [0 0 0 0 0 0 0] 1
+	behavioralModels::phaseTransition::delta_betaFraction	behavioralModels::phaseTransition::delta_betaFraction [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::F_epsilonRelocation	behavioralModels::relocation::F_epsilonRelocation [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::F_epsilonRelocationRecovery	behavioralModels::relocation::F_epsilonRelocationRecovery [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::UO2FRAPCON::F_epsilonRelocation	behavioralModels::relocation::UO2FRAPCON::F_epsilonRelocation [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::UO2FRAPCON::delta_epsilonRelocation	behavioralModels::relocation::UO2FRAPCON::delta_epsilonRelocation [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::delta_epsilonRelocation	behavioralModels::relocation::delta_epsilonRelocation [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::delta_epsilonRelocationRecovery	behavioralModels::relocation::delta_epsilonRelocationRecovery [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::BufferPARFUME::F_epsilonSwelling	behavioralModels::swelling::BufferPARFUME::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::BufferPARFUME::delta_epsilonSwelling	behavioralModels::swelling::BufferPARFUME::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::FBRMOX::F_epsilonSwelling	behavioralModels::swelling::FBRMOX::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FBRMOX::delta_epsilonSwelling	behavioralModels::swelling::FBRMOX::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::F_epsilonSwelling	behavioralModels::swelling::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FrCrAl::F_epsilonSwelling	behavioralModels::swelling::FrCrAl::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FrCrAl::delta_epsilonSwelling	behavioralModels::swelling::FrCrAl::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::PyCCorrelation::F_epsilonSwelling	behavioralModels::swelling::PyCCorrelation::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::PyCCorrelation::delta_epsilonSwelling	behavioralModels::swelling::PyCCorrelation::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::PyCPARFUME::F_epsilonSwelling	behavioralModels::swelling::PyCPARFUME::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::PyCPARFUME::delta_epsilonSwelling	behavioralModels::swelling::PyCPARFUME::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::UO2FRAPCON::F_epsilonSwelling	behavioralModels::swelling::UO2FRAPCON::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::UO2FRAPCON::delta_epsilonSwelling	behavioralModels::swelling::UO2FRAPCON::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::UO2MATPRO::F_epsilonSwelling	behavioralModels::swelling::UO2MATPRO::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::UO2MATPRO::delta_epsilonSwelling	behavioralModels::swelling::UO2MATPRO::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::WrightShamHastelloyN::F_epsilonSwelling	behavioralModels::swelling::WrightShamHastelloyN::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::WrightShamHastelloyN::delta_epsilonSwelling	behavioralModels::swelling::WrightShamHastelloyN::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::constant::F_epsilonSwelling	behavioralModels::swelling::constant::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::constant::delta_epsilonSwelling	behavioralModels::swelling::constant::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::delta_epsilonSwelling	behavioralModels::swelling::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthAIM11515Ti::F_epsilonSwelling	behavioralModels::swelling::growthAIM11515Ti::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthAIM11515Ti::delta_epsilonSwelling	behavioralModels::swelling::growthAIM11515Ti::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthBISONZy::F_epsilonSwelling	behavioralModels::swelling::growthBISONZy::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthBISONZy::delta_epsilonSwelling	behavioralModels::swelling::growthBISONZy::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthGeneralized1515Ti::F_epsilonSwelling	behavioralModels::swelling::growthGeneralized1515Ti::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthGeneralized1515Ti::delta_epsilonSwelling	behavioralModels::swelling::growthGeneralized1515Ti::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::F_hContact	boundaryConditions::fuelRodGap::F_hContact [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::F_hGas	boundaryConditions::fuelRodGap::F_hGas [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::F_hRad	boundaryConditions::fuelRodGap::F_hRad [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::delta_hContact	boundaryConditions::fuelRodGap::delta_hContact [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::delta_hGas	boundaryConditions::fuelRodGap::delta_hGas [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::delta_hRad	boundaryConditions::fuelRodGap::delta_hRad [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepIrrEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepIrrEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepPrimEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepPrimEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepThEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepThEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepIrrEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepIrrEq [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepPrimEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepPrimEq [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepThEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepThEq [0 0 0 0 0 0 0] 0
+	materials::F_Cp	materials::F_Cp [0 0 0 0 0 0 0] 1
+	materials::F_E	materials::F_E [0 0 0 0 0 0 0] 1
+	materials::F_alphaT	materials::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::F_emissivity	materials::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::F_k	materials::F_k [0 0 0 0 0 0 0] 1
+	materials::F_nu	materials::F_nu [0 0 0 0 0 0 0] 1
+	materials::F_rho	materials::F_rho [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_Cp	materials::HastelloyN::F_Cp [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_E	materials::HastelloyN::F_E [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_alphaT	materials::HastelloyN::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_emissivity	materials::HastelloyN::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_k	materials::HastelloyN::F_k [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_nu	materials::HastelloyN::F_nu [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_rho	materials::HastelloyN::F_rho [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::delta_Cp	materials::HastelloyN::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::HastelloyN::delta_E	materials::HastelloyN::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::HastelloyN::delta_alphaT	materials::HastelloyN::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_emissivity	materials::HastelloyN::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_k	materials::HastelloyN::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::HastelloyN::delta_nu	materials::HastelloyN::delta_nu [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_rho	materials::HastelloyN::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::PyC::F_Cp	materials::PyC::F_Cp [0 0 0 0 0 0 0] 1
+	materials::PyC::F_E	materials::PyC::F_E [0 0 0 0 0 0 0] 1
+	materials::PyC::F_alphaT	materials::PyC::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::PyC::F_emissivity	materials::PyC::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::PyC::F_k	materials::PyC::F_k [0 0 0 0 0 0 0] 1
+	materials::PyC::F_nu	materials::PyC::F_nu [0 0 0 0 0 0 0] 1
+	materials::PyC::F_rho	materials::PyC::F_rho [0 0 0 0 0 0 0] 1
+	materials::PyC::delta_Cp	materials::PyC::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::PyC::delta_E	materials::PyC::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::PyC::delta_alphaT	materials::PyC::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_emissivity	materials::PyC::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_k	materials::PyC::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::PyC::delta_nu	materials::PyC::delta_nu [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_rho	materials::PyC::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::SiC::F_Cp	materials::SiC::F_Cp [0 0 0 0 0 0 0] 1
+	materials::SiC::F_E	materials::SiC::F_E [0 0 0 0 0 0 0] 1
+	materials::SiC::F_alphaT	materials::SiC::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::SiC::F_emissivity	materials::SiC::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::SiC::F_k	materials::SiC::F_k [0 0 0 0 0 0 0] 1
+	materials::SiC::F_nu	materials::SiC::F_nu [0 0 0 0 0 0 0] 1
+	materials::SiC::F_rho	materials::SiC::F_rho [0 0 0 0 0 0 0] 1
+	materials::SiC::delta_Cp	materials::SiC::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::SiC::delta_E	materials::SiC::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::SiC::delta_alphaT	materials::SiC::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_emissivity	materials::SiC::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_k	materials::SiC::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::SiC::delta_nu	materials::SiC::delta_nu [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_rho	materials::SiC::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::UO2::F_Cp	materials::UO2::F_Cp [0 0 0 0 0 0 0] 1
+	materials::UO2::F_E	materials::UO2::F_E [0 0 0 0 0 0 0] 1
+	materials::UO2::F_alphaT	materials::UO2::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::UO2::F_emissivity	materials::UO2::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::UO2::F_k	materials::UO2::F_k [0 0 0 0 0 0 0] 1
+	materials::UO2::F_nu	materials::UO2::F_nu [0 0 0 0 0 0 0] 1
+	materials::UO2::F_rho	materials::UO2::F_rho [0 0 0 0 0 0 0] 1
+	materials::UO2::delta_Cp	materials::UO2::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::UO2::delta_E	materials::UO2::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::UO2::delta_alphaT	materials::UO2::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_emissivity	materials::UO2::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_k	materials::UO2::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::UO2::delta_nu	materials::UO2::delta_nu [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_rho	materials::UO2::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::UPuO2::F_Cp	materials::UPuO2::F_Cp [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_E	materials::UPuO2::F_E [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_alphaT	materials::UPuO2::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_emissivity	materials::UPuO2::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_k	materials::UPuO2::F_k [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_nu	materials::UPuO2::F_nu [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_rho	materials::UPuO2::F_rho [0 0 0 0 0 0 0] 1
+	materials::UPuO2::delta_Cp	materials::UPuO2::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::UPuO2::delta_E	materials::UPuO2::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::UPuO2::delta_alphaT	materials::UPuO2::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_emissivity	materials::UPuO2::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_k	materials::UPuO2::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::UPuO2::delta_nu	materials::UPuO2::delta_nu [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_rho	materials::UPuO2::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::buffer::F_Cp	materials::buffer::F_Cp [0 0 0 0 0 0 0] 1
+	materials::buffer::F_E	materials::buffer::F_E [0 0 0 0 0 0 0] 1
+	materials::buffer::F_alphaT	materials::buffer::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::buffer::F_emissivity	materials::buffer::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::buffer::F_k	materials::buffer::F_k [0 0 0 0 0 0 0] 1
+	materials::buffer::F_nu	materials::buffer::F_nu [0 0 0 0 0 0 0] 1
+	materials::buffer::F_rho	materials::buffer::F_rho [0 0 0 0 0 0 0] 1
+	materials::buffer::delta_Cp	materials::buffer::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::buffer::delta_E	materials::buffer::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::buffer::delta_alphaT	materials::buffer::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_emissivity	materials::buffer::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_k	materials::buffer::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::buffer::delta_nu	materials::buffer::delta_nu [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_rho	materials::buffer::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::delta_Cp	materials::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::delta_E	materials::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::delta_alphaT	materials::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::delta_emissivity	materials::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::delta_k	materials::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::delta_nu	materials::delta_nu [0 0 0 0 0 0 0] 0
+	materials::delta_rho	materials::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::zircaloy::F_Cp	materials::zircaloy::F_Cp [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_E	materials::zircaloy::F_E [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_alphaT	materials::zircaloy::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_emissivity	materials::zircaloy::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_k	materials::zircaloy::F_k [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_nu	materials::zircaloy::F_nu [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_rho	materials::zircaloy::F_rho [0 0 0 0 0 0 0] 1
+	materials::zircaloy::delta_Cp	materials::zircaloy::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::zircaloy::delta_E	materials::zircaloy::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::zircaloy::delta_alphaT	materials::zircaloy::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_emissivity	materials::zircaloy::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_k	materials::zircaloy::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::zircaloy::delta_nu	materials::zircaloy::delta_nu [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_rho	materials::zircaloy::delta_rho [1 -3 0 0 0 0 0] 0
+
+Time = 10 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for Dx, Initial residual = 0, Final residual = 0, No Iterations 0
+relResidualD is 0
+absErrD is 0
+Domain average displacement: (0 0 0)
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for Dx, Initial residual = 1, Final residual = 3.4407754e-13, No Iterations 1
+relResidualD is 1
+absErrD is 1.3348897e-06
+FDICPCG:  Solving for Dx, Initial residual = 0.26449143, Final residual = 6.7966055e-14, No Iterations 1
+relResidualD is 0.19493237
+absErrD is 3.2321907e-07
+FDICPCG:  Solving for Dx, Initial residual = 0.098574608, Final residual = 1.7355062e-14, No Iterations 1
+relResidualD is 0.048611585
+absErrD is 8.450529e-08
+Domain average displacement: (1.5382122e-06 0 0)
+
+OuterIteration n. 2
+
+FDICPCG:  Solving for Dx, Initial residual = 0.044157156, Final residual = 7.687338e-15, No Iterations 1
+relResidualD is 0.014798102
+absErrD is 2.6033794e-08
+FDICPCG:  Solving for Dx, Initial residual = 0.021441061, Final residual = 1.6327946e-15, No Iterations 1
+relResidualD is 0.0053765806
+absErrD is 9.4917903e-09
+FDICPCG:  Solving for Dx, Initial residual = 0.010525082, Final residual = 9.4198801e-16, No Iterations 1
+relResidualD is 0.0025317473
+absErrD is 4.4752487e-09
+Domain average displacement: (1.5733802e-06 0 0)
+
+OuterIteration n. 3
+
+FDICPCG:  Solving for Dx, Initial residual = 0.0051915953, Final residual = 6.8507093e-16, No Iterations 1
+relResidualD is 0.0014380546
+absErrD is 2.543547e-09
+FDICPCG:  Solving for Dx, Initial residual = 0.0025664461, Final residual = 2.9029254e-16, No Iterations 1
+relResidualD is 0.00087660312
+absErrD is 1.5510431e-09
+FDICPCG:  Solving for Dx, Initial residual = 0.0012698611, Final residual = 2.2991302e-16, No Iterations 1
+relResidualD is 0.00055183305
+absErrD is 9.7662664e-10
+Domain average displacement: (1.5770371e-06 0 0)
+
+OuterIteration n. 4
+
+FDICPCG:  Solving for Dx, Initial residual = 0.00062844502, Final residual = 8.6623814e-17, No Iterations 1
+relResidualD is 0.00035240931
+absErrD is 6.2378379e-10
+FDICPCG:  Solving for Dx, Initial residual = 0.00031093395, Final residual = 4.4436113e-17, No Iterations 1
+relResidualD is 0.000226575
+absErrD is 4.0109046e-10
+FDICPCG:  Solving for Dx, Initial residual = 0.00015374308, Final residual = 3.8273026e-17, No Iterations 1
+relResidualD is 0.00014618111
+absErrD is 2.5879178e-10
+Domain average displacement: (1.577907e-06 0 0)
+
+OuterIteration n. 5
+
+FDICPCG:  Solving for Dx, Initial residual = 7.5941448e-05, Final residual = 2.9333381e-17, No Iterations 1
+relResidualD is 9.4504713e-05
+absErrD is 1.6731378e-10
+FDICPCG:  Solving for Dx, Initial residual = 3.7455156e-05, Final residual = 1.5116402e-17, No Iterations 1
+relResidualD is 6.1176946e-05
+absErrD is 1.0831249e-10
+FDICPCG:  Solving for Dx, Initial residual = 2.1410764e-05, Final residual = 7.8383517e-18, No Iterations 1
+relResidualD is 3.9638931e-05
+absErrD is 7.0181216e-11
+Domain average displacement: (1.5781388e-06 0 0)
+
+OuterIteration n. 6
+
+FDICPCG:  Solving for Dx, Initial residual = 1.4866755e-05, Final residual = 6.8608356e-18, No Iterations 1
+relResidualD is 2.5700913e-05
+absErrD is 4.5504345e-11
+FDICPCG:  Solving for Dx, Initial residual = 1.0372134e-05, Final residual = 3.15343e-18, No Iterations 1
+relResidualD is 1.6672265e-05
+absErrD is 2.9519053e-11
+FDICPCG:  Solving for Dx, Initial residual = 7.0933995e-06, Final residual = 3.0129242e-18, No Iterations 1
+relResidualD is 1.0819506e-05
+absErrD is 1.9156561e-11
+Domain average displacement: (1.5782018e-06 0 0)
+
+OuterIteration n. 7
+
+FDICPCG:  Solving for Dx, Initial residual = 4.7850591e-06, Final residual = 1.7291668e-18, No Iterations 1
+relResidualD is 7.0234073e-06
+absErrD is 1.2435391e-11
+FDICPCG:  Solving for Dx, Initial residual = 3.1967552e-06, Final residual = 1.2997056e-18, No Iterations 1
+relResidualD is 4.5602254e-06
+absErrD is 8.0741883e-12
+FDICPCG:  Solving for Dx, Initial residual = 2.1207584e-06, Final residual = 1.0857887e-18, No Iterations 1
+relResidualD is 2.9614208e-06
+absErrD is 5.2434039e-12
+Domain average displacement: (1.5782191e-06 0 0)
+
+OuterIteration n. 8
+
+FDICPCG:  Solving for Dx, Initial residual = 1.3997316e-06, Final residual = 6.7113401e-19, No Iterations 1
+relResidualD is 1.9234101e-06
+absErrD is 3.4055362e-12
+FDICPCG:  Solving for Dx, Initial residual = 9.203373e-07, Final residual = 2.3820963e-19, No Iterations 1
+relResidualD is 1.2493629e-06
+absErrD is 2.2120884e-12
+Domain average displacement: (1.5782228e-06 0 0)
+
+OuterIteration n. 9
+
+FDICPCG:  Solving for Dx, Initial residual = 6.034138e-07, Final residual = 2.3546664e-19, No Iterations 1
+relResidualD is 8.1159511e-07
+absErrD is 1.4369891e-12
+Domain average displacement: (1.5782238e-06 0 0)
+
+Max von Mises stress (sigmaEq) = 1.8879494e+08
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by fgr model: 2.028241e+31 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 2.028241e+32 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 10 seconds and next timeStep = 20 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 10  Total Timesteps = 1
+
+timeout: the monitored command dumped core

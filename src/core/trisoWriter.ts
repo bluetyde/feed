@@ -21,10 +21,10 @@ export const TRISO_ZONE_ORDER = ["kernel", "buffer", "ipyc", "sic", "opyc"] as c
 export const TRISO_PATCHES = { gapInner: "bufferOuter", gapOuter: "ipycInner", outer: "outer" } as const;
 
 /** Micrometres: the mesh is written in them (convertToMeters 1e-06) so that the numbers stay readable. */
-const UM = 1e6;
+export const UM = 1e6;
 
 /** The four vertices of a level of radius r (micrometres): (x, +y, -y), (x, +y, +y), (x, -y, +y), (x, -y, -y). */
-function level(rUm: number): number[][] {
+export function level(rUm: number): number[][] {
   if (rUm === 0) return [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
   const x = (rUm * Math.cos(TRISO_WEDGE_HALF)) / TRISO_WEDGE_S;
   const y = (rUm * Math.sin(TRISO_WEDGE_HALF)) / TRISO_WEDGE_S;

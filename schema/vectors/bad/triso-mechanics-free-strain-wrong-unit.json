@@ -1,0 +1,255 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "triso-mechanics-free-strain-wrong-unit",
+  "name": "Synthetic coated particle (illustrative numbers, not a real fuel design)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": false,
+    "steadyState": true,
+    "geometry": "1D-sphere"
+  },
+  "geometry": {
+    "kind": "triso",
+    "kernelRadius": {
+      "value": 250,
+      "unit": "um"
+    },
+    "layers": [
+      {
+        "name": "buffer",
+        "thickness": {
+          "value": 100,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "ipyc",
+        "thickness": {
+          "value": 40,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "sic",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "opyc",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      }
+    ]
+  },
+  "power": {
+    "kernelPowerDensity": {
+      "value": 600,
+      "unit": "MW/m3"
+    }
+  },
+  "boundary": {
+    "surfaceTemperature": {
+      "value": 1000,
+      "unit": "K"
+    }
+  },
+  "materials": {
+    "kernel": {
+      "materialId": "synthetic-kernel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "buffer": {
+      "materialId": "synthetic-buffer",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 0.5,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "ipyc": {
+      "materialId": "synthetic-ipyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "mechanical.elasticity": {
+          "model": "constant",
+          "youngModulus": {
+            "value": 39600,
+            "unit": "MPa"
+          },
+          "poissonRatio": {
+            "value": 0.33,
+            "unit": "1"
+          },
+          "source": "Boer et al., Inter-comparison of computer codes for TRISO-based fuel micro-modeling and performance assessment, HTR 2010 (INL/CON-10-18055), Table 1"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 0.0000055,
+            "unit": "1/K"
+          },
+          "source": "synthetic: an illustrative coefficient chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "sic": {
+      "materialId": "synthetic-sic",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 13.9,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "mechanical.elasticity": {
+          "model": "constant",
+          "youngModulus": {
+            "value": 400000,
+            "unit": "MPa"
+          },
+          "poissonRatio": {
+            "value": 0.13,
+            "unit": "1"
+          },
+          "source": "Boer et al., Inter-comparison of computer codes for TRISO-based fuel micro-modeling and performance assessment, HTR 2010 (INL/CON-10-18055), Table 1"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 0.0000049,
+            "unit": "1/K"
+          },
+          "source": "synthetic: an illustrative coefficient chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "opyc": {
+      "materialId": "synthetic-opyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        },
+        "mechanical.elasticity": {
+          "model": "constant",
+          "youngModulus": {
+            "value": 39600,
+            "unit": "MPa"
+          },
+          "poissonRatio": {
+            "value": 0.33,
+            "unit": "1"
+          },
+          "source": "Boer et al., Inter-comparison of computer codes for TRISO-based fuel micro-modeling and performance assessment, HTR 2010 (INL/CON-10-18055), Table 1"
+        },
+        "mechanical.thermalExpansion": {
+          "linearExpansion": {
+            "value": 0.0000055,
+            "unit": "1/K"
+          },
+          "source": "synthetic: an illustrative coefficient chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 150000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "kernelCells": 12,
+    "bufferCells": 12,
+    "ipycCells": 12,
+    "sicCells": 16,
+    "opycCells": 12
+  },
+  "mechanics": {
+    "referenceTemperature": {
+      "value": 1000,
+      "unit": "K"
+    },
+    "outsidePressure": {
+      "value": 0.1,
+      "unit": "MPa"
+    },
+    "gasPressure": {
+      "pressure": {
+        "value": 25,
+        "unit": "MPa"
+      },
+      "source": "synthetic: an input of the benchmark's order (25 MPa inside, 0.1 MPa outside)"
+    },
+    "freeStrains": [
+      {
+        "layer": "ipyc",
+        "radial": {
+          "value": -0.01,
+          "unit": "K"
+        },
+        "tangential": {
+          "value": -0.01,
+          "unit": "1"
+        },
+        "source": "synthetic: an input chosen for the closed-form oracle, not a measured dimensional change"
+      }
+    ]
+  }
+}

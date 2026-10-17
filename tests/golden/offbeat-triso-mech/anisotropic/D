@@ -1,0 +1,112 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "10";
+    object      D;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 0 0 0 0 0];
+
+internalField   nonuniform List<vector> 
+40
+(
+(1.3492353e-06 0 0)
+(1.3345718e-06 0 0)
+(1.31991e-06 0 0)
+(1.3052451e-06 0 0)
+(1.2905728e-06 0 0)
+(1.2758888e-06 0 0)
+(1.2611892e-06 0 0)
+(1.2464702e-06 0 0)
+(1.2317283e-06 0 0)
+(1.21696e-06 0 0)
+(1.2021622e-06 0 0)
+(1.1873318e-06 0 0)
+(1.1835953e-06 0 0)
+(1.1910279e-06 0 0)
+(1.1984515e-06 0 0)
+(1.2058664e-06 0 0)
+(1.2132726e-06 0 0)
+(1.2206705e-06 0 0)
+(1.2280601e-06 0 0)
+(1.2354417e-06 0 0)
+(1.2428154e-06 0 0)
+(1.2501814e-06 0 0)
+(1.2575398e-06 0 0)
+(1.2648908e-06 0 0)
+(1.2722347e-06 0 0)
+(1.2795714e-06 0 0)
+(1.2869012e-06 0 0)
+(1.2942242e-06 0 0)
+(1.2736754e-06 0 0)
+(1.2259674e-06 0 0)
+(1.1790151e-06 0 0)
+(1.1327984e-06 0 0)
+(1.0872978e-06 0 0)
+(1.0424943e-06 0 0)
+(9.9836967e-07 0 0)
+(9.5490633e-07 0 0)
+(9.1208714e-07 0 0)
+(8.6989555e-07 0 0)
+(8.2831554e-07 0 0)
+(7.873316e-07 0 0)
+)
+;
+
+boundaryField
+{
+    top
+    {
+        type            wedge;
+    }
+    front
+    {
+        type            wedge;
+    }
+    back
+    {
+        type            wedge;
+    }
+    bottom
+    {
+        type            wedge;
+    }
+    inner
+    {
+        type            tractionDisplacement;
+        refValue        uniform (0 0 0);
+        refGradient     uniform (0.0043626407 -9.2282545e-22 -1.155511e-21);
+        valueFraction   uniform (0 0 0 0 0 0);
+        value           uniform (1.3565292e-06 -1.5183766e-27 -1.9374004e-27);
+        limitCoeff      1;
+        traction        uniform (0 0 0);
+        pressure        uniform 10000000;
+        totalTraction   uniform (10000000 0 0);
+        value           uniform (1.3565292e-06 -1.5183766e-27 -1.9374004e-27);
+    }
+    outer
+    {
+        type            tractionDisplacement;
+        refValue        uniform (0 0 0);
+        refGradient     uniform (-0.013901296 1.0621393e-20 1.4545876e-20);
+        valueFraction   uniform (0 0 0 0 0 0);
+        value           uniform (7.6710225e-07 1.5449736e-26 2.1159434e-26);
+        limitCoeff      1;
+        traction        uniform (0 0 0);
+        pressure        uniform 100000;
+        totalTraction   uniform (-100000 0 0);
+        value           uniform (7.6710225e-07 1.5449736e-26 2.1159434e-26);
+    }
+}
+
+
+// ************************************************************************* //

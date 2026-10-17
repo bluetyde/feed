@@ -273,7 +273,7 @@ describe("what the particle case refuses", () => {
     expect(codes(nfi)).toEqual(["E_UNSUPPORTED /materials/kernel/sets/thermal.conductivity/model"]);
   });
   it("refuses every pin section that has no meaning for a particle, each by its own name", () => {
-    for (const [key, value] of [["mechanics", {}], ["hotDimensions", {}], ["burnup", {}], ["axial", {}]] as const) {
+    for (const [key, value] of [["hotDimensions", {}], ["burnup", {}], ["axial", {}]] as const) {
       const d = particle();
       d[key] = value;
       const c = codes(d);
@@ -285,7 +285,8 @@ describe("what the particle case refuses", () => {
     expect(codes(tr)).toEqual(expect.arrayContaining(["E_TRANSIENT_INCOMPLETE /transient", "E_TRANSIENT_INCOMPLETE /power", "E_PROP_MISSING /materials/kernel/sets/thermal.volumetricHeatCapacity"]));
     const th = particle();
     th.assumptions.thermalOnly = false;
-    expect(codes(th)).toEqual(["E_UNSUPPORTED /assumptions/thermalOnly"]);
+    // plan 14: a particle may ask for mechanics; the flag without the section is refused as a pin's is
+    expect(codes(th)).toEqual(["E_PROP_MISSING /mechanics"]);
     const geo = particle();
     geo.assumptions.geometry = "1D-radial";
     expect(codes(geo)).toEqual(["E_UNSUPPORTED /assumptions/geometry"]);

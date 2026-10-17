@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path";
 import { BackendOutcome, RunBackend } from "../../src/core/runManager";
 
-export type Script = "triso-transient-quench" | "triso-transient-good" | "triso-transient-no-zones" | "triso-transient-missing-time" | "triso-good" | "triso-no-zones" | "triso-wrong-zones" | "triso-no-patch" | "burnup-good" | "burnup-no-k" | "burnup-wrong-basis" | "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "unconverged" | "drifting" | "no-rate-record" | "exit-1-complete" | "fatal-in-log" | "no-iteration-records" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
+export type Script = "triso-mech-good" | "triso-mech-no-sigma" | "triso-mech-unconverged" | "triso-transient-quench" | "triso-transient-good" | "triso-transient-no-zones" | "triso-transient-missing-time" | "triso-good" | "triso-no-zones" | "triso-wrong-zones" | "triso-no-patch" | "burnup-good" | "burnup-no-k" | "burnup-wrong-basis" | "status--1" | "status-0.5" | "status-256" | "exit-124" | "exit-137" | "bad-exit-record" | "log-is-dir" | "no-endtime" | "good" | "good-exit-0" | "fatal" | "unconverged" | "drifting" | "no-rate-record" | "exit-1-complete" | "fatal-in-log" | "no-iteration-records" | "sigabrt" | "sigfpe" | "mesh-fails" | "truncated" | "nan" | "early-end" | "no-exit-record" | "infra-error" | "hang";
 
 const golden = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-syn", f), "utf8");
 /** Real OFFBEAT logs from the non-convergence probe: one step that converged (6 outer iterations), one that hit its cap unconverged. */
@@ -15,6 +15,12 @@ export const convergedLog = () => atFinalTime(readFileSync(join(__dirname, "..",
 /** The real log of a full steady run (84 time steps to 5e7 s; the last step printed a relative temperature change of -0). */
 export const steadyLog = () => readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "steady-full-run.log.txt"), "utf8");
 export const unconvergedLog = () => atFinalTime(readFileSync(join(__dirname, "..", "golden", "offbeat-convergence", "capped-unconverged.log.txt"), "utf8"));
+
+/** The real log of a run with the last outer iteration's displacement residuals set far above OFFBEAT's criterion. */
+const notConvergedDisplacement = (log: string): string => {
+  const k = log.lastIndexOf("OuterIteration n.");
+  return log.slice(0, k) + log.slice(k).replace(/Initial residual = [^,]+/g, "Initial residual = 0.5").replace(/relResidualD is \S+/g, "relResidualD is 0.5");
+};
 
 export class FakeBackend implements RunBackend {
   runs: string[] = [];
@@ -139,6 +145,18 @@ export class FakeBackend implements RunBackend {
         else if (script !== "triso-no-zones") writeFileSync(join(nativeDir, "final", "cellZones"), t("cellZones"));
         writeFileSync(join(nativeDir, "log.offbeat"), t("log.offbeat.txt"));
         exit(0, 139, 50000000);
+        return { cancelled: false };
+      }
+      // a coated particle's mechanics (tests/golden/offbeat-triso-mech/swelling): the real fields, the zones and the real log of the run (one step, displacement convergence only)
+      case "triso-mech-good":
+      case "triso-mech-no-sigma":
+      case "triso-mech-unconverged": {
+        const t = (f: string) => readFileSync(join(__dirname, "..", "golden", "offbeat-triso-mech", "swelling", f), "utf8");
+        for (const f of ["T", "C", "cellZones", "D", "epsilonSwelling"]) writeFileSync(join(nativeDir, "final", f), t(f));
+        if (script !== "triso-mech-no-sigma") writeFileSync(join(nativeDir, "final", "sigma"), t("sigma"));
+        // a log whose last outer iteration is not below OFFBEAT's displacement criterion
+        writeFileSync(join(nativeDir, "log.offbeat"), script === "triso-mech-unconverged" ? notConvergedDisplacement(t("log.offbeat.txt")) : t("log.offbeat.txt"));
+        exit(0, 139, 10);
         return { cancelled: false };
       }
       // a coated particle's transient (tests/golden/offbeat-triso-transient/pulse): the real fields at every output and the cell zones; the log is a compact one of the same form (one outer

@@ -1,0 +1,492 @@
+{
+  "schema": "feed.results/0.1",
+  "kind": "triso-mechanics",
+  "caseId": "triso-mechanics-pressure",
+  "time": 10,
+  "referenceTemperature": 1000,
+  "gasPressure": 25000000,
+  "outsidePressure": 100000,
+  "cells": [
+    {
+      "r": 0.00035166524,
+      "layer": "ipyc",
+      "T": 1000.2658,
+      "sigmaR": -24693982,
+      "sigmaT": 7369088.6,
+      "sigmaTz": 7369088.6,
+      "ur": 1.1672506e-7,
+      "ind": {
+        "sigmaR": -24692225.252993934,
+        "sigmaT": 7370609.562147196,
+        "ur": 1.1673007018671916e-7
+      }
+    },
+    {
+      "r": 0.00035499846,
+      "layer": "ipyc",
+      "T": 1000.2449,
+      "sigmaR": -24097377,
+      "sigmaT": 7077641.9,
+      "sigmaTz": 7077641.9,
+      "ur": 1.1427527e-7,
+      "ind": {
+        "sigmaR": -24095696.352196824,
+        "sigmaT": 7079125.786322175,
+        "ur": 1.1428029762937566e-7
+      }
+    },
+    {
+      "r": 0.00035833168,
+      "layer": "ipyc",
+      "T": 1000.2245,
+      "sigmaR": -23522644,
+      "sigmaT": 6796999.4,
+      "sigmaTz": 6796999.4,
+      "ur": 1.1189028e-7,
+      "ind": {
+        "sigmaR": -23521033.269091327,
+        "sigmaT": 6798448.770965028,
+        "ur": 1.1189532043962346e-7
+      }
+    },
+    {
+      "r": 0.0003616649,
+      "layer": "ipyc",
+      "T": 1000.2044,
+      "sigmaR": -22968784,
+      "sigmaT": 6526666.8,
+      "sigmaTz": 6526666.8,
+      "ur": 1.0956770000000002e-7,
+      "ind": {
+        "sigmaR": -22967239.950195875,
+        "sigmaT": 6528083.977206975,
+        "ur": 1.0957276095966517e-7
+      }
+    },
+    {
+      "r": 0.00036499812,
+      "layer": "ipyc",
+      "T": 1000.1846,
+      "sigmaR": -22434857,
+      "sigmaT": 6266176.7,
+      "sigmaTz": 6266176.7,
+      "ur": 1.0730527e-7,
+      "ind": {
+        "sigmaR": -22433374.357567575,
+        "sigmaT": 6267563.746541405,
+        "ur": 1.0731034959938428e-7
+      }
+    },
+    {
+      "r": 0.00036833135,
+      "layer": "ipyc",
+      "T": 1000.1653,
+      "sigmaR": -21919970,
+      "sigmaT": 6015086.7,
+      "sigmaTz": 6015086.7,
+      "ur": 1.0510082e-7,
+      "ind": {
+        "sigmaR": -21918543.56355613,
+        "sigmaT": 6016444.8726849705,
+        "ur": 1.0510591246666293e-7
+      }
+    },
+    {
+      "r": 0.00037166457,
+      "layer": "ipyc",
+      "T": 1000.1463,
+      "sigmaR": -21423279,
+      "sigmaT": 5772978.2,
+      "sigmaTz": 5772978.2,
+      "ur": 1.0295229e-7,
+      "ind": {
+        "sigmaR": -21421906.723934464,
+        "sigmaT": 5774310.018386307,
+        "ur": 1.0295739217064011e-7
+      }
+    },
+    {
+      "r": 0.0003749978,
+      "layer": "ipyc",
+      "T": 1000.1276,
+      "sigmaR": -20943984,
+      "sigmaT": 5539454.5,
+      "sigmaTz": 5539454.5,
+      "ur": 1.0085768e-7,
+      "ind": {
+        "sigmaR": -20942661.476132262,
+        "sigmaT": 5540761.051093194,
+        "ur": 1.0086279680810802e-7
+      }
+    },
+    {
+      "r": 0.00037833103,
+      "layer": "ipyc",
+      "T": 1000.1092,
+      "sigmaR": -20481328,
+      "sigmaT": 5314140,
+      "sigmaTz": 5314140,
+      "ur": 9.881511000000002e-8,
+      "ind": {
+        "sigmaR": -20480051.78490827,
+        "sigmaT": 5315422.8399693575,
+        "ur": 9.882024068438472e-8
+      }
+    },
+    {
+      "r": 0.00038166425,
+      "layer": "ipyc",
+      "T": 1000.0912,
+      "sigmaR": -20034592,
+      "sigmaT": 5096678.4,
+      "sigmaTz": 5096678.4,
+      "ur": 9.682277e-8,
+      "ind": {
+        "sigmaR": -20033360.714553397,
+        "sigmaT": 5097939.703729808,
+        "ur": 9.682791974509932e-8
+      }
+    },
+    {
+      "r": 0.00038499748,
+      "layer": "ipyc",
+      "T": 1000.0735,
+      "sigmaR": -19603095,
+      "sigmaT": 4886731.9,
+      "sigmaTz": 4886731.9,
+      "ur": 9.4878926e-8,
+      "ind": {
+        "sigmaR": -19601904.273939814,
+        "sigmaT": 4887972.388877356,
+        "ur": 9.488409009275948e-8
+      }
+    },
+    {
+      "r": 0.00038833071,
+      "layer": "ipyc",
+      "T": 1000.056,
+      "sigmaR": -19186188,
+      "sigmaT": 4683980.6,
+      "sigmaTz": 4683980.6,
+      "ur": 9.2981921e-8,
+      "ind": {
+        "sigmaR": -19185037.25537455,
+        "sigmaT": 4685200.887782445,
+        "ur": 9.298709984169272e-8
+      }
+    },
+    {
+      "r": 0.00039108834,
+      "layer": "sic",
+      "T": 1000.0459,
+      "sigmaR": -18288205,
+      "sigmaT": 105235530,
+      "sigmaTz": 105235530,
+      "ur": 9.1926649e-8,
+      "ind": {
+        "sigmaR": -18286359.20043936,
+        "sigmaT": 105241578.35567003,
+        "ur": 9.193243398558096e-8
+      }
+    },
+    {
+      "r": 0.00039327579,
+      "layer": "sic",
+      "T": 1000.0427,
+      "sigmaR": -16921645,
+      "sigmaT": 104559480,
+      "sigmaTz": 104559480,
+      "ur": 9.168172299999999e-8,
+      "ind": {
+        "sigmaR": -16919792.047572773,
+        "sigmaT": 104565498.05144055,
+        "ur": 9.168750307058661e-8
+      }
+    },
+    {
+      "r": 0.00039546324,
+      "layer": "sic",
+      "T": 1000.0395,
+      "sigmaR": -15585089,
+      "sigmaT": 103898350,
+      "sigmaTz": 103898350,
+      "ur": 9.1445105e-8,
+      "ind": {
+        "sigmaR": -15583214.901076555,
+        "sigmaT": 103904333.06259637,
+        "ur": 9.145087956310254e-8
+      }
+    },
+    {
+      "r": 0.00039765068,
+      "layer": "sic",
+      "T": 1000.0364,
+      "sigmaR": -14277704,
+      "sigmaT": 103251730,
+      "sigmaTz": 103251730,
+      "ur": 9.121661e-8,
+      "ind": {
+        "sigmaR": -14275814.209446786,
+        "sigmaT": 103257677.8964272,
+        "ur": 9.122238219913269e-8
+      }
+    },
+    {
+      "r": 0.00039983813,
+      "layer": "sic",
+      "T": 1000.0333,
+      "sigmaR": -12998698,
+      "sigmaT": 102619210,
+      "sigmaTz": 102619210,
+      "ur": 9.0996064e-8,
+      "ind": {
+        "sigmaR": -12996785.29648643,
+        "sigmaT": 102625131.5655378,
+        "ur": 9.10018315726075e-8
+      }
+    },
+    {
+      "r": 0.00040202558,
+      "layer": "sic",
+      "T": 1000.0302,
+      "sigmaR": -11747303,
+      "sigmaT": 102000420,
+      "sigmaTz": 102000420,
+      "ur": 9.0783292e-8,
+      "ind": {
+        "sigmaR": -11745367.204485403,
+        "sigmaT": 102006314.81698638,
+        "ur": 9.07890562397981e-8
+      }
+    },
+    {
+      "r": 0.00040421303,
+      "layer": "sic",
+      "T": 1000.0272,
+      "sigmaR": -10522777,
+      "sigmaT": 101394990,
+      "sigmaTz": 101394990,
+      "ur": 9.0578127e-8,
+      "ind": {
+        "sigmaR": -10520817.688848028,
+        "sigmaT": 101400857.75953603,
+        "ur": 9.05838883489986e-8
+      }
+    },
+    {
+      "r": 0.00040640048,
+      "layer": "sic",
+      "T": 1000.0242,
+      "sigmaR": -9324401.6,
+      "sigmaT": 100802570,
+      "sigmaTz": 100802570,
+      "ur": 9.0380406e-8,
+      "ind": {
+        "sigmaR": -9322418.333580794,
+        "sigmaT": 100808402.38974592,
+        "ur": 9.038616455362051e-8
+      }
+    },
+    {
+      "r": 0.00040858792,
+      "layer": "sic",
+      "T": 1000.0212,
+      "sigmaR": -8151481.3,
+      "sigmaT": 100222790,
+      "sigmaTz": 100222790,
+      "ur": 9.018996899999998e-8,
+      "ind": {
+        "sigmaR": -8149478.968371893,
+        "sigmaT": 100228604.77088232,
+        "ur": 9.019572672204995e-8
+      }
+    },
+    {
+      "r": 0.00041077537,
+      "layer": "sic",
+      "T": 1000.0183,
+      "sigmaR": -7003123,
+      "sigmaT": 99696473,
+      "sigmaTz": 99696473,
+      "ur": 9.0006535e-8,
+      "ind": {
+        "sigmaR": -7001315.486473238,
+        "sigmaT": 99661124.06422272,
+        "ur": 9.001241834971036e-8
+      }
+    },
+    {
+      "r": 0.00041296282,
+      "layer": "sic",
+      "T": 1000.0154,
+      "sigmaR": -5878717.4,
+      "sigmaT": 99134283,
+      "sigmaTz": 99134283,
+      "ur": 8.9829975e-8,
+      "ind": {
+        "sigmaR": -5877281.198543568,
+        "sigmaT": 99105638.02363987,
+        "ur": 8.983608964776165e-8
+      }
+    },
+    {
+      "r": 0.00041515027,
+      "layer": "sic",
+      "T": 1000.0125,
+      "sigmaR": -4777886.1,
+      "sigmaT": 98583879,
+      "sigmaTz": 98583879,
+      "ur": 8.9660291e-8,
+      "ind": {
+        "sigmaR": -4776744.490984971,
+        "sigmaT": 98561831.94774437,
+        "ur": 8.96665938993491e-8
+      }
+    },
+    {
+      "r": 0.00041733772,
+      "layer": "sic",
+      "T": 1000.0097,
+      "sigmaR": -3700014.4,
+      "sigmaT": 98044954,
+      "sigmaTz": 98044954,
+      "ur": 8.9497338e-8,
+      "ind": {
+        "sigmaR": -3699093.4979705587,
+        "sigmaT": 98029400.98585658,
+        "ur": 8.950378822255133e-8
+      }
+    },
+    {
+      "r": 0.00041952516,
+      "layer": "sic",
+      "T": 1000.0069,
+      "sigmaR": -2644507.1,
+      "sigmaT": 97517211,
+      "sigmaTz": 97517211,
+      "ur": 8.9340976e-8,
+      "ind": {
+        "sigmaR": -2643740.1592079946,
+        "sigmaT": 97508052.13871531,
+        "ur": 8.934753415027752e-8
+      }
+    },
+    {
+      "r": 0.00042171261,
+      "layer": "sic",
+      "T": 1000.0041,
+      "sigmaR": -1610786.8,
+      "sigmaT": 97000360,
+      "sigmaTz": 97000360,
+      "ur": 8.9191068e-8,
+      "ind": {
+        "sigmaR": -1610100.3366318487,
+        "sigmaT": 96997494.43281639,
+        "ur": 8.919769468768501e-8
+      }
+    },
+    {
+      "r": 0.00042390006,
+      "layer": "sic",
+      "T": 1000.0014,
+      "sigmaR": -598294.43,
+      "sigmaT": 96494123,
+      "sigmaTz": 96494123,
+      "ur": 8.9047483e-8,
+      "ind": {
+        "sigmaR": -597622.0991261213,
+        "sigmaT": 96497452.88977931,
+        "ur": 8.905413848602128e-8
+      }
+    }
+  ],
+  "layers": [
+    {
+      "name": "ipyc",
+      "innerRadius": 0.0003499933365996598,
+      "outerRadius": 0.00038999257506819237,
+      "E": 39600000000,
+      "nu": 0.33,
+      "alpha": 0.0000055000000000080975,
+      "meanTemperature": 1000.153700217021,
+      "sigmaTMax": 7369088.6,
+      "sigmaTMin": 4683980.6,
+      "sigmaRMax": -19186188,
+      "sigmaRMin": -24693982
+    },
+    {
+      "name": "sic",
+      "innerRadius": 0.00038999257506819237,
+      "outerRadius": 0.0004249919087281583,
+      "E": 400000000000,
+      "nu": 0.13,
+      "alpha": 0.000004900000000115232,
+      "meanTemperature": 1000.02237834706,
+      "sigmaTMax": 105235530,
+      "sigmaTMin": 96494123,
+      "sigmaRMax": -598294.43,
+      "sigmaRMin": -18288205
+    }
+  ],
+  "summary": {
+    "sicPeakTangential": 105235530,
+    "interfaceRadialStress": [
+      -18975544.00185157
+    ]
+  },
+  "checks": [
+    {
+      "id": "mechanicsTemperature",
+      "label": "Temperature field kept (vs FEED's closed form)",
+      "value": 0.00004941276597492106,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "every cell's temperature against the closed form of the particle at the cell's centroid (the solver is told to keep the field; it writes 8 digits); bound 0.01 K"
+    },
+    {
+      "id": "mechanicsStress",
+      "label": "Stress vs the independent layered-sphere solution (max deviation, tangential and radial)",
+      "value": 35348.935777276754,
+      "unit": "Pa",
+      "verdict": "pass",
+      "note": "every cell, tangential and radial, against the independent solution at the cell's own radius; largest tangential deviation 0.0353 MPa, radial 0.0020 MPa; bounds 1 % of the layer's stress scale + 10 kPa + the wedge allowance: ipyc 0.257 MPa, sic 1.062 MPa"
+    },
+    {
+      "id": "mechanicsDisplacement",
+      "label": "Radial displacement vs the independent solution (max deviation)",
+      "value": 6.655486021285268e-12,
+      "unit": "m",
+      "verdict": "pass",
+      "note": "every cell's radial displacement against the independent solution on the wedge's sphere (the displacement scales with the radii); bound 0.5 % of the layer's largest displacement + 1e-10 m"
+    },
+    {
+      "id": "mechanicsEquilibrium",
+      "label": "Radial balance of the solver's own stress (max residual x spacing)",
+      "value": 444.36011601636994,
+      "unit": "Pa",
+      "verdict": "pass",
+      "note": "d(sigma_r)/dr + 2 (sigma_r - sigma_t)/r = 0 between neighbouring cells of one layer, residual times the layer's thickness (a stress); bound 2 % of the layer's stress scale + 10 kPa + the wedge allowance"
+    },
+    {
+      "id": "mechanicsInterface",
+      "label": "Continuity across the layer interfaces (radial stress, displacement)",
+      "value": 5569.201023288071,
+      "unit": "Pa",
+      "verdict": "pass",
+      "note": "the radial stress and the radial displacement of the two layers beside each interface, each extrapolated linearly from its two nearest cells: largest radial stress difference 0.0056 MPa, displacement 0.013 nm; bounds 2 % of the stress scale + 10 kPa and 0.5 % of the displacement"
+    },
+    {
+      "id": "mechanicsSymmetry",
+      "label": "The two tangential stresses agree (yy and zz)",
+      "value": 0,
+      "unit": "Pa",
+      "verdict": "pass",
+      "note": "a sphere has one tangential stress; the wedge's yy and zz components must be equal; bound 1e-6 of the layer's scale + 1 Pa"
+    }
+  ],
+  "domain": {
+    "verdict": "in-domain",
+    "findings": []
+  },
+  "text": "Elastic, steady: free strains are inputs, not an irradiation result. Stress and displacement of the coating layers (inner carbon, SiC, outer carbon) from the gas pressure and the outside pressure the case states, the thermal strain from FEED's own temperatures and the free strains the case states. It has no swelling or creep computed from a fluence, no fission-gas or CO inventory, no contact with the buffer, no kernel and no failure criterion. It does not say that the particle survives or fails."
+}
