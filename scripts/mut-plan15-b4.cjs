@@ -100,7 +100,7 @@ const mutants = [
 ];
 
 function run(files) {
-  const r = spawnSync(process.execPath, [path.join(root, "node_modules", "vitest", "vitest.mjs"), "run", ...files], { cwd: root, encoding: "utf8", timeout: 900000 });
+  const r = spawnSync(process.execPath, [path.join(root, "node_modules", "vitest", "vitest.mjs"), "run", ...files], { cwd: root, encoding: "utf8", timeout: 900000, maxBuffer: 256 * 1024 * 1024 });
   const out = (r.stdout || "") + (r.stderr || "");
   const m = /Tests\s+(?:(\d+) failed \| )?(\d+) passed/.exec(out) || /Tests\s+(\d+) failed/.exec(out);
   return { code: r.status, summary: m ? m[0] : null, out };

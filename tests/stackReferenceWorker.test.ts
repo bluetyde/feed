@@ -56,6 +56,19 @@ describe("the work a reference may cost", () => {
     expect(stackTransientWork(pulse)).toBeUndefined(); // not a stack
   });
 
+  it("a steady stack has no transient work and no transient reference (the reason says it is not a transient stack)", () => {
+    const steady = plate(10, 1200);
+    const d = example();
+    delete d.transient;
+    d.assumptions.steadyState = true;
+    d.power = { linearHeatRate: { value: 100, unit: "kW/m" }, radialShape: "uniform" };
+    const v = validateCase(d);
+    expect(v.errors).toEqual([]);
+    expect(steady.transient).toBeDefined();
+    expect(stackTransientWork(v.normalized!)).toBeUndefined();
+    expect(solveStackTransientReference(v.normalized!)).toEqual({ fallback: "the case is not a transient stack" });
+  });
+
   it("more unknown-steps than the cap: nothing is solved, and the reason says the numbers", () => {
     const c = JSON.parse(JSON.stringify(small())) as NormalizedCase;
     c.axial!.slices = 50;
@@ -172,6 +185,17 @@ describe("a failing worker is reported, not thrown", () => {
   });
 });
 
+describe("a worker that throws", () => {
+  it("is a worker-failed outcome that says it is the reference (a case with no mesh makes the work estimate throw)", async () => {
+    const r = new IndependentRunner({ deadlineMs: 60_000 });
+    const out = await r.start({ axial: { slices: 2 }, transient: { steps: 3 } } as unknown as NormalizedCase, { what: "stackReference" }).done;
+    expect(out).toMatchObject({ ok: false, reason: "worker-failed" });
+    if (!out.ok) expect(out.message).toMatch(/^the two-dimensional reference failed: /);
+    const inProcess = await new IndependentRunner({ deadlineMs: 60_000, workerFile: null }).start({ axial: { slices: 2 }, transient: { steps: 3 } } as unknown as NormalizedCase, { what: "stackReference" }).done;
+    expect(inProcess).toMatchObject({ ok: false, reason: "worker-failed" });
+  });
+});
+
 describe("the fallback is in the record", () => {
   it("a reference that could not be made gives the allowance, and the record says why", () => {
     const { n, C, fields } = golden();
@@ -285,6 +309,48 @@ describe("a plate stack run through the manager", () => {
     expect(rec.failure!.code).toBe("E_CANCELLED");
     expect(m.results(s.id)).toBeUndefined();
     expect(existsSync(join((m as any).opts.runsRoot, s.id, "results.json"))).toBe(false);
+  }, 60_000);
+
+  it("a cancel reaches BOTH jobs: the one-dimensional job while it runs, and the reference when only it is left", async () => {
+    let refCancelled = false;
+    let fullCancelled = false;
+    let release!: (o: any) => void;
+    let started = false;
+    const real = new IndependentRunner({ deadlineMs: 60_000 });
+    const spy = {
+      start: (c: NormalizedCase, o: any = {}) => {
+        if (o.what === "stackReference") {
+          started = true;
+          return { done: new Promise((res) => (release = res)), cancel: () => ((refCancelled = true), release({ ok: false, reason: "cancelled", message: "cancelled", ms: 0 })) };
+        }
+        const h = real.start(c, o);
+        return { done: h.done, cancel: () => ((fullCancelled = true), h.cancel()) };
+      },
+    } as unknown as IndependentRunner;
+    // (1) cancelled while both run: the one-dimensional job is stopped
+    const m1 = manager({ independent: spy });
+    const s1 = m1.start(example());
+    if (!s1.ok) throw new Error("refused");
+    for (let i = 0; i < 400 && !started; i++) await new Promise((r) => setTimeout(r, 5));
+    expect(started).toBe(true);
+    await m1.cancel(s1.id);
+    expect((await m1.done(s1.id)).state).toBe("cancelled");
+    expect(fullCancelled).toBe(true);
+    // (2) cancelled when only the reference is left (the one-dimensional job has finished): the reference job is stopped and the run ends cancelled
+    refCancelled = false;
+    fullCancelled = false;
+    started = false;
+    const m2 = manager({ independent: spy });
+    const s2 = m2.start(example());
+    if (!s2.ok) throw new Error("refused");
+    for (let i = 0; i < 400 && !started; i++) await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 4000)); // the one-dimensional runs of the example take about a second
+    expect(m2.get(s2.id)!.state).toBe("running");
+    expect(refCancelled).toBe(false);
+    await m2.cancel(s2.id);
+    const rec = await m2.done(s2.id);
+    expect(rec.state).toBe("cancelled");
+    expect(refCancelled).toBe(true);
   }, 60_000);
 
   it("if the one-dimensional runs fail the run fails as before (E_VERIFY_INCOMPLETE) and the reference job is stopped, not left running", async () => {

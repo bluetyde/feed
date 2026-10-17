@@ -100,6 +100,33 @@ describe("what the check gives the view", () => {
     expect(t.axialField2d).toBeUndefined();
   });
 
+  it("a field is offered only for a steady stack: a transient plate stack and a plate with no stack are given none, whatever the check does", () => {
+    const t = validateCase(JSON.parse(read("examples/synthetic-plate-loss-of-cooling.json"))).normalized!;
+    expect(t.transient).toBeDefined();
+    expect(axialField2d(t)).toBeUndefined();
+    const d = plateDoc();
+    delete d.axial;
+    const single = validateCase(d).normalized!;
+    expect(single.axial).toBeUndefined();
+    expect(axialField2d(single)).toBeUndefined();
+  });
+
+  it("the effect is the largest change in either direction: a stack with one hot slice cools that slice by more than it warms any other cell", () => {
+    const d = plateDoc(11, 0.2);
+    d.axial.powerShape = { kind: "table", points: [[0, 0.1], [0.45, 0.1], [0.5, 4], [0.55, 0.1], [1, 0.1]].map(([x, y]) => ({ position: q(x! * 0.2, "m"), relativePower: q(y!, "1") })) };
+    const n = validateCase(d).normalized!;
+    const coupled = stackReference(n);
+    const off = stackReference(n, { axialConduction: false });
+    if (!("reference" in coupled) || !("reference" in off)) throw new Error("no reference");
+    const diff = Array.from(coupled.reference.solution.T, (x, i) => x - off.reference.solution.T[i]!);
+    const warmest = Math.max(...diff);
+    const coolest = Math.min(...diff);
+    expect(-coolest).toBeGreaterThan(warmest * 1.2); // the signed maximum would miss the larger effect
+    const f = axialField2d(n)!;
+    if (!f.available) throw new Error("not available");
+    expect(f.effect).toBeCloseTo(-coolest, 12);
+  });
+
   it("a stack too large for the solver: not offered, with the reason the solver gives", () => {
     const n = JSON.parse(JSON.stringify(validateCase(plateDoc()).normalized!));
     n.axial.slices = 1000; // 26000 unknowns, over the 20000 the solver takes
@@ -223,6 +250,10 @@ describe("the wiring that keeps the caption on screen", () => {
   it("the page starts in the closed-form state (instant), and the data function falls back to the closed forms for any other value", () => {
     expect(script).toMatch(/let case3dFlow = "closed";/);
     expect(script).toMatch(/set: \(v\) => \{ case3dFlow = v; \}/);
+  });
+  it("the panel asks the check's field when it builds the choice, and shows which state is pressed", () => {
+    expect(script).toMatch(/get: \(\) => stackFlowChoice\(result && result\.axialField2d, case3dFlow\),/);
+    expect(script).toMatch(/fb\[key\]\.setAttribute\("aria-pressed", String\(c\.shown === key\)\)/);
   });
   it("the option's two labels are the plan's words", () => {
     expect(script).toContain('"Not included (closed form per slice, instant)"');
