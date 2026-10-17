@@ -205,7 +205,7 @@ describe("the limits", () => {
     const pin = plate();
     expect(() => solveStackSteady(uniformModel(pin, 0, 1e5))).toThrow(/layers/);
     expect(() => solveStackSteady({ ...uniformModel(pin, 3, 1e5), height: 0 })).toThrow(/height/);
-    expect(() => solveStackSteady({ ...uniformModel(pin, 3, 1e5), power: () => NaN })).toThrow(/finite/);
+    expect(() => solveStackSteady({ ...uniformModel(pin, 3, 1e5), power: () => NaN })).toThrow(/heat rates must be finite/);
     expect(() => solveStackTransient({ ...uniformModel(pin, 3, 1e5) }, { dt: 0.1, steps: 2, outputEvery: 1, initial: [600] })).toThrow(/initial/);
     expect(() => solveStackTransient({ ...uniformModel(pin, 3, 1e5) }, { dt: 0, steps: 2, outputEvery: 1, initial: new Array(78).fill(600) })).toThrow(/step/);
   });

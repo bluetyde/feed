@@ -186,6 +186,7 @@ describe("negative tests: the reference of a stack that was not run fails the ch
       expect("reference" in decoupled, name).toBe(true);
       mustFail(judge(x, undefined, decoupled), name);
       expect(failingIds(judge(x, undefined, decoupled)), name).toContain("crossCheckFv");
+      expect(info(judge(x, undefined, decoupled)).deviation, name).toBeGreaterThan(1);
     }
   });
   it("a power history of 10 % more heat, or a shape shifted by a tenth of the length, fails", () => {

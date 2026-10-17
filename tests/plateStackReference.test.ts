@@ -84,7 +84,15 @@ describe("negative tests: the reference of a stack that was not run fails the ch
       const decoupled = stackReference(x.n, { axialConduction: false });
       expect("reference" in decoupled, name).toBe(true);
       mustFail(judge(x, undefined, decoupled), name);
+      // the record says how far the cells are from the reference: the decoupled one is far (kills: the deviation not recorded)
+      expect((judge(x, undefined, decoupled).axial.reference as { deviation: number }).deviation, name).toBeGreaterThan(0.1);
     }
+  });
+  it("a cladding that conducts worse than the one that was run fails the cladding check; a film coefficient 5 % lower fails the wall check; 10 % more heat fails the layers' energy balance", () => {
+    const x = plateRun("cosine");
+    expect(failingIds(judge(x, (n) => (n.claddingConductivity.k = 12)))).toContain("closedFormCladding");
+    expect(failingIds(judge(x, (n) => (n.boundary.heatTransferCoefficient *= 0.95)))).toContain("wallTemperature");
+    expect(failingIds(judge(plateRun("negative"), (n) => (n.qPrime *= 1.1)))).toContain("energyBalance");
   });
   it("a shape shifted by one layer (a tenth of the length) fails", () => {
     const x = plateRun("cosine");
