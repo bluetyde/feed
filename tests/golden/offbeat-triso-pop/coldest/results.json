@@ -1,0 +1,1356 @@
+{
+  "schema": "feed.results/0.1",
+  "kind": "triso",
+  "caseId": "synthetic-triso-population",
+  "time": 50000000,
+  "cells": [
+    {
+      "r": 0.0000038053691,
+      "T": 867.61127,
+      "region": "kernel"
+    },
+    {
+      "r": 0.0000081543623,
+      "T": 867.60899,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000013018368,
+      "T": 867.6039,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000017998367,
+      "T": 867.59608,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000023019364,
+      "T": 867.58556,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00002805937,
+      "T": 867.57237,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000033109707,
+      "T": 867.5565,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000038166276,
+      "T": 867.53797,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000043226888,
+      "T": 867.51677,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000048290274,
+      "T": 867.49291,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000053355643,
+      "T": 867.46638,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00005842248,
+      "T": 867.4372,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000063490433,
+      "T": 867.40536,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000068559255,
+      "T": 867.37086,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000073628766,
+      "T": 867.33369,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000078698833,
+      "T": 867.29387,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000083769355,
+      "T": 867.2514,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000088840254,
+      "T": 867.20626,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00009391147,
+      "T": 867.15846,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000098982953,
+      "T": 867.10801,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00010405466,
+      "T": 867.0549,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00010912657,
+      "T": 866.99913,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00011419865,
+      "T": 866.9407,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00011927088,
+      "T": 866.87962,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00012434323,
+      "T": 866.81588,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00012941571,
+      "T": 866.74948,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00013448828,
+      "T": 866.68042,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00013956095,
+      "T": 866.60871,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00014463369,
+      "T": 866.53434,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00014970651,
+      "T": 866.45731,
+      "region": "kernel"
+    },
+    {
+      "r": 0.0001547794,
+      "T": 866.37763,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00015985234,
+      "T": 866.29528,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00016492534,
+      "T": 866.21029,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00016999839,
+      "T": 866.12263,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00017507149,
+      "T": 866.03232,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00018014462,
+      "T": 865.93935,
+      "region": "kernel"
+    },
+    {
+      "r": 0.0001852178,
+      "T": 865.84372,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000190291,
+      "T": 865.74543,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00019536424,
+      "T": 865.64449,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00020043751,
+      "T": 865.54089,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00020551081,
+      "T": 865.43464,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00021058413,
+      "T": 865.32573,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00021565748,
+      "T": 865.21416,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00022073085,
+      "T": 865.09993,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00022580423,
+      "T": 864.98305,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00023087764,
+      "T": 864.86351,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00023595107,
+      "T": 864.74131,
+      "region": "kernel"
+    },
+    {
+      "r": 0.00024102451,
+      "T": 864.61646,
+      "region": "kernel"
+    },
+    {
+      "r": 0.000244585,
+      "T": 864.39841,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00024666184,
+      "T": 864.09051,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00024873869,
+      "T": 863.78774,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00025081554,
+      "T": 863.48999,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00025289239,
+      "T": 863.19713,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00025496923,
+      "T": 862.90903,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00025704608,
+      "T": 862.6256,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00025912293,
+      "T": 862.34671,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026119978,
+      "T": 862.07225,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026327663,
+      "T": 861.80212,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026535348,
+      "T": 861.53622,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026743033,
+      "T": 861.27445,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00026950718,
+      "T": 861.01672,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027158403,
+      "T": 860.76293,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027366088,
+      "T": 860.51299,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027573774,
+      "T": 860.26681,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027781459,
+      "T": 860.02432,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00027989144,
+      "T": 859.78542,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00028196829,
+      "T": 859.55004,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00028404514,
+      "T": 859.31811,
+      "region": "buffer"
+    },
+    {
+      "r": 0.000286122,
+      "T": 859.08954,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00028819885,
+      "T": 858.86427,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0002902757,
+      "T": 858.64222,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029235256,
+      "T": 858.42332,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029442941,
+      "T": 858.20751,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029650627,
+      "T": 857.99473,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00029858312,
+      "T": 857.7849,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00030065998,
+      "T": 857.57798,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00030273683,
+      "T": 857.37389,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00030481369,
+      "T": 857.17259,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00030689054,
+      "T": 856.97401,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0003089674,
+      "T": 856.7781,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031104425,
+      "T": 856.5848,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031312111,
+      "T": 856.39407,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031519797,
+      "T": 856.20586,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031727482,
+      "T": 856.0201,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00031935168,
+      "T": 855.83677,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032142854,
+      "T": 855.6558,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032350539,
+      "T": 855.47715,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032558225,
+      "T": 855.30079,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032765911,
+      "T": 855.12666,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00032973597,
+      "T": 854.95473,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00033181282,
+      "T": 854.78494,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00033388968,
+      "T": 854.61727,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00033596654,
+      "T": 854.45167,
+      "region": "buffer"
+    },
+    {
+      "r": 0.0003380434,
+      "T": 854.28811,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00034012026,
+      "T": 854.12654,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00034219711,
+      "T": 853.96694,
+      "region": "buffer"
+    },
+    {
+      "r": 0.00034363302,
+      "T": 853.63139,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00034443154,
+      "T": 853.62385,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00034523006,
+      "T": 853.61634,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00034602858,
+      "T": 853.60887,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003468271,
+      "T": 853.60143,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00034762562,
+      "T": 853.59402,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00034842414,
+      "T": 853.58665,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00034922266,
+      "T": 853.57932,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035002118,
+      "T": 853.57201,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003508197,
+      "T": 853.56474,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035161822,
+      "T": 853.55751,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035241674,
+      "T": 853.5503,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035321526,
+      "T": 853.54313,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035401378,
+      "T": 853.53599,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003548123,
+      "T": 853.52888,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035561082,
+      "T": 853.52181,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035640934,
+      "T": 853.51476,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035720786,
+      "T": 853.50775,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035800638,
+      "T": 853.50077,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035880491,
+      "T": 853.49382,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00035960343,
+      "T": 853.4869,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036040195,
+      "T": 853.48001,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036120047,
+      "T": 853.47315,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036199899,
+      "T": 853.46632,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036279751,
+      "T": 853.45953,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036359603,
+      "T": 853.45276,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036439455,
+      "T": 853.44602,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036519307,
+      "T": 853.43931,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036599159,
+      "T": 853.43263,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036679011,
+      "T": 853.42598,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036758863,
+      "T": 853.41936,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036838715,
+      "T": 853.41277,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036918567,
+      "T": 853.4062,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00036998419,
+      "T": 853.39967,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037078271,
+      "T": 853.39316,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037158123,
+      "T": 853.38668,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037237975,
+      "T": 853.38023,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037317827,
+      "T": 853.3738,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037397679,
+      "T": 853.3674,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037477531,
+      "T": 853.36103,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037557383,
+      "T": 853.35469,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037637235,
+      "T": 853.34838,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037717087,
+      "T": 853.34209,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003779694,
+      "T": 853.33582,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037876792,
+      "T": 853.32959,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00037956644,
+      "T": 853.32338,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038036496,
+      "T": 853.31719,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.00038116348,
+      "T": 853.31104,
+      "region": "ipyc"
+    },
+    {
+      "r": 0.0003819246,
+      "T": 853.30849,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038264842,
+      "T": 853.3069,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038337225,
+      "T": 853.30531,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038409607,
+      "T": 853.30373,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038481989,
+      "T": 853.30215,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038554372,
+      "T": 853.30058,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038626754,
+      "T": 853.29902,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038699137,
+      "T": 853.29746,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038771519,
+      "T": 853.29591,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038843901,
+      "T": 853.29436,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038916284,
+      "T": 853.29282,
+      "region": "sic"
+    },
+    {
+      "r": 0.00038988666,
+      "T": 853.29129,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039061048,
+      "T": 853.28976,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039133431,
+      "T": 853.28824,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039205813,
+      "T": 853.28672,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039278195,
+      "T": 853.28521,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039350578,
+      "T": 853.2837,
+      "region": "sic"
+    },
+    {
+      "r": 0.0003942296,
+      "T": 853.2822,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039495343,
+      "T": 853.2807,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039567725,
+      "T": 853.27921,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039640107,
+      "T": 853.27773,
+      "region": "sic"
+    },
+    {
+      "r": 0.0003971249,
+      "T": 853.27625,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039784872,
+      "T": 853.27477,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039857254,
+      "T": 853.27331,
+      "region": "sic"
+    },
+    {
+      "r": 0.00039929637,
+      "T": 853.27184,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040002019,
+      "T": 853.27038,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040074402,
+      "T": 853.26893,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040146784,
+      "T": 853.26748,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040219166,
+      "T": 853.26604,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040291549,
+      "T": 853.2646,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040363931,
+      "T": 853.26317,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040436313,
+      "T": 853.26175,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040508696,
+      "T": 853.26032,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040581078,
+      "T": 853.25891,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040653461,
+      "T": 853.2575,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040725843,
+      "T": 853.25609,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040798225,
+      "T": 853.25469,
+      "region": "sic"
+    },
+    {
+      "r": 0.00040870608,
+      "T": 853.25329,
+      "region": "sic"
+    },
+    {
+      "r": 0.0004094299,
+      "T": 853.2519,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041015372,
+      "T": 853.25051,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041087755,
+      "T": 853.24913,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041160137,
+      "T": 853.24775,
+      "region": "sic"
+    },
+    {
+      "r": 0.0004123252,
+      "T": 853.24638,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041304902,
+      "T": 853.24501,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041377284,
+      "T": 853.24365,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041449667,
+      "T": 853.24229,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041522049,
+      "T": 853.24094,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041594431,
+      "T": 853.23959,
+      "region": "sic"
+    },
+    {
+      "r": 0.00041669033,
+      "T": 853.23748,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00041745849,
+      "T": 853.23254,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00041822665,
+      "T": 853.22762,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004189948,
+      "T": 853.22272,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00041976296,
+      "T": 853.21784,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042053112,
+      "T": 853.21297,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042129928,
+      "T": 853.20812,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042206743,
+      "T": 853.20329,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042283559,
+      "T": 853.19848,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042360375,
+      "T": 853.19369,
+      "region": "opyc"
+    },
+    {
+      "r": 0.0004243719,
+      "T": 853.18891,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042514006,
+      "T": 853.18415,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042590822,
+      "T": 853.17941,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042667638,
+      "T": 853.17468,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042744453,
+      "T": 853.16997,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042821269,
+      "T": 853.16528,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00042898085,
+      "T": 853.1606,
+      "region": "opyc"
+    },
+    {
+      "r": 0.000429749,
+      "T": 853.15595,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043051716,
+      "T": 853.1513,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043128532,
+      "T": 853.14668,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043205348,
+      "T": 853.14207,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043282163,
+      "T": 853.13748,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043358979,
+      "T": 853.1329,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043435795,
+      "T": 853.12834,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043512611,
+      "T": 853.1238,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043589426,
+      "T": 853.11927,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043666242,
+      "T": 853.11476,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043743058,
+      "T": 853.11026,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043819873,
+      "T": 853.10578,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043896689,
+      "T": 853.10131,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00043973505,
+      "T": 853.09686,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044050321,
+      "T": 853.09243,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044127136,
+      "T": 853.08801,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044203952,
+      "T": 853.08361,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044280768,
+      "T": 853.07922,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044357584,
+      "T": 853.07485,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044434399,
+      "T": 853.07049,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044511215,
+      "T": 853.06615,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044588031,
+      "T": 853.06182,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044664846,
+      "T": 853.05751,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044741662,
+      "T": 853.05321,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044818478,
+      "T": 853.04893,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044895294,
+      "T": 853.04466,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00044972109,
+      "T": 853.04041,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045048925,
+      "T": 853.03617,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045125741,
+      "T": 853.03194,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045202557,
+      "T": 853.02773,
+      "region": "opyc"
+    },
+    {
+      "r": 0.00045279372,
+      "T": 853.02354,
+      "region": "opyc"
+    }
+  ],
+  "regions": [
+    {
+      "name": "kernel",
+      "innerRadius": 0,
+      "outerRadius": 0.0002435436213318699,
+      "innerFaceT": 867.6120171852573,
+      "outerFaceT": 864.5531514148652,
+      "hottestCellT": 867.61127,
+      "coldestCellT": 864.61646,
+      "drop": 3.058865770392117
+    },
+    {
+      "name": "buffer",
+      "innerRadius": 0.0002435436213318699,
+      "outerRadius": 0.0003432334490979004,
+      "innerFaceT": 864.5531514148652,
+      "outerFaceT": 853.88826,
+      "hottestCellT": 864.39841,
+      "coldestCellT": 853.96694,
+      "drop": 10.664891414865224
+    },
+    {
+      "name": "ipyc",
+      "innerRadius": 0.0003432334490979004,
+      "outerRadius": 0.00038156245851168473,
+      "innerFaceT": 853.63519,
+      "outerFaceT": 853.3090172820112,
+      "hottestCellT": 853.63139,
+      "coldestCellT": 853.31104,
+      "drop": 0.3261727179888112
+    },
+    {
+      "name": "sic",
+      "innerRadius": 0.00038156245851168473,
+      "outerRadius": 0.0004163060170209437,
+      "innerFaceT": 853.3090172820112,
+      "outerFaceT": 853.2391396812744,
+      "hottestCellT": 853.30849,
+      "coldestCellT": 853.23959,
+      "drop": 0.06987760073673144
+    },
+    {
+      "name": "opyc",
+      "innerRadius": 0.0004163060170209437,
+      "outerRadius": 0.00045317758402699265,
+      "innerFaceT": 853.2391396812744,
+      "outerFaceT": 853.02145,
+      "hottestCellT": 853.23748,
+      "coldestCellT": 853.02354,
+      "drop": 0.21768968127446442
+    }
+  ],
+  "summary": {
+    "kernelCentreT": 867.6120171852573,
+    "kernelCentreCellT": 867.61127,
+    "kernelSurfaceT": 864.5531514148652,
+    "wallT": 853.02145,
+    "gapDeltaT": 0.2530699999999797,
+    "maxT": 867.61127,
+    "minT": 853.02354
+  },
+  "checks": [
+    {
+      "id": "closedFormKernel",
+      "label": "Kernel vs closed form (max deviation)",
+      "value": 0.005781140793033046,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.080 K = 5 x 3.06 K / 48^2 + 0.0730 K (0.5 % of the 14.6 K rise)"
+    },
+    {
+      "id": "closedFormBuffer",
+      "label": "Buffer vs closed form (max deviation)",
+      "value": 0.0025943580418470447,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.096 K = 5 x 10.7 K / 48^2 + 0.0730 K (0.5 % of the 14.6 K rise)"
+    },
+    {
+      "id": "closedFormIpyc",
+      "label": "IPyC vs closed form (max deviation)",
+      "value": 0.0023626309199471507,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.074 K = 5 x 0.327 K / 48^2 + 0.0730 K (0.5 % of the 14.6 K rise)"
+    },
+    {
+      "id": "closedFormSic",
+      "label": "SiC vs closed form (max deviation)",
+      "value": 0.001040163487573409,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.073 K = 5 x 0.0704 K / 48^2 + 0.0730 K (0.5 % of the 14.6 K rise)"
+    },
+    {
+      "id": "closedFormOpyc",
+      "label": "OPyC vs closed form (max deviation)",
+      "value": 0.000006385707820300013,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.073 K = 5 x 0.219 K / 48^2 + 0.0730 K (0.5 % of the 14.6 K rise)"
+    },
+    {
+      "id": "crossCheckFv",
+      "label": "Cells vs the independent finite-volume solution (max deviation)",
+      "value": 0.004841649177478757,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "the same mesh solved by FEED's own finite-volume code (src/core/trisoSolve.ts); bound 0.0438 K (0.3 % of the 14.6 K rise, at least 0.02 K)"
+    },
+    {
+      "id": "energyBalance",
+      "label": "Energy balance (heat through the outer layer vs the power made)",
+      "value": -0.001437785167154331,
+      "unit": "relative",
+      "verdict": "pass",
+      "note": "heat through the two outermost cells = 0.0561179 W against 0.0561987 W made in the wedge's kernel (the input 0.0562501 W times 0.999087: the wedge is the sphere with its radii times 0.999695); threshold 0.5 %"
+    },
+    {
+      "id": "gapDrop",
+      "label": "Drop across the gap vs power / (area x conductance)",
+      "value": -0.0000029806346709126963,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "bufferOuter 853.88826 K minus ipycInner 853.63519 K = 0.25307 K against 0.25307 K from P / (4 pi R^2 h); bound 0.00753 K"
+    },
+    {
+      "id": "wallTemperature",
+      "label": "Outer wall temperature vs closed form",
+      "value": 0.000002115636675625865,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "solver 853.02145 K, closed form 853.021 K; threshold 0.05 K"
+    },
+    {
+      "id": "steadyState",
+      "label": "Steady state reached (bound on what is still to change)",
+      "value": 4.46187971925694e-15,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "at most 4.46e-15 K is still to change after the last step (OFFBEAT's last relative rate 1.3451965e-17, hottest cell 867.6 K); threshold 0.01 K"
+    }
+  ],
+  "domain": {
+    "verdict": "in-domain",
+    "findings": []
+  },
+  "thermalOnly": "Thermal-only result. It says nothing about stress, failure or fuel integrity. For a coated particle: the temperatures of the kernel and the layers, not the stress in the silicon carbide, the swelling and creep of the carbon, the gas pressure or a failure fraction."
+}
