@@ -280,6 +280,7 @@ export function validateCase(doc: unknown): ValidationResult {
   };
 
   // A coated particle (plan 13) has its own sections and its own normalised form
+  if (c.geometry?.kind === "triso" && c.compact !== undefined) err("E_UNSUPPORTED", "/compact", "a `compact` block describes a pin whose fuel is a mixture of coated particles; this case is one coated particle (geometry.kind 'triso'), whose power is given in `power`: remove the block, or make the case a pin with a `compact` block (or a pebble)");
   if (c.geometry?.kind === "triso") return validateTriso(c, issues, err, qty, positive);
   // a pebble (plan 13, T4) has its own sections and its own normalised form; a compact is a pin whose fuel is derived from the `compact` block
   if (c.geometry?.kind === "pebble") return validatePebble(c, issues, err, qty, positive);
