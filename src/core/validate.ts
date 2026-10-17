@@ -20,6 +20,8 @@ import { Dimension, toSI } from "./units";
 import { trisoClosedForm, trisoSteadyEndTime } from "./trisoSolve";
 import { MAX_TRISO_TRANSIENT_WORK, NormalizedTrisoTransient, parseTrisoTransient } from "./trisoTransient";
 import { trisoInitialField } from "./trisoTransientModel";
+import { HomogenisedDeps, HomogenisedSpec, mixtureConductivitySet, parseHomogenised } from "./compact";
+import { NormalizedPebble, PEBBLE_MESH_MAXIMUM, PEBBLE_MESH_MINIMUM, pebbleClosedForm, pebbleInterfaceBias, pebbleSteadyEndTime } from "./pebble";
 import { GAP_CONTACT_CONDUCTANCE, NormalizedTriso, TrisoLayer, parseTrisoGeometry, parseTrisoLimits, parseTrisoMesh, parseTrisoPower, particleVolumes } from "./triso";
 
 export interface Issue {
@@ -207,6 +209,8 @@ export interface NormalizedCase {
   plate?: true;
   /** Present when the case is an axial stack (plan 12): `qPrime` is then the AVERAGE heat rate over the heated length and the slices take their own from the shape (src/core/axial.ts). */
   axial?: AxialSpec;
+  /** Present when the fuel is a compact of coated particles in a matrix (plan 13, T4): `fuelConductivity` is then the fitted mixture and `qPrime` the compact's power density times its cross-section. */
+  compact?: HomogenisedSpec;
 }
 
 export interface ValidationResult {
@@ -217,6 +221,8 @@ export interface ValidationResult {
   normalized?: NormalizedCase;
   /** Present instead of `normalized` when ok and the case is a coated particle (plan 13): its own normalised form (run by src/core/trisoWriter.ts, read by src/core/trisoResults.ts). */
   triso?: NormalizedTriso;
+  /** Present instead of `normalized` when ok and the case is a pebble (plan 13, T4): its own normalised form. */
+  pebble?: NormalizedPebble;
 }
 
 /** Heat rate above which a warning is raised (W/m). Sanity range, not a limit. */
@@ -273,6 +279,9 @@ export function validateCase(doc: unknown): ValidationResult {
 
   // A coated particle (plan 13) has its own sections and its own normalised form
   if (c.geometry?.kind === "triso") return validateTriso(c, issues, err, qty, positive);
+  // a pebble (plan 13, T4) has its own sections and its own normalised form; a compact is a pin whose fuel is derived from the `compact` block
+  if (c.geometry?.kind === "pebble") return validatePebble(c, issues, err, qty, positive);
+  if (c.compact !== undefined) return validateCompact(c, issues, err, qty, positive);
 
   // A pin or a plate has a fuel and a cladding and a fuel and a cladding mesh (the schema leaves them optional because a particle has other regions)
   for (const k of ["fuel", "cladding"]) if (!isObject(c.materials[k])) err("E_SCHEMA_INVALID", "/materials/" + k, "missing: the " + k + " material (an object with a materialId, a revision and sets)");
@@ -698,7 +707,7 @@ export function validateMaterial(region: "fuel" | "cladding", material: unknown)
 type PositiveFn = (value: unknown, dim: Dimension, field: string, what: string, unit: string) => number | undefined;
 
 /** The gap section: only a stated constant conductance with its source (a closed or contacting gap needs mechanics; the solver's gas-gap model comes later). */
-function parseGap(gap: Record<string, unknown>, err: ErrFn, positive: PositiveFn): number | undefined {
+export function parseGap(gap: Record<string, unknown>, err: ErrFn, positive: PositiveFn): number | undefined {
   let hGap: number | undefined;
   if (gap.model === "constant-conductance") {
     if (gap.conductance === undefined) err("E_PROP_MISSING", "/gap/conductance", "the constant-conductance gap model needs the gap conductance (W/m2/K)");
@@ -715,7 +724,7 @@ function parseGap(gap: Record<string, unknown>, err: ErrFn, positive: PositiveFn
 }
 
 /** The coolant boundary: exactly one complete form, a bulk temperature with a heat-transfer coefficient or a prescribed surface temperature. */
-function parseBoundary(b: Record<string, unknown>, err: ErrFn, positive: PositiveFn): NormalizedCase["boundary"] | undefined {
+export function parseBoundary(b: Record<string, unknown>, err: ErrFn, positive: PositiveFn): NormalizedCase["boundary"] | undefined {
   const hasBulk = b.bulkTemperature !== undefined;
   const hasH = b.heatTransferCoefficient !== undefined;
   const hasSurface = b.surfaceTemperature !== undefined;
@@ -907,12 +916,160 @@ function validateTriso(c: Record<string, any>, issues: Issue[], err: ErrFn, qty:
   return result;
 }
 
+/** The helpers the compact block needs from the validator: the conductivity reader, the gap reader and a length reader (positive, in range). */
+function homogenisedDeps(err: ErrFn, qty: QtyFn, positive: PositiveFn): HomogenisedDeps {
+  return {
+    conductivity: (m, region, e, q) => conductivity(m, region, e, q),
+    parseGap: (gap, e) => parseGap(gap, e, positive),
+    radius: (value, field, what) => {
+      const v = qty(value, "length", field);
+      if (v === undefined) return undefined;
+      if (!(v > 0)) {
+        err("E_GEOMETRY", field, what + " must be positive", { unit: "m" });
+        return undefined;
+      }
+      if (v < RADIUS_MIN || v > RADIUS_MAX) {
+        err("E_GEOMETRY", field, what + " " + v + " m is outside " + RADIUS_MIN + " to " + RADIUS_MAX + " m; check the units", { unit: "m" });
+        return undefined;
+      }
+      return v;
+    },
+  };
+}
+
+/** Sections of a pin that have no meaning for a compact or a pebble, refused by name (never ignored). */
+function refuseSections(c: Record<string, any>, keys: readonly (readonly [string, string])[], err: ErrFn): void {
+  for (const [key, why] of keys) if (c[key] !== undefined) err("E_UNSUPPORTED", "/" + key, why + "; remove the section");
+}
+
+/**
+ * A compact (plan 13, T4): a pin whose fuel is the homogenised mix of coated particles in a matrix. The `compact` block gives the particle, the matrix, the packing fraction, the
+ * compact's power density and the range of the table of the effective conductivity; this function derives the pin's fuel (a conductivity table with its fit, which the pin's own
+ * reading then accepts or refuses) and its linear heat rate, runs the pin validation on that, and returns the pin's normalised case with the compact's record attached.
+ */
+function validateCompact(c: Record<string, any>, issues: Issue[], err: ErrFn, qty: QtyFn, positive: PositiveFn): ValidationResult {
+  const warn = (code: string, field: string, message: string, extra: Record<string, unknown> = {}) => issues.push({ code, severity: "warning", field, message, ...extra } as Issue);
+  if (c.geometry?.kind === "plate") err("E_UNSUPPORTED", "/geometry/kind", "a compact is a cylinder (a pin-like geometry); a plate of particles is not offered");
+  refuseSections(c, [["mechanics", "a compact has no mechanics here"], ["hotDimensions", "hot dimensions are for pins"], ["burnup", "a burnup is for pins in this release"], ["axial", "an axial stack is for pins and plates"], ["transient", "a compact is steady in this release (plan 13 T4)"]], err);
+  if (c.assumptions.steadyState === false) err("E_UNSUPPORTED", "/assumptions/steadyState", "a compact is steady in this release (plan 13 T4)");
+  if (c.materials?.fuel !== undefined) err("E_UNSUPPORTED", "/materials/fuel", "a compact's fuel is the mixture derived from the compact block (particle, matrix, packing fraction); remove materials.fuel");
+  if (c.power !== undefined) err("E_UNSUPPORTED", "/power", "a compact's power is compact.powerDensity (the heat rate follows from it and the cross-section); remove the power section");
+  if (issues.some((i) => i.severity === "error")) return finish(issues); // a refused section: the rest would only repeat it in other words
+  const spec = parseHomogenised(c.compact, homogenisedDeps(err, qty, positive), err, qty, warn);
+  if (!spec) return finish(issues);
+  // the linear heat rate: the power density times the cross-section of the compact (a central hole has none)
+  const Rf = c.geometry?.fuelRadius === undefined ? undefined : qty(c.geometry.fuelRadius, "length", "/geometry/fuelRadius");
+  const Ri = c.geometry?.fuelInnerRadius === undefined ? 0 : qty(c.geometry.fuelInnerRadius, "length", "/geometry/fuelInnerRadius");
+  const qPrime = Rf !== undefined && Ri !== undefined && Rf > Ri ? spec.powerDensity * Math.PI * (Rf * Rf - Ri * Ri) : 1; // an unreadable radius is reported by the pin reading below; the placeholder is never returned
+  spec.twoScale.forEach((p, i) => {
+    if (typeof p === "number" && Rf !== undefined && Ri !== undefined && !(p >= Ri && p <= Rf)) err("E_GEOMETRY", "/compact/twoScale/at/" + i, "the radius " + p + " m is not inside the compact (" + Ri + " to " + Rf + " m)");
+  });
+  const derived = JSON.parse(JSON.stringify(c)) as Record<string, any>;
+  delete derived.compact;
+  derived.materials = { ...c.materials, fuel: { materialId: "compact-mixture", revision: 1, sets: { "thermal.conductivity": mixtureConductivitySet(spec) } } };
+  derived.power = { linearHeatRate: { value: qPrime, unit: "W/m" } };
+  const r = validateCase(derived);
+  const mapField = (f: string) => (f.startsWith("/materials/fuel") ? "/compact/fit" : f === "/power/linearHeatRate" ? "/compact/powerDensity" : f);
+  for (const e of r.errors) issues.push({ ...e, field: mapField(e.field) });
+  for (const w of r.warnings) issues.push({ ...w, field: mapField(w.field) });
+  const out = finish(issues);
+  if (out.ok && r.normalized) out.normalized = { ...r.normalized, compact: spec };
+  else if (out.ok) {
+    out.ok = false;
+    out.errors.push({ code: "E_SCHEMA_INVALID", severity: "error", field: "/", message: "the compact case could not be normalised" });
+  }
+  return out;
+}
+
+/**
+ * A pebble (plan 13, T4): a sphere of a fuelled zone (the compact block) and an unfuelled shell, with a film or a wall temperature outside. Steady and thermal only. It has its
+ * own normalised form (`pebble` on the result). The shell is bonded to the fuelled zone: the case's `gap` must say model "none".
+ */
+function validatePebble(c: Record<string, any>, issues: Issue[], err: ErrFn, qty: QtyFn, positive: PositiveFn): ValidationResult {
+  const warn = (code: string, field: string, message: string, extra: Record<string, unknown> = {}) => issues.push({ code, severity: "warning", field, message, ...extra } as Issue);
+  if (c.assumptions.geometry !== "1D-sphere") err("E_UNSUPPORTED", "/assumptions/geometry", "a pebble is geometry '1D-sphere', got '" + String(c.assumptions.geometry) + "'");
+  if (c.assumptions.thermalOnly !== true) err("E_UNSUPPORTED", "/assumptions/thermalOnly", "a pebble is thermal only");
+  if (c.assumptions.steadyState !== true) err("E_UNSUPPORTED", "/assumptions/steadyState", "a pebble is steady in this release (plan 13 T4)");
+  refuseSections(c, [["mechanics", "a pebble has no mechanics here"], ["hotDimensions", "hot dimensions are for pins"], ["burnup", "a burnup is for pins in this release"], ["axial", "an axial stack is for pins and plates"], ["transient", "a pebble is steady in this release (plan 13 T4)"], ["limits", "temperature limits for a pebble's regions are not offered in this release"], ["power", "a pebble's power is compact.powerDensity (of the fuelled zone)"]], err);
+  const deps = homogenisedDeps(err, qty, positive);
+  const GEO = ["kind", "fuelledRadius", "outerRadius"];
+  for (const k of Object.keys(c.geometry)) if (!GEO.includes(k)) err("E_GEOMETRY", "/geometry/" + k, "unknown key '" + k + "' for a pebble (it has " + GEO.join(", ") + ")");
+  for (const k of GEO.slice(1)) if (c.geometry[k] === undefined) err("E_SCHEMA_INVALID", "/geometry/" + k, "missing: a pebble needs fuelledRadius and outerRadius");
+  const Rf = c.geometry.fuelledRadius === undefined ? undefined : deps.radius(c.geometry.fuelledRadius, "/geometry/fuelledRadius", "fuelled radius");
+  const Ro = c.geometry.outerRadius === undefined ? undefined : deps.radius(c.geometry.outerRadius, "/geometry/outerRadius", "outer radius");
+  if (Rf !== undefined && Ro !== undefined && !(Ro > Rf)) err("E_GEOMETRY", "/geometry/outerRadius", "the outer radius must exceed the fuelled radius (the shell has a thickness)");
+  if (c.gap?.model !== "none") err("E_UNSUPPORTED", "/gap/model", "a pebble's shell is bonded to its fuelled zone: state gap {model: 'none'}, got '" + String(c.gap?.model) + "'");
+  const materials: Record<string, unknown> = isObject(c.materials) ? c.materials : {};
+  for (const k of Object.keys(materials)) if (k !== "shell") err("E_GEOMETRY", "/materials/" + k, "'" + k + "' is not a region of a pebble (its material is shell; the fuelled zone is derived from the compact block)");
+  let shellK: Conductivity | undefined;
+  if (isObject(materials.shell)) shellK = conductivity(materials.shell, "shell", err, qty);
+  else err("E_SCHEMA_INVALID", "/materials/shell", "missing: the shell's material (an object with a materialId, a revision and sets)");
+  const boundary = parseBoundary(c.boundary as Record<string, unknown>, err, positive);
+  const mesh: Record<string, unknown> = isObject(c.mesh) ? c.mesh : {};
+  const KEYS = ["fuelledCells", "shellCells"] as const;
+  for (const k of Object.keys(mesh)) if (!(KEYS as readonly string[]).includes(k)) err("E_SCHEMA_INVALID", "/mesh/" + k, "unknown key '" + k + "' for a pebble's mesh (it has fuelledCells, shellCells)");
+  const cells: number[] = [];
+  for (const k of KEYS) {
+    const v = mesh[k];
+    if (v === undefined) err("E_SCHEMA_INVALID", "/mesh/" + k, "missing: the number of cells in the " + (k === "fuelledCells" ? "fuelled zone" : "shell"));
+    else if (typeof v !== "number" || !Number.isInteger(v)) err("E_SCHEMA_INVALID", "/mesh/" + k, k + " is a whole number of cells");
+    else if (v < PEBBLE_MESH_MINIMUM[k]) err("E_MESH", "/mesh/" + k, k + " is " + v + "; the minimum is " + PEBBLE_MESH_MINIMUM[k]);
+    else if (v > PEBBLE_MESH_MAXIMUM[k]) err("E_MESH", "/mesh/" + k, k + " is " + v + "; the maximum is " + PEBBLE_MESH_MAXIMUM[k]);
+    else cells.push(v);
+  }
+  const spec = parseHomogenised(c.compact, deps, err, qty, warn);
+  let fuelledK: Conductivity | undefined;
+  if (spec) {
+    const mapped: ErrFn = (code, field, message, extra) => err(code, field.startsWith("/materials/fuelled zone") ? "/compact/fit" : field, message, extra);
+    fuelledK = conductivity({ materialId: "pebble-fuelled-zone", revision: 1, sets: { "thermal.conductivity": mixtureConductivitySet(spec) } }, "fuelled zone", mapped, qty);
+  }
+  spec?.twoScale.forEach((p, i) => {
+    if (typeof p === "number" && Rf !== undefined && !(p >= 0 && p <= Rf)) err("E_GEOMETRY", "/compact/twoScale/at/" + i, "the radius " + p + " m is not inside the fuelled zone (0 to " + Rf + " m)");
+  });
+  const result = finish(issues);
+  if (result.ok && spec && fuelledK && shellK && boundary && Rf !== undefined && Ro !== undefined && cells.length === 2) {
+    const fuelledVolume = (4 / 3) * Math.PI * Rf ** 3;
+    const pebble: NormalizedPebble = {
+      caseId: c.caseId,
+      fuelledRadius: Rf,
+      outerRadius: Ro,
+      fuelledConductivity: fuelledK,
+      shellConductivity: shellK,
+      boundary,
+      power: { powerDensity: spec.powerDensity, fuelledPower: spec.powerDensity * fuelledVolume, fuelledVolume, pebbleVolume: (4 / 3) * Math.PI * Ro ** 3 },
+      cells: [cells[0]!, cells[1]!],
+      compact: spec,
+    };
+    try {
+      pebbleClosedForm(pebble); // finds a conductivity that reaches zero where the pebble runs
+      const h = pebbleSteadyEndTime(pebble);
+      if (!h.ok) {
+        result.ok = false;
+        result.errors.push({ code: "E_TIME", severity: "error", field: "/assumptions/steadyState", message: "this case cannot be run as a steady case: " + h.message });
+      }
+    } catch (e) {
+      if (!(e instanceof RangeError)) throw e;
+      result.ok = false;
+      result.errors.push({ code: "E_OUT_OF_RANGE", severity: "error", field: "/materials", message: "the temperatures of this pebble cannot be found: " + e.message });
+    }
+    if (result.ok) {
+      const { bias, rise } = pebbleInterfaceBias(pebble);
+      if (bias > 0.003 * rise && bias > 0.02) result.warnings.push({ code: "W_MESH_INTERFACE", severity: "warning", field: "/mesh", message: "OFFBEAT interpolates the conductivity linearly to the face between the fuelled zone and the shell, where the exact solution does not; across this jump the temperatures near the face may differ by about " + bias.toFixed(2) + " K (" + ((100 * bias) / rise).toFixed(2) + " % of the " + rise.toFixed(0) + " K rise), more than the 0.3 % the cross-check allows. The error is proportional to the cell width: use more cells (docs/compact-pebble.md)", unit: "K" } as Issue);
+      result.pebble = pebble;
+    }
+  } else if (result.ok) {
+    result.ok = false;
+    result.errors.push({ code: "E_SCHEMA_INVALID", severity: "error", field: "/", message: "the pebble case could not be normalised" });
+  }
+  return result;
+}
+
 /**
  * The errors to give for a result that has neither a `normalized` case nor a `triso` one: its own. A valid case never reaches this; if one ever did (a validator bug), the caller
  * is not answered with an empty list of problems.
  */
 export function unrunnableErrors(v: ValidationResult): Issue[] {
-  if (v.errors.length > 0 || v.normalized || v.triso) return v.errors;
+  if (v.errors.length > 0 || v.normalized || v.triso || v.pebble) return v.errors;
   return [{ code: "E_SCHEMA_INVALID", severity: "error", field: "/", message: "the case could not be normalised" }];
 }
 
@@ -924,7 +1081,7 @@ function finish(issues: Issue[]): ValidationResult {
 type ErrFn = (code: string, field: string, message: string, extra?: Partial<Issue>) => void;
 type QtyFn = (value: unknown, dim: Dimension, field: string) => number | undefined;
 
-function conductivity(material: Record<string, any>, region: string, err: ErrFn, qty: QtyFn, burnup = 0): Conductivity | undefined {
+export function conductivity(material: Record<string, any>, region: string, err: ErrFn, qty: QtyFn, burnup = 0): Conductivity | undefined {
   const base = "/materials/" + region + "/sets/thermal.conductivity";
   const set = isObject(material.sets) ? material.sets["thermal.conductivity"] : undefined;
   if (!isObject(set)) {

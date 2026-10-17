@@ -916,5 +916,85 @@ badTr("triso-limit-no-name", "E_SCHEMA_INVALID", "/limits/0/name", (c) => (c.lim
 bad("pin-missing-fuel-material", "E_SCHEMA_INVALID", "/materials/fuel", (c) => delete c.materials.fuel);
 bad("pin-missing-cladding-cells", "E_SCHEMA_INVALID", "/mesh/claddingCells", (c) => delete c.mesh.claddingCells);
 
+// ---- plan 13 T4: a compact (a pin whose fuel is a mixture of coated particles in a matrix) and a pebble
+const readExample = (f) => JSON.parse(fs.readFileSync(path.join(root, "examples", f), "utf8"));
+const compactBase = () => readExample("synthetic-compact-steady.json");
+const pebbleBase = () => readExample("synthetic-pebble-steady.json");
+add("good", "compact-steady", compactBase(), {});
+{
+  const c = compactBase();
+  c.geometry.fuelInnerRadius = qv(1.5, "mm");
+  add("good", "compact-central-hole", c, {});
+}
+{
+  const c = compactBase();
+  c.compact.twoScale = { at: ["hottest", "mean", qv(3, "mm")] };
+  add("good", "compact-two-scale-radius", c, {});
+}
+{
+  const c = compactBase();
+  c.compact.packingFraction = qv(0.5, "1");
+  add("good", "compact-mixture-range-warning", c, { warnings: ["W_MIXTURE_RANGE"] });
+}
+{
+  const c = compactBase();
+  c.compact.mixtureLaw = "bruggeman";
+  add("good", "compact-other-law-warning", c, { warnings: ["W_MIXTURE_LAW"] });
+}
+add("good", "pebble-steady", pebbleBase(), {});
+{
+  const c = pebbleBase();
+  delete c.boundary.bulkTemperature;
+  delete c.boundary.heatTransferCoefficient;
+  c.boundary.surfaceTemperature = qv(1000, "K");
+  add("good", "pebble-surface-temperature", c, {});
+}
+{
+  const c = pebbleBase();
+  c.mesh = { fuelledCells: 40, shellCells: 10 };
+  add("good", "pebble-coarse-mesh-warning", c, { warnings: ["W_MESH_INTERFACE"] });
+}
+const badCmp = (name, code, field, mutate) => { const c = compactBase(); mutate(c); add("bad", name, c, { code, field }); };
+badCmp("compact-fuel-material-given", "E_UNSUPPORTED", "/materials/fuel", (c) => (c.materials.fuel = JSON.parse(JSON.stringify(c.materials.cladding))));
+badCmp("compact-power-given", "E_UNSUPPORTED", "/power", (c) => (c.power = { linearHeatRate: qv(20, "kW/m") }));
+badCmp("compact-mechanics", "E_UNSUPPORTED", "/mechanics", (c) => (c.mechanics = {}));
+badCmp("compact-burnup", "E_UNSUPPORTED", "/burnup", (c) => (c.burnup = {}));
+badCmp("compact-transient", "E_UNSUPPORTED", "/transient", (c) => { c.assumptions.steadyState = false; c.transient = {}; });
+badCmp("compact-plate", "E_UNSUPPORTED", "/geometry/kind", (c) => (c.geometry.kind = "plate"));
+badCmp("compact-no-particle", "E_PROP_MISSING", "/compact/particle", (c) => delete c.compact.particle);
+badCmp("compact-no-matrix", "E_PROP_MISSING", "/compact/matrix", (c) => delete c.compact.matrix);
+badCmp("compact-unknown-key", "E_SCHEMA_INVALID", "/compact/extra", (c) => (c.compact.extra = 1));
+badCmp("compact-unknown-law", "E_UNSUPPORTED", "/compact/mixtureLaw", (c) => (c.compact.mixtureLaw = "chiew-glandt"));
+badCmp("compact-no-packing", "E_PROP_MISSING", "/compact/packingFraction", (c) => delete c.compact.packingFraction);
+badCmp("compact-packing-zero", "E_OUT_OF_RANGE", "/compact/packingFraction", (c) => (c.compact.packingFraction = qv(0, "1")));
+badCmp("compact-packing-too-dense", "E_OUT_OF_RANGE", "/compact/packingFraction", (c) => (c.compact.packingFraction = qv(0.8, "1")));
+badCmp("compact-no-power-density", "E_PROP_MISSING", "/compact/powerDensity", (c) => delete c.compact.powerDensity);
+badCmp("compact-power-wrong-unit", "E_UNITS", "/compact/powerDensity", (c) => (c.compact.powerDensity = qv(30, "W/m")));
+badCmp("compact-no-range", "E_PROP_MISSING", "/compact/validRange", (c) => delete c.compact.validRange);
+badCmp("compact-matrix-range-too-short", "E_OUT_OF_RANGE", "/compact/matrix", (c) => (c.compact.matrix.sets["thermal.conductivity"].validRange.max = qv(1000, "K")));
+badCmp("compact-fit-too-tight", "E_FIT", "/compact/fit", (c) => (c.compact.fit.tolerance = qv(1e-9, "%")));
+badCmp("compact-no-fit", "E_PROP_MISSING", "/compact/fit", (c) => delete c.compact.fit);
+badCmp("compact-layers-out-of-order", "E_GEOMETRY", "/compact/particle/layers/0/name", (c) => c.compact.particle.layers.reverse());
+badCmp("compact-particle-material-missing", "E_SCHEMA_INVALID", "/compact/particle/materials/sic", (c) => delete c.compact.particle.materials.sic);
+badCmp("compact-particle-gap-missing", "E_PROP_MISSING", "/compact/particle/gap", (c) => delete c.compact.particle.gap);
+badCmp("compact-two-scale-outside", "E_GEOMETRY", "/compact/twoScale/at/0", (c) => (c.compact.twoScale = { at: [qv(7, "mm")] }));
+badCmp("compact-no-cladding", "E_SCHEMA_INVALID", "/materials/cladding", (c) => delete c.materials.cladding);
+const badPeb = (name, code, field, mutate) => { const c = pebbleBase(); mutate(c); add("bad", name, c, { code, field }); };
+badPeb("pebble-transient", "E_UNSUPPORTED", "/transient", (c) => { c.assumptions.steadyState = false; c.transient = {}; });
+badPeb("pebble-power-given", "E_UNSUPPORTED", "/power", (c) => (c.power = { linearHeatRate: qv(20, "kW/m") }));
+badPeb("pebble-limits", "E_UNSUPPORTED", "/limits", (c) => (c.limits = [{ name: "k", region: "fuelled", maxTemperature: qv(1500, "K"), source: "synthetic" }]));
+badPeb("pebble-gap-model", "E_UNSUPPORTED", "/gap/model", (c) => (c.gap = { model: "constant-conductance", conductance: qv(5000, "W/m2/K"), source: "synthetic" }));
+badPeb("pebble-outer-radius-inside", "E_GEOMETRY", "/geometry/outerRadius", (c) => (c.geometry.outerRadius = qv(20, "mm")));
+badPeb("pebble-missing-outer-radius", "E_SCHEMA_INVALID", "/geometry/outerRadius", (c) => delete c.geometry.outerRadius);
+badPeb("pebble-with-a-pin-radius", "E_GEOMETRY", "/geometry/claddingOuterRadius", (c) => (c.geometry.claddingOuterRadius = qv(4.75, "mm")));
+badPeb("pebble-no-shell-material", "E_SCHEMA_INVALID", "/materials/shell", (c) => delete c.materials.shell);
+badPeb("pebble-fuel-material", "E_GEOMETRY", "/materials/fuel", (c) => (c.materials.fuel = JSON.parse(JSON.stringify(c.materials.shell))));
+badPeb("pebble-too-few-shell-cells", "E_MESH", "/mesh/shellCells", (c) => (c.mesh.shellCells = 1));
+badPeb("pebble-mesh-pin-key", "E_SCHEMA_INVALID", "/mesh/fuelCells", (c) => (c.mesh.fuelCells = 20));
+badPeb("pebble-no-compact", "E_SCHEMA_INVALID", "/compact", (c) => delete c.compact);
+badPeb("pebble-wrong-geometry-assumption", "E_UNSUPPORTED", "/assumptions/geometry", (c) => (c.assumptions.geometry = "1D-radial"));
+badPeb("pebble-two-scale-outside", "E_GEOMETRY", "/compact/twoScale/at/0", (c) => (c.compact.twoScale = { at: [qv(40, "mm")] }));
+badPeb("pebble-fit-too-tight", "E_FIT", "/compact/fit", (c) => (c.compact.fit.tolerance = qv(1e-9, "%")));
+
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 console.log(index.length + " vectors written");
