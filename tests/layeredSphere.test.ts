@@ -237,6 +237,28 @@ describe("a thermal strain that varies with the radius: the hollow sphere of Tim
     }
   });
 
+  it("a stack of thin sublayers, each with a uniform thermal strain, converges to the same stress (the probe's way of doing a temperature profile)", () => {
+    const err = (M: number) => {
+      const edges = Array.from({ length: M + 1 }, (_, i) => a + ((b - a) * i) / M);
+      const sub = Array.from({ length: M }, (_, i) => ({ a: edges[i]!, b: edges[i + 1]!, E, nu, eR: alpha * (T((edges[i]! + edges[i + 1]!) / 2) - Tref), eT: alpha * (T((edges[i]! + edges[i + 1]!) / 2) - Tref) }));
+      const s = new LayeredSphere(sub, 0, 0);
+      let worst = 0;
+      for (let i = 0; i < M; i++) {
+        const r = (edges[i]! + edges[i + 1]!) / 2;
+        worst = Math.max(worst, Math.abs(s.at(r, i).sigmaT - sigmaT(r)));
+      }
+      return worst / Math.abs(sigmaT(a));
+    };
+    const e20 = err(20);
+    const e80 = err(80);
+    const e320 = err(320);
+    expect(e20).toBeGreaterThan(e80);
+    expect(e80).toBeGreaterThan(e320);
+    // first order in the sublayer width: a fourfold refinement cuts the error by more than three
+    expect(e20 / e80).toBeGreaterThan(3);
+    expect(e320).toBeLessThan(0.01);
+  });
+
   it("the sign: the hot inside is in compression, the cool outside in tension", () => {
     expect(sigmaT(a)).toBeLessThan(0);
     expect(sigmaT(b)).toBeGreaterThan(0);
