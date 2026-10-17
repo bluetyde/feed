@@ -46,6 +46,8 @@ A plate may carry the same `axial` section as a pin (the heated length, 3 to 50 
 
 **The axial conduction of a plate** is estimated by the pin's fin model with the slab's cross-sections (see [docs/axial-stack.md](axial-stack.md), "The axial conduction of a plate"), calibrated on three lengths; what it cannot see (a steep end) and what a loss of cooling adds are stated there.
 
+**Since plan 15 (B2, B3) a stack of plates is judged against FEED's own two-dimensional (x through the thickness, z along the height) finite-volume solution of the whole stack**, not against N one-dimensional slab solutions with an allowance: the heat flow along the height is in the reference, the checks use the mesh bound alone, and the record keeps the one-dimensional numbers beside for contrast. On the saved real runs the cells agree with the reference to 5e-6 K (steady) and 0.01 K (transient, at up to 3000 K); the short plate's 22 K and the loss of cooling's 62 to 65 K that the one-dimensional solutions miss are followed; the 0.2 m, 20-slice, 100 s loss of cooling that failed passes. What the reference is and is not, the fallback to the allowance and the start of a transient: [docs/axial-stack.md](axial-stack.md), last section. A pin stack is unchanged.
+
 ## Limits
 
 - One face cooled (the other insulated, or the mid-plane of a plate cooled on both faces); no boiling, no critical heat flux, no melting: the film coefficient is an input (the boundary history makes it a function of time).

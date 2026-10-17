@@ -6,6 +6,7 @@
 import { axialExchange, axialSummary, sliceCase, sliceLoads, SliceLoad } from "./axial";
 import { Check, DomainFinding, ResultsError, THERMAL_ONLY_TEXT, parsePatchValues, parseScalarField, parseVectorField } from "./resultsParser";
 import { AXIAL_TOLERANCE_FACTOR, stackText, worstOf } from "./stackResults";
+import { StackTransientReferenceResult, stackTransientReference } from "./stackReference";
 import { IndependentSet, TransientInput, TransientResultsRecord, TransientAllowance, buildTransientResults, computeIndependent, ENERGY_BALANCE_TOLERANCE } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
@@ -87,10 +88,27 @@ export interface StackTransientRecord extends TransientResultsRecord {
     conduction: { fraction: number } | null;
     /** What was added to each slice's tolerances: kelvin on the cross-check, and on the energy balance a fraction of the slice's own energy (this is for the slice of the largest factor; the others scale with the ratio of the largest factor to their own). */
     allowance: { field: number; energy: number; exchangeField?: number; exchangeEnergy?: number; exchangeNumber?: number; exchangeCounted?: boolean };
+    /** What the per-slice checks compare with (plan 15, B3). Present for a stack of plates; a pin's record is as it was before plan 15. With the two-dimensional reference the `allowance` above is information, and was not added to any tolerance. */
+    reference?: StackTransientReferenceInfo;
   };
 }
 
-export function buildStackTransientResults(c: NormalizedCase, input: TransientInput, sets?: IndependentSet[]): StackTransientRecord {
+export type StackTransientReferenceInfo =
+  | {
+      kind: "two-dimensional";
+      /** The largest difference between OFFBEAT's cells and the reference at any output (K), and between OFFBEAT's cells and the one-dimensional solutions of the slices (K), for contrast. */
+      deviation: number;
+      oneDimensionalDeviation: number;
+      /** The largest difference between the run's start (every slice at its own steady state) and the stack's coupled steady state (K); null for a uniform start. */
+      startDistance: number | null;
+    }
+  | { kind: "allowance"; reason: string };
+
+/**
+ * `reference`: left out, a stack of plates is judged against its two-dimensional reference (plan 15, B3) and a pin against the one-dimensional solutions with the allowance and the
+ * exchange bound; a reference result that is given is used as it is; null forces the allowance.
+ */
+export function buildStackTransientResults(c: NormalizedCase, input: TransientInput, sets?: IndependentSet[], reference?: StackTransientReferenceResult | null): StackTransientRecord {
   const a = c.axial;
   const t = c.transient;
   if (!a || !t) throw new Error("buildStackTransientResults is for an axial stack with a transient");
@@ -140,14 +158,32 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
   // (only where the first-order bound holds: beyond the exchange number limit it is not counted, so a run that long keeps exactly the allowance the steady estimate gives)
   const exchange = exchangeAllowances(c, solutions, loads);
   const counted = exchange !== undefined && exchange.number <= AXIAL_EXCHANGE_NUMBER_LIMIT ? exchange : undefined;
+  // plan 15, B3: a stack of plates is judged against the two-dimensional solution of the whole stack; the allowance and the exchange bound above are then information only
+  const choice = reference === undefined ? (c.plate ? stackTransientReference(c) : null) : reference;
+  const ref = choice && "reference" in choice ? choice.reference : undefined;
+  const fallbackReason = ref ? "" : choice && "fallback" in choice ? choice.fallback : c.plate ? "the allowance was asked for" : "a pin keeps the allowance (plan 15: plates first)";
   const recs: TransientResultsRecord[] = [];
   for (let k = 0; k < N; k++) {
     const sc = sliceCase(c, loads[k]!);
     const steadyEnergy = loads[k]!.factor > 0 ? (AXIAL_TOLERANCE_FACTOR * fraction * maxFactor) / loads[k]!.factor : 0;
-    const allow: TransientAllowance = { field: Math.max(field, counted?.field[k] ?? 0), energy: Math.max(steadyEnergy, counted?.energy[k] ?? 0) };
+    const allow: TransientAllowance = ref ? { field: 0, energy: 0 } : { field: Math.max(field, counted?.field[k] ?? 0), energy: Math.max(steadyEnergy, counted?.energy[k] ?? 0) };
     const Ck = foamVector([...fi(k), ...ci(k)].map((i) => C[i]!));
-    recs.push(buildTransientResults(sc, { C: Ck, fields: perSliceFields[k]! }, solutions[k], allow));
+    recs.push(ref ? buildTransientResults(sc, { C: Ck, fields: perSliceFields[k]! }, ref.sliceIndependent(k, solutions[k]!), allow, ref.received(k)) : buildTransientResults(sc, { C: Ck, fields: perSliceFields[k]! }, solutions[k], allow));
   }
+  // for contrast and for the record: how far OFFBEAT's cells are from the reference and from the one-dimensional solutions, at every output
+  let deviation = 0;
+  let oneDimensionalDeviation = 0;
+  if (ref)
+    recs.forEach((r, k) => {
+      const own = solutions[k]!.fv;
+      const two = ref.sliceIndependent(k, solutions[k]!).fv;
+      r.profiles.forEach((p, j) =>
+        p.forEach((x, i) => {
+          deviation = Math.max(deviation, Math.abs(x - two.states[j]!.T[i]!));
+          oneDimensionalDeviation = Math.max(oneDimensionalDeviation, Math.abs(x - own.states[j]!.T[i]!));
+        }),
+      );
+    });
 
   const ids: string[] = [];
   for (const r of recs) for (const ch of r.checks) if (!ids.includes(ch.id)) ids.push(ch.id);
@@ -173,7 +209,16 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
     verdict: worst <= ENERGY_BALANCE_TOLERANCE ? "pass" : "fail",
     note: `the slices' energies summed; threshold ${ENERGY_BALANCE_TOLERANCE * 100}% of the ${histOrSteady ? "largest energy exchanged anywhere in the run" : "energy deposited so far"}. The end faces carry no heat, so the heat flow along the pin cancels in the sum and no allowance for it is made here`,
   });
-  checks.push({
+  if (ref) {
+    checks.push({
+      id: "axialConduction",
+      label: "Axial heat flow (in the two-dimensional reference, no allowance)",
+      value: fraction,
+      unit: "relative",
+      verdict: "na",
+      note: `information only: the heat flow along the height is in the reference, which is FEED's own two-dimensional finite-volume solution of the whole stack on the writer's mesh with the run's step, powers and coolants, started from the field the run was given. OFFBEAT's cells differ from it by up to ${deviation.toPrecision(3)} K at any output; from the one-dimensional solutions of the slices by up to ${oneDimensionalDeviation.toPrecision(3)} K. ${ref.startDistance !== null ? `The run starts from each slice's own steady state, ${ref.startDistance.toPrecision(3)} K from the stack's coupled steady state, and relaxes toward it; the reference starts from the same field. ` : ""}Without the reference the per-slice cross-check would be widened by ${field.toPrecision(3)} K (the steady estimate, ${(fraction * 100).toPrecision(3)} % of the largest rise${exchange ? `; the exchange bound up to ${Math.max(...exchange.field).toPrecision(3)} K, exchange number ${exchange.number.toPrecision(3)}${counted ? "" : ", above the limit where the bound held"}` : ""}); that allowance is the fallback where the reference cannot be computed. The spatial and time-stepping error estimates in each slice's bound are those of its own one-dimensional runs.`,
+    });
+  } else checks.push({
     id: "axialConduction",
     label: "Axial heat flow allowed for in the per-slice tolerances",
     value: fraction,
@@ -195,7 +240,14 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
     caseId: c.caseId,
     checks,
     domain: { verdict: findings.length ? "out-of-domain" : "in-domain", findings },
-    thermalOnly: THERMAL_ONLY_TEXT + " " + stackText(c),
-    axial: { length: a.length, slices, hottest, conduction: summary.conduction ? { fraction } : null, allowance: { field, energy: widen, ...(exchange ? { exchangeField: Math.max(...exchange.field), exchangeEnergy: Math.max(...exchange.energy), exchangeNumber: exchange.number, exchangeCounted: counted !== undefined } : {}) } },
+    thermalOnly: THERMAL_ONLY_TEXT + " " + stackText(c, ref !== undefined),
+    axial: {
+      length: a.length,
+      slices,
+      hottest,
+      conduction: summary.conduction ? { fraction } : null,
+      allowance: { field, energy: widen, ...(exchange ? { exchangeField: Math.max(...exchange.field), exchangeEnergy: Math.max(...exchange.energy), exchangeNumber: exchange.number, exchangeCounted: counted !== undefined } : {}) },
+      ...(c.plate ? { reference: ref ? ({ kind: "two-dimensional", deviation, oneDimensionalDeviation, startDistance: ref.startDistance } as StackTransientReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackTransientReferenceInfo) } : {}),
+    },
   };
 }
