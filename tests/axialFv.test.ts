@@ -210,3 +210,89 @@ describe("the limits", () => {
     expect(() => solveStackTransient({ ...uniformModel(pin, 3, 1e5) }, { dt: 0, steps: 2, outputEvery: 1, initial: new Array(78).fill(600) })).toThrow(/step/);
   });
 });
+
+// ---- B3: the transient solver ------------------------------------------------------------------------------------------------------------------------------------------
+// Tolerances fixed before the first run: per-layer energy balance 1e-9 relative (as CONSERVATION); the sum of the heat the layers receive from each other 1e-9 of the heat made;
+// the time order of implicit Euler: successive error ratios between 1.8 and 2.2 when the step is halved (the probe measured 1.93 to 2.00); the cells of the trace are the cells.
+describe("the transient solver: per-layer balance, the trace, and the exact solution in time", () => {
+  it("each layer's energy balances with the heat from its neighbours: deposited + received = stored + rejected; what the layers receive sums to zero", () => {
+    const pin = plateKT();
+    const shape = [0.2, 0.9, 1.5, 1.1, 0.3, 0.05];
+    const model: StackModel = { pin, layers: 6, height: 0.3, power: (k, t) => 2.4e5 * shape[k]! * (1 + t / 4), boundary: (k, t) => ({ kind: "convective", bulkTemperature: 560 + 12 * k + t, heatTransferCoefficient: 25000 + 2000 * k }) };
+    const r = solveStackTransient(model, { dt: 0.1, steps: 60, outputEvery: 20, initial: new Array(6 * 26).fill(620) });
+    for (const s of r.states.slice(1)) {
+      for (let k = 0; k < 6; k++) {
+        const gap = s.layerDeposited[k]! + s.layerAxialIn[k]! - s.layerStored[k]! - s.layerRejected[k]!;
+        expect(Math.abs(gap) / s.layerDeposited[k]!, `layer ${k} at ${s.time}`).toBeLessThan(CONSERVATION);
+      }
+      expect(Math.abs(Array.from(s.layerAxialIn).reduce((x, y) => x + y, 0)) / s.deposited).toBeLessThan(CONSERVATION);
+      expect(Math.abs(Array.from(s.layerStored).reduce((x, y) => x + y, 0) - s.stored) / Math.abs(s.stored)).toBeLessThan(CONSERVATION);
+    }
+    // the hot layers give heat to the cold end layers
+    expect(r.states[3]!.layerAxialIn[0]!).toBeGreaterThan(0);
+    expect(r.states[3]!.layerAxialIn[2]!).toBeLessThan(0);
+  });
+  it("the trace is the hottest cell of each layer at every step (step 0 included) and the extremes of each solid", () => {
+    const pin = pinKT();
+    const model = uniformModel(pin, 4, 2e4, { power: (k) => 2e4 * (k + 1) });
+    const r = solveStackTransient(model, { dt: 0.2, steps: 25, outputEvery: 5, initial: new Array(4 * 26).fill(600), trace: true });
+    expect(r.traces).toHaveLength(4);
+    r.traces!.forEach((tr, k) => {
+      expect(tr.peakByStep).toHaveLength(26);
+      expect(tr.peakByStep[0]).toBe(600);
+      expect(tr.fuelMin).toBeCloseTo(600, 9);
+      expect(tr.claddingMin).toBeLessThan(600); // the coolant, 573 K, is below the start
+      expect(tr.claddingMin).toBeGreaterThan(573);
+      // the last peak is the hottest cell of that layer in the last output
+      const last = r.states[r.states.length - 1]!.T;
+      expect(tr.peakByStep[25]).toBe(Math.max(...Array.from(last.subarray(k * r.n, (k + 1) * r.n))));
+      expect(tr.fuelMax).toBeGreaterThanOrEqual(tr.fuelByStep[25]!);
+      expect(tr.peakByStep[25]).toBe(Math.max(tr.fuelByStep[25]!, tr.claddingByStep[25]!));
+    });
+    // a layer with more power is hotter; the traces differ between layers
+    expect(r.traces![3]!.peakByStep[25]!).toBeGreaterThan(r.traces![0]!.peakByStep[25]!);
+  });
+  it("a deadline stops the run with the reason", () => {
+    const model = uniformModel(plate(), 4, 1e5);
+    expect(() => solveStackTransient(model, { dt: 0.1, steps: 50, outputEvery: 10, initial: new Array(4 * 26).fill(600), deadlineMs: -1 })).toThrow(/did not finish/);
+  });
+  describe("the exact solution in time: the same plate switched on at t = 0 from the wall temperature, a separable series", () => {
+    const L = 8e-3;
+    const H = 0.02;
+    const k = 3;
+    const rhoc = 3e6;
+    const q0 = 1e8;
+    const Tw = 1500;
+    const lambda = Math.PI / H;
+    const tEnd = 10;
+    const exact = (x: number, z: number) => {
+      let theta = (q0 / (k * lambda * lambda)) * (1 - Math.cosh(lambda * x) / Math.cosh(lambda * L));
+      for (let m = 0; m < 4000; m++) {
+        const mu = ((m + 0.5) * Math.PI) / L;
+        const a = ((2 * q0) / (k * L)) * (m % 2 ? -1 : 1) / (mu * (lambda * lambda + mu * mu));
+        theta -= a * Math.cos(mu * x) * Math.exp(-((k * (mu * mu + lambda * lambda)) / rhoc) * tEnd);
+      }
+      return Tw + Math.cos(lambda * z) * theta;
+    };
+    const run = (steps: number) => {
+      const M = 32;
+      const pin: TransientPin = { slab: true, fuelInnerRadius: 0, fuelRadius: L / 2, claddingInnerRadius: L / 2, claddingOuterRadius: L, fuelCells: M, claddingCells: M, gapConductance: 1e13, fuelK: { a: k, b: 0 }, fuelLaw: [k], claddingK: { a: k, b: 0 }, claddingLaw: [k], fuelC: { a: rhoc, b: 0 }, fuelCLaw: [rhoc], claddingC: { a: rhoc, b: 0 }, claddingCLaw: [rhoc], boundary: { kind: "surface-temperature", surfaceTemperature: Tw }, power: () => 0 };
+      const model: StackModel = { pin, layers: M, height: H, power: (j) => q0 * L * Math.cos((lambda * (j + 0.5) * H) / M), boundary: () => pin.boundary, heatAllCells: true };
+      const r = solveStackTransient(model, { dt: tEnd / steps, steps, outputEvery: steps, initial: new Array(M * 2 * M).fill(Tw) });
+      const s = r.states[1]!;
+      let err = 0;
+      for (let j = 0; j < M; j++) for (let i = 0; i < 2 * M; i++) err = Math.max(err, Math.abs(s.T[j * r.n + i]! - exact(r.r[i]!, ((j + 0.5) * H) / M)));
+      return { err, balance: Math.abs(s.deposited - s.stored - s.rejected) / s.deposited };
+    };
+    const steps = [5, 10, 20, 40, 80];
+    const runs = steps.map(run);
+    it("the error falls at first order in the step (successive ratios between 1.8 and 2.2), and the energy balance closes", () => {
+      for (let i = 1; i < runs.length; i++) {
+        const ratio = runs[i - 1]!.err / runs[i]!.err;
+        expect(ratio, runs.map((x) => x.err.toPrecision(4)).join(", ")).toBeGreaterThan(1.8);
+        expect(ratio).toBeLessThan(2.2);
+      }
+      runs.forEach((x) => expect(x.balance).toBeLessThan(CONSERVATION));
+    });
+  });
+});

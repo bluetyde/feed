@@ -14,7 +14,7 @@
 import type { BoundaryValue } from "./boundaryHistory";
 import { degree } from "./conductivity";
 import { geometryOf } from "./geometry";
-import { TransientPin, capacityOf, conductivityOf, enthalpyOf } from "./transientFv";
+import { FvTrace, TransientPin, capacityOf, conductivityOf, enthalpyOf } from "./transientFv";
 
 export interface StackModel {
   /** The radial cells, the gap, the properties and the geometry of every layer (its own `boundary`, `boundaryAt` and `power` are not used: they are per layer here). */
@@ -57,6 +57,11 @@ export interface StackState {
   deposited: number;
   rejected: number;
   stored: number;
+  /** The same, layer by layer, and the heat each layer has received from its neighbours along the height since the start (J; the sum over the layers is zero): per layer, deposited + axialIn = stored + rejected. */
+  layerDeposited: Float64Array;
+  layerRejected: Float64Array;
+  layerStored: Float64Array;
+  layerAxialIn: Float64Array;
 }
 
 export interface StackTransientOptions {
@@ -65,12 +70,18 @@ export interface StackTransientOptions {
   outputEvery: number;
   /** The temperature of every cell at t = 0, layer by layer. */
   initial: ArrayLike<number>;
+  /** Also record, at every step, each layer's hottest cell and the extremes of each solid, as transientFv does for a slice. */
+  trace?: boolean;
+  /** Stop with a RangeError after this many milliseconds of wall-clock time (a caller with its own fallback sets it). */
+  deadlineMs?: number;
 }
 
 export interface StackTransient {
   n: number;
   r: number[];
   states: StackState[];
+  /** One per layer when `trace` was asked for. */
+  traces?: FvTrace[];
 }
 
 /** The most unknowns a stack reference solves (layers x cells per layer), and the most of layers x cells x cells (the work of one banded solve): a stack beyond either is not solved. */
@@ -267,7 +278,24 @@ function system(m: StackModel, transient: boolean) {
     for (let id = 0; id < rows; id++) e += h * vol[id % n]! * (enthalpyOf(p, id % n < nf, T[id]!) - enthalpyOf(p, id % n < nf, T0[id]!));
     return e;
   };
-  return { n, nf, rows, h, N, r, vol, kOf, converge, wallsOf, outOf, storedOf, coupled };
+  /** The heat flowing from layer k to layer k + 1 through the solids (W), summed over the cells, at the conductivities of the field T; N - 1 values, zero with the conduction off. */
+  const axialFlux = (T: Float64Array) => {
+    const f = new Float64Array(Math.max(0, N - 1));
+    if (coupled)
+      for (let k = 0; k < N - 1; k++)
+        for (let i = 0; i < n; i++) {
+          const ka = kOf(i, T[k * n + i]!);
+          const kb = kOf(i, T[(k + 1) * n + i]!);
+          f[k]! += ((2 * ka * kb) / (ka + kb)) * (vol[i]! / h) * (T[k * n + i]! - T[(k + 1) * n + i]!);
+        }
+    return f;
+  };
+  const storedLayers = (T: Float64Array, T0: ArrayLike<number>) => {
+    const e = new Float64Array(N);
+    for (let id = 0; id < rows; id++) e[Math.floor(id / n)]! += h * vol[id % n]! * (enthalpyOf(p, id % n < nf, T[id]!) - enthalpyOf(p, id % n < nf, T0[id]!));
+    return e;
+  };
+  return { n, nf, rows, h, N, r, vol, kOf, converge, wallsOf, outOf, storedOf, storedLayers, axialFlux, coupled };
 }
 
 /**
@@ -284,15 +312,7 @@ export function solveStackSteady(m: StackModel): StackSteady {
   for (let id = 0; id < s.rows; id++) if (!(s.kOf(id % s.n, T[id]!) > 0)) throw new RangeError(`the conductivity of the ${id % s.n < s.nf ? "fuel" : "cladding"} is not positive at ${T[id]!.toFixed(0)} K, so there is no steady state at this heat rate`);
   const out = s.outOf(T, sides);
   const made = Float64Array.from(qs, (q) => s.h * q);
-  // heat from layer k to k+1 through the solids: the conduction between the two cells of each pair, at the conductivities of the field
-  const axial = new Float64Array(Math.max(0, s.N - 1));
-  if (s.coupled)
-    for (let k = 0; k < s.N - 1; k++)
-      for (let i = 0; i < s.n; i++) {
-        const ka = s.kOf(i, T[k * s.n + i]!);
-        const kb = s.kOf(i, T[(k + 1) * s.n + i]!);
-        axial[k]! += ((2 * ka * kb) / (ka + kb)) * (s.vol[i]! / s.h) * (T[k * s.n + i]! - T[(k + 1) * s.n + i]!);
-      }
+  const axial = s.axialFlux(T);
   return { n: s.n, r: s.r, T, wall: s.wallsOf(T, bs), out, made, axial, deposited: made.reduce((x, y) => x + y, 0), rejected: out.reduce((x, y) => x + y, 0) };
 }
 
@@ -303,19 +323,59 @@ export function solveStackTransient(m: StackModel, o: StackTransientOptions): St
   if (!(o.dt > 0) || !Number.isInteger(o.steps) || o.steps < 1 || !Number.isInteger(o.outputEvery) || o.outputEvery < 1) throw new RangeError("the transient needs a positive step, a whole number of steps and a whole number of steps between outputs");
   const T0 = Float64Array.from(o.initial);
   let T: Float64Array = Float64Array.from(T0);
-  const bs0 = Array.from({ length: s.N }, (_, k) => m.boundary(k, 0));
-  const states: StackState[] = [{ time: 0, T: Float64Array.from(T), wall: s.wallsOf(T, bs0), deposited: 0, rejected: 0, stored: 0 }];
+  const N = s.N;
+  const bs0 = Array.from({ length: N }, (_, k) => m.boundary(k, 0));
+  const layerDeposited = new Float64Array(N);
+  const layerRejected = new Float64Array(N);
+  const layerAxialIn = new Float64Array(N);
+  const zeros = () => new Float64Array(N);
+  const states: StackState[] = [{ time: 0, T: Float64Array.from(T), wall: s.wallsOf(T, bs0), deposited: 0, rejected: 0, stored: 0, layerDeposited: zeros(), layerRejected: zeros(), layerStored: zeros(), layerAxialIn: zeros() }];
+  const traces: FvTrace[] | undefined = o.trace ? Array.from({ length: N }, () => ({ peakByStep: [], fuelByStep: [], claddingByStep: [], fuelMin: Infinity, fuelMax: -Infinity, claddingMin: Infinity, claddingMax: -Infinity })) : undefined;
+  const record = (field: Float64Array) => {
+    if (!traces) return;
+    for (let k = 0; k < N; k++) {
+      const tr = traces[k]!;
+      let fuelHot = -Infinity;
+      let cladHot = -Infinity;
+      for (let i = 0; i < s.n; i++) {
+        const x = field[k * s.n + i]!;
+        if (i < s.nf) {
+          if (x < tr.fuelMin) tr.fuelMin = x;
+          if (x > tr.fuelMax) tr.fuelMax = x;
+          if (x > fuelHot) fuelHot = x;
+        } else {
+          if (x < tr.claddingMin) tr.claddingMin = x;
+          if (x > tr.claddingMax) tr.claddingMax = x;
+          if (x > cladHot) cladHot = x;
+        }
+      }
+      tr.peakByStep.push(Math.max(fuelHot, cladHot));
+      tr.fuelByStep.push(fuelHot);
+      tr.claddingByStep.push(cladHot);
+    }
+  };
+  record(T);
+  const started = Date.now();
   let deposited = 0;
   let rejected = 0;
   for (let step = 1; step <= o.steps; step++) {
+    if (o.deadlineMs !== undefined && Date.now() - started > o.deadlineMs) throw new RangeError(`the stack's transient did not finish in ${o.deadlineMs} ms (stopped at step ${step - 1} of ${o.steps})`);
     const t1 = step * o.dt;
-    const qs = Array.from({ length: s.N }, (_, k) => m.power(k, t1));
-    const bs = Array.from({ length: s.N }, (_, k) => m.boundary(k, t1));
+    const qs = Array.from({ length: N }, (_, k) => m.power(k, t1));
+    const bs = Array.from({ length: N }, (_, k) => m.boundary(k, t1));
     const res = s.converge(T, T, o.dt, qs, bs);
+    const out = s.outOf(res.T, res.sides);
+    const flux = s.axialFlux(res.T);
+    for (let k = 0; k < N; k++) {
+      layerDeposited[k]! += o.dt * s.h * qs[k]!;
+      layerRejected[k]! += o.dt * out[k]!;
+      layerAxialIn[k]! += o.dt * ((k > 0 ? flux[k - 1]! : 0) - (k < N - 1 ? flux[k]! : 0));
+    }
     deposited += o.dt * s.h * qs.reduce((x, y) => x + y, 0);
-    rejected += o.dt * s.outOf(res.T, res.sides).reduce((x, y) => x + y, 0);
+    rejected += o.dt * out.reduce((x, y) => x + y, 0);
     T = res.T;
-    if (step % o.outputEvery === 0) states.push({ time: t1, T: Float64Array.from(T), wall: s.wallsOf(T, bs), deposited, rejected, stored: s.storedOf(T, T0) });
+    record(T);
+    if (step % o.outputEvery === 0) states.push({ time: t1, T: Float64Array.from(T), wall: s.wallsOf(T, bs), deposited, rejected, stored: s.storedOf(T, T0), layerDeposited: Float64Array.from(layerDeposited), layerRejected: Float64Array.from(layerRejected), layerStored: s.storedLayers(T, T0), layerAxialIn: Float64Array.from(layerAxialIn) });
   }
-  return { n: s.n, r: s.r, states };
+  return { n: s.n, r: s.r, states, ...(traces ? { traces } : {}) };
 }
