@@ -4,7 +4,8 @@
 // height is in the reference instead of in an allowance. Steady, and transient (implicit Euler, the scheme OFFBEAT uses).
 //
 // Unknowns: the temperature of cell i of layer k, at id = k n + i (n cells per layer, fuel then cladding, inner to outer). Per layer: the radial conduction and the gap and the
-// coolant side of transientFv; between layer k and k+1, for each cell, two half cells in series, k_a k_b / (k_a + k_b) * 2 A / h, the end layers' outer faces insulated, A the
+// coolant side of transientFv; between layer k and k+1, for each cell, the conductivity linearly interpolated to the face between the two layers (the layers have one height, so the
+// arithmetic mean (k_a + k_b) / 2) times A / h, the end layers' outer faces insulated, A the
 // cell's cross-section (geo.volume: an annulus, or a strip of one metre width), h the layer height. The source of a layer is uniform in it, at the value the case gives at the
 // layer's centre, and so is its coolant. The matrix is banded (half bandwidth n) and solved directly, without pivoting: it is an M-matrix (diagonally dominant with
 // non-positive off-diagonals). Picard iteration for conductivity and heat capacity that depend on temperature, in the enthalpy form of transientFv so that the stored energy is exact.
@@ -211,10 +212,12 @@ function system(m: StackModel, transient: boolean) {
           A[at(id + 1, id)]! -= gi;
         }
         if (coupled && k < N - 1) {
-          // two half cells in series: the conductivity of each side over half the layer height
+          // the face between two layers of one height lies halfway between their nodes: the conductivity there is the mean of the two. Harmonic (two half cells in series) was the first choice
+          // (plan 15 B1) and is wrong for a conductivity that depends on temperature: the layers of one solid differ in temperature, not in material, and against OFFBEAT's real runs with
+          // k(T) it leaves 0.21 K at the end slice of a loss of cooling where the mean leaves 0.0002 K (docs/plans/15-axial-2d.md, "k(T) record")
           const ka = kv[id]!;
           const kb = kv[id + n]!;
-          const gz = ((2 * ka * kb) / (ka + kb)) * (vol[i]! / h);
+          const gz = (0.5 * (ka + kb)) * (vol[i]! / h);
           A[at(id, id)]! += gz;
           A[at(id + n, id + n)]! += gz;
           A[at(id, id + n)]! -= gz;
