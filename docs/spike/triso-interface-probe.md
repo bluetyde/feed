@@ -90,7 +90,7 @@ The estimate of the largest deviation is the sum, over the interfaces that are n
 | thickest buffer | 0.983 | 0.992 | 0.996 | 0.998 | 0.999 | 1.000 |
 | thinnest SiC | 0.998 | 1.001 | 1.001 | 1.001 | 1.000 | 1.001 |
 
-0.983 to 1.071. The estimate is therefore a predictor of the deviation, to 7 % on this family. With the check's own bound added (0.3 % of the rise, at least 0.02 K: 0.044 to 0.054 K) and a safety factor of 1.25 on the estimate, the largest ratio of a measured deviation to the new bound is 0.72 at 6 cells, 0.66 at 12, 0.55 at 24, 0.41 at 48, 0.27 at 96 and 0.16 at 192 (the smallest 0.69, 0.46, 0.23, 0.10, 0.04, 0.02).
+0.983 to 1.071. The estimate is therefore a predictor of the deviation, to 7 % on this family; on T3's seven saved particles (12 cells, a 10 to 49 K rise, the generic particle with 16 cells in the SiC, a two-layer one and one with a temperature-dependent conductivity; the conductivities at the closed-form temperatures of the face) it is 1.13, 1.22 and 0.53 times (the temperature-dependent one) the estimate, where the second-order interior term is a larger part of a smaller total. With the check's own bound added (0.3 % of the rise, at least 0.02 K: 0.044 to 0.054 K) and a safety factor of 1.25 on the estimate, the largest ratio of a measured deviation to the new bound is 0.72 at 6 cells, 0.66 at 12, 0.55 at 24, 0.41 at 48, 0.27 at 96 and 0.16 at 192 (the smallest 0.69, 0.46, 0.23, 0.10, 0.04, 0.02).
 
 ## The decision
 
