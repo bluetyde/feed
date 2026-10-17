@@ -1,0 +1,103 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "50000000";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+30
+(
+915.67476
+915.52414
+915.18724
+914.66983
+913.97426
+913.10152
+911.43863
+908.78557
+906.49246
+904.49074
+902.72822
+901.16445
+900.22493
+900.172
+900.12082
+900.0713
+900.02336
+899.97693
+899.95817
+899.9467
+899.93556
+899.92471
+899.91415
+899.90388
+899.88848
+899.85564
+899.82362
+899.79237
+899.76187
+899.73209
+)
+;
+
+boundaryField
+{
+    top
+    {
+        type            wedge;
+    }
+    front
+    {
+        type            wedge;
+    }
+    back
+    {
+        type            wedge;
+    }
+    bottom
+    {
+        type            wedge;
+    }
+    outer
+    {
+        type            convectiveHTC;
+        h               uniform 2000;
+        T0              uniform 889.49046;
+        value           uniform 899.71761;
+    }
+    bufferOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 900.47883;
+        alpha           uniform 150000;
+    }
+    ipycInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 900.25247;
+        alpha           uniform 150000;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //
