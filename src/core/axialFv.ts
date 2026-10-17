@@ -91,12 +91,6 @@ export const STACK_BAND_WORK_MAX = 5e7;
 export const PICARD_TOLERANCE = 1e-10;
 export const PICARD_ITERATIONS = 200;
 
-/** The unknowns and the banded work of a stack, for a caller that wants to know before it solves. */
-export function stackSize(pin: TransientPin, layers: number): { unknowns: number; bandWork: number } {
-  const n = pin.fuelCells + pin.claddingCells;
-  return { unknowns: layers * n, bandWork: layers * n * n };
-}
-
 /** Banded solve without pivoting, in place: `a` holds row i at i w + (j - i + m) for w = 2 m + 1, `b` is overwritten. */
 function solveBanded(a: Float64Array, b: Float64Array, n: number, m: number): Float64Array {
   const w = 2 * m + 1;
@@ -160,7 +154,7 @@ function system(m: StackModel, transient: boolean) {
   const kOf = (i: number, T: number) => conductivityOf(p, i < nf, T);
   const constant = propertiesConstant(p, transient);
 
-  /** Radial conductances (W/K per unit height) of one layer at the conductivities kv, the outer conductance to the coolant and the weights of the wall temperature. */
+  /** Radial conductances (W/K per unit height) of one layer at the conductivities kv, and the outer conductance to the coolant. */
   const radial = (kv: Float64Array, off: number, b: BoundaryValue) => {
     const g = new Float64Array(n - 1);
     for (let i = 0; i < n - 1; i++) {
@@ -174,12 +168,8 @@ function system(m: StackModel, transient: boolean) {
     }
     const kl = kv[off + n - 1]!;
     const rHalf = geo.resist(r[n - 1]!, p.claddingOuterRadius, kl);
-    if (b.kind === "convective") {
-      const gFilm = geo.area(p.claddingOuterRadius) * b.heatTransferCoefficient;
-      const gHalf = geo.conductance(r[n - 1]!, p.claddingOuterRadius, kl);
-      return { g, gOut: 1 / (rHalf + 1 / gFilm), wallCell: gHalf / (gHalf + gFilm), wallCool: gFilm / (gHalf + gFilm) };
-    }
-    return { g, gOut: 1 / rHalf, wallCell: 0, wallCool: 0 };
+    if (b.kind === "convective") return { g, gOut: 1 / (rHalf + 1 / (geo.area(p.claddingOuterRadius) * b.heatTransferCoefficient)) };
+    return { g, gOut: 1 / rHalf };
   };
 
   const w2 = 2 * n + 1;
@@ -190,10 +180,7 @@ function system(m: StackModel, transient: boolean) {
 
   interface Side {
     gOut: number;
-    wallCell: number;
-    wallCool: number;
     cool: number;
-    kind: BoundaryValue["kind"];
   }
   /** One linear solve about the iterate Tn (conductivities and capacities taken there); Told is the previous time level, dt the step (null: steady). */
   const step = (Tn: Float64Array, Told: Float64Array | null, dt: number | null, qs: number[], bs: BoundaryValue[]) => {
@@ -204,8 +191,8 @@ function system(m: StackModel, transient: boolean) {
     for (let k = 0; k < N; k++) {
       const b = bs[k]!;
       const off = k * n;
-      const { g, gOut, wallCell, wallCool } = radial(kv, off, b);
-      sides.push({ gOut, wallCell, wallCool, cool: coolantOf(b), kind: b.kind });
+      const { g, gOut } = radial(kv, off, b);
+      sides.push({ gOut, cool: coolantOf(b) });
       for (let i = 0; i < n; i++) {
         const id = off + i;
         if (dt !== null) {
