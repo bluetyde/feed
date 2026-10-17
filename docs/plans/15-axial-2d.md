@@ -1,6 +1,6 @@
 # Plan 15: A two-dimensional (radius and height) independent solution for the stack
 
-Status: planned 2026-10-16, on the user's word ("plan the 2D solution"), after the question whether the 3D view's label ("no heat flows between the slices") should change or become a setting. **Nothing here is built beyond the B0 probe (2026-10-16, gate met, see the B0 record at the end).** Follows [plan 12](12-axial-stack-and-plate.md) (A0 to A9 done): the stack's checks compare OFFBEAT, which solves the whole stack in two dimensions, with FEED's one-dimensional solutions of each slice, and widen the tolerance for the heat flow along the height that those solutions leave out.
+Status: planned 2026-10-16, on the user's word ("plan the 2D solution"), after the question whether the 3D view's label ("no heat flows between the slices") should change or become a setting. **Built so far: B0 (probe, gate met), and for PLATES ONLY (the owner's decision after B0) B1 steady and transient solver, B2 steady checks, B3 transient checks, all gates met (2026-10-16, branch claude/axial-2d-plate; records at the end). Not built: B4 to B7, and anything for pins.** Follows [plan 12](12-axial-stack-and-plate.md) (A0 to A9 done): the stack's checks compare OFFBEAT, which solves the whole stack in two dimensions, with FEED's one-dimensional solutions of each slice, and widen the tolerance for the heat flow along the height that those solutions leave out.
 
 ## What it adds, and what it does not
 
@@ -83,3 +83,84 @@ On the B0 result the owner chose (on the recommendation below) to build **plates
 - **Negative test "axial term removed must fail"** applies to plates and short pins; for a pin at TRIGA length it is not claimed (the probe: gate ratio 0.45).
 - **Reduction test limit** 1e-9 K absolute (the banded solve's floor near 1700 K), not 1e-10.
 - **B5 (editor option), B6 (oracles measured), B7 (docs and examples)** follow B1 to B4 and are not part of the first build.
+
+## B1 record (2026-10-16): the steady and transient solver, `src/core/axialFv.ts`
+
+Done, branch `claude/axial-2d-plate` (from main 0b60d93). **Gate met** (the verification list for the solver passes). `src/core/axialFv.ts` is the probe's `axial2d.cjs` rewritten in TypeScript, pure and without I/O: the radial cells, node positions and conductances of `transientFv.ts` through the geometry kernel (`geometryOf(pin.slab)`, so a pin would go through the same code; **not wired**), two half cells in series between layers (**the harmonic mean**, `2 ka kb / (ka + kb)` times the cell's cross-section over the layer height, which the probe could not settle against the arithmetic mean: the two differ by 0.0002 K on a plate in its made-up law, and a test now ties the matrix to the flux by the per-layer balance, so the two cannot differ unnoticed), insulated end faces, the gap on the fuel face, the power and the coolant at the layer centre, a banded direct solve without pivoting, Picard to 1e-10 K with an error after 200 iterations, implicit Euler with the power and the coolant at the end of the step. Beyond 20000 unknowns (or layers x cells^2 above 5e7) it refuses with the reason. **Tests** (`tests/axialFv.test.ts`, tolerances written in the file before the first run):
+
+| Test | Limit | Result |
+|---|---|---|
+| Reduction, N identical layers = N copies of `steadyFv` (cells and wall): plate with constant k / plate with k(T) / pin with k(T) | 1e-9 K | 1.4e-10 / 3.6e-11 / 6.0e-11 K |
+| Reduction, transient pin with k(T) and c(T), a power that changes in time, every output | 1e-9 K | 2.0e-11 K |
+| Conduction between layers off = N separate one-dimensional solutions, for layers that differ | 1e-9 K | passes; switched on, the fields differ by more than 0.1 K |
+| Conservation, steady, a shape and a coolant that change along the height, k(T): heat out = heat made; each layer's heat out = its own + what the neighbours give | 1e-9 | 1.3e-12 total, 1.6e-11 per layer |
+| Conservation, transient, k(T), c(T), a ramp and a moving coolant: deposited = stored + rejected; per layer, deposited + received = stored + rejected; the heat the layers receive sums to zero | 1e-9 | 2.0e-14 total; per layer within the limit |
+| Exact steady solution `T = T_wall + q0 cos(pi z / H) (1 - cosh(lambda x) / cosh(lambda L)) / (k lambda^2)`, errors with 4, 8, 16, 32, 64 cells and layers | successive ratios 3.7 to 4.3 | 13.64, 3.619, 0.9179, 0.2303, 0.05763 K: ratios 3.768, 3.942, 3.986, 3.996 (second order) |
+| The same with the conduction off: the one-dimensional slab solution is 427 K from the exact field (the cosine changes sign, so this is the amplitude), and the decoupled solver is that slab solution | 0.05 K from the slab solution, 100 K from the exact one | 0.0163 K (M = 64), 427 K |
+| Exact solution in time (switched on from the wall temperature, a separable series of 4000 terms, t = 10 s, 32 x 32 cells), 5 to 80 steps | successive ratios 1.8 to 2.2 | 11.96, 6.196, 3.149, 1.580, 0.7824 K: ratios 1.931, 1.967, 1.994, 2.019 (first order); the energy balance closes to 1e-9 in each |
+| Limits: more unknowns than the cap, a conductivity that goes negative, bad layers, height, start field, step, a deadline | refused with the reason | passes |
+
+Two slips of mine, both in tests of new code and neither a widening: the exact-solution plate first had a wall at 500 K, which the cosine's negative half takes below 0 K (the solver refused it, correctly; the wall is 1500 K now); and my guess of 0.05 K for the slab-solution comparison was a mesh error that only 64 cells reach (0.065 K at 32), so that test uses 64 and keeps the limit.
+
+**The negative tests for the solver** ("axial term removed", "shape shifted by one layer", "coolant read from the top", each failing a check against the saved OFFBEAT plate output) are in B2's tests, where the checks are (below).
+
+## B2 record (2026-10-16): the steady checks of a plate stack against the reference
+
+Done. **Gate met.** `src/core/stackReference.ts` builds the case as the solver's model and cuts the solution into slices; `finishResults` (`resultsParser.ts`) takes an optional `reference` and then compares the cells with it (mesh bound 5 dT / N^2 plus a floor of 0.01 K, `REFERENCE_FLOOR`), the wall with the reference's wall (0.05 K) and the flux through the two innermost cladding cells with the reference's flux through the same cells (1 %); `buildStackResults` uses it for a plate by default, with the allowance at zero, and keeps the allowance as the information line `axialConduction` and as the fallback (a stack beyond the cap, a solution that does not settle, or the third argument `null`), with the reason in `axial.reference`. Pins take the old path untouched.
+
+**Every saved steady plate run passes with no allowance** (`tests/plateStackReference.test.ts`; the columns are the largest difference between any OFFBEAT cell and the reference; the effect of the axial term in the cells, which is also what the one-dimensional solution misses; the allowance the old way added):
+
+| Run | Reference, K | One-dimensional solution, K | Old allowance, K |
+|---|---|---|---|
+| cosine 0.381 m (= len0.381) | 5.0e-6 | 0.609 | 1.193 |
+| 0.19 m | 5.0e-6 | 2.394 | 4.799 |
+| 0.762 m | 5.0e-6 | 0.153 | 0.298 |
+| table, warming coolant ("negative") | 5.0e-6 | 0.155 | 0.002 |
+| ramp | 5.0e-6 | 0.104 | 0.000 |
+| warming coolant ("rise") | 5.0e-6 | 0.692 | 1.193 |
+| short 0.06 m, 12 slices | 4.9e-6 | 22.359 | 47.940 |
+| steep ends, 20 slices | 5.0e-6 | 1.903 | 5.988 |
+
+The reference differs from OFFBEAT by the rounding of the saved output; the worst ratio of a check's value to its bound is 2.2e-5 (the floor is 2000 times what was needed, kept because OFFBEAT's own iteration stops at a tolerance that the pin runs show at 1.6e-3 K). The wall, the layer flux and the whole-plate balance (1.3e-6 or less) agree the same way. **The old allowance regime passes too** (the same runs with the reference left out), so nothing was widened by the change, and the allowance is now unneeded where the reference runs.
+
+**The negative tests fail** against the saved output (the gate ratio is the fuel difference over its bound): *the axial term removed* fails on six of the nine runs (cosine 0.381 m 1.42, 0.19 m 5.57, warming coolant 1.61, short plate 62.1, steep ends 2.16; the failing checks are the fuel and the layer energy balance, and for the short, steep and 0.19 m runs the wall too); it does **not** fail on 0.762 m (0.36), the table with the warming coolant (0.14) and the ramp (0.04): the effect there, 0.10 to 0.15 K, is below the mesh bound, as B0 found, and is not claimed. A shape shifted by one layer fails (the fuel), a coolant read from the top fails (the wall and the fuel), 10 % more heat fails (the fuel and the whole-plate balance).
+
+**Pin stacks are unchanged:** the records of the three saved steady pin stacks equal the ones the code before plan 15 gave, character for character (`tests/fixtures/pin-stack-records-0b60d93.json`, made by compiling main 0b60d93 and running it on the same inputs), and so do the five transient pin stacks (a hash of each record, `tests/fixtures/pin-stack-transient-hashes-0b60d93.json`).
+
+**Existing tests touched** (listed so that the owner can look): `tests/plateStackResults.test.ts`, one test (the short plate's closed-form deviation of more than 5 K and below the allowance) is about the one-dimensional regime; it now asks for it (`reference` null, a helper argument) and its assertions are unchanged. In `tests/plateStackTransientResults.test.ts` three tests are the same case (the loss of cooling 60 s, the 200 s and 0.1 m runs and the 1.5 limit), and `tests/plateStackSolver.test.ts` (gated) has four: each asks for the one-dimensional record (`judge1d`, `oneD`) with its assertions unchanged, and also asserts the two-dimensional record passes. The 3D view, the editor and the examples read no field that changed.
+
+## B3 record (2026-10-16): the plate transient
+
+Done. **Gate met.** `solveStackTransient` (B1) gives the per-layer heat deposited, rejected, stored and received from the neighbours at every output, and the trace of each layer (the hottest cell at every step, the extremes of each solid) that a slice's cross-check and limits read. `stackTransientReference` runs it from the field the run started from (every slice at its own steady state, or the uniform start) with the run's step, powers and coolants, under a cap of 3e6 unknowns x steps and a deadline of 60 s (the fallback, with the reason). Each slice is handed to the one-slice transient checks as an independent solution made from its part of the two-dimensional solution; the doubled-mesh and half-step error estimates come from the slice's own one-dimensional runs, carried over as differences (so a stack still runs the three one-dimensional runs per slice that the worker computes; the cost of a doubled-mesh two-dimensional run, 95 to 155 s on the largest case in B0, is not paid). The slice energy balance counts the heat received from the neighbours; there is no exchange bound and no exchange-number limit. Pins take the old path untouched.
+
+**Every saved plate transient passes every check with no allowance and no exchange bound** (`tests/plateStackTransientReference.test.ts`; deviation = the largest difference between any OFFBEAT cell and the reference at any output; the cross-check bound is min(3 x its spatial estimate, 0.5 % of the rise) + 0.02 K; "old" is the one-dimensional solution with the allowance and the exchange bound):
+
+| Run | Reference deviation, K | One-dimensional solution, K | Cross-check bound, new / old, K | Slice energy balance, new / old | Old verdict |
+|---|---|---|---|---|---|
+| pulse (10 slices, 0.381 m) | 0.0000 | 0.00 | 0.182 / 0.193 | 0.0196 / 0.0197 | pass |
+| asymmetric shape | 0.0000 | 0.00 | 0.159 / 0.094 | 0.0196 / 0.0196 | pass |
+| short pulse (0.06 m, 12 slices) | 0.0000 | 0.04 | 0.188 / 5.856 | 0.0196 / 0.0353 | pass |
+| loss of cooling, 60 s | 0.0005 | 5.57 | 0.326 / 14.289 | 0.0137 / 0.0734 | pass |
+| loss of cooling, 200 s | 0.0081 | 64.37 | 0.325 / 145.680 | 0.0044 / 0.1745 | pass |
+| loss of cooling, 0.1 m, 60 s (exchange number 0.9) | 0.0038 | 61.73 | 0.325 / 206.581 | 0.0093 / 0.5217 | pass |
+| **loss of cooling, 0.2 m, 20 slices, 100 s (exchange number 1.5)** | **0.0094** | **64.88** | 0.328 / 13.168 | **0.0085 / 0.6881** | **fail (cross-check, slice energy balance)** |
+
+The loss of cooling that the one-dimensional solutions miss by 62 to 65 K is followed to 0.01 K, and the 0.2 m case that failed passes. The cross-check bound falls from 14 to 206 K (the allowance and the exchange bound) to 0.33 K; the worst ratio of deviation to bound is 0.03. The slice energy balance falls from up to 69 % of its throughput to 0.4 to 2 %; the 1.4 % left in the 60 s run is the check's own method error (the trapezoid over the output times, which its note names): given the reference's **own** fields as if they were the solver's, the checks read the same 1.37 % and a cross-check of exactly zero (tested; I first wrote that the gap should fall below 0.1 %, and that was wrong for this reason). The solver's own bookkeeping for the layer closes to 7e-13. **Real solver:** the gated tests (`FEED_SOLVER=1`, `tests/plateStackSolver.test.ts`, 17 of 17) run OFFBEAT through the run manager, and the record it builds is the two-dimensional one: the long loss of cooling passes with a deviation of 0.008 K against 64 K for the one-dimensional solutions, and the 0.2 m case passes.
+
+**The start.** The run starts from each slice's own one-dimensional steady state, the field the writer gives OFFBEAT (`initialState(sliceCase(...))`), and that is the field the reference starts from: it differs from the stack's coupled steady state by the steady axial effect (the distance is recorded as `startDistance`: 0.304 K for the loss of cooling at 100 kW/m, 0.061 K for the pulse at 20 kW/m, 2.2 K and 4.0 K for the 0.06 m and 0.1 m plates; the 0.609 K of A5 times the heat rate over 200 kW/m, to 1 %). **The brief's "coupled steady start" is therefore built as a function (`coupledSteadyStart`, a fixed point of the transient to 1e-6 K) and as information, not as the start of the check**, because a check must start where the run started. Making the run itself start from the coupled state is a change of what OFFBEAT is given (the writer's initial field), would need new real runs, and removes A3's "starts at its own one-dimensional steady state" limitation only in new runs: an owner's call, not done.
+
+**Negative tests** (against the saved output): the axial term removed fails the cross-check on the loss of cooling at 60 s, 200 s, 0.1 m and the 0.2 m case; 10 % more power fails a check, and a shape shifted by one layer and half the film coefficient (on the pulse) fail the cross-check. **Pin transients unchanged** (hashes, above).
+
+**Cost** (this machine at 40 to 60 % load from other work): 10 layers x 1200 steps 0.33 s constant, 1.8 s with k(T), c(T); 20 x 1000 0.6 s; the largest case the cap allows (50 x 26 x 2300) 4.2 s constant and 17.4 s with k(T), c(T), in the server's own thread (B4 would move it to a worker).
+
+## Mutation run (B1 to B3)
+
+MUTATION_PLACEHOLDER
+
+## Deviations from the brief, and what was not done
+
+- **The coupled steady start is not the check's start** (above): the checks follow the run, which starts from each slice's own steady state. The coupled state is built, tested and reported (`startDistance`).
+- **The error estimates of the transient cross-check come from the slice's own one-dimensional runs** (the doubled mesh and the half step), not from two-dimensional runs of those; B0 measured the latter at 95 to 155 s on the largest case.
+- **Existing tests were edited, not weakened:** the one-dimensional regime's tests ask for the one-dimensional record (the fallback) and keep their assertions; listed under B2.
+- **Only implicit Euler** is built in the stack solver (the run's scheme; the plan said "or Crank-Nicolson"; nothing needs it).
+- B4 (the worker and the deadline in the run manager), B5, B6 and B7 were not started, as instructed. A plate stack that is large is solved in the server's thread, with the work cap and a 60 s deadline as the guards.

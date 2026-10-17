@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const root = path.join(__dirname, "..");
 
-const FAST = ["tests/axialFv.test.ts", "tests/plateStackReference.test.ts", "tests/plateStackResults.test.ts"];
+const FAST = ["tests/axialFv.test.ts", "tests/axialFvGaps.test.ts", "tests/plateStackReference.test.ts", "tests/plateStackResults.test.ts"];
 const SLOW = ["tests/plateStackTransientReference.test.ts", "tests/plateStackTransientResults.test.ts", "tests/stackTransientResults.test.ts", "tests/stackResults.test.ts"];
 const AF = "src/core/axialFv.ts";
 const SRF = "src/core/stackReference.ts";
