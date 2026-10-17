@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-triso-pop-hottest-temperature-kernel-centre",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/triso-pop-hottest.case.json",
+      "sha256": "a0b5fbabfb20553fce51e97646da4bbad3e6036d9e1c7133765e920776eee43b"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_kernel_centre",
+    "value": 978.3868,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.15,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Particle 1355 of the 2000 drawn with the seed 20261016 from the population of examples/synthetic-triso-population.json: the hottest kernel of the 2000 (kernel peak 978.387 K). Closed form of the layered sphere with constant conductivities: matrix 949.737 K, film 12.126 K, outer PyC 0.1997 K, SiC 0.0728 K, inner PyC 0.379 K, gap 0.2752 K, buffer 12.205 K, kernel parabola q R^2 / (6 k) = 3.391 K: the kernel centre is 978.3868 K, 16.523 K above the outer wall. The observed value is FEED's kernel centre, the first kernel cell plus the parabola's rise over the cell's radius. Tolerance 0.15 K = 0.5 % of the 16.523 K internal rise + the mesh bound 5 x 3.391 K / 48^2 = 0.0074 K + the wedge of the solver's mesh (the 2 degree wedge of the sphere with its radii times lambda = 0.999695, 48 cells in every region), which makes every drop lambda^2 = 0.999391 of the sphere's, rounded up to 0.05 K, fixed before any run.",
+    "check": "Second method: FEED's own closed form (src/core/trisoSolve.ts, tests/seedOracleTriso.test.ts, to 1e-6 K) and FEED's finite-volume solution; the real solver (FEED_SOLVER=1, tests/seedOracleTriso.test.ts) with every check of the run passing, and its saved output (tests/golden/seed-oracles-triso/) inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_kernel_centre"
+    ],
+    "domain": "synthetic coated particle (kernel 241.611 um, buffer 103.497, inner PyC 41.1, SiC 33.338, outer PyC 30.699 um; constant conductivities 3 / 0.5 / 4 / 13.9 / 4 W/m/K; gap 1.5e5 W/m2/K; kernel power density 1045.74 MW/m3; convective matrix 949.74 K, 2000 W/m2/K), mesh 48 cells per region, steady"
+  },
+  "toleranceHash": "dca4b1eae32bb67c6848e0613d42dceffc4a57348fed5e8f8ff67004f9fe4fc2"
+}

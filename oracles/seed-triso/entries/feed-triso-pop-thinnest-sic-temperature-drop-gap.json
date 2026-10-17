@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-triso-pop-thinnest-sic-temperature-drop-gap",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/triso-pop-thinnest-sic.case.json",
+      "sha256": "a0b4ea1ad0927b2818fbf2e3573c8e2b841eff79fd888519e9649ccebee93aa1"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_drop_gap",
+    "value": 0.26507,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.01,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "Particle 7 of the 2000 drawn with the seed 20261016 from the population of examples/synthetic-triso-population.json: the thinnest SiC layer of the 2000 (SiC 30.64 um). The drop across the buffer-to-inner-PyC gap: P / (4 pi R_buffer^2 h) = 0.26507 K for the gap conductance 1.5e5 W/m2/K at the buffer's outer radius 364.833 um. The observed value is the difference of the two patch values of the gap in the solver's output. Tolerance 0.01 K = 1 % of the drop + 0.005 K (FEED's gapDrop check) + (1 - lambda) of the drop (the wedge's gap drop is lambda = 0.999695 times the sphere's), rounded up to 0.005 K, fixed before any run.",
+    "check": "Second method: FEED's own closed form (src/core/trisoSolve.ts, tests/seedOracleTriso.test.ts, to 1e-6 K) and FEED's finite-volume solution; the real solver (FEED_SOLVER=1, tests/seedOracleTriso.test.ts) with every check of the run passing, and its saved output (tests/golden/seed-oracles-triso/) inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_drop_gap"
+    ],
+    "domain": "synthetic coated particle (kernel 249.402 um, buffer 115.43, inner PyC 37.937, SiC 30.64, outer PyC 35.309 um; constant conductivities 3 / 0.5 / 4 / 13.9 / 4 W/m/K; gap 1.5e5 W/m2/K; kernel power density 1023.45 MW/m3; convective matrix 900.74 K, 2000 W/m2/K), mesh 48 cells per region, steady"
+  },
+  "toleranceHash": "75b27bcd3c8cf9e8b368ff24314f077f59ecae74857e05daaf3f0cac12afa61a"
+}

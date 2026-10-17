@@ -1,0 +1,31 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-bad-pin-with-population",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "bad-input",
+  "inputs": [
+    {
+      "path": "models/bad-pin-with-population.case.json",
+      "sha256": "5412640889c7b9716e043eec61e6aa95674a71d47c852f83144c56068b3253b1"
+    }
+  ],
+  "expected": {
+    "refusalCode": "E_UNSUPPORTED"
+  },
+  "source": {
+    "kind": "hand",
+    "text": "A case with one fault: a population section on a pin. FEED must refuse it before any run; SEED reports E_UNSUPPORTED.",
+    "check": "FEED's schema vectors (schema/vectors/bad/pin-with-population.json) assert the same code in FEED's own test suite."
+  },
+  "coverage": {
+    "quantities": [
+      "case-validation"
+    ],
+    "domain": "FEED case validation"
+  },
+  "toleranceHash": "be0cd25da730942e7f9784bcfc09d2f79454f857d7c497d9037ce42ff2ab7c7e"
+}
