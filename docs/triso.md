@@ -77,7 +77,7 @@ Warnings: `W_PACKING_FRACTION` (above 0.64), `W_GAP_CONTACT` (a gap conductance 
 |---|---|---|
 | `closedFormKernel`, `closedFormBuffer`, `closedFormIpyc`, `closedFormSic`, `closedFormOpyc` | `5 dT_region / N^2 + max(0.5 % of the rise, 0.01 K)` | each cell against the closed form of the wedge's sphere at the cell's own radius; the first term is the pin's discretisation bound, the second the plan's 0.5 % of the rise |
 | `crossCheckFv` | `max(0.3 % of the rise, 0.02 K)` | every cell against FEED's finite-volume solution (`trisoSolve.ts`) on the same mesh; the two saved runs of T2 agreed to 0.2 % |
-| `energyBalance` | 0.5 % | the heat through the two outermost cells, `4 pi (K(Ta) - K(Tb)) / (1/ra - 1/rb)`, against the power made in the wedge's kernel (the input times lambda^3) |
+| `energyBalance` | 0.5 % plus the rounding term | the heat through the outermost layer (from its first cell to its last), `4 pi (K(Ta) - K(Tb)) / (1/ra - 1/rb)`, against the power made in the wedge's kernel (the input times lambda^3). OFFBEAT writes 8 significant digits, so a temperature is known to half a unit of its last digit (one unit is 1e-4 K at 1300 K); the threshold adds the effect of that rounding on the two temperatures, `k x one unit / (resistance x power)`, printed in the check's note (a thin layer of a small particle at a high temperature has a temperature difference of a few millikelvin) |
 | `gapDrop` | `1 % + 0.005 K` | the difference of the two patch values against `P / (4 pi R^2 h)` |
 | `wallTemperature` | 0.05 K | the outside patch against the closed form |
 | `steadyState` | 0.01 K still to change | OFFBEAT's last relative rate times the hottest cell times the particle's Elmore bound |

@@ -7,7 +7,7 @@
 //     0.5 % of the particle's rise (centre above the outside), at least 0.01 K. The probe's buffer deviates by up to 0.076 K of a 48 K rise on the finest mesh without shrinking
 //     (unexplained), and a 12-cell kernel by 0.05 K; 0.5 % of 48 K is 0.24 K, 0.3 K being the plan's own figure.
 //   - against the independent finite-volume solution on the same mesh: 0.3 % of the rise (the two saved runs of T2 agree to 0.2 % of the rise), at least 0.02 K.
-//   - the energy balance: 0.5 % of the power, from the two outermost cells (exact for the 1/r profile of a shell, whatever the conductivity law).
+//   - the energy balance: 0.5 % of the power plus the rounding of the output, from the first and last cell of the outermost layer (exact for the 1/r profile of a shell, whatever the conductivity law).
 //   - the gap's drop: 1 % of the closed-form drop plus 0.005 K (the probe found it to 0.04 %).
 //   - the wall: 0.05 K (the pin's), the steadiness: 0.01 K still to change (the pin's).
 // Everything is compared with the sphere the wedge solves (wedgeEquivalent in trisoWriter.ts), not with the nominal sphere: they differ by 0.03 % in every radius.
@@ -32,6 +32,21 @@ export const TRISO_CLOSED_FORM_FLOOR = 0.01; // K
 export const TRISO_FV_RISE_FRACTION = 0.003;
 export const TRISO_FV_FLOOR = 0.02; // K
 export const TRISO_BALANCE_TOLERANCE = 0.005;
+/** OFFBEAT writes its fields with this many significant digits; a temperature is therefore known to half a unit of the last digit. */
+export const TRISO_OUTPUT_DIGITS = 8;
+
+/**
+ * The tolerance of the energy balance taken from two neighbouring cells of the outermost layer: the fixed part, plus what the rounding of the two
+ * temperatures to TRISO_OUTPUT_DIGITS significant digits can do to the heat read from their difference. The heat is k (Ta - Tb) / resistance, so the
+ * rounding (each temperature within half a unit of its last digit, the difference within one unit) moves it by k x one unit / (resistance x power).
+ * A thin outer layer at a high temperature has a small difference and a large term; a mistake of a few percent in the power still fails.
+ */
+export function balanceTolerance(Ta: number, Tb: number, kMean: number, resistance: number, power: number): { tolerance: number; resolution: number } {
+  const top = Math.max(Math.abs(Ta), Math.abs(Tb));
+  const unit = top > 0 ? 10 ** (Math.floor(Math.log10(top)) - (TRISO_OUTPUT_DIGITS - 1)) : 0;
+  const resolution = (kMean * unit) / (resistance * power);
+  return { tolerance: TRISO_BALANCE_TOLERANCE + resolution, resolution };
+}
 export const TRISO_GAP_FRACTION = 0.01;
 export const TRISO_GAP_FLOOR = 0.005; // K
 export const TRISO_WALL_TOLERANCE = 0.05; // K
@@ -246,17 +261,22 @@ export function buildTrisoResults(n: NormalizedTriso, input: TrisoInput): TrisoR
   const fvBound = Math.max(TRISO_FV_RISE_FRACTION * rise, TRISO_FV_FLOOR);
   checks.push({ id: "crossCheckFv", label: "Cells vs the independent finite-volume solution (max deviation)", value: fvWorst, unit: "K", verdict: fvWorst < fvBound ? "pass" : "fail", note: `the same mesh solved by FEED's own finite-volume code (src/core/trisoSolve.ts); bound ${fvBound.toPrecision(3)} K (0.3 % of the ${rise.toPrecision(3)} K rise, at least ${TRISO_FV_FLOOR} K)` });
 
-  // --- energy balance from the two outermost cells: the flux through a shell is 4 pi (K(Ta) - K(Tb)) / (1/ra - 1/rb), whatever the conductivity law
+  // --- energy balance from the outermost layer (its first and last cell): the flux through a shell is 4 pi (K(Ta) - K(Tb)) / (1/ra - 1/rb), whatever the conductivity law
   {
-    // the outermost layer has at least two cells (the validator's minimum, and the cell count was checked above), so the last two cells are in it
+    // the outermost layer has at least two cells (the validator's minimum, and the cell count was checked above); the flux is read between its first and its last cell, the
+    // widest difference the layer offers, so that the rounding of the output weighs least
     const last = cells.length - 1;
-    const a = cells[last - 1]!;
+    let first = last;
+    while (first > 0 && cells[first - 1]!.region === cells[last]!.region) first--;
+    const a = cells[first]!;
     const b = cells[last]!;
     const kLast = laws[laws.length - 1]!;
-    const Q = (primitive(kLast, a.T) - primitive(kLast, b.T)) / SPHERE.resist(a.r, b.r, 1);
+    const resist = SPHERE.resist(a.r, b.r, 1);
+    const Q = (primitive(kLast, a.T) - primitive(kLast, b.T)) / resist;
     const want = eq.power.particlePower;
     const rel = (Q - want) / want;
-    checks.push({ id: "energyBalance", label: "Energy balance (heat through the outer layer vs the power made)", value: rel, unit: "relative", verdict: Math.abs(rel) <= TRISO_BALANCE_TOLERANCE ? "pass" : "fail", note: `heat through the two outermost cells = ${Q.toPrecision(6)} W against ${want.toPrecision(6)} W made in the wedge's kernel (the input ${n.power.particlePower.toPrecision(6)} W times ${(want / n.power.particlePower).toPrecision(6)}: the wedge is the sphere with its radii times ${TRISO_WEDGE_SCALE.toFixed(6)}); threshold ${TRISO_BALANCE_TOLERANCE * 100} %` });
+    const bal = balanceTolerance(a.T, b.T, 0.5 * (evaluate(kLast, a.T) + evaluate(kLast, b.T)), resist, want);
+    checks.push({ id: "energyBalance", label: "Energy balance (heat through the outer layer vs the power made)", value: rel, unit: "relative", verdict: Math.abs(rel) <= bal.tolerance ? "pass" : "fail", note: `heat through the outermost layer (its first to its last cell) = ${Q.toPrecision(6)} W against ${want.toPrecision(6)} W made in the wedge's kernel (the input ${n.power.particlePower.toPrecision(6)} W times ${(want / n.power.particlePower).toPrecision(6)}: the wedge is the sphere with its radii times ${TRISO_WEDGE_SCALE.toFixed(6)}); threshold ${TRISO_BALANCE_TOLERANCE * 100} % plus ${(bal.resolution * 100).toPrecision(2)} % for the ${TRISO_OUTPUT_DIGITS}-digit rounding of the two temperatures (${(bal.tolerance * 100).toPrecision(3)} % in all)` });
   }
 
   // --- the gap's drop and the wall

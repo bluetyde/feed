@@ -810,7 +810,13 @@ $("prof").addEventListener("mouseleave", () => ($("readout").textContent = "Hove
 /* pure3d:begin (tests/stackView.test.ts runs this block without a page) */
 const V3_SEGS = 36, V3_CUT = 9, V3_OUTER_RADIUS = 0.17, V3_PLATE_WIDTH = 0.4;
 /* shown with the view at all times: a caption under the canvas, drawn by make3dPanel and into the canvas by draw3D */
-const STACK_VIEW_LABEL = "1.5D: one radial solution per slice, drawn as a stack. Not a three-dimensional solution: nothing varies around the axis and no heat flows between the slices.";
+const STACK_VIEW_LABEL = "1.5D: one radial solution per slice, drawn as a stack. Not a three-dimensional solution: nothing varies around the axis, and the closed forms drawn here let no heat flow between the slices. A run does include it: OFFBEAT solves the whole stack, and its slices exchange a little heat along the height.";
+/* a run's picture: the cells OFFBEAT found in each slice; the heat along the height is in them, and the check axialConduction estimates its size */
+function stackViewRunLabel(conduction) {
+  return "1.5D: the temperatures OFFBEAT found in each slice, drawn as a stack. Not a three-dimensional picture: nothing varies around the axis. Unlike the case view's closed forms, this run includes the heat that flows along the height between the slices" + (conduction !== null && conduction !== undefined && Number.isFinite(conduction) ? ", which FEED estimates at " + (conduction * 100).toPrecision(2) + " % of the largest rise." : " (FEED could not estimate its size).");
+}
+const stackViewCaption = (d) => (d && d.run ? stackViewRunLabel(d.conduction) : STACK_VIEW_LABEL);
+const stackViewCanvasLabel = (d) => (d && d.run ? "1.5D: OFFBEAT's result in each slice" : "1.5D: one radial solution per slice");
 const geomOfCase = (n) => ({ plate: !!n.plate, inner: n.fuelInnerRadius || 0, fuelR: n.fuelRadius, cladIn: n.claddingInnerRadius, cladOut: n.claddingOuterRadius, length: n.axial ? n.axial.length : 1 });
 /* samples {r, T, region} of one slice -> rings {a, b, T} (metres): a ring runs to the midpoints between its sample and the next ones, inside each region, plus the gap as a ring with no temperature */
 function ringsOf(samples, g) {
@@ -900,7 +906,7 @@ function draw3D(canvas, d, v) {
   for (let i = 0; i < sw; i++) { x.fillStyle = heat(i / (sw - 1)); x.fillRect(sx + i, sy, 1, 9); }
   x.fillStyle = "#c9d1d9"; x.font = "11px ui-monospace,Consolas,monospace"; x.fillText(showT(d.lo).toFixed(0), sx, sy - 3); x.textAlign = "right"; x.fillText(showT(d.hi).toFixed(0) + (showDegC ? " °C" : " K"), sx + sw, sy - 3); x.textAlign = "left";
   /* the label is part of the drawing: it cannot be switched off */
-  x.fillStyle = "#e6b455"; x.font = "12px sans-serif"; x.fillText("1.5D: one radial solution per slice", 14, 18);
+  x.fillStyle = "#e6b455"; x.font = "12px sans-serif"; x.fillText(stackViewCanvasLabel(d), 14, 18);
   x.fillStyle = "#8c949e"; x.font = "11px sans-serif"; x.fillText("radius drawn ×" + (V3_OUTER_RADIUS / (d.geom.cladOut / d.geom.length)).toFixed(0) + " against the height" + (d.geom.plate ? " · the plate's width is a drawing width, per metre in the model" : "") + (v.cut ? " · a quarter cut away" : ""), 14, 34);
   canvas.setAttribute("aria-label", "3D stack of " + d.slices.length + " slices, " + d.geom.length.toFixed(3) + " m high, hottest slice " + (d.slices.reduce((m, s, i) => (Math.max(...s.rings.filter((r) => r.T !== null).map((r) => r.T)) > m.t ? { t: Math.max(...s.rings.filter((r) => r.T !== null).map((r) => r.T)), i } : m), { t: -Infinity, i: 0 }).i + 1) + ". Turn with the arrow keys, zoom with plus and minus, 0 resets, c toggles the cut-away. The numbers are in the table below.");
 }
@@ -910,7 +916,7 @@ function make3dPanel(host, getData, id) {
   const view = host._view || (host._view = { ...V3_HOME });
   const bar = el("div", "toolbar"), seg = el("div", "seg"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "View");
   const readout = elt("span", "Drag to turn, wheel to zoom; or use the arrow keys with the picture focused", { class: "readout", id: id + "Read" });
-  const redraw = () => { draw3D(canvas, getData(), view); fillTable(); };
+  const redraw = () => { const d = getData(); draw3D(canvas, d, view); cap.textContent = stackViewCaption(d); fillTable(); };
   const btn = (text, fn, pressed) => { const b = elt("button", text, { type: "button" }); if (pressed !== undefined) b.setAttribute("aria-pressed", String(pressed)); b.addEventListener("click", () => { fn(b); redraw(); }); seg.append(b); return b; };
   const cutBtn = btn("Cut-away", (b) => { view.cut = !view.cut; b.setAttribute("aria-pressed", String(view.cut)); }, view.cut);
   btn("Reset", () => { Object.assign(view, V3_HOME); cutBtn.setAttribute("aria-pressed", "true"); });
@@ -918,7 +924,7 @@ function make3dPanel(host, getData, id) {
   bar.append(seg, readout);
   const wrap = el("div", "vpwrap1"); wrap.style.cssText = "flex:none;height:380px;margin:0";
   const canvas = elt("canvas", "", { id: id + "Cv", tabindex: "0", role: "img", "aria-label": "3D stack" }); wrap.append(canvas);
-  const cap = elt("div", STACK_VIEW_LABEL, { class: "banner", id: id + "Cap" }); cap.style.cssText = "border-top:1px solid var(--line)";
+  const cap = elt("div", stackViewCaption(getData()), { class: "banner", id: id + "Cap" }); cap.style.cssText = "border-top:1px solid var(--line)";
   const det = el("details"); det.append(elt("summary", "The numbers behind the view (the same as the drawing)")); const tb = el("div", "ctables"); det.append(tb);
   const fillTable = () => {
     const d = getData(); tb.replaceChildren(); if (!d) return;
@@ -948,7 +954,8 @@ function stackDataFromCheck() {
 function stackDataFromRun(d) {
   const a = d && d.results && d.results.axial, n = d && d.normalized;
   if (!a || !n || !n.axial || d.results.kind === "transient" || !a.slices.every((s) => Array.isArray(s.radial))) return null;
-  return stackViewData(a.slices.map((s) => ({ index: s.index, z: s.height, samples: s.radial.map((p) => ({ r: p.r, T: p.T, region: p.region })) })), geomOfCase(n));
+  const cond = ((d.results.checks || []).find((c) => c.id === "axialConduction") || {}).value;
+  return { ...stackViewData(a.slices.map((s) => ({ index: s.index, z: s.height, samples: s.radial.map((p) => ({ r: p.r, T: p.T, region: p.region })) })), geomOfCase(n)), run: true, conduction: typeof cond === "number" ? cond : null };
 }
 let case3dShown = false;
 function update3dTab() {
