@@ -11,7 +11,7 @@ import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { IndependentRunner } from "../src/core/independentRunner";
 import { BackendOutcome, RunBackend, RunManager } from "../src/core/runManager";
-import { STACK_TRANSIENT_BAND_WORK_MAX, STACK_TRANSIENT_WORK_MAX, solveStackTransientReference, stackTransientReference, stackTransientReferenceFrom, stackTransientWork } from "../src/core/stackReference";
+import { STACK_TRANSIENT_BAND_WORK_MAX, STACK_TRANSIENT_DEADLINE_MS, STACK_TRANSIENT_WORK_MAX, solveStackTransientReference, stackTransientReference, stackTransientReferenceFrom, stackTransientWork } from "../src/core/stackReference";
 import { buildStackTransientResults, computeIndependentStack } from "../src/core/stackTransientResults";
 import { NormalizedCase, validateCase } from "../src/core/validate";
 
@@ -74,6 +74,7 @@ describe("the work a reference may cost", () => {
     expect(r).toEqual({ fallback: expect.stringMatching(/1000 unknowns x 250 cells per layer x 3000 steps is more work \(7\.50e\+8\) than the 4e\+8/) });
     expect(STACK_TRANSIENT_BAND_WORK_MAX).toBe(4e8);
     expect(STACK_TRANSIENT_WORK_MAX).toBe(3e6);
+    expect(STACK_TRANSIENT_DEADLINE_MS).toBe(60000);
   });
 
   it("the largest stack the validator allows (50 slices, 26 cells) is under both caps", () => {
@@ -284,6 +285,34 @@ describe("a plate stack run through the manager", () => {
     expect(rec.failure!.code).toBe("E_CANCELLED");
     expect(m.results(s.id)).toBeUndefined();
     expect(existsSync(join((m as any).opts.runsRoot, s.id, "results.json"))).toBe(false);
+  }, 60_000);
+
+  it("if the one-dimensional runs fail the run fails as before (E_VERIFY_INCOMPLETE) and the reference job is stopped, not left running", async () => {
+    let refCancelled = false;
+    const real = new IndependentRunner({ deadlineMs: 60_000 });
+    const stub = {
+      start: (c: NormalizedCase, o: any = {}) =>
+        o.what === "stackReference"
+          ? { done: new Promise(() => undefined), cancel: () => (refCancelled = true) }
+          : { done: Promise.resolve({ ok: false, reason: "deadline", message: "the independent solution did not finish within 120 s and was stopped", ms: 1 }), cancel: () => real.activity() },
+    } as unknown as IndependentRunner;
+    const m = manager({ independent: stub });
+    const s = m.start(example());
+    if (!s.ok) throw new Error("refused");
+    const rec = await m.done(s.id);
+    expect(rec.state).toBe("failed");
+    expect(rec.failure!.code).toBe("E_VERIFY_INCOMPLETE");
+    expect(refCancelled).toBe(true);
+  }, 60_000);
+
+  it("a reference job that reports cancelled while the one-dimensional runs finish ends the run cancelled (a cancel that reached only that job)", async () => {
+    const m = manager({ independent: runnerWith(() => ({ done: Promise.resolve({ ok: false, reason: "cancelled", message: "cancelled", ms: 0 }), cancel: () => undefined })) });
+    const s = m.start(example());
+    if (!s.ok) throw new Error("refused");
+    const rec = await m.done(s.id);
+    expect(rec.state).toBe("cancelled");
+    expect(rec.failure!.code).toBe("E_CANCELLED");
+    expect(m.results(s.id)).toBeUndefined();
   }, 60_000);
 
   it("a pin stack starts no reference job: only the one-dimensional runs are asked for, and its record has no reference section (the pin keeps the allowance)", async () => {
