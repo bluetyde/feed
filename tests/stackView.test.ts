@@ -19,7 +19,7 @@ const stackCase = (slices = 8) => {
 
 /** The page's pure block, run alone. */
 const block = script.slice(script.indexOf("/* pure3d:begin"), script.indexOf("/* pure3d:end */"));
-const lib = new Function(block + "; return { V3_SEGS, V3_CUT, V3_OUTER_RADIUS, V3_PLATE_WIDTH, STACK_VIEW_LABEL, geomOfCase, ringsOf, stackViewData, stackTableRows, stackQuads, rot3, projectQuads, V3_KEYS, V3_HOME, colourFraction };")() as any;
+const lib = new Function(block + "; return { V3_SEGS, V3_CUT, V3_OUTER_RADIUS, V3_PLATE_WIDTH, STACK_VIEW_LABEL, stackViewRunLabel, stackViewCaption, stackViewCanvasLabel, geomOfCase, ringsOf, stackViewData, stackTableRows, stackQuads, rot3, projectQuads, V3_KEYS, V3_HOME, colourFraction };")() as any;
 
 /** What the check gives the page, turned into the view's data the way the page does it. */
 function viewOf(doc: any) {
@@ -235,12 +235,36 @@ describe("the page's wiring", () => {
   it("cannot hide the label: it is drawn into the canvas unconditionally, and the caption under it is a banner with no hide control", () => {
     expect(lib.STACK_VIEW_LABEL).toMatch(/^1\.5D: one radial solution per slice/);
     expect(lib.STACK_VIEW_LABEL).toMatch(/Not a three-dimensional solution/);
-    expect(script).toMatch(/x\.fillText\("1\.5D: one radial solution per slice", 14, 18\);/);
+    expect(script).toMatch(/x\.fillText\(stackViewCanvasLabel\(d\), 14, 18\);/);
     // the label line is not inside a condition: the line before it is not an if, and no code sets the caption hidden
-    const i = script.indexOf('x.fillText("1.5D: one radial solution per slice", 14, 18);');
+    const i = script.indexOf("x.fillText(stackViewCanvasLabel(d), 14, 18);");
     expect(script.slice(script.lastIndexOf("\n", i - 1) + 1, i)).not.toMatch(/\bif\b|\?|&&/);
-    expect(script).toMatch(/const cap = elt\("div", STACK_VIEW_LABEL, \{ class: "banner", id: id \+ "Cap" \}\)/);
+    expect(script).toMatch(/const cap = elt\("div", stackViewCaption\(getData\(\)\), \{ class: "banner", id: id \+ "Cap" \}\)/);
+    // the caption is set again on every redraw, from the data now shown (a case or a run)
+    expect(script).toMatch(/cap\.textContent = stackViewCaption\(d\);/);
     expect(script).not.toMatch(/cap\.hidden|Cap"\)\.hidden|style\.display\s*=\s*"none"[^;]*Cap/);
+  });
+  it("says which of the two it shows: the case view's closed forms let no heat flow between the slices, a run's picture includes it and says how big FEED estimates it", () => {
+    // the case view: closed form per slice, no flow in the drawing, and the run's flow named as the difference
+    expect(lib.stackViewCaption(null)).toBe(lib.STACK_VIEW_LABEL);
+    expect(lib.stackViewCaption({ slices: [] })).toBe(lib.STACK_VIEW_LABEL);
+    expect(lib.STACK_VIEW_LABEL).toMatch(/closed forms drawn here let no heat flow between the slices/);
+    expect(lib.STACK_VIEW_LABEL).toMatch(/A run does include it: OFFBEAT/);
+    expect(lib.stackViewCanvasLabel({ slices: [] })).toBe("1.5D: one radial solution per slice");
+    // a run: OFFBEAT's cells, the flow is in them, the estimate is printed as a percentage of the largest rise
+    const run = lib.stackViewCaption({ run: true, conduction: 0.00137 });
+    expect(run).toBe(lib.stackViewRunLabel(0.00137));
+    expect(run).toMatch(/^1\.5D: the temperatures OFFBEAT found in each slice/);
+    expect(run).toMatch(/this run includes the heat that flows along the height between the slices/);
+    expect(run).toMatch(/estimates at 0\.14 % of the largest rise\.$/);
+    expect(run).not.toMatch(/no heat flow/);
+    expect(lib.stackViewCanvasLabel({ run: true })).toBe("1.5D: OFFBEAT's result in each slice");
+    // no estimate: the caption says so and never prints NaN or a number it does not have
+    for (const bad of [null, undefined, NaN, Infinity]) expect(lib.stackViewRunLabel(bad as any)).toMatch(/could not estimate its size/);
+    expect(lib.stackViewRunLabel(0)).toMatch(/estimates at 0\.0 % of the largest rise/);
+    // the run's data carries the flag and the estimate from the check axialConduction
+    expect(script).toMatch(/\(d\.results\.checks \|\| \[\]\)\.find\(\(c\) => c\.id === "axialConduction"\)/);
+    expect(script).toMatch(/run: true, conduction: typeof cond === "number" \? cond : null/);
   });
   it("is reachable without a pointer: the canvas takes focus, answers the keys, and the numbers are a table the person can open", () => {
     expect(script).toMatch(/tabindex: "0"/);

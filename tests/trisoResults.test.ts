@@ -4,7 +4,8 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { ResultsError, buildResults } from "../src/core/resultsParser";
-import { TrisoInput, buildTrisoResults, parseCellZones } from "../src/core/trisoResults";
+import { TRISO_BALANCE_TOLERANCE, TRISO_OUTPUT_DIGITS, TrisoInput, balanceTolerance, buildTrisoResults, parseCellZones } from "../src/core/trisoResults";
+import { SPHERE } from "../src/core/geometry";
 import { trisoClosedForm, trisoTimeScale } from "../src/core/trisoSolve";
 import { TRISO_WEDGE_SCALE, wedgeEquivalent } from "../src/core/trisoWriter";
 
@@ -278,5 +279,60 @@ describe("damaged output is refused", () => {
     const far = x.cellZones.replace(/(Buffer\s*\{\s*type cellZone;\s*cellLabels\s+List<label>\s*12\s*\(\s*)12/, "$1999");
     expect(() => read(x, undefined, { cellZones: far })).toThrow(/names cell 999/);
     expect(() => parseCellZones("FoamFile\n{\n}\n// ************************************************************************* //\n")).toThrow(/no cell zone/);
+  });
+});
+
+describe("the energy balance allows for the rounding of OFFBEAT's output (plan 13, owner's decision of 2026-10-16)", () => {
+  // by hand: two nodes at 1 mm and 2 mm, resistance for a conductivity of 1 = (1/1e-3 - 1/2e-3) / (4 pi) = 500 / (4 pi) K/W, a power of 11.65 mW, a mean conductivity of 4
+  const resist = (1 / 1e-3 - 1 / 2e-3) / (4 * Math.PI);
+  it("eight significant digits at 1300 K is a unit of 1e-4 K, which moves the heat by k x unit / (resistance x power)", () => {
+    expect(TRISO_OUTPUT_DIGITS).toBe(8);
+    const r = balanceTolerance(1300.2, 1299.9, 4, resist, 0.01165);
+    expect(r.resolution).toBeCloseTo((4 * 1e-4) / (resist * 0.01165), 12);
+    expect(r.resolution).toBeCloseTo(8.63e-4, 6);
+    expect(r.tolerance).toBeCloseTo(TRISO_BALANCE_TOLERANCE + r.resolution, 12);
+  });
+  it("is ten times larger at ten times the temperature, and inversely proportional to the difference it is read from (the power and the resistance)", () => {
+    const lo = balanceTolerance(95, 94, 4, resist, 0.01165).resolution;
+    const hi = balanceTolerance(950, 940, 4, resist, 0.01165).resolution;
+    expect(hi / lo).toBeCloseTo(10, 9);
+    expect(balanceTolerance(950, 940, 4, resist, 0.0233).resolution).toBeCloseTo(hi / 2, 12);
+    expect(balanceTolerance(950, 940, 4, 2 * resist, 0.01165).resolution).toBeCloseTo(hi / 2, 12);
+    expect(balanceTolerance(950, 940, 8, resist, 0.01165).resolution).toBeCloseTo(2 * hi, 12);
+  });
+  it("the larger of the two temperatures sets the unit, whatever the order", () => {
+    expect(balanceTolerance(999, 1001, 4, resist, 0.01).resolution).toBe(balanceTolerance(1001, 999, 4, resist, 0.01).resolution);
+    expect(balanceTolerance(999, 1001, 4, resist, 0.01).resolution).toBeCloseTo((4 * 1e-4) / (resist * 0.01), 12);
+  });
+  it("reads the heat between the first and the last cell of the outermost layer, and the rounding term is that of those two cells", () => {
+    const x = g("steady");
+    const r = read(x);
+    const outer = r.cells.filter((c) => c.region === "opyc");
+    const a = outer[0]!, b = outer[outer.length - 1]!;
+    expect(outer.length).toBe(12);
+    const want = x.n.power.particlePower * TRISO_WEDGE_SCALE ** 3;
+    const res = balanceTolerance(a.T, b.T, 4, SPHERE.resist(a.r, b.r, 1), want).resolution;
+    const note = r.checks.find((c) => c.id === "energyBalance")!.note!;
+    expect(note).toContain("plus " + (res * 100).toPrecision(2) + " % for the 8-digit rounding");
+    // the heat itself: constant conductivity 4, 4 pi k (Ta - Tb) / (1/ra - 1/rb), in the note to six digits
+    const Q = (4 * (a.T - b.T)) / SPHERE.resist(a.r, b.r, 1);
+    expect(note).toContain("= " + Q.toPrecision(6) + " W against");
+  });
+  it("a heat that is off by more than the fixed part but by less than the fixed part and the rounding term passes, and one beyond both fails", () => {
+    const x = g("steady");
+    const base = read(x).checks.find((c) => c.id === "energyBalance")!;
+    const res = Number(/plus ([\d.e+-]+) %/.exec(base.note!)![1]) / 100;
+    expect(res).toBeGreaterThan(0);
+    // the same output read with a power that makes the relative gap 0.5 % plus half the rounding term, and then 0.5 % plus twice it
+    const withGap = (gap: number) => read(x, (n) => { const m = (1 + base.value!) / (1 + gap); n.power.particlePower *= m; n.power.kernelPowerDensity *= m; });
+    expect(failed(withGap(TRISO_BALANCE_TOLERANCE + 0.5 * res))).not.toContain("energyBalance");
+    expect(failed(withGap(TRISO_BALANCE_TOLERANCE + 2 * res))).toContain("energyBalance");
+  });
+  it("a record says how much of its threshold is the rounding, and a power 3 % off still fails the golden particles", () => {
+    const r = read(g("steady"));
+    const c = r.checks.find((x) => x.id === "energyBalance")!;
+    expect(c.note).toMatch(/plus [\d.e+-]+ % for the 8-digit rounding of the two temperatures/);
+    expect(c.note).toMatch(/outermost layer \(its first to its last cell\)/);
+    for (const name of ["steady", "intense", "film"]) expect(failed(read(g(name), (n) => (n.power.kernelPowerDensity *= 1.03))), name).toContain("energyBalance");
   });
 });
