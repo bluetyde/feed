@@ -138,19 +138,23 @@ describe("a compact: the case, by hand", () => {
       const poly = co[0]! + co[1]! * row.T + co[2]! * row.T ** 2 + co[3]! * row.T ** 3;
       expect(Math.abs(poly / row.k - 1)).toBeLessThan(0.005);
     }
-    const fit = (n.fuelConductivity as { fit: { maxRelativeDeviation: number; tolerance: number } }).fit;
+    const fit = (n.fuelConductivity as { fit: { degree: number; maxRelativeDeviation: number; tolerance: number; points: unknown[] } }).fit;
     expect(fit.maxRelativeDeviation).toBeLessThanOrEqual(fit.tolerance);
+    expect(fit.tolerance).toBe(0.005); // the case's own 0.5 %
+    expect(fit.degree).toBe(3);
+    expect(fit.points).toHaveLength(41);
   });
 
-  it("warns outside the domain the law was measured over, at the edges given: 0.4 is inside, above it is not; a ratio above 3 allows only 0.2; below 0.05 or above 100 is outside", () => {
+  it("warns outside the domain the law was measured over, at the edges given: 0.4 is inside, above it is not; a ratio above 3 allows only 0.2; below 0.05 or above 10 is outside", () => {
     const at = (phi: number, lo: number, hi: number) => mixtureDomainMessage({ packingFraction: phi, contrast: [lo, hi], law: "maxwell-eucken" });
-    expect(MIXTURE_DOMAIN).toMatchObject({ packingMax: 0.4, packingMaxHighContrast: 0.2, contrastMin: 0.05, contrastMax: 3, contrastCap: 100 });
+    expect(MIXTURE_DOMAIN).toMatchObject({ packingMax: 0.4, packingMaxHighContrast: 0.2, contrastMin: 0.05, contrastMax: 3, contrastCap: 10 });
     expect(at(0.4, 0.05, 3)).toBeUndefined();
     expect(at(0.41, 0.05, 3)).toMatch(/packing fraction 0.41 is above 0.4/);
-    expect(at(0.2, 0.1, 50)).toBeUndefined();
-    expect(at(0.25, 0.1, 50)).toMatch(/above 3\) at a packing fraction above 0.2/);
+    expect(at(0.2, 0.1, 9)).toBeUndefined();
+    expect(at(0.25, 0.1, 9)).toMatch(/above 3\) at a packing fraction above 0.2/);
     expect(at(0.3, 0.049, 1)).toMatch(/only 0.049 of the matrix/);
-    expect(at(0.1, 1, 101)).toMatch(/measured up to 100/);
+    expect(at(0.1, 1, 11)).toMatch(/measured up to 10\)/);
+    expect(at(0.1, 1, 10)).toBeUndefined();
   });
 
   it("warns at the packing fraction 0.5 (W_MIXTURE_RANGE only) and refuses what no arrangement can hold", () => {
@@ -408,6 +412,52 @@ describe("the pebble through the real solver (saved output)", () => {
 
   it("the saved case is the example file as it is now (an edited example must be re-run)", () => {
     expect(JSON.parse(JSON.stringify({ kind: "pebble", ...validateCase(example("synthetic-pebble-steady")).pebble }))).toEqual(n);
+  });
+
+  it("the record's numbers: the centre and the interface agree with the closed form of the wedge's sphere to the offset OFFBEAT's face interpolation makes, the balance to 1e-4", () => {
+    const r = buildPebbleResults(n, input());
+    const cf = pebbleClosedForm(pebbleWedgeEquivalent(n));
+    expect(Math.abs(r.summary.centreT - cf.centreT)).toBeLessThan(0.14);
+    expect(r.summary.centreT - cf.centreT).toBeLessThan(0);
+    expect(Math.abs(r.summary.interfaceT - cf.interfaceT)).toBeLessThan(0.14);
+    expect(r.summary.wallT).toBeCloseTo(cf.wallT, 3);
+    expect(r.regions[0]!.innerFaceT).toBe(r.summary.centreT);
+    expect(r.regions[1]!.outerFaceT).toBe(r.summary.wallT);
+    expect(r.regions[0]!.drop).toBeCloseTo(r.summary.centreT - r.summary.interfaceT, 12);
+    expect(Math.abs(r.checks.find((c) => c.id === "energyBalance")!.value!)).toBeLessThan(2e-4);
+    expect(r.regions[0]!.outerRadius).toBeCloseTo(0.025 * TRISO_WEDGE_SCALE, 12);
+  });
+
+  it("the interface is the two half-cells' resistances in series: written out for the two cells beside it", () => {
+    const r = buildPebbleResults(n, input());
+    const a = r.cells.filter((c) => c.region === "fuelled").at(-1)!;
+    const b = r.cells.filter((c) => c.region === "shell")[0]!;
+    const kf = (T: number) => { const co = n.fuelledConductivity.coefficients; return co[0] + co[1] * T + co[2] * T ** 2 + co[3] * T ** 3; };
+    const Rf = 0.025 * TRISO_WEDGE_SCALE;
+    const gA = (4 * Math.PI * kf(a.T)) / (1 / a.r - 1 / Rf);
+    const gB = (4 * Math.PI * 25) / (1 / Rf - 1 / b.r);
+    expect(r.summary.interfaceT).toBeCloseTo((gA * a.T + gB * b.T) / (gA + gB), 9);
+  });
+
+  it("a two-scale radius of the case is read on the wedge's sphere: 10 mm becomes 10 mm x 0.9996955", () => {
+    const m = JSON.parse(JSON.stringify(n));
+    m.compact.twoScale = [0.01];
+    const r = buildPebbleResults(m, input());
+    expect(r.compact.twoScale).toHaveLength(1);
+    expect(r.compact.twoScale[0]!.radius).toBeCloseTo(0.01 * TRISO_WEDGE_SCALE, 12);
+    expect(r.compact.twoScale[0]!.matrixT).toBeLessThan(r.compact.twoScale[0]!.particle.kernelCentreT);
+  });
+
+  it("a conductivity range the pebble leaves makes the result out-of-domain, never a plain pass", () => {
+    const m = JSON.parse(JSON.stringify(n));
+    m.fuelledConductivity.range = [800, 1050];
+    const r = buildPebbleResults(m, input());
+    expect(r.domain.verdict).toBe("out-of-domain");
+    expect(r.domain.findings.map((f) => f.region)).toEqual(["fuelled"]);
+    expect(notPassing(r)).toEqual(["propertyRange fail"]);
+    const m2 = JSON.parse(JSON.stringify(n));
+    m2.fuelledConductivity.range = [1090, 1300]; // below the range: the coldest cell leaves it
+    expect(buildPebbleResults(m2, input()).domain.verdict).toBe("out-of-domain");
   });
 
   it("every check passes, with the verdicts the solver run saved, and the two-scale hottest particle is there", () => {
