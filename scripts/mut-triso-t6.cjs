@@ -1,5 +1,6 @@
 // Mutation run for plan 13, milestone T6 (the population: the generator, the distributions, the batch and its statistics, the case's section).
-// usage: node scripts/mut-triso-t6.cjs [name regex]     (commit first and keep a green baseline; check no other process has "mut-" in its command line)
+// usage: node scripts/mut-triso-t6.cjs [name regex]   (MUT_RANGE=0-20 for a piece of the list; MUT_CHECK=1 only checks the anchors)
+//            (commit first and keep a green baseline; check no other process has "mut-" in its command line)
 // Each mutant is [file, from, to, name]: `from` is a unique single-line anchor in `file`. The file is changed, the focus tests are run, and the file is restored from the copy read before
 // (never from git, so uncommitted work is safe). A mutant is KILLED when the run exits non-zero AND prints a "Tests N ... " summary; it SURVIVES when the run exits 0; a run with no summary
 // line is BROKEN (a crashed run must not count as a kill). The worker tests (tests/populationWorker.test.ts) run the compiled dist/ and are left out of the focus on purpose.
@@ -151,7 +152,8 @@ const mutants = [
 ];
 
 const only = process.argv[2] ? new RegExp(process.argv[2]) : null;
-const list = mutants.filter((m) => !only || only.test(m[3]));
+let list = mutants.filter((m) => !only || only.test(m[3]));
+if (process.env.MUT_RANGE) { const [a, b] = process.env.MUT_RANGE.split("-").map(Number); list = list.slice(a, b); } /* MUT_RANGE=0-20 runs the first twenty (a long run is done in pieces) */
 if (process.env.MUT_CHECK) {
   for (const [file, from, , name] of list) {
     const count = fs.readFileSync(path.join(root, file), "utf8").split(from).length - 1;
