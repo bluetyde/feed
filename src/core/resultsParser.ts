@@ -11,6 +11,7 @@ import { remainingChangeBound, STEADY_TOLERANCE } from "./steadyState";
 import { effectiveMechanics } from "./mechanicalEval";
 import { mechanicsChecks, stressLimitChecks } from "./mechanicsChecks";
 import { MECHANICS_TEXT, MechanicsInput, MechanicsRecord, buildMechanics } from "./mechanicsResults";
+import { buildCompactRecord, CompactRecord } from "./compact";
 import { Conductivity, NormalizedCase } from "./validate";
 
 export class ResultsError extends Error {
@@ -151,6 +152,8 @@ export interface ResultsRecord {
   burnup?: { value: number; source: string };
   /** Present for a case that asks for mechanics: the displacement and the stress of each cell, the contact, and what the result is and is not (src/core/mechanicsResults.ts). */
   mechanics?: MechanicsRecord;
+  /** Present for a compact (plan 13, T4): the mixture, and the hottest particle solved with the matrix at the compact's local temperature (src/core/compact.ts). */
+  compact?: CompactRecord;
 }
 
 /**
@@ -340,6 +343,11 @@ export function finishResults(c: NormalizedCase, x: CellsContext): ResultsRecord
   }
 
   checks.push(...fitChecks(c));
+  // a compact: the two-scale record from the fuel cells and the independent closed form of the same field
+  const compactRecord = c.compact
+    ? buildCompactRecord(c.compact, fuel.map((p) => ({ r: p.r, T: p.T })), (r) => fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, r, tFuelSurface, c.fuelInnerRadius, slab), { inner: c.fuelInnerRadius, outer: c.fuelRadius })
+    : undefined;
+  if (compactRecord) checks.push(...compactRecord.checks);
   if (c.limits) {
     const hot = (region: "fuel" | "cladding") => radial.filter((p) => p.region === region).reduce((m, p) => (p.T > m ? p.T : m), -Infinity);
     checks.push(...limitChecks(c.limits, [{ time: 0, fuelMax: hot("fuel"), claddingMax: hot("cladding") }]));
@@ -392,6 +400,7 @@ export function finishResults(c: NormalizedCase, x: CellsContext): ResultsRecord
     thermalOnly: c.mechanics ? MECHANICS_TEXT : c.burnup ? THERMAL_ONLY_TEXT + " " + burnupText(c.burnup.value) : THERMAL_ONLY_TEXT,
     ...(c.burnup ? { burnup: c.burnup } : {}),
     ...(mechanics ? { mechanics } : {}),
+    ...(compactRecord ? { compact: compactRecord } : {}),
   };
 }
 

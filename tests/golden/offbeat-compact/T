@@ -1,0 +1,127 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "50000000";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   nonuniform List<scalar> 
+38
+(
+905.85972
+905.81748
+905.72455
+905.58335
+905.39431
+905.15757
+904.87323
+904.54134
+904.16196
+903.73514
+903.26091
+902.73931
+902.1704
+901.55423
+900.89083
+900.18027
+899.4226
+898.61787
+897.76616
+896.86752
+895.92202
+894.92974
+893.89074
+892.80511
+891.67293
+890.49428
+889.26924
+887.99791
+886.68038
+885.31675
+839.18541
+838.37604
+837.5959
+836.84295
+836.11536
+835.41147
+834.7298
+834.06899
+)
+;
+
+boundaryField
+{
+    fuelBottom
+    {
+        type            empty;
+    }
+    fuelTop
+    {
+        type            empty;
+    }
+    fuelOuter
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 884.61559;
+        alpha           uniform 2000;
+    }
+    fuelFront
+    {
+        type            wedge;
+    }
+    fuelBack
+    {
+        type            wedge;
+    }
+    cladBottom
+    {
+        type            empty;
+    }
+    cladTop
+    {
+        type            empty;
+    }
+    cladInner
+    {
+        type            resistiveGap;
+        patchType       regionCoupledOFFBEAT;
+        coupled         1;
+        value           uniform 839.61563;
+        alpha           uniform 2000;
+    }
+    cladOuter
+    {
+        type            convectiveHTC;
+        h               uniform 2000;
+        T0              uniform 800;
+        value           uniform 833.74997;
+    }
+    cladFront
+    {
+        type            wedge;
+    }
+    cladBack
+    {
+        type            wedge;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

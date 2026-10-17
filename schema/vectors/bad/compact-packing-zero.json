@@ -1,0 +1,259 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "compact-packing-zero",
+  "name": "Generic TRISO compact in a graphite holder: 30 W/cm3 at 35 % packing, helium-cooled (illustrative)",
+  "label": "synthetic",
+  "description": "ILLUSTRATIVE and SYNTHETIC: a cylindrical compact of 12 mm diameter whose fuel is the homogenised mix of generic coated particles (kernel 250 um radius, buffer 100, inner PyC 40, SiC 35, outer PyC 35 um, the dimensions of examples/synthetic-triso-compact-steady.json) in a graphite matrix at a packing fraction of 35 %, making 30 W/cm3, in a graphite holder, cooled on the outside by helium. The compact's effective conductivity is Maxwell-Eucken applied to the particle's equivalent sphere (docs/compact-pebble.md), tabulated over 700 to 1100 K and carried by a fitted cubic. All conductivities, the gap between the compact and the holder (2000 W/m2/K) and the helium (800 K, 2000 W/m2/K) are FEED's own synthetic numbers chosen so that closed forms exist for checking; they are NOT sourced properties of UO2, porous carbon, PyC, SiC or graphite. Thermal only, steady. The two-scale result (the hottest particle's kernel temperature) is the particle solved with the matrix at the compact's local temperature behind a matrix shell sized from the packing fraction. It says how hot the compact and the hottest kernel are for these inputs. It makes no statement about whether a particle survives: stress, swelling, fission gas and failure are not modelled.",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 6,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 6.1,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 8,
+      "unit": "mm"
+    }
+  },
+  "compact": {
+    "particle": {
+      "kernelRadius": {
+        "value": 250,
+        "unit": "um"
+      },
+      "layers": [
+        {
+          "name": "buffer",
+          "thickness": {
+            "value": 100,
+            "unit": "um"
+          }
+        },
+        {
+          "name": "ipyc",
+          "thickness": {
+            "value": 40,
+            "unit": "um"
+          }
+        },
+        {
+          "name": "sic",
+          "thickness": {
+            "value": 35,
+            "unit": "um"
+          }
+        },
+        {
+          "name": "opyc",
+          "thickness": {
+            "value": 35,
+            "unit": "um"
+          }
+        }
+      ],
+      "gap": {
+        "model": "constant-conductance",
+        "conductance": {
+          "value": 150000,
+          "unit": "W/m2/K"
+        },
+        "source": "synthetic: chosen for the closed-form oracle"
+      },
+      "materials": {
+        "kernel": {
+          "materialId": "synthetic-kernel",
+          "revision": 1,
+          "sets": {
+            "thermal.conductivity": {
+              "model": "constant",
+              "value": {
+                "value": 3,
+                "unit": "W/m/K"
+              },
+              "referenceTemperature": {
+                "value": 1000,
+                "unit": "K"
+              },
+              "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+            }
+          }
+        },
+        "buffer": {
+          "materialId": "synthetic-buffer",
+          "revision": 1,
+          "sets": {
+            "thermal.conductivity": {
+              "model": "constant",
+              "value": {
+                "value": 0.5,
+                "unit": "W/m/K"
+              },
+              "referenceTemperature": {
+                "value": 1000,
+                "unit": "K"
+              },
+              "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+            }
+          }
+        },
+        "ipyc": {
+          "materialId": "synthetic-ipyc",
+          "revision": 1,
+          "sets": {
+            "thermal.conductivity": {
+              "model": "constant",
+              "value": {
+                "value": 4,
+                "unit": "W/m/K"
+              },
+              "referenceTemperature": {
+                "value": 1000,
+                "unit": "K"
+              },
+              "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+            }
+          }
+        },
+        "sic": {
+          "materialId": "synthetic-sic",
+          "revision": 1,
+          "sets": {
+            "thermal.conductivity": {
+              "model": "constant",
+              "value": {
+                "value": 13.9,
+                "unit": "W/m/K"
+              },
+              "referenceTemperature": {
+                "value": 1000,
+                "unit": "K"
+              },
+              "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+            }
+          }
+        },
+        "opyc": {
+          "materialId": "synthetic-opyc",
+          "revision": 1,
+          "sets": {
+            "thermal.conductivity": {
+              "model": "constant",
+              "value": {
+                "value": 4,
+                "unit": "W/m/K"
+              },
+              "referenceTemperature": {
+                "value": 1000,
+                "unit": "K"
+              },
+              "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+            }
+          }
+        }
+      }
+    },
+    "matrix": {
+      "materialId": "synthetic-graphite-matrix",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "linear",
+          "a": {
+            "value": 30,
+            "unit": "W/m/K"
+          },
+          "b": {
+            "value": -0.012,
+            "unit": "W/m/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 600,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1400,
+              "unit": "K"
+            }
+          },
+          "source": "synthetic: a falling conductivity of the order of irradiated graphite, not a sourced property"
+        }
+      }
+    },
+    "packingFraction": {
+      "value": 0,
+      "unit": "1"
+    },
+    "powerDensity": {
+      "value": 30,
+      "unit": "W/cm3"
+    },
+    "validRange": {
+      "min": {
+        "value": 700,
+        "unit": "K"
+      },
+      "max": {
+        "value": 1100,
+        "unit": "K"
+      }
+    },
+    "fit": {
+      "degree": 3,
+      "tolerance": {
+        "value": 0.5,
+        "unit": "%"
+      }
+    }
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 800,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 2000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "cladding": {
+      "materialId": "synthetic-holder",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 25,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 900,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 2000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 30,
+    "claddingCells": 8
+  }
+}

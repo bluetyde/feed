@@ -161,7 +161,7 @@ export interface TrisoFv {
 }
 
 /** The cell faces of a region of n equal cells between a and b. */
-const faceRadii = (a: number, b: number, n: number): number[] => Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
+export const faceRadii = (a: number, b: number, n: number): number[] => Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
 
 function thomas(lower: number[], diag: number[], upper: number[], rhs: number[]): number[] {
   const n = diag.length;
@@ -386,7 +386,7 @@ export function trisoInitialDeviationBound(n: NormalizedTriso): number {
   return Math.max(Math.abs(trisoClosedForm(n).centreT - t0), 1);
 }
 
-const roundUp2 = (x: number): number => {
+export const roundUp2 = (x: number): number => {
   const e = Math.floor(Math.log10(x)) - 1;
   const m = 10 ** e;
   return Math.ceil(x / m - 1e-9) * m;

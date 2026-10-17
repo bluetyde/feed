@@ -17,7 +17,9 @@ import { trisoProfile } from "../core/trisoProfile";
 import { projectRoot, unrunnableErrors, validateCase } from "../core/validate";
 import { RunManager } from "../core/runManager";
 import { compareResults, diffCases, profileDifference } from "../core/compare";
-import { resultsToCsv, transientResultsToCsv, trisoResultsToCsv, trisoTransientResultsToCsv } from "../core/exportResults";
+import { pebbleResultsToCsv, resultsToCsv, transientResultsToCsv, trisoResultsToCsv, trisoTransientResultsToCsv } from "../core/exportResults";
+import { pebbleClosedForm } from "../core/pebble";
+import { twoScaleParticle } from "../core/compact";
 import { burnupSweep } from "../core/burnupSweep";
 import { burnupText } from "../core/resultsParser";
 import { applyDesign, designOf } from "../core/design";
@@ -166,7 +168,7 @@ export function compareRuns(ida: string, idb: string) {
   const b = manager?.detail(idb);
   if (!a || !b) return { error: "unknown run" };
   if (!a.results || !b.results || !a.normalized || !b.normalized) return { error: "both runs must be completed to be compared (A is " + a.record.state + ", B is " + b.record.state + ")" };
-  if (a.normalized.kind === "triso" || b.normalized.kind === "triso") return { error: "Compare supports pins and plates; a coated particle's result is read on the Results tab." };
+  if (a.normalized.kind === "triso" || b.normalized.kind === "triso" || a.normalized.kind === "pebble" || b.normalized.kind === "pebble") return { error: "Compare supports pins and plates; a coated particle's or a pebble's result is read on the Results tab." };
   if (a.normalized.transient || b.normalized.transient) return { error: "Compare supports steady runs only; a transient run has a time series, not one profile. Use the Results tab." };
   const inputDiff = diffCases(a.case, b.case);
   return {
@@ -215,6 +217,11 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
   if (!v.normalized) {
     // a coated particle (plan 13) is valid and runs; the editor (T5) draws its closed-form profile (`profile`: every region over its own radii) and shows the derived numbers
     if (v.triso) return { ok: true, errors: v.errors, warnings: v.warnings, triso: { normalized: v.triso, quick: trisoQuickLook(v.triso), derived: trisoDerived(v.triso), profile: trisoProfile(v.triso) } };
+    // a pebble (plan 13, T4): valid and runs; the editor has no panel for it yet (docs/compact-pebble.md), so the response carries its closed form and the hottest particle for a person or a script
+    if (v.pebble) {
+      const cf = pebbleClosedForm(v.pebble);
+      return { ok: true, errors: v.errors, warnings: v.warnings, pebble: { normalized: v.pebble, closed: { centreT: cf.centreT, interfaceT: cf.interfaceT, wallT: cf.wallT, filmDeltaT: cf.filmDeltaT }, hottestParticle: twoScaleParticle(v.pebble.compact, cf.centreT), note: "closed-form pebble and the hottest particle (two-scale): see docs/compact-pebble.md" } };
+    }
     return { ok: false, errors: unrunnableErrors(v), warnings: v.warnings };
   }
   const n = v.normalized;
@@ -246,6 +253,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
     // what a burnup result is and is not, for the banner while the case is edited (the same words as in every result)
     ...(n.burnup ? { burnupNote: burnupText(n.burnup.value) } : {}),
     quick: look,
+    ...(n.compact ? { compact: { spec: n.compact, hottestParticle: twoScaleParticle(n.compact, look.temperatures.centreT) } } : {}),
     profile: radialProfile(hot, look),
     ...(stack ? { axial: stack, axialNote: STACK_TEXT, axialProfiles: axialProfiles(n) } : {}),
     derived: derivedOf(n, hot.qPrime),
@@ -342,6 +350,7 @@ export const server = createServer(async (req, res) => {
         res.writeHead(200, { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${rec.caseId}-${id}.csv"`, "cache-control": "no-store", "x-content-type-options": "nosniff" });
         const meta = { runId: id, caseName: rec.caseName ?? rec.caseId, solver: rec.solver, caseHash: rec.caseHash };
         if ("kind" in d.results && d.results.kind === "triso") return void res.end(trisoResultsToCsv(d.results, meta));
+        if ("kind" in d.results && d.results.kind === "pebble") return void res.end(pebbleResultsToCsv(d.results, meta));
         if ("kind" in d.results && d.results.kind === "triso-transient") return void res.end(trisoTransientResultsToCsv(d.results, meta));
         return void res.end("kind" in d.results && d.results.kind === "transient" ? transientResultsToCsv(d.results, meta) : resultsToCsv(d.results as Parameters<typeof resultsToCsv>[0], meta));
       }
