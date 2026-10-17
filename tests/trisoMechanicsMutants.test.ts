@@ -173,7 +173,10 @@ describe("the writer (mutation survivors)", () => {
 
   it("a free-strain layer carries the case's reference temperature and the reduced expansion coefficient", () => {
     const s = w.files["constant/solverDict"]!;
-    const block = (zone: string) => s.slice(s.indexOf("    " + zone + String.fromCharCode(10) + "    {"));
+    const block = (zone: string) => {
+      const from = s.indexOf("    " + zone + String.fromCharCode(10) + "    {");
+      return s.slice(from, s.indexOf(String.fromCharCode(10) + "    }", from));
+    };
     const ip = block("IPyC");
     expect(ip).toContain("Tref        Tref  [0 0 0 1 0]    300;");
     expect(ip).toContain("alpha       alpha [0 0 0 0 0]    " + ks[0]!.alpha + ";");
