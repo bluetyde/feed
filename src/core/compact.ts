@@ -25,10 +25,10 @@ export const MIXTURE_TABLE_POINTS = 41;
 
 /**
  * The domain over which the default law was measured against the resolved model (tests/golden/mixture/resolved.json, tests/mixture.test.ts): particle-to-matrix conductivity
- * ratio 0.05 to 3 up to a packing fraction of 0.4, and ratios 3 to 100 up to 0.2. Over it the error was at most 1.8 % (lattices and random arrangements). Beyond it, at ratios
- * above 3 and packing fractions 0.3 to 0.4, it reached 4.3 % and at 0.5 and ratios below 1 it reached 5 %. Outside the domain the validator warns.
+ * ratio 0.05 to 3 up to a packing fraction of 0.4, and ratios 3 to 10 up to 0.2. Over it the error was at most 1.8 % (lattices and random arrangements). Beyond it, at ratios
+ * above 3 and packing fractions 0.3 to 0.4, it reached 4.3 % and at 0.5 and ratios below 1 it reached 5 %. Above a ratio of 10 the resolved model itself is unresolved (its correction is 36 % at 100). Outside the domain the validator warns.
  */
-export const MIXTURE_DOMAIN = { packingMax: 0.4, packingMaxHighContrast: 0.2, contrastMin: 0.05, contrastMax: 3, contrastCap: 100 } as const;
+export const MIXTURE_DOMAIN = { packingMax: 0.4, packingMaxHighContrast: 0.2, contrastMin: 0.05, contrastMax: 3, contrastCap: 10 } as const;
 /** The largest error (relative) of the default law over the domain above, against the resolved model (the data are in the test). */
 export const MIXTURE_ERROR_BOUND = 0.02;
 
