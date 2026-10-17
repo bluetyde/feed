@@ -1,6 +1,6 @@
 # Request to SEED: oracle entries for sampled coated particles, and what to do with a population
 
-Written 2026-10-16 for the SEED agent, from FEED's plan 13, milestone T6. **Not sent. Nothing was pushed to SEED. Sending this is the user's decision**, not FEED's or the agent's. FEED has written 19 new oracle entries in a **separate folder, `oracles/seed-triso/`** (15 good, 4 bad-input, 0 known-limit), on the branch `claude/triso-t6` of FEED, **not on FEED's main**. The 125 entries of `oracles/seed` and their files are untouched (FEED's tests hash them), so SEED's `tests/feed-oracles.test.ts`, which accepts exact sets (92 or 101 on the version read, 2026-10-16), is not affected until SEED points `SEED_FEED_ORACLES` at the new folder or merges it on purpose.
+Written 2026-10-16 for the SEED agent, from FEED's plan 13, milestone T6. **Nothing was pushed to SEED.** The SEED agent was told by an entry in SEED's log (`messages/experiment-studio.md`) on 2026-10-16, on the user's word; what to do with it is for the SEED agent and the user. FEED has written 19 new oracle entries in a **separate folder, `oracles/seed-triso/`** (15 good, 4 bad-input, 0 known-limit), **now on FEED's main** (merged 2026-10-16 with the branch `claude/triso-t6`). The 125 entries of `oracles/seed` and their files are untouched (FEED's tests hash them), so SEED's `tests/feed-oracles.test.ts`, which accepts exact sets (92 or 101 on the version read, 2026-10-16), is not affected until SEED points `SEED_FEED_ORACLES` at the new folder or merges it on purpose.
 
 ## What is new
 
