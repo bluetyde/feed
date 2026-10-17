@@ -45,3 +45,7 @@ Running from source without `npm run build` there is no `dist/core/independentWo
 - The runner is a thread per job, not a pool of reusable threads: starting one costs a few tens of milliseconds, which the preview and the checks tolerate.
 - The three runs of a job are done one after another in one thread; running them on three threads would be faster on a machine with cores to spare.
 - The solver itself (OFFBEAT in WSL) already runs in its own process; this is only about FEED's own numerics.
+
+## The two-dimensional reference of a stack of plates (plan 15, B4)
+
+A transient stack of plates has one more job kind, `stackReference` (`IndependentRunner.start(case, { what: "stackReference", deadlineMs })`): the two-dimensional solution of the whole stack (`src/core/stackReference.ts`, `solveStackTransientReference`), in a thread of its own, started by the run manager beside the "full" job. It has its own deadline (`referenceDeadlineMs`, default 60 s). The answer is `{ solved }` or `{ fallback: reason }` (a cap, a refusal by the solver); a deadline or a failed worker is an outcome with `ok: false`. The run manager turns each of them into the same thing, the one-dimensional checks with the allowance and the reason in the record and the notes, and does not fail the run; the "full" job's failure still does. Without the compiled worker the job runs in the server's thread and the solver's own deadline (it checks the clock between steps) applies. Numbers and caps: [axial-stack.md](axial-stack.md), last section.

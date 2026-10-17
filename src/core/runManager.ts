@@ -18,6 +18,7 @@ import { lastRelativeRate } from "./steadyState";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
 import { buildStackResults } from "./stackResults";
 import { buildStackTransientResults } from "./stackTransientResults";
+import { STACK_TRANSIENT_DEADLINE_MS, StackTransientReferenceResult, stackTransientReferenceFrom } from "./stackReference";
 import { IndependentHandle, IndependentRunner } from "./independentRunner";
 import { IndependentSet, buildTransientResults, TransientResultsRecord } from "./transientResults";
 import { Issue, unrunnableErrors, validateCase } from "./validate";
@@ -76,6 +77,8 @@ export interface ManagerOptions {
   independent?: IndependentRunner;
   /** Deadline of those runs, ms. Default 120000. A run whose independent checks cannot finish in it fails (E_VERIFY_INCOMPLETE): without them the result is not verified. */
   independentDeadlineMs?: number;
+  /** Deadline of the two-dimensional reference of a transient stack of plates (plan 15, B4), ms. Default 60000. When it passes the checks use the allowance, and the record says why. */
+  referenceDeadlineMs?: number;
 }
 
 const SOLVER_TEXT = "OpenFOAM Foundation 9 + OFFBEAT 80e84450";
@@ -441,16 +444,37 @@ export class RunManager {
         // The independent finite-volume runs (the cross-check and the time-step error) are done in a worker thread with a deadline, so the server stays
         // responsive, and a cancel reaches them. Without them the result is not verified, so a run whose checks cannot be completed is not a result.
         const job = this.independent.start(normalized, { what: "full" });
-        this.postJobs.set(r.id, job);
-        const ind = await job.done.finally(() => this.postJobs.delete(r.id));
-        if (this.cancelRequested.has(r.id) || (!ind.ok && ind.reason === "cancelled")) {
+        // A transient stack of plates is judged against FEED's two-dimensional solution of the whole stack (plan 15): a second job, in its own thread and with its own deadline. If it
+        // cannot finish the checks keep the allowance and the record says why; a cancel stops both jobs.
+        const refJob = normalized.axial && normalized.plate ? this.independent.start(normalized, { what: "stackReference", deadlineMs: this.opts.referenceDeadlineMs ?? STACK_TRANSIENT_DEADLINE_MS }) : undefined;
+        this.postJobs.set(r.id, refJob ? { done: job.done, cancel: () => (job.cancel(), refJob.cancel()) } : job);
+        let ind: Awaited<typeof job.done>;
+        let refOut: Awaited<NonNullable<typeof refJob>["done"]> | undefined;
+        try {
+          ind = await job.done;
+          refOut = refJob ? (ind.ok ? await refJob.done : (refJob.cancel(), undefined)) : undefined;
+        } finally {
+          this.postJobs.delete(r.id);
+        }
+        if (this.cancelRequested.has(r.id) || (!ind.ok && ind.reason === "cancelled") || (refOut && !refOut.ok && refOut.reason === "cancelled")) {
           r.state = "cancelled";
           r.failure = { code: "E_CANCELLED", message: "Cancelled by the user while the result was being checked. No result was collected." };
           return;
         }
         if (!ind.ok) return fail({ code: "E_VERIFY_INCOMPLETE", message: "The solver finished, but its result could not be verified: " + ind.message + ". Without the independent cross-check and time-step error the result is not accepted. Use a coarser mesh or a longer time step, or raise the deadline; the solver's own output is in the run folder.", native });
         r.notes.push(`The independent finite-volume runs took ${(ind.ms / 1000).toFixed(1)} s in ${ind.mode === "worker" ? "a worker thread" : "the server's own thread (no compiled worker was found, so no deadline applied)"}.`);
-        const tr = normalized.axial ? buildStackTransientResults(normalized, { C, fields }, ind.set as IndependentSet[]) : buildTransientResults(normalized, { C, fields }, ind.set as IndependentSet);
+        let reference: StackTransientReferenceResult | undefined;
+        if (refOut) {
+          if (refOut.ok && refOut.what === "stackReference" && "solved" in refOut.set) {
+            reference = { reference: stackTransientReferenceFrom(normalized, refOut.set.solved) };
+            r.notes.push(`The two-dimensional reference of the stack took ${(refOut.ms / 1000).toFixed(1)} s in ${refOut.mode === "worker" ? "a worker thread" : "the server's own thread (no compiled worker was found; its own deadline applied)"}.`);
+          } else {
+            const why = refOut.ok ? (refOut.set as { fallback: string }).fallback : refOut.message;
+            reference = { fallback: why };
+            r.notes.push(`The two-dimensional reference of the stack was not used (${why}); the checks keep the allowance for the heat flow along the height.`);
+          }
+        }
+        const tr = normalized.axial ? buildStackTransientResults(normalized, { C, fields }, ind.set as IndependentSet[], reference) : buildTransientResults(normalized, { C, fields }, ind.set as IndependentSet);
         atomicWrite(join(dir, "results.json"), JSON.stringify(tr, null, 2) + "\n");
         r.headline = { centreCellT: tr.summary.maxT, claddingOuterWallT: tr.series.claddingOuterWallT[tr.series.claddingOuterWallT.length - 1]!, transient: true };
         r.state = "completed";
