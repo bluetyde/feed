@@ -1,0 +1,18 @@
+max |2D variant - OFFBEAT| (K), all cells and walls
+variant | pin steady cosine | pin steady short | pin steady rise | plate steady steep | plate steady negative | plate steady short
+OFFBEAT kernel (centroid nodes, linear conductance, gap on the fuel face), arithmetic face k, power at the layer centre | 0.0016 | 0.0016 | 0.0016 | 0.0000 | 0.0000 | 0.0000
+  same, harmonic face k | 0.0016 | 0.0016 | 0.0016 | 0.0000 | 0.0000 | 0.0000
+  same, gap conductance on the CLADDING face | 5.4651 | 5.4032 | 5.4651 | 0.0000 | 0.0000 | 0.0000
+  same, power = layer average of the shape instead of the centre value | 5.2613 | 3.3935 | 5.2613 | 0.0009 | 0.0000 | 0.8460
+  same, axial term removed (N one-dimensional solutions) | 1.0610 | 44.8305 | 1.1038 | 1.9034 | 0.1545 | 22.3592
+FEED kernel (the plan's), harmonic face k, power at the layer centre | 3.4377 | 3.3814 | 3.4377 | 0.0000 | 0.0000 | 0.0000
+  same, arithmetic face k | 3.4377 | 3.3814 | 3.4377 | 0.0000 | 0.0000 | 0.0000
+  same, axial term removed (the existing one-dimensional reference) | 3.7853 | 44.3765 | 3.7853 | 1.9034 | 0.1545 | 22.3592
+
+faceK with k(T) (no OFFBEAT run exists): harmonic vs arithmetic, max difference over all cells (K), against the case's rise
+pin steady cosine (feed kernel): max |harmonic - arithmetic| = 3.97e-3 K of a rise of 1407 K
+pin steady cosine (offbeat kernel): max |harmonic - arithmetic| = 3.93e-3 K of a rise of 1401 K
+pin steady short (feed kernel): max |harmonic - arithmetic| = 8.28e-2 K of a rise of 1389 K
+pin steady short (offbeat kernel): max |harmonic - arithmetic| = 8.14e-2 K of a rise of 1383 K
+plate steady steep (feed kernel): max |harmonic - arithmetic| = 2.32e-4 K of a rise of 198 K
+plate steady steep (offbeat kernel): max |harmonic - arithmetic| = 2.32e-4 K of a rise of 198 K

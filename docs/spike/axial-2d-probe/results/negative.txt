@@ -1,0 +1,9 @@
+run | reference as planned | axial term removed | shape shifted one layer | coolant read from the top   (each: max |diff| K / gate ratio; the planned reference must stay below 1, the others should exceed 1)
+pin cosine 0.381 | 3.44 K / 0.34 | 3.79 K / 0.45 | 344.77 K / 211.47 | 3.44 K / 0.34
+pin short 0.06 | 3.38 K / 0.49 | 44.38 K / 32.64 | 287.39 K / 211.40 | 3.38 K / 0.49
+pin rise | 3.44 K / 0.34 | 3.79 K / 0.47 | 344.77 K / 211.47 | 90.46 K / 97.16
+plate cosine 0.381 | 0.00 K / 0.00 | 0.61 K / 1.45 | 89.20 K / 212.37 | 0.00 K / 0.00
+plate short 0.06 | 0.00 K / 0.00 | 22.36 K / 63.84 | 72.86 K / 208.04 | 0.00 K / 0.00
+plate steep | 0.00 K / 0.00 | 1.90 K / 2.18 | 71.06 K / 81.38 | 0.00 K / 0.00
+plate rise | 0.00 K / 0.00 | 0.69 K / 1.65 | 89.20 K / 212.37 | 89.99 K / 346.77
+plate negative | 0.00 K / 0.00 | 0.15 K / 0.14 | 136.37 K / 58.72 | 53.99 K / 79.95
