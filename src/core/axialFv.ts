@@ -116,6 +116,9 @@ function solveBanded(a: Float64Array, b: Float64Array, n: number, m: number): Fl
   return x;
 }
 
+/** The conductivity at the face between two layers of one height (halfway between their nodes): the linear interpolation, the mean. One place for the matrix and the flux that reports on it. */
+const faceConductivity = (ka: number, kb: number): number => 0.5 * (ka + kb);
+
 const coolantOf = (b: BoundaryValue): number => (b.kind === "convective" ? b.bulkTemperature : b.surfaceTemperature);
 
 /** True when a property of the pin does not depend on temperature, so one linear solve is the answer. */
@@ -217,7 +220,7 @@ function system(m: StackModel, transient: boolean) {
           // k(T) it leaves 0.21 K at the end slice of a loss of cooling where the mean leaves 0.0002 K (docs/plans/15-axial-2d.md, "k(T) record")
           const ka = kv[id]!;
           const kb = kv[id + n]!;
-          const gz = (0.5 * (ka + kb)) * (vol[i]! / h);
+          const gz = faceConductivity(ka, kb) * (vol[i]! / h);
           A[at(id, id)]! += gz;
           A[at(id + n, id + n)]! += gz;
           A[at(id, id + n)]! -= gz;
@@ -276,7 +279,7 @@ function system(m: StackModel, transient: boolean) {
         for (let i = 0; i < n; i++) {
           const ka = kOf(i, T[k * n + i]!);
           const kb = kOf(i, T[(k + 1) * n + i]!);
-          f[k]! += ((2 * ka * kb) / (ka + kb)) * (vol[i]! / h) * (T[k * n + i]! - T[(k + 1) * n + i]!);
+          f[k]! += faceConductivity(ka, kb) * (vol[i]! / h) * (T[k * n + i]! - T[(k + 1) * n + i]!);
         }
     return f;
   };
