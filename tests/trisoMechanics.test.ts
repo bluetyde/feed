@@ -300,6 +300,10 @@ describe("the run manager reads a real saved run back", () => {
     expect(r.checks.filter((c) => c.verdict === "fail")).toEqual([]);
     expect(r.summary.sicPeakTangential).toBeLessThan(0);
     expect(r.text).toMatch(/Elastic, steady/);
+    // the headline is the first cell and the last cell of the coating, not one cell twice
+    expect(rec.headline!.centreCellT).toBeCloseTo(r.cells[0]!.T, 9);
+    expect(rec.headline!.claddingOuterWallT).toBeCloseTo(r.cells[r.cells.length - 1]!.T, 9);
+    expect(rec.headline!.centreCellT).not.toBeCloseTo(rec.headline!.claddingOuterWallT, 3);
   });
 
   it("fails a run whose displacement did not converge (nothing judges the temperature, but the displacement is judged)", async () => {
