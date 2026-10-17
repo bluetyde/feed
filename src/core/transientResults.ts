@@ -253,7 +253,11 @@ export interface TransientAllowance {
   energy: number;
 }
 
-export function buildTransientResults(c: NormalizedCase, input: TransientInput, independent?: IndependentSet, allow?: TransientAllowance): TransientResultsRecord {
+/**
+ * `exchanged` (a slice of a stack judged against the two-dimensional reference, plan 15, B3): the heat the slice has received from its neighbours along the height up to each output
+ * time (J per unit height, as `deposited`), from the reference. The energy balance then reads deposited + received = stored + rejected, judged against the largest of those energies.
+ */
+export function buildTransientResults(c: NormalizedCase, input: TransientInput, independent?: IndependentSet, allow?: TransientAllowance, exchanged?: number[]): TransientResultsRecord {
   const tr = c.transient;
   if (!tr || !c.fuelHeatCapacity || !c.claddingHeatCapacity) bad("the case is not a transient");
   const t = tr!;
@@ -366,16 +370,18 @@ export function buildTransientResults(c: NormalizedCase, input: TransientInput, 
   const k = times.length - 1;
   // From a uniform start the balance is judged against the energy deposited so far. From a steady operating state the heat made and the heat leaving are both large and
   // nearly equal (and a shutdown deposits nothing), so it is judged against the largest of the energy deposited, rejected and stored so far.
-  const steadyStart = t.initial.kind === "steady" || hist !== undefined;
+  const steadyStart = t.initial.kind === "steady" || hist !== undefined || exchanged !== undefined;
+  if (exchanged && exchanged.length !== times.length) bad(`the heat received from the neighbours has ${exchanged.length} values, the run has ${times.length} outputs`);
+  const made = exchanged ? series.deposited.map((d, j) => d + exchanged[j]!) : series.deposited;
   // With a boundary history the stored and the rejected energy can pass through zero (a pin that cools and then warms), and the heat leaving can jump within a few steps while the
   // outputs are seconds apart (a wall that starts to move: the trapezoid of the first interval misses half of it). The gap is then judged against the largest energy exchanged
   // anywhere in the run, not the value at that moment.
-  const throughput = (j: number) => (hist ? 1 : steadyStart ? Math.max(series.deposited[j]!, series.rejected[j]!, Math.abs(series.stored[j]!)) : series.deposited[j]!);
+  const throughput = (j: number) => (hist ? 1 : steadyStart ? Math.max(series.deposited[j]!, Math.abs(exchanged?.[j] ?? 0), series.rejected[j]!, Math.abs(series.stored[j]!)) : series.deposited[j]!);
   if (throughput(k) > 0) {
     const worst = hist
-      ? historyEnergyWorst(series.deposited, series.stored, series.rejected)
-      : Math.max(...times.map((_, j) => (throughput(j) > 0 ? Math.abs(series.deposited[j]! - series.stored[j]! - series.rejected[j]!) / throughput(j) : 0)));
-    checks.push({ id: "energyBalance", label: "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE + (allow?.energy ?? 0) ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${(100 * (ENERGY_BALANCE_TOLERANCE + (allow?.energy ?? 0))).toPrecision(3)}% of the ${hist ? "largest of the energy deposited, rejected and stored anywhere in the run (a boundary history: the energies can cross zero, and the heat leaving can change within a few steps between outputs)" : steadyStart ? "largest of the energy deposited, rejected and stored so far (the run starts from a steady operating state)" : "energy deposited so far"}. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
+      ? historyEnergyWorst(made, series.stored, series.rejected)
+      : Math.max(...times.map((_, j) => (throughput(j) > 0 ? Math.abs(made[j]! - series.stored[j]! - series.rejected[j]!) / throughput(j) : 0)));
+    checks.push({ id: "energyBalance", label: exchanged ? "Energy balance (deposited + received along the height = stored + rejected, from the outputs)" : "Energy balance (deposited = stored + rejected, from the outputs)", value: worst, unit: "relative", verdict: worst <= ENERGY_BALANCE_TOLERANCE + (allow?.energy ?? 0) ? "pass" : "fail", note: `largest relative gap over the outputs; threshold ${(100 * (ENERGY_BALANCE_TOLERANCE + (allow?.energy ?? 0))).toPrecision(3)}% of the ${hist ? "largest of the energy deposited, rejected and stored anywhere in the run (a boundary history: the energies can cross zero, and the heat leaving can change within a few steps between outputs)" : steadyStart ? "largest of the energy deposited, rejected and stored so far (the run starts from a steady operating state)" : "energy deposited so far"}. It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving` });
   }
 
   // independent solution: same mesh and step (cross-check), double mesh (spatial error of the independent solution), half step (time error)

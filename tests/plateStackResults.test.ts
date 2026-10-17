@@ -11,10 +11,10 @@ import { buildStackResults } from "../src/core/stackResults";
 const root = join(__dirname, "..");
 const read = (...p: string[]) => readFileSync(join(root, ...p), "utf8");
 const g = (name: string) => ({ n: JSON.parse(read("tests/golden/offbeat-plate-stack", name, "normalized.json")), T: read("tests/golden/offbeat-plate-stack", name, "T"), C: read("tests/golden/offbeat-plate-stack", name, "C") });
-const judge = (x: ReturnType<typeof g>, mutate?: (n: any) => void, T = x.T, C = x.C) => {
+const judge = (x: ReturnType<typeof g>, mutate?: (n: any) => void, T = x.T, C = x.C, reference?: null) => {
   const n = JSON.parse(JSON.stringify(x.n));
   mutate?.(n);
-  return buildStackResults(n, { T, C, time: 5e7 });
+  return buildStackResults(n, { T, C, time: 5e7 }, reference);
 };
 /** The slab closed form of a slice by hand (constant conductivities 3 and 15, gap 5000, half-thickness 4.1 mm, cladding 0.57 mm): coolant + q/h + q t / k + q/h_gap + q L / (2 k). */
 const byHand = (q: number, Tb: number, h: number) => Tb + q / h + (q * 0.57e-3) / 15 + q / 5000 + (q * 4.1e-3) / 6;
@@ -55,7 +55,8 @@ describe("real OFFBEAT output of a stack of plates, read layer by layer", () => 
   });
   it("a short plate (0.06 m, 12 slices), where the axial conduction is large: the real output differs from the closed form by many times the mesh error, which the widened tolerance covers; the estimate is of the size of the difference", () => {
     const s = g("short");
-    const r = judge(s);
+    // plan 15 B2: the default is now the two-dimensional reference; this test is about the one-dimensional closed form with the allowance (the fallback), so it asks for that (reference null)
+    const r = judge(s, undefined, s.T, s.C, null);
     expect(failingIds(r)).toEqual([]);
     const fuel = r.checks.find((c) => c.id === "closedFormFuel")!;
     expect(fuel.value!).toBeGreaterThan(5);
