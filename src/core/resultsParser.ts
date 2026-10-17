@@ -191,6 +191,9 @@ export const BURNUP_K_TOLERANCE = 1e-4;
 /** The same for the Bu field against what was written (7 digits again). */
 export const BURNUP_BU_TOLERANCE = 1e-5;
 
+/** The floor under the mesh bound when a slice is judged against the two-dimensional reference (K). OFFBEAT writes 8 significant digits (2e-5 K at 2000 K) and stops its iteration at a tolerance; a layer with almost no heat has a mesh bound near zero. */
+export const REFERENCE_FLOOR = 0.01;
+
 /** Energy-balance diagnostic threshold (relative). A diagnostic from two cladding cell values, not a gate. */
 export const BALANCE_TOLERANCE = 0.01;
 
@@ -269,6 +272,16 @@ export interface SliceAllowance {
   wall: number;
 }
 
+/**
+ * The two-dimensional reference of a slice of a stack (plan 15, B2): the temperature the stack's own finite-volume solution (src/core/axialFv.ts) has in each of the slice's cells,
+ * fuel then cladding, each inner to outer, and at its outer wall. It includes the heat that flows along the height, so a slice is judged against it with the mesh bound alone.
+ */
+export interface SliceReference {
+  fuel: number[];
+  clad: number[];
+  wall: number;
+}
+
 export interface CellsContext {
   T: number[];
   radial: RadialPoint[];
@@ -277,6 +290,14 @@ export interface CellsContext {
   wall: number | null;
   input: ParseInput;
   allow?: SliceAllowance;
+  /** When given, the slice's checks compare with this field instead of the one-dimensional closed form, and no allowance is added (an `allow` given with it is ignored). */
+  reference?: SliceReference;
+}
+
+/** The heat flowing through the cladding between its two innermost cell centres (W/m of a pin, W per metre of height and width of a plate), from their temperatures: the difference of the conductivity integral over the resistance factor. Null with fewer than two cladding cells. */
+export function wallFlux(c: NormalizedCase, clad: { r: number; T: number }[]): number | null {
+  if (clad.length < 2) return null;
+  return (primitive(lawOf(c.claddingConductivity), clad[0]!.T) - primitive(lawOf(c.claddingConductivity), clad[1]!.T)) / geometryOf(c.plate).resist(clad[0]!.r, clad[1]!.r, 1);
 }
 
 /** The checks and the record of one slice (or of the whole one-slice pin) from its cells: shared by buildResults and the stack's builder. */
@@ -296,7 +317,12 @@ export function finishResults(c: NormalizedCase, x: CellsContext): ResultsRecord
     // the flux through the wall between two cell centres: the difference of the conductivity integral over the layer's resistance factor (a cylinder: 2 pi / ln(r2 / r1); a slab: 1 / (x2 - x1))
     const qWall = (primitive(kc, a.T) - primitive(kc, b.T)) / (geo.resist(a.r, b.r, 1));
     const rel = (qWall - c.qPrime) / c.qPrime;
-    checks.push({ id: "energyBalance", label: "Energy balance (cladding wall flux vs input)", value: rel, unit: "relative", verdict: Math.abs(qWall - c.qPrime) <= BALANCE_TOLERANCE * c.qPrime + allow.flux ? "pass" : "fail", note: `flux from the two innermost cladding cells = ${qWall.toFixed(1)} W/m against ${c.qPrime} W/m; threshold ${BALANCE_TOLERANCE * 100}%` });
+    if (x.reference) {
+      // judged against the reference's own flux through the same two cells: the layer's wall flux is its own heat plus what the neighbours give it along the height, which the reference includes
+      const qRef = wallFlux(c, clad.map((p, i) => ({ r: p.r, T: x.reference!.clad[i]! })))!;
+      const bound = BALANCE_TOLERANCE * Math.abs(qRef) + 1e-9;
+      checks.push({ id: "energyBalance", label: "Energy balance (cladding wall flux vs the two-dimensional reference)", value: qRef !== 0 ? (qWall - qRef) / qRef : qWall - qRef, unit: "relative", verdict: Math.abs(qWall - qRef) <= bound ? "pass" : "fail", note: `flux from the two innermost cladding cells = ${qWall.toFixed(1)} W/m against ${qRef.toFixed(1)} W/m in the reference (the slice's own heat, ${c.qPrime.toFixed(1)} W/m, plus the heat that reaches it along the height, which the reference includes: against the heat alone it is ${((qWall - c.qPrime) / c.qPrime * 100).toPrecision(3)} %); threshold ${BALANCE_TOLERANCE * 100}%` });
+    } else checks.push({ id: "energyBalance", label: "Energy balance (cladding wall flux vs input)", value: rel, unit: "relative", verdict: Math.abs(qWall - c.qPrime) <= BALANCE_TOLERANCE * c.qPrime + allow.flux ? "pass" : "fail", note: `flux from the two innermost cladding cells = ${qWall.toFixed(1)} W/m against ${c.qPrime} W/m; threshold ${BALANCE_TOLERANCE * 100}%` });
   }
 
   // Closed-form agreement (constant or linear conductivity), same discretization-error bound used for the finite-volume cross-check.
@@ -313,11 +339,26 @@ export function finishResults(c: NormalizedCase, x: CellsContext): ResultsRecord
   const cladErr = Math.max(...clad.map((p) => Math.abs(p.T - claddingAt(p.r))));
   const fuelBound = (5 * fuelDeltaT) / (c.mesh.fuelCells * c.mesh.fuelCells) + allow.field;
   const cladBound = (5 * claddingDeltaT) / (c.mesh.claddingCells * c.mesh.claddingCells) + allow.field;
-  checks.push({ id: "closedFormFuel", label: "Fuel vs closed form (max deviation)", value: fuelErr, unit: "K", verdict: fuelErr < fuelBound ? "pass" : "fail", note: `bound 5 dT / N^2 = ${fuelBound.toFixed(3)} K for ${c.mesh.fuelCells} cells` });
-  checks.push({ id: "closedFormCladding", label: "Cladding vs closed form (max deviation)", value: cladErr, unit: "K", verdict: cladErr < cladBound ? "pass" : "fail", note: `bound 5 dT / N^2 = ${cladBound.toFixed(3)} K for ${c.mesh.claddingCells} cells` });
-  if (wall !== null) {
-    const d = Math.abs(wall - tOuter);
-    checks.push({ id: "wallTemperature", label: "Outer wall temperature vs closed form", value: d, unit: "K", verdict: d < 0.05 + allow.wall ? "pass" : "fail", note: `solver ${wall} K, closed form ${tOuter.toFixed(3)} K; threshold ${(0.05 + allow.wall).toPrecision(3)} K` });
+  const ref = x.reference;
+  if (ref) {
+    // the stack's two-dimensional reference (plan 15): the same cells, the mesh bound and a floor under it, no allowance; the one-dimensional closed form's deviation is shown beside
+    const fuelDev = Math.max(...fuel.map((p, i) => Math.abs(p.T - ref.fuel[i]!)));
+    const cladDev = Math.max(...clad.map((p, i) => Math.abs(p.T - ref.clad[i]!)));
+    const fuelRefBound = (5 * fuelDeltaT) / (c.mesh.fuelCells * c.mesh.fuelCells) + REFERENCE_FLOOR;
+    const cladRefBound = (5 * claddingDeltaT) / (c.mesh.claddingCells * c.mesh.claddingCells) + REFERENCE_FLOOR;
+    checks.push({ id: "closedFormFuel", label: "Fuel vs the two-dimensional reference (max deviation)", value: fuelDev, unit: "K", verdict: fuelDev < fuelRefBound ? "pass" : "fail", note: `bound 5 dT / N^2 + ${REFERENCE_FLOOR} K = ${fuelRefBound.toFixed(3)} K for ${c.mesh.fuelCells} cells, no allowance for the heat flow along the height (the reference includes it); for contrast, the one-dimensional closed form of this slice deviates from the same cells by ${fuelErr.toFixed(3)} K` });
+    checks.push({ id: "closedFormCladding", label: "Cladding vs the two-dimensional reference (max deviation)", value: cladDev, unit: "K", verdict: cladDev < cladRefBound ? "pass" : "fail", note: `bound 5 dT / N^2 + ${REFERENCE_FLOOR} K = ${cladRefBound.toFixed(3)} K for ${c.mesh.claddingCells} cells, no allowance; for contrast, the one-dimensional closed form deviates from the same cells by ${cladErr.toFixed(3)} K` });
+    if (wall !== null) {
+      const d = Math.abs(wall - ref.wall);
+      checks.push({ id: "wallTemperature", label: "Outer wall temperature vs the two-dimensional reference", value: d, unit: "K", verdict: d < 0.05 ? "pass" : "fail", note: `solver ${wall} K, reference ${ref.wall.toFixed(3)} K; threshold 0.05 K; for contrast, the one-dimensional closed form gives ${tOuter.toFixed(3)} K` });
+    }
+  } else {
+    checks.push({ id: "closedFormFuel", label: "Fuel vs closed form (max deviation)", value: fuelErr, unit: "K", verdict: fuelErr < fuelBound ? "pass" : "fail", note: `bound 5 dT / N^2 = ${fuelBound.toFixed(3)} K for ${c.mesh.fuelCells} cells` });
+    checks.push({ id: "closedFormCladding", label: "Cladding vs closed form (max deviation)", value: cladErr, unit: "K", verdict: cladErr < cladBound ? "pass" : "fail", note: `bound 5 dT / N^2 = ${cladBound.toFixed(3)} K for ${c.mesh.claddingCells} cells` });
+    if (wall !== null) {
+      const d = Math.abs(wall - tOuter);
+      checks.push({ id: "wallTemperature", label: "Outer wall temperature vs closed form", value: d, unit: "K", verdict: d < 0.05 + allow.wall ? "pass" : "fail", note: `solver ${wall} K, closed form ${tOuter.toFixed(3)} K; threshold ${(0.05 + allow.wall).toPrecision(3)} K` });
+    }
   }
 
   // Property range: a conductivity law is used outside its stated range => the result is out-of-domain, never plain success.
