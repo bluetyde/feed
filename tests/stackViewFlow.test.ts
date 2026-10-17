@@ -151,6 +151,10 @@ describe("the data and the captions are true in each state", () => {
     expect(rows[0].inner).toBe(pts[0].T);
     expect(rows[0].outer).toBe(pts[25].T);
     expect(rows[0].hottest).toBe(Math.max(...pts.map((p: any) => p.T)));
+    // the heights are the slices' own, in order, and the colour range is the field's
+    rows.forEach((row: any, k: number) => expect(row.z).toBe(r.axialField2d.slices[k].height));
+    expect(two.lo).toBe(Math.min(...r.axialField2d.slices.flatMap((s: any) => s.points.map((p: any) => p.T))));
+    expect(two.hi).toBe(Math.max(...r.axialField2d.slices.flatMap((s: any) => s.points.map((p: any) => p.T))));
     // and the drawing is made of the same rings: every coloured quadrilateral has the temperature of one of its slice's rings or its outer wall
     for (const cut of [true, false]) {
       for (const qd of lib.stackQuads(two, cut)) {
@@ -215,6 +219,10 @@ describe("the wiring that keeps the caption on screen", () => {
   it("the two-dimensional button is disabled with the reason when the check does not offer the field, and the data function asks the choice before it draws the field", () => {
     expect(script).toMatch(/fb\["2d"\]\.disabled = !c\.enabled; fb\["2d"\]\.title = c\.enabled \? "" : c\.reason;/);
     expect(script).toMatch(/if \(stackFlowChoice\(result\.axialField2d, case3dFlow\)\.shown === "2d"\) return stackDataTwoD\(result\.axialField2d, geomOfCase\(result\.normalized\)\);/);
+  });
+  it("the page starts in the closed-form state (instant), and the data function falls back to the closed forms for any other value", () => {
+    expect(script).toMatch(/let case3dFlow = "closed";/);
+    expect(script).toMatch(/set: \(v\) => \{ case3dFlow = v; \}/);
   });
   it("the option's two labels are the plan's words", () => {
     expect(script).toContain('"Not included (closed form per slice, instant)"');
