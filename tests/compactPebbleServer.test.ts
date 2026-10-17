@@ -123,6 +123,16 @@ describe("a pebble through the server", () => {
   });
 });
 
+describe("the editor's page", () => {
+  it("opens a compact as the pin it is (its fuel item says it is derived, not a missing material) and shows a valid pebble as a notice, not as a pin (guards by their text; driven in the browser pane)", () => {
+    const html = readFileSync(join(root, "src", "web", "index.html"), "utf8");
+    expect(html).toContain('selected === "fuel" && doc.compact');
+    expect(html).toContain("The editor has no panel for that block yet: edit it in the JSON tab.");
+    expect(html).toContain("if (j.ok && j.pebble) result = { ok: false");
+    expect(html).toContain("the editor has no panel or picture for a pebble yet");
+  });
+});
+
 describe("through the command line", () => {
   const dist = join(root, "dist", "cli");
   it("write-case writes the pebble's wedge case and its manifest, and the compact's pin case", () => {

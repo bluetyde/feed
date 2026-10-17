@@ -408,6 +408,9 @@ function renderProps() {
     limitsPanel(p);
   } else if (selected === "mesh") {
     p.append(sec("Cells per region"), iField("Fuel", ["mesh", "fuelCells"]), iField("Cladding", ["mesh", "claddingCells"]), note("Minimum: fuel 4, cladding 2. The solver run uses these counts; refinement studies come with F2."));
+  } else if (selected === "fuel" && doc.compact) {
+    /* plan 13 T4: a compact's fuel is derived from its compact block (no editor panel for the block yet: the JSON tab edits it) */
+    p.append(sec("Fuel: a compact"), note("This pin's fuel is the homogenised mix of coated particles in a matrix, derived from the <code>compact</code> block of the case (particle, matrix, packing fraction, power density, mixture law). The editor has no panel for that block yet: edit it in the JSON tab. Its effective conductivity, its error against a resolved model and the hottest particle are in docs/compact-pebble.md; the check response carries the mixture and the hottest particle."));
   } else {
     const m = doc.materials[selected]; const base = ["materials", selected];
     p.append(sec("Material"));
@@ -986,6 +989,8 @@ async function runCheck(rebuildProps) {
   try {
     const r = await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
     const j = await r.json(); if (my !== seq) return; result = j;
+    /* plan 13 T4: a valid pebble has no panel or picture in the editor yet; it is shown as a notice, not drawn as a pin (it runs from the run API and the command line) */
+    if (j.ok && j.pebble) result = { ok: false, errors: [{ code: "E_UNSUPPORTED", severity: "error", field: "/geometry/kind", message: "This pebble is valid (closed-form centre " + j.pebble.closed.centreT.toFixed(1) + " K, hottest kernel " + j.pebble.hottestParticle.kernelCentreT.toFixed(1) + " K by the two-scale step), but the editor has no panel or picture for a pebble yet. Run it from the run API or the command line (docs/compact-pebble.md)." }], warnings: j.warnings || [] };
   } catch (e) { result = { ok: false, errors: [{ code: "E_SERVER", severity: "error", field: "/", message: "Couldn't reach the server. Restart the app." }], warnings: [] }; }
   const active = document.activeElement; const keep = active && $("props").contains(active) && !rebuildProps ? active.id : null;
   $("caseBanner").textContent = doc && doc.mechanics ? ((result && result.mechanicsNote) || "Mechanics is on: a thermo-elastic result (linear elastic, no creep, plasticity or swelling). It does not say that anything fails or holds.") : "Thermal-only result. It says nothing about stress, failure or fuel integrity.";
