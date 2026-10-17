@@ -1,0 +1,2121 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 9-c96968adf6d8
+Exec   : offbeat
+Date   : Oct 16 2026
+Time   : 20:47:29
+Host   : "2ndJohnComputer"
+PID    : 1044
+I/O    : uncollated
+Case   : /home/feed/runs/feed-eea1f8a54313
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Selected time unit: seconds
+Selected end time: 50000000 seconds
+
+Create mesh for time = 0
+
+Selecting materials model byZone
+     For cellzone Kernel: 
+     Selecting material model --> constant
+
+     For cellzone Shell: 
+     Selecting material model --> constant
+
+Selecting sliceMapper model autoAxialSlices
+
+     Thermal expansion: on
+     Plane stress: off
+     Modified plane strain: off
+
+     For material constant: 
+     Selecting rheology model elasticity
+     Selecting constitutiveLaw type --> elasticity
+
+     For material constant: 
+     Selecting rheology model elasticity
+     Selecting constitutiveLaw type --> elasticity
+
+Selecting heatSource timeDependentVhgr
+Selecting burnup: none
+Selecting neutronicsSolver model none
+Selecting fastFlux none
+Selecting thermalSolver model solidConduction
+--> FOAM Warning : 
+    From function mechanicsSubSolver::New(const fvMesh&, const materials&, rheology&, const dictinoary&)
+    in file physicsSubSolvers/mechanicsSubSolver/mechanicsSubSolver.C at line 1560
+    Type 'fromLatestTime' for `mechanicsSolver` is deprecated. Please use 'constant' instead.
+Selecting mechanicsSolver model constant
+
+Axisymmetric case: disabling the solution in the out-of-plane direction
+    out-of-plane direction: y
+
+    out-of-plane direction: z
+
+Selecting fgr: none
+Selecting gapGasModel none
+--> FOAM Warning : 
+    From function elementTransport::New(fvMesh&, const materials&, const dictinoary&)
+    in file corrosion/corrosion.C at line 130
+    Type 'fromLatestTime' for `corrosion` is deprecated. Please use 'constant' instead.
+Selecting corrosion: constant
+Selecting elementTransportSolver none
+No flow solver selected. Flow solver is disabled.
+List of user-supplied parameters:
+
+List of all registered (default) user parameters:
+	behavioralModels::densification::F_epsilonDensification	behavioralModels::densification::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::UO2FRAPCON::F_epsilonDensification	behavioralModels::densification::UO2FRAPCON::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::UO2FRAPCON::delta_epsilonDensification	behavioralModels::densification::UO2FRAPCON::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::densification::delta_epsilonDensification	behavioralModels::densification::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::densification::empirical::F_epsilonDensification	behavioralModels::densification::empirical::F_epsilonDensification [0 0 0 0 0 0 0] 1
+	behavioralModels::densification::empirical::delta_epsilonDensification	behavioralModels::densification::empirical::delta_epsilonDensification [0 0 0 0 0 0 0] 0
+	behavioralModels::phaseTransition::F_betaFraction	behavioralModels::phaseTransition::F_betaFraction [0 0 0 0 0 0 0] 1
+	behavioralModels::phaseTransition::delta_betaFraction	behavioralModels::phaseTransition::delta_betaFraction [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::F_epsilonRelocation	behavioralModels::relocation::F_epsilonRelocation [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::F_epsilonRelocationRecovery	behavioralModels::relocation::F_epsilonRelocationRecovery [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::UO2FRAPCON::F_epsilonRelocation	behavioralModels::relocation::UO2FRAPCON::F_epsilonRelocation [0 0 0 0 0 0 0] 1
+	behavioralModels::relocation::UO2FRAPCON::delta_epsilonRelocation	behavioralModels::relocation::UO2FRAPCON::delta_epsilonRelocation [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::delta_epsilonRelocation	behavioralModels::relocation::delta_epsilonRelocation [0 0 0 0 0 0 0] 0
+	behavioralModels::relocation::delta_epsilonRelocationRecovery	behavioralModels::relocation::delta_epsilonRelocationRecovery [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::BufferPARFUME::F_epsilonSwelling	behavioralModels::swelling::BufferPARFUME::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::BufferPARFUME::delta_epsilonSwelling	behavioralModels::swelling::BufferPARFUME::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::FBRMOX::F_epsilonSwelling	behavioralModels::swelling::FBRMOX::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FBRMOX::delta_epsilonSwelling	behavioralModels::swelling::FBRMOX::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::F_epsilonSwelling	behavioralModels::swelling::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FrCrAl::F_epsilonSwelling	behavioralModels::swelling::FrCrAl::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::FrCrAl::delta_epsilonSwelling	behavioralModels::swelling::FrCrAl::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::PyCCorrelation::F_epsilonSwelling	behavioralModels::swelling::PyCCorrelation::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::PyCCorrelation::delta_epsilonSwelling	behavioralModels::swelling::PyCCorrelation::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::PyCPARFUME::F_epsilonSwelling	behavioralModels::swelling::PyCPARFUME::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::PyCPARFUME::delta_epsilonSwelling	behavioralModels::swelling::PyCPARFUME::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::UO2FRAPCON::F_epsilonSwelling	behavioralModels::swelling::UO2FRAPCON::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::UO2FRAPCON::delta_epsilonSwelling	behavioralModels::swelling::UO2FRAPCON::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::UO2MATPRO::F_epsilonSwelling	behavioralModels::swelling::UO2MATPRO::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::UO2MATPRO::delta_epsilonSwelling	behavioralModels::swelling::UO2MATPRO::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::WrightShamHastelloyN::F_epsilonSwelling	behavioralModels::swelling::WrightShamHastelloyN::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::WrightShamHastelloyN::delta_epsilonSwelling	behavioralModels::swelling::WrightShamHastelloyN::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::constant::F_epsilonSwelling	behavioralModels::swelling::constant::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::constant::delta_epsilonSwelling	behavioralModels::swelling::constant::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::delta_epsilonSwelling	behavioralModels::swelling::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthAIM11515Ti::F_epsilonSwelling	behavioralModels::swelling::growthAIM11515Ti::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthAIM11515Ti::delta_epsilonSwelling	behavioralModels::swelling::growthAIM11515Ti::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthBISONZy::F_epsilonSwelling	behavioralModels::swelling::growthBISONZy::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthBISONZy::delta_epsilonSwelling	behavioralModels::swelling::growthBISONZy::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	behavioralModels::swelling::growthGeneralized1515Ti::F_epsilonSwelling	behavioralModels::swelling::growthGeneralized1515Ti::F_epsilonSwelling [0 0 0 0 0 0 0] 1
+	behavioralModels::swelling::growthGeneralized1515Ti::delta_epsilonSwelling	behavioralModels::swelling::growthGeneralized1515Ti::delta_epsilonSwelling [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::F_hContact	boundaryConditions::fuelRodGap::F_hContact [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::F_hGas	boundaryConditions::fuelRodGap::F_hGas [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::F_hRad	boundaryConditions::fuelRodGap::F_hRad [0 0 0 0 0 0 0] 1
+	boundaryConditions::fuelRodGap::delta_hContact	boundaryConditions::fuelRodGap::delta_hContact [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::delta_hGas	boundaryConditions::fuelRodGap::delta_hGas [0 0 0 0 0 0 0] 0
+	boundaryConditions::fuelRodGap::delta_hRad	boundaryConditions::fuelRodGap::delta_hRad [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepIrrEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepIrrEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepPrimEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepPrimEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepThEq	constitutiveLaws::creep::LimbackCreepModelLOCA::F_DepsilonCreepThEq [0 0 0 0 0 0 0] 1
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepIrrEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepIrrEq [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepPrimEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepPrimEq [0 0 0 0 0 0 0] 0
+	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepThEq	constitutiveLaws::creep::LimbackCreepModelLOCA::delta_DepsilonCreepThEq [0 0 0 0 0 0 0] 0
+	materials::F_Cp	materials::F_Cp [0 0 0 0 0 0 0] 1
+	materials::F_E	materials::F_E [0 0 0 0 0 0 0] 1
+	materials::F_alphaT	materials::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::F_emissivity	materials::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::F_k	materials::F_k [0 0 0 0 0 0 0] 1
+	materials::F_nu	materials::F_nu [0 0 0 0 0 0 0] 1
+	materials::F_rho	materials::F_rho [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_Cp	materials::HastelloyN::F_Cp [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_E	materials::HastelloyN::F_E [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_alphaT	materials::HastelloyN::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_emissivity	materials::HastelloyN::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_k	materials::HastelloyN::F_k [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_nu	materials::HastelloyN::F_nu [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::F_rho	materials::HastelloyN::F_rho [0 0 0 0 0 0 0] 1
+	materials::HastelloyN::delta_Cp	materials::HastelloyN::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::HastelloyN::delta_E	materials::HastelloyN::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::HastelloyN::delta_alphaT	materials::HastelloyN::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_emissivity	materials::HastelloyN::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_k	materials::HastelloyN::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::HastelloyN::delta_nu	materials::HastelloyN::delta_nu [0 0 0 0 0 0 0] 0
+	materials::HastelloyN::delta_rho	materials::HastelloyN::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::PyC::F_Cp	materials::PyC::F_Cp [0 0 0 0 0 0 0] 1
+	materials::PyC::F_E	materials::PyC::F_E [0 0 0 0 0 0 0] 1
+	materials::PyC::F_alphaT	materials::PyC::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::PyC::F_emissivity	materials::PyC::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::PyC::F_k	materials::PyC::F_k [0 0 0 0 0 0 0] 1
+	materials::PyC::F_nu	materials::PyC::F_nu [0 0 0 0 0 0 0] 1
+	materials::PyC::F_rho	materials::PyC::F_rho [0 0 0 0 0 0 0] 1
+	materials::PyC::delta_Cp	materials::PyC::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::PyC::delta_E	materials::PyC::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::PyC::delta_alphaT	materials::PyC::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_emissivity	materials::PyC::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_k	materials::PyC::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::PyC::delta_nu	materials::PyC::delta_nu [0 0 0 0 0 0 0] 0
+	materials::PyC::delta_rho	materials::PyC::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::SiC::F_Cp	materials::SiC::F_Cp [0 0 0 0 0 0 0] 1
+	materials::SiC::F_E	materials::SiC::F_E [0 0 0 0 0 0 0] 1
+	materials::SiC::F_alphaT	materials::SiC::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::SiC::F_emissivity	materials::SiC::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::SiC::F_k	materials::SiC::F_k [0 0 0 0 0 0 0] 1
+	materials::SiC::F_nu	materials::SiC::F_nu [0 0 0 0 0 0 0] 1
+	materials::SiC::F_rho	materials::SiC::F_rho [0 0 0 0 0 0 0] 1
+	materials::SiC::delta_Cp	materials::SiC::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::SiC::delta_E	materials::SiC::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::SiC::delta_alphaT	materials::SiC::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_emissivity	materials::SiC::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_k	materials::SiC::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::SiC::delta_nu	materials::SiC::delta_nu [0 0 0 0 0 0 0] 0
+	materials::SiC::delta_rho	materials::SiC::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::UO2::F_Cp	materials::UO2::F_Cp [0 0 0 0 0 0 0] 1
+	materials::UO2::F_E	materials::UO2::F_E [0 0 0 0 0 0 0] 1
+	materials::UO2::F_alphaT	materials::UO2::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::UO2::F_emissivity	materials::UO2::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::UO2::F_k	materials::UO2::F_k [0 0 0 0 0 0 0] 1
+	materials::UO2::F_nu	materials::UO2::F_nu [0 0 0 0 0 0 0] 1
+	materials::UO2::F_rho	materials::UO2::F_rho [0 0 0 0 0 0 0] 1
+	materials::UO2::delta_Cp	materials::UO2::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::UO2::delta_E	materials::UO2::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::UO2::delta_alphaT	materials::UO2::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_emissivity	materials::UO2::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_k	materials::UO2::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::UO2::delta_nu	materials::UO2::delta_nu [0 0 0 0 0 0 0] 0
+	materials::UO2::delta_rho	materials::UO2::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::UPuO2::F_Cp	materials::UPuO2::F_Cp [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_E	materials::UPuO2::F_E [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_alphaT	materials::UPuO2::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_emissivity	materials::UPuO2::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_k	materials::UPuO2::F_k [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_nu	materials::UPuO2::F_nu [0 0 0 0 0 0 0] 1
+	materials::UPuO2::F_rho	materials::UPuO2::F_rho [0 0 0 0 0 0 0] 1
+	materials::UPuO2::delta_Cp	materials::UPuO2::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::UPuO2::delta_E	materials::UPuO2::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::UPuO2::delta_alphaT	materials::UPuO2::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_emissivity	materials::UPuO2::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_k	materials::UPuO2::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::UPuO2::delta_nu	materials::UPuO2::delta_nu [0 0 0 0 0 0 0] 0
+	materials::UPuO2::delta_rho	materials::UPuO2::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::buffer::F_Cp	materials::buffer::F_Cp [0 0 0 0 0 0 0] 1
+	materials::buffer::F_E	materials::buffer::F_E [0 0 0 0 0 0 0] 1
+	materials::buffer::F_alphaT	materials::buffer::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::buffer::F_emissivity	materials::buffer::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::buffer::F_k	materials::buffer::F_k [0 0 0 0 0 0 0] 1
+	materials::buffer::F_nu	materials::buffer::F_nu [0 0 0 0 0 0 0] 1
+	materials::buffer::F_rho	materials::buffer::F_rho [0 0 0 0 0 0 0] 1
+	materials::buffer::delta_Cp	materials::buffer::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::buffer::delta_E	materials::buffer::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::buffer::delta_alphaT	materials::buffer::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_emissivity	materials::buffer::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_k	materials::buffer::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::buffer::delta_nu	materials::buffer::delta_nu [0 0 0 0 0 0 0] 0
+	materials::buffer::delta_rho	materials::buffer::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::delta_Cp	materials::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::delta_E	materials::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::delta_alphaT	materials::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::delta_emissivity	materials::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::delta_k	materials::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::delta_nu	materials::delta_nu [0 0 0 0 0 0 0] 0
+	materials::delta_rho	materials::delta_rho [1 -3 0 0 0 0 0] 0
+	materials::zircaloy::F_Cp	materials::zircaloy::F_Cp [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_E	materials::zircaloy::F_E [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_alphaT	materials::zircaloy::F_alphaT [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_emissivity	materials::zircaloy::F_emissivity [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_k	materials::zircaloy::F_k [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_nu	materials::zircaloy::F_nu [0 0 0 0 0 0 0] 1
+	materials::zircaloy::F_rho	materials::zircaloy::F_rho [0 0 0 0 0 0 0] 1
+	materials::zircaloy::delta_Cp	materials::zircaloy::delta_Cp [0 2 -2 -1 0 0 0] 0
+	materials::zircaloy::delta_E	materials::zircaloy::delta_E [1 -1 -2 0 0 0 0] 0
+	materials::zircaloy::delta_alphaT	materials::zircaloy::delta_alphaT [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_emissivity	materials::zircaloy::delta_emissivity [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_k	materials::zircaloy::delta_k [1 1 -3 -1 0 0 0] 0
+	materials::zircaloy::delta_nu	materials::zircaloy::delta_nu [0 0 0 0 0 0 0] 0
+	materials::zircaloy::delta_rho	materials::zircaloy::delta_rho [1 -3 0 0 0 0 0] 0
+
+Time = 1 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1, Final residual = 3.1154136e-14, No Iterations 1
+relResidualT is 1
+absErrT is 2.6664563
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.6358022e-05, Final residual = 2.1032504e-18, No Iterations 1
+relResidualT is 8.4764615e-05
+absErrT is 0.00022602127
+
+OuterIteration n. 2
+
+FDICPCG:  Solving for T, Initial residual = 2.181578e-08, Final residual = 9.3610433e-23, No Iterations 1
+relResidualT is 1.0375703e-08
+absErrT is 2.7666374e-08
+
+Maximum deltaT calculated by thermal subsolver: 1.5245875e+18 with a relative temperature change of 0.002953979 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.8633115e+24 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 99999999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 2.028241e+31 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 604801 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 3  Total Timesteps = 1
+
+Time = 604801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 0.75896035, Final residual = 3.0617776e-12, No Iterations 1
+relResidualT is 1
+absErrT is 189.85764
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 0.027542056, Final residual = 4.2567285e-15, No Iterations 1
+relResidualT is 0.030531837
+absErrT is 5.9792604
+
+OuterIteration n. 2
+
+FDICPCG:  Solving for T, Initial residual = 0.00022975139, Final residual = 4.3198966e-17, No Iterations 1
+relResidualT is 0.00059487685
+absErrT is 0.11656818
+
+OuterIteration n. 3
+
+FDICPCG:  Solving for T, Initial residual = 2.3347856e-06, Final residual = 3.7815392e-19, No Iterations 1
+relResidualT is 7.9861139e-06
+absErrT is 0.0015649192
+
+OuterIteration n. 4
+
+FDICPCG:  Solving for T, Initial residual = 1.9920813e-08, Final residual = 2.7539431e-21, No Iterations 1
+relResidualT is 8.1414858e-08
+absErrT is 1.5953653e-05
+
+Maximum deltaT calculated by thermal subsolver: 1.5270849e+22 with a relative temperature change of 2.9491481e-07 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 99395199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 1209601 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 8  Total Timesteps = 2
+
+Time = 1209601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 3.0866673e-05, Final residual = 1.0729655e-16, No Iterations 1
+relResidualT is 1
+absErrT is 0.026326225
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 4.3074971e-06, Final residual = 5.0052846e-19, No Iterations 1
+relResidualT is 0.034072893
+absErrT is 0.00092865253
+
+OuterIteration n. 2
+
+FDICPCG:  Solving for T, Initial residual = 3.5958393e-08, Final residual = 7.2638117e-21, No Iterations 1
+relResidualT is 0.00066737137
+absErrT is 1.8201272e-05
+
+Maximum deltaT calculated by thermal subsolver: 1.0972264e+26 with a relative temperature change of 4.1045307e-11 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 98790399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 1814401 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 11  Total Timesteps = 3
+
+Time = 1814401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 4.4709054e-09, Final residual = 1.602412e-20, No Iterations 1
+relResidualT is 2.2250739e-308
+absErrT is 4.0215432e-06
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 6.2794241e-10, Final residual = 8.9281857e-23, No Iterations 1
+relResidualT is 2.2250739e-308
+absErrT is 1.3630415e-07
+
+Maximum deltaT calculated by thermal subsolver: 7.1971723e+29 with a relative temperature change of 6.257457e-15 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 98185599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 2419201 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 13  Total Timesteps = 4
+
+Time = 2419201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 97580799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 3024001 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 15  Total Timesteps = 5
+
+Time = 3024001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 96975999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 3628801 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 17  Total Timesteps = 6
+
+Time = 3628801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 96371199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 4233601 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 19  Total Timesteps = 7
+
+Time = 4233601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 95766399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 4838401 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 21  Total Timesteps = 8
+
+Time = 4838401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 95161599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 5443201 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 23  Total Timesteps = 9
+
+Time = 5443201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 94556799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 6048001 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 25  Total Timesteps = 10
+
+Time = 6048001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 93951999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 6652801 seconds
+Execution Time = 0.01 s  Clock Time = 0 s  Total Iterations = 27  Total Timesteps = 11
+
+Time = 6652801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 93347199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 7257601 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 29  Total Timesteps = 12
+
+Time = 7257601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 92742399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 7862401 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 31  Total Timesteps = 13
+
+Time = 7862401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 92137599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 8467201 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 33  Total Timesteps = 14
+
+Time = 8467201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 91532799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 9072001 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 35  Total Timesteps = 15
+
+Time = 9072001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 90927999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 9676801 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 37  Total Timesteps = 16
+
+Time = 9676801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 90323199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 10281601 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 39  Total Timesteps = 17
+
+Time = 10281601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 89718399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 10886401 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 41  Total Timesteps = 18
+
+Time = 10886401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 89113599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 11491201 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 43  Total Timesteps = 19
+
+Time = 11491201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 88508799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 12096001 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 45  Total Timesteps = 20
+
+Time = 12096001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.2987981e+30 with a relative power increase of 4.6566129e-16
+Maximum deltaT re-calculated by constantHeatSource model: 87903999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 12700801 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 47  Total Timesteps = 21
+
+Time = 12700801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 87299199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 13305601 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 49  Total Timesteps = 22
+
+Time = 13305601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 86694399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 13910401 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 51  Total Timesteps = 23
+
+Time = 13910401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 86089599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 14515201 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 53  Total Timesteps = 24
+
+Time = 14515201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.2987981e+30 with a relative power increase of 4.6566129e-16
+Maximum deltaT re-calculated by constantHeatSource model: 85484799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 15120001 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 55  Total Timesteps = 25
+
+Time = 15120001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 84879999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 15724801 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 57  Total Timesteps = 26
+
+Time = 15724801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 84275199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 16329601 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 59  Total Timesteps = 27
+
+Time = 16329601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 83670399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 16934401 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 61  Total Timesteps = 28
+
+Time = 16934401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.2987981e+30 with a relative power increase of 4.6566129e-16
+Maximum deltaT re-calculated by constantHeatSource model: 83065599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 17539201 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 63  Total Timesteps = 29
+
+Time = 17539201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 82460799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 18144001 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 65  Total Timesteps = 30
+
+Time = 18144001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 81855999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 18748801 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 67  Total Timesteps = 31
+
+Time = 18748801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 81251199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 19353601 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 69  Total Timesteps = 32
+
+Time = 19353601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 80646399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 19958401 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 71  Total Timesteps = 33
+
+Time = 19958401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 80041599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 20563201 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 73  Total Timesteps = 34
+
+Time = 20563201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 79436799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 21168001 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 75  Total Timesteps = 35
+
+Time = 21168001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 78831999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 21772801 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 77  Total Timesteps = 36
+
+Time = 21772801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 78227199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 22377601 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 79  Total Timesteps = 37
+
+Time = 22377601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 77622399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 22982401 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 81  Total Timesteps = 38
+
+Time = 22982401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 77017599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 23587201 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 83  Total Timesteps = 39
+
+Time = 23587201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 76412799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 24192001 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 85  Total Timesteps = 40
+
+Time = 24192001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 75807999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 24796801 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 87  Total Timesteps = 41
+
+Time = 24796801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 75203199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 25401601 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 89  Total Timesteps = 42
+
+Time = 25401601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 74598399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 26006401 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 91  Total Timesteps = 43
+
+Time = 26006401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 73993599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 26611201 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 93  Total Timesteps = 44
+
+Time = 26611201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 73388799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 27216001 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 95  Total Timesteps = 45
+
+Time = 27216001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.2987981e+30 with a relative power increase of 4.6566129e-16
+Maximum deltaT re-calculated by constantHeatSource model: 72783999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 27820801 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 97  Total Timesteps = 46
+
+Time = 27820801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 72179199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 28425601 seconds
+Execution Time = 0.02 s  Clock Time = 0 s  Total Iterations = 99  Total Timesteps = 47
+
+Time = 28425601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 71574399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 29030401 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 101  Total Timesteps = 48
+
+Time = 29030401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 70969599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 29635201 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 103  Total Timesteps = 49
+
+Time = 29635201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.2987981e+30 with a relative power increase of 4.6566129e-16
+Maximum deltaT re-calculated by constantHeatSource model: 70364799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 30240001 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 105  Total Timesteps = 50
+
+Time = 30240001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 69759999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 30844801 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 107  Total Timesteps = 51
+
+Time = 30844801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 69155199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 31449601 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 109  Total Timesteps = 52
+
+Time = 31449601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 68550399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 32054401 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 111  Total Timesteps = 53
+
+Time = 32054401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.2987981e+30 with a relative power increase of 4.6566129e-16
+Maximum deltaT re-calculated by constantHeatSource model: 67945599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 32659201 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 113  Total Timesteps = 54
+
+Time = 32659201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 67340799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 33264001 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 115  Total Timesteps = 55
+
+Time = 33264001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 66735999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 33868801 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 117  Total Timesteps = 56
+
+Time = 33868801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 66131199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 34473601 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 119  Total Timesteps = 57
+
+Time = 34473601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 65526399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 35078401 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 121  Total Timesteps = 58
+
+Time = 35078401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 64921599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 35683201 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 123  Total Timesteps = 59
+
+Time = 35683201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 64316799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 36288001 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 125  Total Timesteps = 60
+
+Time = 36288001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 63711999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 36892801 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 127  Total Timesteps = 61
+
+Time = 36892801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 63107199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 37497601 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 129  Total Timesteps = 62
+
+Time = 37497601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 62502399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 38102401 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 131  Total Timesteps = 63
+
+Time = 38102401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 61897599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 38707201 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 133  Total Timesteps = 64
+
+Time = 38707201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 2.5975962e+30 with a relative power increase of 2.3283064e-16
+Maximum deltaT re-calculated by constantHeatSource model: 61292799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 39312001 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 135  Total Timesteps = 65
+
+Time = 39312001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.6759869e-12, Final residual = 9.6759869e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 8.6586541e+29 with a relative power increase of 6.9849193e-16
+Maximum deltaT re-calculated by constantHeatSource model: 60687999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 39916801 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 137  Total Timesteps = 66
+
+Time = 39916801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 60083199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 40521601 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 139  Total Timesteps = 67
+
+Time = 40521601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 59478399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 41126401 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 141  Total Timesteps = 68
+
+Time = 41126401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 58873599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 41731201 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 143  Total Timesteps = 69
+
+Time = 41731201 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 58268799 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 42336001 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 145  Total Timesteps = 70
+
+Time = 42336001 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 57663999 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 42940801 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 147  Total Timesteps = 71
+
+Time = 42940801 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 57059199 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 43545601 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 149  Total Timesteps = 72
+
+Time = 43545601 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 56454399 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 44150401 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 151  Total Timesteps = 73
+
+Time = 44150401 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 9.675987e-12, Final residual = 9.675987e-12, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.7317308e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 55849599 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.2266801e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 44735361 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 153  Total Timesteps = 74
+
+Time = 44735361 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.2561918e+30 with a relative power increase of 4.6566129e-16
+Maximum deltaT re-calculated by constantHeatSource model: 55264639 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 45320321 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 155  Total Timesteps = 75
+
+Time = 45320321 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387202e-11, Final residual = 1.1387202e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387202e-11, Final residual = 1.1387202e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 54679679 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 45905281 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 157  Total Timesteps = 76
+
+Time = 45905281 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 54094719 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 46490241 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 159  Total Timesteps = 77
+
+Time = 46490241 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 53509759 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 47075200 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 161  Total Timesteps = 78
+
+Time = 47075200 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 52924800 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 47660160 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 163  Total Timesteps = 79
+
+Time = 47660160 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 52339840 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 48245120 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 165  Total Timesteps = 80
+
+Time = 48245120 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 51754880 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 48830080 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 167  Total Timesteps = 81
+
+Time = 48830080 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 51169920 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 49415040 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 169  Total Timesteps = 82
+
+Time = 49415040 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 50584960 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 584959.9 seconds and next timeStep = 50000000 seconds
+Execution Time = 0.03 s  Clock Time = 0 s  Total Iterations = 171  Total Timesteps = 83
+
+Time = 50000000 seconds
+
+OuterIteration n. 0
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+OuterIteration n. 1
+
+FDICPCG:  Solving for T, Initial residual = 1.1387201e-11, Final residual = 1.1387201e-11, No Iterations 0
+relResidualT is 0
+absErrT is 0
+
+Maximum deltaT calculated by thermal subsolver: 2.028241e+31 with a relative temperature change of -0 K/s
+Maximum deltaT calculated by constantHeatSource model: 1.6749224e+30 with a relative power increase of 3.4924597e-16
+Maximum deltaT re-calculated by constantHeatSource model: 50000000 so that deltaT is equal to the deltaT to next time point in heat source history
+Maximum deltaT calculated by fgr model: 45035996 with a release rate of 0 mol/s
+Maximum deltaT calculated by relative material properties increase: 1.1864396e+37 with a maximum material properties increase of 4.5035996e+17%
+deltaT = 604800 seconds and next timeStep = 50604800 seconds
+Execution Time = 0.04 s  Clock Time = 0 s  Total Iterations = 173  Total Timesteps = 84
+
+timeout: the monitored command dumped core

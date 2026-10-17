@@ -409,14 +409,15 @@ export interface CompactRecord {
 }
 
 export const COMPACT_TWO_SCALE_LABEL = "Two-scale result: the compact is solved as one homogeneous solid; the hottest particle's temperatures are the particle solved with the matrix at the compact's local temperature behind a matrix shell sized from the packing fraction. The compact's own field does not contain the particle's rise.";
-/** The kernel temperature built on the solver's compact field may differ from the one built on the independent field by this much more than the matrix temperatures themselves differ (K). */
-export const COMPACT_TWO_SCALE_TOLERANCE = 0.3;
+/** The matrix temperature read from the solver's cells against the closed form: the pin's discretisation bound (5 dT / N^2) plus this floor (K). Fixed before the first run. */
+export const COMPACT_MATRIX_DISCRETISATION = 5;
+export const COMPACT_MATRIX_FLOOR = 0.01;
 
 /**
  * The two-scale record of a finished compact run. `fuelCells` are the solver's fuel cells (radius, temperature) in order; `independentAt(r)` is the independent closed form of the compact's
  * temperature at radius r; `radii` the fuel's inner and outer radii (a central hole's, or 0, and the compact's). The mean is the volume mean over the compact's cross-section.
  */
-export function buildCompactRecord(spec: HomogenisedSpec, fuelCells: { r: number; T: number }[], independentAt: (r: number) => number, radii: { inner: number; outer: number }, geom: Geometry = CYLINDER): CompactRecord {
+export function buildCompactRecord(spec: HomogenisedSpec, fuelCells: { r: number; T: number }[], independentAt: (r: number) => number, radii: { inner: number; outer: number }, geom: Geometry = CYLINDER, floor: number = COMPACT_MATRIX_FLOOR): CompactRecord {
   const cells = [...fuelCells].sort((a, b) => a.r - b.r);
   if (cells.length < 2) throw new RangeError("the compact's fuel needs at least two cells");
   const N = cells.length;
@@ -462,17 +463,19 @@ export function buildCompactRecord(spec: HomogenisedSpec, fuelCells: { r: number
     }
     return { at, ...(radius !== undefined ? { radius } : {}), matrixT, matrixTIndependent: matrixTI, particle: twoScaleParticle(spec, matrixT), particleIndependent: twoScaleParticle(spec, matrixTI) };
   });
+  // the matrix temperature each particle is solved with, from the solver's cells and from the closed form of the same field: they agree to the discretisation bound of the cells
+  // (the pin's, 5 dT / N^2 for the fuel's own rise dT and N cells, plus 0.01 K), so a temperature read at the wrong radius or averaged the wrong way cannot pass
+  const rise = Math.abs(independentAt(radii.inner) - independentAt(radii.outer));
+  const bound = (COMPACT_MATRIX_DISCRETISATION * rise) / (N * N) + floor;
   const checks: CompactRecord["checks"] = entries.map((e, i) => {
     const dMatrix = Math.abs(e.matrixT - e.matrixTIndependent);
-    const dKernel = Math.abs(e.particle.kernelCentreT - e.particleIndependent.kernelCentreT);
-    const bound = dMatrix + COMPACT_TWO_SCALE_TOLERANCE;
     return {
-      id: "twoScaleKernel" + i,
-      label: `Hottest particle's kernel temperature at the ${e.at}: from the solver's compact field vs the independent field`,
-      value: dKernel,
+      id: "twoScaleMatrix" + i,
+      label: `Matrix temperature of the hottest particle at the ${e.at}: from the solver's cells vs the closed form`,
+      value: dMatrix,
       unit: "K",
-      verdict: dKernel <= bound ? ("pass" as const) : ("fail" as const),
-      note: `the matrix temperature is ${e.matrixT.toFixed(3)} K from the solver and ${e.matrixTIndependent.toFixed(3)} K from the closed form (${dMatrix.toFixed(3)} K apart); the kernel's centre then differs by ${dKernel.toFixed(3)} K; bound = the matrix temperatures' own difference + ${COMPACT_TWO_SCALE_TOLERANCE} K`,
+      verdict: dMatrix <= bound ? ("pass" as const) : ("fail" as const),
+      note: `${e.matrixT.toFixed(3)} K from the solver's cells and ${e.matrixTIndependent.toFixed(3)} K from the closed form; bound ${bound.toFixed(3)} K = 5 x ${rise.toPrecision(3)} K / ${N}^2 + ${floor.toPrecision(3)} K. The kernel's centre is then ${e.particle.kernelCentreT.toFixed(2)} K (${e.particleIndependent.kernelCentreT.toFixed(2)} K from the closed form's field)`,
     };
   });
   const msg = mixtureDomainMessage(spec);

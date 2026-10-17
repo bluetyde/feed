@@ -252,20 +252,20 @@
       "note": "a degree 3 polynomial fitted by least squares to 41 points from 700 to 1100 K; the largest deviation is 0.0000412% at 1100 K; tolerance 0.500%. OFFBEAT has no tabulated conductivity, so what ran is the polynomial, not the table"
     },
     {
-      "id": "twoScaleKernel0",
-      "label": "Hottest particle's kernel temperature at the hottest: from the solver's compact field vs the independent field",
-      "value": 0.012312920011027018,
+      "id": "twoScaleMatrix0",
+      "label": "Matrix temperature of the hottest particle at the hottest: from the solver's cells vs the closed form",
+      "value": 0.012312199282291658,
       "unit": "K",
       "verdict": "pass",
-      "note": "the matrix temperature is 905.860 K from the solver and 905.872 K from the closed form (0.012 K apart); the kernel's centre then differs by 0.012 K; bound = the matrix temperatures' own difference + 0.3 K"
+      "note": "905.860 K from the solver's cells and 905.872 K from the closed form; bound 0.128 K = 5 x 21.3 K / 30^2 + 0.0100 K. The kernel's centre is then 914.69 K (914.70 K from the closed form's field)"
     },
     {
-      "id": "twoScaleKernel1",
-      "label": "Hottest particle's kernel temperature at the mean: from the solver's compact field vs the independent field",
-      "value": 0.014751049354799761,
+      "id": "twoScaleMatrix1",
+      "label": "Matrix temperature of the hottest particle at the mean: from the solver's cells vs the closed form",
+      "value": 0.014750197321745873,
       "unit": "K",
       "verdict": "pass",
-      "note": "the matrix temperature is 895.234 K from the solver and 895.220 K from the closed form (0.015 K apart); the kernel's centre then differs by 0.015 K; bound = the matrix temperatures' own difference + 0.3 K"
+      "note": "895.234 K from the solver's cells and 895.220 K from the closed form; bound 0.128 K = 5 x 21.3 K / 30^2 + 0.0100 K. The kernel's centre is then 904.06 K (904.04 K from the closed form's field)"
     },
     {
       "id": "mixtureDomain",
@@ -541,20 +541,20 @@
     ],
     "checks": [
       {
-        "id": "twoScaleKernel0",
-        "label": "Hottest particle's kernel temperature at the hottest: from the solver's compact field vs the independent field",
-        "value": 0.012312920011027018,
+        "id": "twoScaleMatrix0",
+        "label": "Matrix temperature of the hottest particle at the hottest: from the solver's cells vs the closed form",
+        "value": 0.012312199282291658,
         "unit": "K",
         "verdict": "pass",
-        "note": "the matrix temperature is 905.860 K from the solver and 905.872 K from the closed form (0.012 K apart); the kernel's centre then differs by 0.012 K; bound = the matrix temperatures' own difference + 0.3 K"
+        "note": "905.860 K from the solver's cells and 905.872 K from the closed form; bound 0.128 K = 5 x 21.3 K / 30^2 + 0.0100 K. The kernel's centre is then 914.69 K (914.70 K from the closed form's field)"
       },
       {
-        "id": "twoScaleKernel1",
-        "label": "Hottest particle's kernel temperature at the mean: from the solver's compact field vs the independent field",
-        "value": 0.014751049354799761,
+        "id": "twoScaleMatrix1",
+        "label": "Matrix temperature of the hottest particle at the mean: from the solver's cells vs the closed form",
+        "value": 0.014750197321745873,
         "unit": "K",
         "verdict": "pass",
-        "note": "the matrix temperature is 895.234 K from the solver and 895.220 K from the closed form (0.015 K apart); the kernel's centre then differs by 0.015 K; bound = the matrix temperatures' own difference + 0.3 K"
+        "note": "895.234 K from the solver's cells and 895.220 K from the closed form; bound 0.128 K = 5 x 21.3 K / 30^2 + 0.0100 K. The kernel's centre is then 904.06 K (904.04 K from the closed form's field)"
       },
       {
         "id": "mixtureDomain",
