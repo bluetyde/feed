@@ -37,7 +37,7 @@ describe.skipIf(!distroAvailable())("case writer -> OFFBEAT (needs FEED_SOLVER=1
       mkdirSync(dirname(p), { recursive: true });
       writeFileSync(p, text);
     }
-    const tag = "e2e" + Date.now();
+    const tag = "e2e" + Date.now() + process.pid.toString(36);
     const env = { ...process.env, MSYS_NO_PATHCONV: "1" };
     let out = "";
     try {

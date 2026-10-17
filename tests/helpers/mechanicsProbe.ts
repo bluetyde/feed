@@ -3,6 +3,7 @@
 // case writer's mechanics, which does not exist yet. The runs happen in the feed-solver distro through solver/probe-mechanics.sh, which copies every field of the
 // last time out, so the displacement, stress and contact fields can be read.
 import { execFile } from "child_process";
+import { randomBytes } from "crypto";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { dirname, join } from "path";
@@ -95,7 +96,8 @@ export function runProbe(files: Record<string, string>, timeoutSeconds = 300): P
     mkdirSync(dirname(join(inputs, rel)), { recursive: true });
     writeFileSync(join(inputs, rel), text);
   }
-  const tag = `t${Date.now().toString(36)}${(counter++).toString(36)}`;
+  // unique across vitest workers: the counter and the clock are per worker, so two files starting in the same millisecond used to collide
+  const tag = `t${Date.now().toString(36)}${process.pid.toString(36)}${(counter++).toString(36)}${randomBytes(4).toString("hex")}`;
   return new Promise((resolve, reject) => {
     execFile("wsl.exe", ["-d", DISTRO, "-u", DISTRO_USER, "--exec", "bash", toWslPath(join(root, "solver", "probe-mechanics.sh")), toWslPath(inputs), toWslPath(out), tag, String(timeoutSeconds), "clean"], { timeout: (timeoutSeconds + 120) * 1000, encoding: "utf8" }, (err) => {
       if (err && !existsSync(join(out, "exit.json"))) return reject(err);

@@ -25,6 +25,18 @@ const pin = (mutate?: (d: any) => void) => {
   mutate?.(d);
   return d;
 };
+// Processes of ONE run: working directory in the run's folder (offbeat, blockMesh; also after the folder is removed) or its run-feed.sh.
+// Other runs' solvers (other tests, other jobs on the machine) are not counted; this shell and its parent are skipped.
+const RUN_PROCS = [
+  'for p in /proc/[0-9]*; do p=${p#/proc/}; [ "$p" = "$$" ] || [ "$p" = "$PPID" ] && continue',
+  'c=$(readlink /proc/$p/cwd 2>/dev/null); a=$(cat /proc/$p/cmdline 2>/dev/null | tr -c "[:print:]" " ")',
+  'case "$c" in */runs/feed-$1|*/runs/feed-$1/*|*/runs/feed-$1" (deleted)") echo "$p cwd $c: $a";; esac',
+  'case "$a" in *run-feed.sh*" $1 "*) echo "$p script: $a";; esac; done; true',
+].join("\n");
+const runProcesses = (id: string): string[] =>
+  execFileSync("wsl.exe", ["-d", "feed-solver", "-u", "feed", "--exec", "bash", "-c", RUN_PROCS, "_", id], { encoding: "utf8" })
+    .split("\n")
+    .filter((l) => l.trim() !== "");
 const offbeatRunning = (id: string) => {
   const out = execFileSync("wsl.exe", ["-d", "feed-solver", "-u", "feed", "--", "bash", "-c", `pgrep -f 'feed-${id}' | wc -l; ls /home/feed/runs/feed-${id} >/dev/null 2>&1 && echo present`], { encoding: "utf8" });
   return Number(out.split("\n")[0]);
@@ -114,9 +126,34 @@ describe.skipIf(!enabled)("run manager + real solver (needs FEED_SOLVER=1 and th
       expect(rec.failure!.code).toBe("E_CANCELLED");
       expect(mgr.results(s.id)).toBeUndefined();
     }
-    await new Promise((r) => setTimeout(r, 1500));
-    // no offbeat process for this run id
-    const procs = execFileSync("wsl.exe", ["-d", "feed-solver", "-u", "feed", "--", "bash", "-c", `ps -eo args | grep -c "[o]ffbeat" || true`], { encoding: "utf8" });
-    expect(Number(procs.trim())).toBe(0);
+    // No process of THIS run is left (other runs' offbeats are not counted). The cancel script already waits for the group and
+    // sweeps the folder, so anything left is a real leftover; poll up to 10 s and fail with the list.
+    let left = runProcesses(s.id);
+    for (let i = 0; i < 20 && left.length > 0; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      left = runProcesses(s.id);
+    }
+    expect(left).toEqual([]);
   }, 300_000);
+
+  it("the per-run process counter counts a live process of that run and none of another run's (negative control)", () => {
+    const id = "abcdef012345";
+    const other = "fedcba543210";
+    // one distro call: the sleepers die when the call that started them returns. The counter runs as a child shell, so it skips this shell ($PPID).
+    const script =
+      'mkdir -p "$HOME/runs/feed-$1" "$HOME/runs/feed-$2"; for i in $1 $2; do (cd "$HOME/runs/feed-$i" && exec setsid sleep 120) </dev/null >/dev/null 2>&1 & done; sleep 0.5; ' +
+      'for x in $1 $2 000000000000; do echo "[$x]"; bash -c "$3" _ $x; done; ' +
+      'for i in $1 $2; do for p in /proc/[0-9]*; do p=${p#/proc/}; case "$(readlink /proc/$p/cwd 2>/dev/null)" in */runs/feed-$i) kill -KILL $p;; esac; done; rm -rf "$HOME/runs/feed-$i"; done; true';
+    const out = execFileSync("wsl.exe", ["-d", "feed-solver", "-u", "feed", "--exec", "bash", "-c", script, "_", id, other, RUN_PROCS], { encoding: "utf8" });
+    const lines = (id: string) => {
+      const at = out.indexOf(`[${id}]`);
+      const next = out.indexOf("\n[", at + 1);
+      return out.slice(at + id.length + 3, next < 0 ? undefined : next).split("\n").filter((l) => l.trim() !== "");
+    };
+    expect(lines(id), out).toHaveLength(1); // exactly the sleeper in this run's folder
+    expect(lines(id)[0]).toContain("cwd");
+    expect(lines(other), out).toHaveLength(1); // the other run's sleeper, counted only for the other run
+    expect(lines("000000000000")).toEqual([]);
+    expect(runProcesses(id)).toEqual([]); // and it is gone afterwards
+  }, 60_000);
 });
