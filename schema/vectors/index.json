@@ -2034,5 +2034,280 @@
     "valid": false,
     "code": "E_SCHEMA_INVALID",
     "field": "/mesh/claddingCells"
+  },
+  {
+    "file": "good/compact-steady.json",
+    "valid": true
+  },
+  {
+    "file": "good/compact-central-hole.json",
+    "valid": true
+  },
+  {
+    "file": "good/compact-two-scale-radius.json",
+    "valid": true
+  },
+  {
+    "file": "good/compact-mixture-range-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_MIXTURE_RANGE"
+    ]
+  },
+  {
+    "file": "good/compact-other-law-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_MIXTURE_LAW"
+    ]
+  },
+  {
+    "file": "good/pebble-steady.json",
+    "valid": true
+  },
+  {
+    "file": "good/pebble-surface-temperature.json",
+    "valid": true
+  },
+  {
+    "file": "good/pebble-coarse-mesh-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_MESH_INTERFACE"
+    ]
+  },
+  {
+    "file": "bad/compact-fuel-material-given.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/materials/fuel"
+  },
+  {
+    "file": "bad/compact-power-given.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/power"
+  },
+  {
+    "file": "bad/compact-mechanics.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics"
+  },
+  {
+    "file": "bad/compact-burnup.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/burnup"
+  },
+  {
+    "file": "bad/compact-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/transient"
+  },
+  {
+    "file": "bad/compact-plate.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/geometry/kind"
+  },
+  {
+    "file": "bad/compact-no-particle.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/compact/particle"
+  },
+  {
+    "file": "bad/compact-no-matrix.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/compact/matrix"
+  },
+  {
+    "file": "bad/compact-unknown-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/compact/extra"
+  },
+  {
+    "file": "bad/compact-unknown-law.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/compact/mixtureLaw"
+  },
+  {
+    "file": "bad/compact-no-packing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/compact/packingFraction"
+  },
+  {
+    "file": "bad/compact-packing-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/compact/packingFraction"
+  },
+  {
+    "file": "bad/compact-packing-too-dense.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/compact/packingFraction"
+  },
+  {
+    "file": "bad/compact-no-power-density.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/compact/powerDensity"
+  },
+  {
+    "file": "bad/compact-power-wrong-unit.json",
+    "valid": false,
+    "code": "E_UNITS",
+    "field": "/compact/powerDensity"
+  },
+  {
+    "file": "bad/compact-no-range.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/compact/validRange"
+  },
+  {
+    "file": "bad/compact-matrix-range-too-short.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/compact/matrix"
+  },
+  {
+    "file": "bad/compact-fit-too-tight.json",
+    "valid": false,
+    "code": "E_FIT",
+    "field": "/compact/fit"
+  },
+  {
+    "file": "bad/compact-no-fit.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/compact/fit"
+  },
+  {
+    "file": "bad/compact-layers-out-of-order.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/compact/particle/layers/0/name"
+  },
+  {
+    "file": "bad/compact-particle-material-missing.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/compact/particle/materials/sic"
+  },
+  {
+    "file": "bad/compact-particle-gap-missing.json",
+    "valid": false,
+    "code": "E_PROP_MISSING",
+    "field": "/compact/particle/gap"
+  },
+  {
+    "file": "bad/compact-two-scale-outside.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/compact/twoScale/at/0"
+  },
+  {
+    "file": "bad/compact-no-cladding.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/materials/cladding"
+  },
+  {
+    "file": "bad/pebble-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/transient"
+  },
+  {
+    "file": "bad/pebble-power-given.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/power"
+  },
+  {
+    "file": "bad/pebble-limits.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/limits"
+  },
+  {
+    "file": "bad/pebble-gap-model.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/gap/model"
+  },
+  {
+    "file": "bad/pebble-outer-radius-inside.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/outerRadius"
+  },
+  {
+    "file": "bad/pebble-missing-outer-radius.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/geometry/outerRadius"
+  },
+  {
+    "file": "bad/pebble-with-a-pin-radius.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/geometry/claddingOuterRadius"
+  },
+  {
+    "file": "bad/pebble-no-shell-material.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/materials/shell"
+  },
+  {
+    "file": "bad/pebble-fuel-material.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/materials/fuel"
+  },
+  {
+    "file": "bad/pebble-too-few-shell-cells.json",
+    "valid": false,
+    "code": "E_MESH",
+    "field": "/mesh/shellCells"
+  },
+  {
+    "file": "bad/pebble-mesh-pin-key.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mesh/fuelCells"
+  },
+  {
+    "file": "bad/pebble-no-compact.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/compact"
+  },
+  {
+    "file": "bad/pebble-wrong-geometry-assumption.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/assumptions/geometry"
+  },
+  {
+    "file": "bad/pebble-two-scale-outside.json",
+    "valid": false,
+    "code": "E_GEOMETRY",
+    "field": "/compact/twoScale/at/0"
+  },
+  {
+    "file": "bad/pebble-fit-too-tight.json",
+    "valid": false,
+    "code": "E_FIT",
+    "field": "/compact/fit"
   }
 ]

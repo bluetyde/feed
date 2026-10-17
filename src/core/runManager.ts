@@ -10,6 +10,8 @@ import { writeOffbeatCase } from "./caseWriter";
 import { buildTrisoResults, TrisoResultsRecord } from "./trisoResults";
 import { buildTrisoTransientResults, computeTrisoIndependent, TrisoTransientResultsRecord } from "./trisoTransientResults";
 import { writeTrisoCase } from "./trisoWriter";
+import { buildPebbleResults, PebbleResultsRecord } from "./pebbleResults";
+import { writePebbleCase } from "./pebbleWriter";
 import { judgeConvergence, judgeMechanicsConvergence, readCriterion, readMechanicsCriterion } from "./convergence";
 import { lastRelativeRate } from "./steadyState";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
@@ -188,12 +190,12 @@ export class RunManager {
   /** Validate the case, snapshot it with hashes, queue the run. Invalid cases are not queued. */
   start(doc: unknown): { ok: true; id: string } | { ok: false; errors: Issue[]; message?: string } {
     const v = validateCase(doc);
-    if (!v.normalized && !v.triso) return { ok: false, errors: unrunnableErrors(v) };
-    // a coated particle (plan 13) has its own normalised form; it is saved with kind "triso" so that the run is read back as one
-    const normalized: any = v.normalized ?? { kind: "triso", ...v.triso };
+    if (!v.normalized && !v.triso && !v.pebble) return { ok: false, errors: unrunnableErrors(v) };
+    // a coated particle (plan 13) has its own normalised form; it is saved with kind "triso" so that the run is read back as one. A pebble (T4) likewise with kind "pebble".
+    const normalized: any = v.normalized ?? (v.triso ? { kind: "triso", ...v.triso } : { kind: "pebble", ...v.pebble });
     let written;
     try {
-      written = v.normalized ? writeOffbeatCase(v.normalized) : writeTrisoCase(v.triso!);
+      written = v.normalized ? writeOffbeatCase(v.normalized) : v.triso ? writeTrisoCase(v.triso) : writePebbleCase(v.pebble!);
     } catch (e) {
       return { ok: false, errors: [], message: String((e as Error).message) };
     }
@@ -224,7 +226,7 @@ export class RunManager {
     return [...this.records.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((r) => ({ ...r }));
   }
   /** The results record, present only when the run is `completed`. */
-  results(id: string): ResultsRecord | TransientResultsRecord | TrisoResultsRecord | TrisoTransientResultsRecord | undefined {
+  results(id: string): ResultsRecord | TransientResultsRecord | TrisoResultsRecord | TrisoTransientResultsRecord | PebbleResultsRecord | undefined {
     const r = this.records.get(id);
     const f = join(this.dir(id), "results.json");
     if (!r || r.state !== "completed" || !existsSync(f)) return undefined;
@@ -448,6 +450,17 @@ export class RunManager {
         const tr = normalized.axial ? buildStackTransientResults(normalized, { C, fields }, ind.set as IndependentSet[]) : buildTransientResults(normalized, { C, fields }, ind.set as IndependentSet);
         atomicWrite(join(dir, "results.json"), JSON.stringify(tr, null, 2) + "\n");
         r.headline = { centreCellT: tr.summary.maxT, claddingOuterWallT: tr.series.claddingOuterWallT[tr.series.claddingOuterWallT.length - 1]!, transient: true };
+        r.state = "completed";
+        if (exit.offbeatExit !== 0) r.notes.push(`The solver exited with code ${exit.offbeatExit}${SIGNALS[exit.offbeatExit] ? " (" + SIGNALS[exit.offbeatExit] + ")" : ""} after writing a complete output. This is a known OFFBEAT shutdown crash; the result was accepted because the output is complete and finite.`);
+        return;
+      }
+      if (normalized.kind === "pebble") {
+        // a pebble: the cells, the cell zones (which cell is in the fuelled zone or the shell) and the outside's patch value of the final T
+        const cellZones = read(join(nativeDir, "final", "cellZones"));
+        if (cellZones === undefined) return fail({ code: "E_OUTPUT_INCOMPLETE", message: "The solver output is not a complete result: the mesh's cell zones (constant/polyMesh/cellZones) were not collected, so the cells cannot be put into the fuelled zone and the shell.", native });
+        const pr = buildPebbleResults(normalized, { T, C, cellZones, time: exit.finalTime, drift: { relativeRate: lastRelativeRate(log) } });
+        atomicWrite(join(dir, "results.json"), JSON.stringify(pr, null, 2) + "\n");
+        r.headline = { centreCellT: pr.summary.centreCellT, claddingOuterWallT: pr.summary.wallT };
         r.state = "completed";
         if (exit.offbeatExit !== 0) r.notes.push(`The solver exited with code ${exit.offbeatExit}${SIGNALS[exit.offbeatExit] ? " (" + SIGNALS[exit.offbeatExit] + ")" : ""} after writing a complete output. This is a known OFFBEAT shutdown crash; the result was accepted because the output is complete and finite.`);
         return;

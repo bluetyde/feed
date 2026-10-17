@@ -1,0 +1,1411 @@
+{
+  "schema": "feed.results/0.1",
+  "kind": "pebble",
+  "caseId": "synthetic-pebble-steady",
+  "time": 50000000,
+  "cells": [
+    {
+      "r": 0.00011715181,
+      "T": 1098.6488,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0002510396,
+      "T": 1098.6439,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.00040078251,
+      "T": 1098.6329,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.00055409641,
+      "T": 1098.6159,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.00070867243,
+      "T": 1098.5932,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.00086383369,
+      "T": 1098.5647,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.001019313,
+      "T": 1098.5304,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0011749841,
+      "T": 1098.4904,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0013307798,
+      "T": 1098.4445,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0014866608,
+      "T": 1098.393,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0016426029,
+      "T": 1098.3357,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0017985902,
+      "T": 1098.2726,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0019546118,
+      "T": 1098.2038,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0021106602,
+      "T": 1098.1293,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0022667297,
+      "T": 1098.049,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0024228165,
+      "T": 1097.9629,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0025789172,
+      "T": 1097.8712,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0027350295,
+      "T": 1097.7736,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0028911516,
+      "T": 1097.6704,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0030472819,
+      "T": 1097.5614,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0032034192,
+      "T": 1097.4467,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0033595626,
+      "T": 1097.3263,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0035157112,
+      "T": 1097.2001,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0036718644,
+      "T": 1097.0682,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0038280216,
+      "T": 1096.9305,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0039841824,
+      "T": 1096.7872,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0041403463,
+      "T": 1096.6381,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.004296513,
+      "T": 1096.4833,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0044526822,
+      "T": 1096.3228,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0046088537,
+      "T": 1096.1565,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0047650272,
+      "T": 1095.9846,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0049212025,
+      "T": 1095.8069,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0050773795,
+      "T": 1095.6235,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.005233558,
+      "T": 1095.4344,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0053897379,
+      "T": 1095.2396,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0055459191,
+      "T": 1095.039,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0057021014,
+      "T": 1094.8328,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0058582848,
+      "T": 1094.6209,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0060144692,
+      "T": 1094.4032,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0061706545,
+      "T": 1094.1799,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0063268406,
+      "T": 1093.9509,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0064830275,
+      "T": 1093.7161,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0066392152,
+      "T": 1093.4757,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0067954035,
+      "T": 1093.2296,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0069515925,
+      "T": 1092.9778,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0071077821,
+      "T": 1092.7203,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0072639722,
+      "T": 1092.4572,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0074201628,
+      "T": 1092.1883,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0075763539,
+      "T": 1091.9138,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0077325455,
+      "T": 1091.6336,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0078887375,
+      "T": 1091.3478,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0080449299,
+      "T": 1091.0562,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0082011227,
+      "T": 1090.759,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0083573158,
+      "T": 1090.4562,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0085135093,
+      "T": 1090.1476,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0086697031,
+      "T": 1089.8335,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0088258972,
+      "T": 1089.5136,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0089820916,
+      "T": 1089.1881,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0091382863,
+      "T": 1088.857,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0092944813,
+      "T": 1088.5203,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0094506764,
+      "T": 1088.1778,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0096068719,
+      "T": 1087.8298,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0097630675,
+      "T": 1087.4761,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.0099192634,
+      "T": 1087.1168,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.010075459,
+      "T": 1086.7519,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.010231656,
+      "T": 1086.3813,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.010387852,
+      "T": 1086.0051,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.010544049,
+      "T": 1085.6233,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.010700246,
+      "T": 1085.2359,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.010856442,
+      "T": 1084.8429,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.01101264,
+      "T": 1084.4443,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.011168837,
+      "T": 1084.0401,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.011325034,
+      "T": 1083.6303,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.011481232,
+      "T": 1083.2149,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.011637429,
+      "T": 1082.7939,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.011793627,
+      "T": 1082.3674,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.011949825,
+      "T": 1081.9352,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.012106023,
+      "T": 1081.4975,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.012262221,
+      "T": 1081.0542,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.01241842,
+      "T": 1080.6053,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.012574618,
+      "T": 1080.1509,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.012730816,
+      "T": 1079.6909,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.012887015,
+      "T": 1079.2254,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.013043213,
+      "T": 1078.7543,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.013199412,
+      "T": 1078.2777,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.013355611,
+      "T": 1077.7955,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.01351181,
+      "T": 1077.3078,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.013668009,
+      "T": 1076.8146,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.013824208,
+      "T": 1076.3159,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.013980407,
+      "T": 1075.8116,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.014136606,
+      "T": 1075.3018,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.014292806,
+      "T": 1074.7865,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.014449005,
+      "T": 1074.2657,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.014605204,
+      "T": 1073.7394,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.014761404,
+      "T": 1073.2076,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.014917603,
+      "T": 1072.6704,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.015073803,
+      "T": 1072.1276,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.015230003,
+      "T": 1071.5793,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.015386202,
+      "T": 1071.0256,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.015542402,
+      "T": 1070.4664,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.015698602,
+      "T": 1069.9018,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.015854802,
+      "T": 1069.3317,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.016011002,
+      "T": 1068.7561,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.016167202,
+      "T": 1068.1751,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.016323402,
+      "T": 1067.5886,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.016479602,
+      "T": 1066.9967,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.016635802,
+      "T": 1066.3994,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.016792002,
+      "T": 1065.7967,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.016948202,
+      "T": 1065.1885,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.017104402,
+      "T": 1064.5749,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.017260603,
+      "T": 1063.956,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.017416803,
+      "T": 1063.3316,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.017573003,
+      "T": 1062.7018,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.017729204,
+      "T": 1062.0666,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.017885404,
+      "T": 1061.4261,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.018041604,
+      "T": 1060.7801,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.018197805,
+      "T": 1060.1288,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.018354005,
+      "T": 1059.4721,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.018510206,
+      "T": 1058.8101,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.018666407,
+      "T": 1058.1427,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.018822607,
+      "T": 1057.47,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.018978808,
+      "T": 1056.7919,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.019135008,
+      "T": 1056.1085,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.019291209,
+      "T": 1055.4198,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.01944741,
+      "T": 1054.7257,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.019603611,
+      "T": 1054.0263,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.019759811,
+      "T": 1053.3217,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.019916012,
+      "T": 1052.6117,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.020072213,
+      "T": 1051.8964,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.020228414,
+      "T": 1051.1758,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.020384615,
+      "T": 1050.45,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.020540816,
+      "T": 1049.7188,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.020697017,
+      "T": 1048.9824,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.020853217,
+      "T": 1048.2408,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.021009418,
+      "T": 1047.4938,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.021165619,
+      "T": 1046.7417,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.02132182,
+      "T": 1045.9843,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.021478021,
+      "T": 1045.2216,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.021634223,
+      "T": 1044.4537,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.021790424,
+      "T": 1043.6806,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.021946625,
+      "T": 1042.9023,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.022102826,
+      "T": 1042.1188,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.022259027,
+      "T": 1041.3301,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.022415228,
+      "T": 1040.5361,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.022571429,
+      "T": 1039.737,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.02272763,
+      "T": 1038.9327,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.022883832,
+      "T": 1038.1233,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.023040033,
+      "T": 1037.3086,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.023196234,
+      "T": 1036.4889,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.023352435,
+      "T": 1035.6639,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.023508637,
+      "T": 1034.8338,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.023664838,
+      "T": 1033.9986,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.023821039,
+      "T": 1033.1583,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.02397724,
+      "T": 1032.3128,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.024133442,
+      "T": 1031.4622,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.024289643,
+      "T": 1030.6065,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.024445844,
+      "T": 1029.7457,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.024602046,
+      "T": 1028.8799,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.024758247,
+      "T": 1028.0089,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.024914449,
+      "T": 1027.1328,
+      "region": "fuelled"
+    },
+    {
+      "r": 0.025054971,
+      "T": 1026.6432,
+      "region": "shell"
+    },
+    {
+      "r": 0.025179933,
+      "T": 1026.3134,
+      "region": "shell"
+    },
+    {
+      "r": 0.025304894,
+      "T": 1025.9868,
+      "region": "shell"
+    },
+    {
+      "r": 0.025429856,
+      "T": 1025.6634,
+      "region": "shell"
+    },
+    {
+      "r": 0.025554817,
+      "T": 1025.3433,
+      "region": "shell"
+    },
+    {
+      "r": 0.025679778,
+      "T": 1025.0262,
+      "region": "shell"
+    },
+    {
+      "r": 0.02580474,
+      "T": 1024.7122,
+      "region": "shell"
+    },
+    {
+      "r": 0.025929701,
+      "T": 1024.4012,
+      "region": "shell"
+    },
+    {
+      "r": 0.026054663,
+      "T": 1024.0932,
+      "region": "shell"
+    },
+    {
+      "r": 0.026179624,
+      "T": 1023.7881,
+      "region": "shell"
+    },
+    {
+      "r": 0.026304586,
+      "T": 1023.486,
+      "region": "shell"
+    },
+    {
+      "r": 0.026429547,
+      "T": 1023.1867,
+      "region": "shell"
+    },
+    {
+      "r": 0.026554509,
+      "T": 1022.8902,
+      "region": "shell"
+    },
+    {
+      "r": 0.02667947,
+      "T": 1022.5965,
+      "region": "shell"
+    },
+    {
+      "r": 0.026804432,
+      "T": 1022.3055,
+      "region": "shell"
+    },
+    {
+      "r": 0.026929393,
+      "T": 1022.0173,
+      "region": "shell"
+    },
+    {
+      "r": 0.027054355,
+      "T": 1021.7317,
+      "region": "shell"
+    },
+    {
+      "r": 0.027179316,
+      "T": 1021.4487,
+      "region": "shell"
+    },
+    {
+      "r": 0.027304278,
+      "T": 1021.1683,
+      "region": "shell"
+    },
+    {
+      "r": 0.027429239,
+      "T": 1020.8905,
+      "region": "shell"
+    },
+    {
+      "r": 0.027554201,
+      "T": 1020.6151,
+      "region": "shell"
+    },
+    {
+      "r": 0.027679162,
+      "T": 1020.3423,
+      "region": "shell"
+    },
+    {
+      "r": 0.027804124,
+      "T": 1020.0719,
+      "region": "shell"
+    },
+    {
+      "r": 0.027929085,
+      "T": 1019.804,
+      "region": "shell"
+    },
+    {
+      "r": 0.028054047,
+      "T": 1019.5384,
+      "region": "shell"
+    },
+    {
+      "r": 0.028179008,
+      "T": 1019.2752,
+      "region": "shell"
+    },
+    {
+      "r": 0.02830397,
+      "T": 1019.0143,
+      "region": "shell"
+    },
+    {
+      "r": 0.028428931,
+      "T": 1018.7557,
+      "region": "shell"
+    },
+    {
+      "r": 0.028553893,
+      "T": 1018.4994,
+      "region": "shell"
+    },
+    {
+      "r": 0.028678854,
+      "T": 1018.2453,
+      "region": "shell"
+    },
+    {
+      "r": 0.028803816,
+      "T": 1017.9934,
+      "region": "shell"
+    },
+    {
+      "r": 0.028928777,
+      "T": 1017.7437,
+      "region": "shell"
+    },
+    {
+      "r": 0.029053739,
+      "T": 1017.4961,
+      "region": "shell"
+    },
+    {
+      "r": 0.0291787,
+      "T": 1017.2507,
+      "region": "shell"
+    },
+    {
+      "r": 0.029303662,
+      "T": 1017.0073,
+      "region": "shell"
+    },
+    {
+      "r": 0.029428624,
+      "T": 1016.766,
+      "region": "shell"
+    },
+    {
+      "r": 0.029553585,
+      "T": 1016.5268,
+      "region": "shell"
+    },
+    {
+      "r": 0.029678547,
+      "T": 1016.2895,
+      "region": "shell"
+    },
+    {
+      "r": 0.029803508,
+      "T": 1016.0543,
+      "region": "shell"
+    },
+    {
+      "r": 0.02992847,
+      "T": 1015.821,
+      "region": "shell"
+    }
+  ],
+  "regions": [
+    {
+      "name": "fuelled",
+      "innerRadius": 0,
+      "outerRadius": 0.024992386497047187,
+      "innerFaceT": 1098.6504149291713,
+      "outerFaceT": 1026.7773155048988,
+      "hottestCellT": 1098.6488,
+      "coldestCellT": 1027.1328,
+      "drop": 71.8730994242726
+    },
+    {
+      "name": "shell",
+      "innerRadius": 0.024992386497047187,
+      "outerRadius": 0.029990863796456622,
+      "innerFaceT": 1026.7773155048988,
+      "outerFaceT": 1015.7055,
+      "hottestCellT": 1026.6432,
+      "coldestCellT": 1015.821,
+      "drop": 11.071815504898723
+    }
+  ],
+  "summary": {
+    "centreT": 1098.6504149291713,
+    "centreCellT": 1098.6488,
+    "interfaceT": 1026.7773155048988,
+    "wallT": 1015.7055,
+    "maxT": 1098.6488,
+    "minT": 1015.821
+  },
+  "checks": [
+    {
+      "id": "closedFormFuelled",
+      "label": "Kernel vs closed form (max deviation)",
+      "value": 0.12622361740886845,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.429 K = 5 x 72.0 K / 160^2 + 0.415 K (0.5 % of the 83.1 K rise)"
+    },
+    {
+      "id": "closedFormShell",
+      "label": "Shell vs closed form (max deviation)",
+      "value": 0.00027019781418857747,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "each cell against the closed form of the sphere the wedge solves, at the cell's own radius; bound 0.450 K = 5 x 11.1 K / 40^2 + 0.415 K (0.5 % of the 83.1 K rise)"
+    },
+    {
+      "id": "crossCheckFv",
+      "label": "Cells vs the independent finite-volume solution (max deviation)",
+      "value": 0.12219819739948434,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "the same mesh solved by FEED's own finite-volume code (src/core/trisoSolve.ts); bound 0.249 K (0.3 % of the 83.1 K rise, at least 0.02 K)"
+    },
+    {
+      "id": "energyBalance",
+      "label": "Energy balance (heat through the shell vs the power made)",
+      "value": 0.0000846542605738102,
+      "unit": "relative",
+      "verdict": "pass",
+      "note": "heat through the two outermost cells = 523.165 W against 523.121 W made in the wedge's fuelled zone (the input 523.599 W times 0.999087: the wedge is the sphere with its radii times 0.999695); threshold 0.5 %"
+    },
+    {
+      "id": "wallTemperature",
+      "label": "Outer wall temperature vs closed form",
+      "value": 0.0000069581149091391126,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "solver 1015.7055 K, closed form 1015.705 K; threshold 0.05 K"
+    },
+    {
+      "id": "propertyRange",
+      "label": "Conductivity law within its stated range",
+      "value": null,
+      "unit": "",
+      "verdict": "pass",
+      "note": "all cell temperatures and the closed-form face temperatures inside the stated ranges (the fuelled zone's is the range its mixture was tabulated over)"
+    },
+    {
+      "id": "conductivityFitFuelled",
+      "label": "The fuelled zone's tabulated conductivity vs the polynomial that was run (max deviation at the table's points)",
+      "value": 0.0000018970512283559532,
+      "unit": "relative",
+      "verdict": "pass",
+      "note": "a degree 3 polynomial fitted to 41 points of the mixture; the largest deviation is 0.000190 % at 1300 K; tolerance 0.500 %"
+    },
+    {
+      "id": "steadyState",
+      "label": "Steady state reached (bound on what is still to change)",
+      "value": 0,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "at most 0.00 K is still to change after the last step (OFFBEAT's last relative rate 0, hottest cell 1098.6 K); threshold 0.01 K"
+    },
+    {
+      "id": "twoScaleKernel0",
+      "label": "Hottest particle's kernel temperature at the hottest: from the solver's compact field vs the independent field",
+      "value": 0.1278412501640105,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "the matrix temperature is 1098.649 K from the solver and 1098.777 K from the closed form (0.128 K apart); the kernel's centre then differs by 0.128 K; bound = the matrix temperatures' own difference + 0.3 K"
+    },
+    {
+      "id": "twoScaleKernel1",
+      "label": "Hottest particle's kernel temperature at the mean: from the solver's compact field vs the independent field",
+      "value": 0.1180109756269303,
+      "unit": "K",
+      "verdict": "pass",
+      "note": "the matrix temperature is 1055.221 K from the solver and 1055.339 K from the closed form (0.118 K apart); the kernel's centre then differs by 0.118 K; bound = the matrix temperatures' own difference + 0.3 K"
+    },
+    {
+      "id": "mixtureDomain",
+      "label": "Mixture law inside the domain it was measured over",
+      "value": null,
+      "unit": "",
+      "verdict": "pass",
+      "note": "packing fraction 0.35000000000000003 and particle-to-matrix conductivity ratio 0.19 to 0.26 are inside the domain; the law's error against the resolved model there was at most 2.0 %"
+    }
+  ],
+  "domain": {
+    "verdict": "in-domain",
+    "findings": []
+  },
+  "compact": {
+    "law": "maxwell-eucken",
+    "packingFraction": 0.35000000000000003,
+    "powerDensity": 8000000,
+    "particlePower": 0.009319316191384869,
+    "particlesPerM3": 858432081.89411,
+    "effectiveConductivityAtMean": 11.623249334502011,
+    "contrast": [
+      0.18518959360319384,
+      0.26235192427119125
+    ],
+    "errorBound": 0.02,
+    "inDomain": true,
+    "twoScale": [
+      {
+        "at": "hottest",
+        "radius": 0.00011715181,
+        "matrixT": 1098.6488,
+        "matrixTIndependent": 1098.776638667532,
+        "particle": {
+          "matrixT": 1098.6488,
+          "matrixConductivity": 16.8162144,
+          "cellRadius": 0.0006527323695063765,
+          "shellResistance": 3.0375510044585776,
+          "shellDeltaT": 0.028307898258008196,
+          "filmCoefficient": 123808.62304994406,
+          "particlePower": 0.009319316191384869,
+          "closed": {
+            "filmDeltaT": 0.028307898258008196,
+            "wallT": 1098.6771078982579,
+            "gapDeltaT": 0.04035959831551667,
+            "kernelSurfaceT": 1100.5113591186655,
+            "centreT": 1101.0057641980306,
+            "regions": [
+              {
+                "name": "kernel",
+                "innerRadius": 0,
+                "outerRadius": 0.00025,
+                "innerT": 1101.0057641980306,
+                "outerT": 1100.5113591186655
+              },
+              {
+                "name": "buffer",
+                "innerRadius": 0.00025,
+                "outerRadius": 0.00035,
+                "innerT": 1100.5113591186655,
+                "outerT": 1098.8162559894138
+              },
+              {
+                "name": "ipyc",
+                "innerRadius": 0.00035,
+                "outerRadius": 0.00039,
+                "innerT": 1098.7758963910983,
+                "outerT": 1098.7215661625967
+              },
+              {
+                "name": "sic",
+                "innerRadius": 0.00039,
+                "outerRadius": 0.000425,
+                "innerT": 1098.7215661625967,
+                "outerT": 1098.7103000551206
+              },
+              {
+                "name": "opyc",
+                "innerRadius": 0.000425,
+                "outerRadius": 0.00045999999999999996,
+                "innerT": 1098.7103000551206,
+                "outerT": 1098.6771078982579
+              }
+            ]
+          },
+          "kernelCentreT": 1101.0057641980306,
+          "kernelSurfaceT": 1100.5113591186655,
+          "particleOuterT": 1098.6771078982579
+        },
+        "particleIndependent": {
+          "matrixT": 1098.776638667532,
+          "matrixConductivity": 16.814680335989614,
+          "cellRadius": 0.0006527323695063765,
+          "shellResistance": 3.0378281312063087,
+          "shellDeltaT": 0.028310480889795393,
+          "filmCoefficient": 123797.32857258555,
+          "particlePower": 0.009319316191384869,
+          "closed": {
+            "filmDeltaT": 0.028310480889795393,
+            "wallT": 1098.8049491484219,
+            "gapDeltaT": 0.04035959831551667,
+            "kernelSurfaceT": 1100.6392003688295,
+            "centreT": 1101.1336054481947,
+            "regions": [
+              {
+                "name": "kernel",
+                "innerRadius": 0,
+                "outerRadius": 0.00025,
+                "innerT": 1101.1336054481947,
+                "outerT": 1100.6392003688295
+              },
+              {
+                "name": "buffer",
+                "innerRadius": 0.00025,
+                "outerRadius": 0.00035,
+                "innerT": 1100.6392003688295,
+                "outerT": 1098.9440972395778
+              },
+              {
+                "name": "ipyc",
+                "innerRadius": 0.00035,
+                "outerRadius": 0.00039,
+                "innerT": 1098.9037376412623,
+                "outerT": 1098.8494074127607
+              },
+              {
+                "name": "sic",
+                "innerRadius": 0.00039,
+                "outerRadius": 0.000425,
+                "innerT": 1098.8494074127607,
+                "outerT": 1098.8381413052846
+              },
+              {
+                "name": "opyc",
+                "innerRadius": 0.000425,
+                "outerRadius": 0.00045999999999999996,
+                "innerT": 1098.8381413052846,
+                "outerT": 1098.8049491484219
+              }
+            ]
+          },
+          "kernelCentreT": 1101.1336054481947,
+          "kernelSurfaceT": 1100.6392003688295,
+          "particleOuterT": 1098.8049491484219
+        }
+      },
+      {
+        "at": "mean",
+        "matrixT": 1055.2213994882568,
+        "matrixTIndependent": 1055.3394082210266,
+        "particle": {
+          "matrixT": 1055.2213994882568,
+          "matrixConductivity": 17.33734320614092,
+          "cellRadius": 0.0006527323695063765,
+          "shellResistance": 2.9462477805606415,
+          "shellDeltaT": 0.027457014645210522,
+          "filmCoefficient": 127645.4104733946,
+          "particlePower": 0.009319316191384869,
+          "closed": {
+            "filmDeltaT": 0.027457014645210522,
+            "wallT": 1055.248856502902,
+            "gapDeltaT": 0.04035959831551667,
+            "kernelSurfaceT": 1057.0831077233097,
+            "centreT": 1057.5775128026748,
+            "regions": [
+              {
+                "name": "kernel",
+                "innerRadius": 0,
+                "outerRadius": 0.00025,
+                "innerT": 1057.5775128026748,
+                "outerT": 1057.0831077233097
+              },
+              {
+                "name": "buffer",
+                "innerRadius": 0.00025,
+                "outerRadius": 0.00035,
+                "innerT": 1057.0831077233097,
+                "outerT": 1055.388004594058
+              },
+              {
+                "name": "ipyc",
+                "innerRadius": 0.00035,
+                "outerRadius": 0.00039,
+                "innerT": 1055.3476449957425,
+                "outerT": 1055.2933147672409
+              },
+              {
+                "name": "sic",
+                "innerRadius": 0.00039,
+                "outerRadius": 0.000425,
+                "innerT": 1055.2933147672409,
+                "outerT": 1055.2820486597648
+              },
+              {
+                "name": "opyc",
+                "innerRadius": 0.000425,
+                "outerRadius": 0.00045999999999999996,
+                "innerT": 1055.2820486597648,
+                "outerT": 1055.248856502902
+              }
+            ]
+          },
+          "kernelCentreT": 1057.5775128026748,
+          "kernelSurfaceT": 1057.0831077233097,
+          "particleOuterT": 1055.248856502902
+        },
+        "particleIndependent": {
+          "matrixT": 1055.3394082210266,
+          "matrixConductivity": 17.33592710134768,
+          "cellRadius": 0.0006527323695063765,
+          "shellResistance": 2.9464884481395797,
+          "shellDeltaT": 0.027459257502475663,
+          "filmCoefficient": 127634.98446547301,
+          "particlePower": 0.009319316191384869,
+          "closed": {
+            "filmDeltaT": 0.027459257502475663,
+            "wallT": 1055.366867478529,
+            "gapDeltaT": 0.04035959831551667,
+            "kernelSurfaceT": 1057.2011186989366,
+            "centreT": 1057.6955237783018,
+            "regions": [
+              {
+                "name": "kernel",
+                "innerRadius": 0,
+                "outerRadius": 0.00025,
+                "innerT": 1057.6955237783018,
+                "outerT": 1057.2011186989366
+              },
+              {
+                "name": "buffer",
+                "innerRadius": 0.00025,
+                "outerRadius": 0.00035,
+                "innerT": 1057.2011186989366,
+                "outerT": 1055.506015569685
+              },
+              {
+                "name": "ipyc",
+                "innerRadius": 0.00035,
+                "outerRadius": 0.00039,
+                "innerT": 1055.4656559713694,
+                "outerT": 1055.4113257428678
+              },
+              {
+                "name": "sic",
+                "innerRadius": 0.00039,
+                "outerRadius": 0.000425,
+                "innerT": 1055.4113257428678,
+                "outerT": 1055.4000596353917
+              },
+              {
+                "name": "opyc",
+                "innerRadius": 0.000425,
+                "outerRadius": 0.00045999999999999996,
+                "innerT": 1055.4000596353917,
+                "outerT": 1055.366867478529
+              }
+            ]
+          },
+          "kernelCentreT": 1057.6955237783018,
+          "kernelSurfaceT": 1057.2011186989366,
+          "particleOuterT": 1055.366867478529
+        }
+      }
+    ],
+    "checks": [
+      {
+        "id": "twoScaleKernel0",
+        "label": "Hottest particle's kernel temperature at the hottest: from the solver's compact field vs the independent field",
+        "value": 0.1278412501640105,
+        "unit": "K",
+        "verdict": "pass",
+        "note": "the matrix temperature is 1098.649 K from the solver and 1098.777 K from the closed form (0.128 K apart); the kernel's centre then differs by 0.128 K; bound = the matrix temperatures' own difference + 0.3 K"
+      },
+      {
+        "id": "twoScaleKernel1",
+        "label": "Hottest particle's kernel temperature at the mean: from the solver's compact field vs the independent field",
+        "value": 0.1180109756269303,
+        "unit": "K",
+        "verdict": "pass",
+        "note": "the matrix temperature is 1055.221 K from the solver and 1055.339 K from the closed form (0.118 K apart); the kernel's centre then differs by 0.118 K; bound = the matrix temperatures' own difference + 0.3 K"
+      },
+      {
+        "id": "mixtureDomain",
+        "label": "Mixture law inside the domain it was measured over",
+        "value": null,
+        "unit": "",
+        "verdict": "pass",
+        "note": "packing fraction 0.35000000000000003 and particle-to-matrix conductivity ratio 0.19 to 0.26 are inside the domain; the law's error against the resolved model there was at most 2.0 %"
+      }
+    ],
+    "label": "Two-scale result: the compact is solved as one homogeneous solid; the hottest particle's temperatures are the particle solved with the matrix at the compact's local temperature behind a matrix shell sized from the packing fraction. The compact's own field does not contain the particle's rise."
+  },
+  "thermalOnly": "Thermal-only result. It says nothing about stress, failure or fuel integrity. For a pebble: the temperatures of a homogenised fuelled zone and its shell, and the two-scale temperature of the hottest particle; not the stress in a particle, fission-gas release or a failure fraction."
+}
