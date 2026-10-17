@@ -74,9 +74,24 @@ export interface StackReference {
 
 export type StackReferenceResult = { reference: StackReference } | { fallback: string };
 
+/**
+ * What a STEADY reference is allowed to cost (found by the Codex review of 2026-10-17: the check response and a steady run solved it on the server thread with no bound but the
+ * 20000 unknowns of the solver; 50 layers of 130 cells with temperature-dependent conductivities took 27 s there and 50 layers of 400 cells did not finish in 200 s). The banded solve
+ * costs rows x n^2 (n the cells of one layer) per iteration, so the bound is on that: 2e7 (50 layers of 26 cells are 9e5 and take 30 ms, 10 layers of 100 cells 1e7).
+ * A case over it keeps the allowance, with the reason.
+ */
+export const STACK_STEADY_BAND_WORK_MAX = 2e7;
+/** The banded-solve work of one steady solution of the case: slices x (cells of one layer)^3. */
+export function stackSteadyBandWork(c: NormalizedCase): number {
+  const n = c.mesh.fuelCells + c.mesh.claddingCells;
+  return c.axial ? c.axial.slices * n * n * n : 0;
+}
+
 /** The steady two-dimensional reference of the case, or the reason it could not be made (the caller then keeps the allowance). */
 export function stackReference(c: NormalizedCase, o: { axialConduction?: boolean } = {}): StackReferenceResult {
   if (!c.axial) return { fallback: "the case is not an axial stack" };
+  const work = stackSteadyBandWork(c);
+  if (work > STACK_STEADY_BAND_WORK_MAX) return { fallback: `the two-dimensional reference was not computed: ${c.axial.slices} layers of ${c.mesh.fuelCells + c.mesh.claddingCells} cells are more work (${work.toExponential(2)}) than the ${STACK_STEADY_BAND_WORK_MAX.toExponential(0)} the steady reference solves` };
   let solution: StackSteady;
   try {
     solution = solveStackSteady(stackModelOf(c, o));
@@ -231,6 +246,7 @@ export function solveStackTransientReference(c: NormalizedCase, o: { axialConduc
   let startDistance: number | null = null;
   if (t.initial.kind === "steady") {
     try {
+      if (stackSteadyBandWork(c) > STACK_STEADY_BAND_WORK_MAX) throw new Error("too much work");
       const coupled = coupledSteadyStart(c);
       startDistance = Math.max(...Array.from(start, (x, i) => Math.abs(x - coupled.T[i]!)));
     } catch {

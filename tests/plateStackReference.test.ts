@@ -123,7 +123,8 @@ describe("the fallback to the allowance", () => {
     big.axial.slices = 50;
     big.mesh = { fuelCells: 400, claddingCells: 100 };
     const res = stackReference(big);
-    expect("fallback" in res && res.fallback).toMatch(/unknowns/);
+    // plan 15 / the Codex review of 2026-10-17: the steady reference has a bound on its banded-solve work as well as the solver's 20000 unknowns, and a stack this large is over the first
+    expect("fallback" in res && res.fallback).toMatch(/unknowns|more work/);
     const r = judge(x, undefined, { fallback: "the cap test" });
     expect(r.axial.reference).toEqual({ kind: "allowance", reason: "the cap test" });
     expect(r.axial.allowance.field).toBeGreaterThan(0);

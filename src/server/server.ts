@@ -25,7 +25,7 @@ import { burnupSweep } from "../core/burnupSweep";
 import { burnupText } from "../core/resultsParser";
 import { applyDesign, designOf } from "../core/design";
 import { IndependentRunner } from "../core/independentRunner";
-import { POPULATION_DEADLINE_MS, startPopulation } from "../core/populationRunner";
+import { POPULATION_DEADLINE_MS, resolvePopulationWorker, startPopulation } from "../core/populationRunner";
 import { previewTooBig, transientPreview } from "../core/transientPreview";
 import { FvTransient } from "../core/transientFv";
 import { latestEntries, readUserEntries, saveUserMaterial } from "../core/userLibrary";
@@ -272,12 +272,25 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
  * A population of coated particles (plan 13, T6): the case is validated, and the batch of closed forms runs in a worker thread with a deadline. The reply is the spread of the sample
  * (src/core/trisoPopulation.ts) or the reason it could not be made: the case's own errors, no population section, a population whose draws mostly fail, the deadline.
  */
-export async function populationFor(doc: unknown, deadlineMs = POPULATION_DEADLINE_MS): Promise<{ status: number; body: unknown }> {
+/** Population runs the server accepts at once (each is a worker thread for up to the deadline); a further request is answered 429 at once (Codex review, 2026-10-17). */
+export const POPULATION_MAX_JOBS = 2;
+let populationJobs = 0;
+export async function populationFor(doc: unknown, deadlineMs = POPULATION_DEADLINE_MS, opts: { workerFile?: string | null } = {}): Promise<{ status: number; body: unknown }> {
   const v = validateCase(doc);
   if (!v.ok) return { status: 400, body: { ok: false, errors: unrunnableErrors(v), warnings: v.warnings } };
   if (!v.triso) return { status: 400, body: { ok: false, errors: [{ code: "E_UNSUPPORTED", severity: "error", field: "/geometry/kind", message: "a population is for a coated particle (geometry.kind 'triso')" }], warnings: v.warnings } };
   if (!v.triso.population) return { status: 400, body: { ok: false, errors: [{ code: "E_PROP_MISSING", severity: "error", field: "/population", message: "the case has no population section: give a size, a seed and distributions" }], warnings: v.warnings } };
-  const o = await startPopulation(v.triso, { deadlineMs }).done;
+  // the route needs the worker: without it the batch would run on the server thread, with no deadline that can interrupt it
+  const workerFile = opts.workerFile === undefined ? resolvePopulationWorker() : opts.workerFile;
+  if (!workerFile) return { status: 503, body: { ok: false, reason: "no-worker", error: "the population worker (dist/core/populationWorker.js) is not built: run npm run build", warnings: v.warnings } };
+  if (populationJobs >= POPULATION_MAX_JOBS) return { status: 429, body: { ok: false, reason: "busy", error: `${populationJobs} populations are running already (at most ${POPULATION_MAX_JOBS} at once): try again when one has finished`, warnings: v.warnings } };
+  populationJobs++;
+  let o;
+  try {
+    o = await startPopulation(v.triso, { deadlineMs, workerFile }).done;
+  } finally {
+    populationJobs--;
+  }
   if (o.ok) return { status: 200, body: { ok: true, result: o.result, warnings: v.warnings, mode: o.mode, ms: o.ms } };
   return { status: o.reason === "refused" ? 422 : 500, body: { ok: false, reason: o.reason, error: o.message, warnings: v.warnings } };
 }

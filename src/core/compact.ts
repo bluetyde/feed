@@ -31,6 +31,14 @@ export const MIXTURE_TABLE_POINTS = 41;
 export const MIXTURE_DOMAIN = { packingMax: 0.4, packingMaxHighContrast: 0.2, contrastMin: 0.05, contrastMax: 3, contrastCap: 10 } as const;
 /** The largest error (relative) of the default law over the domain above, against the resolved model (the data are in the test). */
 export const MIXTURE_ERROR_BOUND = 0.02;
+/** The smallest packing fraction a compact may state: below it the power each particle carries (the compact's power density times a particle's volume over the packing fraction) grows without bound (found by the Codex review of 2026-10-17: 5e-324 gave an infinite power per particle). */
+export const PACKING_MIN = 1e-3;
+/**
+ * The largest error against the resolved model measured for each law inside the domain where Maxwell-Eucken's is MIXTURE_ERROR_BOUND (docs/compact-pebble.md): the stated bound belongs to the
+ * default law only; another law is allowed by name, with its own, larger figure, and the domain verdict is not "pass" for it.
+ */
+export const MIXTURE_LAW_ERROR: Record<string, number> = { "maxwell-eucken": MIXTURE_ERROR_BOUND, bruggeman: 0.13, differential: 0.05 };
+export const mixtureErrorBound = (law: string): number => MIXTURE_LAW_ERROR[law] ?? 1;
 
 export interface HomogenisedParticle {
   kernelRadius: number;
@@ -256,8 +264,8 @@ export function parseHomogenised(raw: unknown, deps: HomogenisedDeps, err: ErrFn
   else {
     phi = qty(raw.packingFraction, "fraction", "/compact/packingFraction");
     if (phi === undefined) ok = false;
-    else if (!(phi > 0)) {
-      bad("E_OUT_OF_RANGE", "/compact/packingFraction", "the packing fraction must be positive", { unit: "1" });
+    else if (!(phi >= PACKING_MIN)) {
+      bad("E_OUT_OF_RANGE", "/compact/packingFraction", "the packing fraction must be at least " + PACKING_MIN + ": a compact holding fewer particles than that is not a compact of coated particles, and the power each particle carries grows without bound as the packing fraction falls", { unit: "1" });
       phi = undefined;
     } else if (phi > PACKING_MAX) {
       bad("E_OUT_OF_RANGE", "/compact/packingFraction", "the packing fraction " + phi + " is above " + PACKING_MAX.toFixed(4) + ", the densest packing of equal spheres: no arrangement of particles fills that much of a compact", { unit: "1", range: [0, PACKING_MAX] });
@@ -338,6 +346,7 @@ export function parseHomogenised(raw: unknown, deps: HomogenisedDeps, err: ErrFn
   // the compact holds phi / V particles in each cubic metre, so each particle carries the compact's power density times V / phi
   const particlePower = (pd * vols.particleVolume) / phi;
   const kernelPowerDensity = particlePower / vols.kernelVolume;
+  if (!Number.isFinite(particlePower) || !Number.isFinite(kernelPowerDensity)) bad("E_OUT_OF_RANGE", "/compact/powerDensity", "the power per particle that this power density and packing fraction give is not a finite number");
   if (kernelPowerDensity > KERNEL_POWER_DENSITY_SANITY_MAX) {
     warn("W_POWER_RANGE", "/compact/powerDensity", "the kernel's power density " + kernelPowerDensity.toExponential(2) + " W/m3 is above the sanity range (" + KERNEL_POWER_DENSITY_SANITY_MAX.toExponential(0) + " W/m3); kept as given", { unit: "W/m3", range: [0, KERNEL_POWER_DENSITY_SANITY_MAX] });
   }
@@ -360,6 +369,12 @@ export function parseHomogenised(raw: unknown, deps: HomogenisedDeps, err: ErrFn
   const msg = mixtureDomainMessage(spec);
   if (msg) warn("W_MIXTURE_RANGE", "/compact/packingFraction", msg);
   return spec;
+}
+
+/** Why the stated bound does not hold for a law other than Maxwell-Eucken (the one it was measured for), or undefined for Maxwell-Eucken. Used by the results' domain verdict; the validator's own warning for another law is W_MIXTURE_LAW. */
+export function mixtureLawNote(law: string): string | undefined {
+  if (law === "maxwell-eucken") return undefined;
+  return "the stated " + (MIXTURE_ERROR_BOUND * 100).toFixed(1) + " % bound was measured for the maxwell-eucken law; the " + law + " law's error against the resolved model was up to " + (mixtureErrorBound(law) * 100).toFixed(0) + " % inside the domain where Maxwell-Eucken's is " + (MIXTURE_ERROR_BOUND * 100).toFixed(1) + " %";
 }
 
 /** Why the packing fraction and the particle-to-matrix contrast are outside the domain the law was measured over, or undefined when inside. */
@@ -478,7 +493,9 @@ export function buildCompactRecord(spec: HomogenisedSpec, fuelCells: { r: number
       note: `${e.matrixT.toFixed(3)} K from the solver's cells and ${e.matrixTIndependent.toFixed(3)} K from the closed form; bound ${bound.toFixed(3)} K = 5 x ${rise.toPrecision(3)} K / ${N}^2 + ${floor.toPrecision(3)} K. The kernel's centre is then ${e.particle.kernelCentreT.toFixed(2)} K (${e.particleIndependent.kernelCentreT.toFixed(2)} K from the closed form's field)`,
     };
   });
-  const msg = mixtureDomainMessage(spec);
+  const domainMsg = mixtureDomainMessage(spec);
+  const lawNote = mixtureLawNote(spec.law);
+  const msg = domainMsg && lawNote ? domainMsg + " Also: " + lawNote : domainMsg ?? lawNote;
   checks.push({ id: "mixtureDomain", label: "Mixture law inside the domain it was measured over", value: null, unit: "", verdict: msg ? "na" : "pass", note: msg ?? `packing fraction ${spec.packingFraction} and particle-to-matrix conductivity ratio ${spec.contrast[0].toPrecision(2)} to ${spec.contrast[1].toPrecision(2)} are inside the domain; the law's error against the resolved model there was at most ${(MIXTURE_ERROR_BOUND * 100).toFixed(1)} %` });
   return {
     law: spec.law,
@@ -488,7 +505,7 @@ export function buildCompactRecord(spec: HomogenisedSpec, fuelCells: { r: number
     particlesPerM3: spec.particlesPerM3,
     effectiveConductivityAtMean: effectiveConductivity(spec, meanSolver),
     contrast: spec.contrast,
-    errorBound: MIXTURE_ERROR_BOUND,
+    errorBound: mixtureErrorBound(spec.law),
     inDomain: msg === undefined,
     twoScale: entries,
     checks,
