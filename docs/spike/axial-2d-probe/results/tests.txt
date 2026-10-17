@@ -1,0 +1,37 @@
+== 1. reduction (identical layers, flat shape): coupled solution against N copies of the one-dimensional one
+PASS steady pin, constant k (N=10): 4.889e-11 (limit 1e-10)
+PASS steady plate, constant k (N=10): 4.104e-11 (limit 1e-10)
+PASS steady pin, k(T) (N=10): 7.299e-11 (limit 1e-10)
+FAIL steady plate, k(T) (N=10): 1.271e-10 (limit 1e-10)
+PASS transient pin coastdown, k(T) and c(T), flat shape, 400 steps (Picard in both): 1.705e-11 (limit 1e-10)
+== 2. conservation: heat made = heat out + stored
+PASS steady pin cosine: 1.026e-13 (limit 1e-9)
+PASS steady pin short: 1.307e-13 (limit 1e-9)
+PASS steady plate steep: 1.220e-13 (limit 1e-9)
+PASS steady pin short k(T): 3.420e-14 (limit 1e-9)
+PASS steady plate steep k(T): 8.806e-13 (limit 1e-9)
+PASS transient pin coastdown: 2.009e-13 (limit 1e-9)
+PASS transient pin short pulse: 2.216e-13 (limit 1e-9)
+PASS transient pin coastdown k(T), c(T): 3.296e-14 (limit 1e-9)
+PASS transient plate loss of cooling k(T), c(T): 8.299e-13 (limit 1e-9)
+PASS transient plate pulse k(T), c(T): 9.195e-12 (limit 1e-9)
+== 3. exact solution: q0 cos(pi z / H) in a plate with a fixed wall
+  cells 4 x 4 layers: max error of the (r,z) solution 3.523e+1 K, of N one-dimensional solutions 8.054e+2 K
+  cells 8 x 8 layers: max error of the (r,z) solution 9.324e+0 K (ratio to coarser 3.78), of N one-dimensional solutions 8.421e+2 K
+  cells 16 x 16 layers: max error of the (r,z) solution 2.364e+0 K (ratio to coarser 3.94), of N one-dimensional solutions 8.511e+2 K
+  cells 32 x 32 layers: max error of the (r,z) solution 5.929e-1 K (ratio to coarser 3.99), of N one-dimensional solutions 8.534e+2 K
+  cells 64 x 64 layers: max error of the (r,z) solution 1.484e-1 K (ratio to coarser 4.00), of N one-dimensional solutions 8.540e+2 K
+PASS steady exact-solution order: |ratio - 4| on the two finest halvings: 1.376e-2 (limit 0.3) (second order = 4.00)
+  (the largest rise of the solution is 1279 K; the finest-mesh error is 1.16e-4 of it. The first absolute limit I wrote for this error, 1e-3 K, was a slip in scale; the criterion is the order, as the plan says: 'the error falls at second order')
+PASS one-dimensional misses the exact solution by (K) on the finest mesh, i.e. the 2D solution is at least 100 times better: 1.484e+1 (limit 853.9738213476796)
+-- in time (implicit Euler, 32 x 64 cells, t = 10 s; the time scale 1/s_0 = 15.816 s)
+  5 steps: max error 2.399e+1 K, balance 2.7e-13
+  10 steps: max error 1.244e+1 K (ratio 1.93), balance 1.8e-13
+  20 steps: max error 6.344e+0 K (ratio 1.96), balance 3.7e-13
+  40 steps: max error 3.202e+0 K (ratio 1.98), balance 3.5e-13
+  80 steps: max error 1.606e+0 K (ratio 1.99), balance 1.0e-12
+  160 steps: max error 8.011e-1 K (ratio 2.00), balance 2.8e-13
+PASS time exact-solution order: |ratio - 2| on 5 -> 10 steps: 7.211e-2 (limit 0.3) (first order = 2.00)
+  time error at 160 steps: 6.26e-4 of the rise (first order in the step, as implicit Euler is)
+  N one-dimensional solutions at 160 steps: max error 7.025e+1 K against 8.011e-1 K for the (r,z) solution
+SOME FAILED

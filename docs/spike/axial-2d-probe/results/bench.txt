@@ -1,0 +1,8 @@
+-- the largest case under the budget, constant properties and k(T), c(T) (Picard)
+typical stack        constant: 10 slices x 26 cells = 260 unknowns, 1200 steps: 0.39 s CPU (0.29 s wall)  (1.25 us per cell-step; cells x steps x slices = 0.31e6; final peak 398 K)
+typical stack        k(T),c(T): 10 slices x 26 cells = 260 unknowns, 1200 steps: 1.36 s CPU (1.30 s wall)  (4.36 us per cell-step; cells x steps x slices = 0.31e6; final peak 395 K)
+largest, 50 slices   constant: 50 slices x 26 cells = 1300 unknowns, 2300 steps: 3.00 s CPU (2.90 s wall)  (1.00 us per cell-step; cells x steps x slices = 2.99e6; final peak 401 K)
+largest, 50 slices   k(T),c(T): 50 slices x 26 cells = 1300 unknowns, 2300 steps: 11.02 s CPU (10.96 s wall)  (3.68 us per cell-step; cells x steps x slices = 2.99e6; final peak 397 K)
+-- the independent runs FEED makes around the same-mesh run: doubled mesh (spatial error) and halved step (time error), 50 slices, k(T), c(T), 1/4 of the steps for time
+doubled mesh, 50 slices, 575 steps (x4 for 2300): 50 slices x 52 cells = 2600 unknowns, 575 steps: 23.55 s CPU (23.49 s wall)  (15.75 us per cell-step; cells x steps x slices = 1.50e6; final peak 397 K)
+half step, 50 slices, 1150 steps (x2 for 2300): 50 slices x 26 cells = 1300 unknowns, 1150 steps: 6.36 s CPU (6.26 s wall)  (4.25 us per cell-step; cells x steps x slices = 1.50e6; final peak 397 K)

@@ -1,0 +1,13 @@
+run | max|OF - closed form| (the existing check) | max|OF - (2D FV)| | max|OF - hybrid| | gate ratio of the hybrid | gate ratio of the existing closed-form check with no allowance | where the hybrid's residual is largest
+pin steady cosine | 1.056 | 3.438 | 0.7084 | 0.0722 | 0.6325 | layer 6 cell 0
+pin steady rise | 1.073 | 3.438 | 0.7084 | 0.0723 | 0.6583 | layer 5 cell 0
+pin steady short | 44.737 | 3.381 | 0.6435 | 0.2272 | 32.9075 | layer 7 cell 0
+plate steady cosine | 0.630 | 0.000 | 0.1326 | 0.0500 | 1.4995 | layer 5 cell 11
+plate steady len0.19 | 2.415 | 0.000 | 0.1326 | 0.0500 | 5.7495 | layer 5 cell 17
+plate steady len0.381 | 0.630 | 0.000 | 0.1326 | 0.0500 | 1.4995 | layer 5 cell 11
+plate steady len0.762 | 0.174 | 0.000 | 0.1326 | 0.0500 | 0.4145 | layer 5 cell 13
+plate steady negative | 0.209 | 0.000 | 0.1161 | 0.0500 | 0.1914 | layer 10 cell 16
+plate steady ramp | 0.159 | 0.000 | 0.1162 | 0.0500 | 0.1453 | layer 10 cell 13
+plate steady rise | 0.713 | 0.000 | 0.1326 | 0.0500 | 1.6981 | layer 6 cell 11
+plate steady short | 22.377 | 0.000 | 0.1330 | 0.0500 | 63.8940 | layer 7 cell 5
+plate steady steep | 1.947 | 0.000 | 0.0918 | 0.0500 | 2.2298 | layer 18 cell 17
