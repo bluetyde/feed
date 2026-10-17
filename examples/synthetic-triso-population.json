@@ -1,0 +1,305 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "synthetic-triso-population",
+  "name": "A sampled population of generic coated particles: 2000 particles, spreads in the dimensions, the power and the matrix (illustrative)",
+  "label": "synthetic",
+  "description": "ILLUSTRATIVE and SYNTHETIC: the generic coated particle of synthetic-triso-compact-steady.json (kernel 250 um radius, buffer 100, inner PyC 40, SiC 35, outer PyC 35 um, FEED's synthetic conductivities, a gap conductance of 150000 W/m2/K as an input) with a kernel power density of 1000 MW/m3 and a convective matrix of 900 K and 2000 W/m2/K (ASSUMED round numbers), and a POPULATION section: 2000 particles drawn with the seed 20261016 from distributions that are ASSUMED, not measured: normal spreads of a few percent in the kernel radius and each layer's thickness (truncated at three standard deviations), a lognormal local power factor (median 1, sigma of ln x 0.1) and a normal matrix temperature (900 K, 15 K). Running the case runs the nominal particle; Run population draws the sample and reports the spread of the kernel's peak temperature and of every drop. It is a sample of a stated population, not a prediction for a real core: how a real fuel varies is not what these numbers say. Thermal only: it says nothing about whether a particle survives.",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-sphere"
+  },
+  "geometry": {
+    "kind": "triso",
+    "kernelRadius": {
+      "value": 250,
+      "unit": "um"
+    },
+    "layers": [
+      {
+        "name": "buffer",
+        "thickness": {
+          "value": 100,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "ipyc",
+        "thickness": {
+          "value": 40,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "sic",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      },
+      {
+        "name": "opyc",
+        "thickness": {
+          "value": 35,
+          "unit": "um"
+        }
+      }
+    ]
+  },
+  "power": {
+    "kernelPowerDensity": {
+      "value": 1000,
+      "unit": "MW/m3"
+    }
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 900,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 2000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "kernel": {
+      "materialId": "synthetic-kernel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "buffer": {
+      "materialId": "synthetic-buffer",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 0.5,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "ipyc": {
+      "materialId": "synthetic-ipyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "sic": {
+      "materialId": "synthetic-sic",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 13.9,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "opyc": {
+      "materialId": "synthetic-opyc",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 4,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 150000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "kernelCells": 12,
+    "bufferCells": 12,
+    "ipycCells": 12,
+    "sicCells": 16,
+    "opycCells": 12
+  },
+  "population": {
+    "size": 2000,
+    "seed": 20261016,
+    "distributions": {
+      "kernelRadius": {
+        "kind": "normal",
+        "mean": {
+          "value": 250,
+          "unit": "um"
+        },
+        "stdDev": {
+          "value": 5,
+          "unit": "um"
+        },
+        "truncate": {
+          "min": {
+            "value": 235,
+            "unit": "um"
+          },
+          "max": {
+            "value": 265,
+            "unit": "um"
+          }
+        }
+      },
+      "buffer": {
+        "kind": "normal",
+        "mean": {
+          "value": 100,
+          "unit": "um"
+        },
+        "stdDev": {
+          "value": 8,
+          "unit": "um"
+        },
+        "truncate": {
+          "min": {
+            "value": 76,
+            "unit": "um"
+          },
+          "max": {
+            "value": 124,
+            "unit": "um"
+          }
+        }
+      },
+      "ipyc": {
+        "kind": "normal",
+        "mean": {
+          "value": 40,
+          "unit": "um"
+        },
+        "stdDev": {
+          "value": 2.5,
+          "unit": "um"
+        },
+        "truncate": {
+          "min": {
+            "value": 32.5,
+            "unit": "um"
+          },
+          "max": {
+            "value": 47.5,
+            "unit": "um"
+          }
+        }
+      },
+      "sic": {
+        "kind": "normal",
+        "mean": {
+          "value": 35,
+          "unit": "um"
+        },
+        "stdDev": {
+          "value": 1.5,
+          "unit": "um"
+        },
+        "truncate": {
+          "min": {
+            "value": 30.5,
+            "unit": "um"
+          },
+          "max": {
+            "value": 39.5,
+            "unit": "um"
+          }
+        }
+      },
+      "opyc": {
+        "kind": "normal",
+        "mean": {
+          "value": 35,
+          "unit": "um"
+        },
+        "stdDev": {
+          "value": 2,
+          "unit": "um"
+        },
+        "truncate": {
+          "min": {
+            "value": 29,
+            "unit": "um"
+          },
+          "max": {
+            "value": 41,
+            "unit": "um"
+          }
+        }
+      },
+      "powerFactor": {
+        "kind": "lognormal",
+        "median": {
+          "value": 1,
+          "unit": "1"
+        },
+        "sigmaLog": {
+          "value": 0.1,
+          "unit": "1"
+        }
+      },
+      "matrixTemperature": {
+        "kind": "normal",
+        "mean": {
+          "value": 900,
+          "unit": "K"
+        },
+        "stdDev": {
+          "value": 15,
+          "unit": "K"
+        }
+      }
+    }
+  }
+}
