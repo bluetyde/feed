@@ -24,6 +24,7 @@ import { burnupSweep } from "../core/burnupSweep";
 import { burnupText } from "../core/resultsParser";
 import { applyDesign, designOf } from "../core/design";
 import { IndependentRunner } from "../core/independentRunner";
+import { POPULATION_DEADLINE_MS, startPopulation } from "../core/populationRunner";
 import { previewTooBig, transientPreview } from "../core/transientPreview";
 import { FvTransient } from "../core/transientFv";
 import { latestEntries, readUserEntries, saveUserMaterial } from "../core/userLibrary";
@@ -265,6 +266,20 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
   };
 }
 
+/**
+ * A population of coated particles (plan 13, T6): the case is validated, and the batch of closed forms runs in a worker thread with a deadline. The reply is the spread of the sample
+ * (src/core/trisoPopulation.ts) or the reason it could not be made: the case's own errors, no population section, a population whose draws mostly fail, the deadline.
+ */
+export async function populationFor(doc: unknown, deadlineMs = POPULATION_DEADLINE_MS): Promise<{ status: number; body: unknown }> {
+  const v = validateCase(doc);
+  if (!v.ok) return { status: 400, body: { ok: false, errors: unrunnableErrors(v), warnings: v.warnings } };
+  if (!v.triso) return { status: 400, body: { ok: false, errors: [{ code: "E_UNSUPPORTED", severity: "error", field: "/geometry/kind", message: "a population is for a coated particle (geometry.kind 'triso')" }], warnings: v.warnings } };
+  if (!v.triso.population) return { status: 400, body: { ok: false, errors: [{ code: "E_PROP_MISSING", severity: "error", field: "/population", message: "the case has no population section: give a size, a seed and distributions" }], warnings: v.warnings } };
+  const o = await startPopulation(v.triso, { deadlineMs }).done;
+  if (o.ok) return { status: 200, body: { ok: true, result: o.result, warnings: v.warnings, mode: o.mode, ms: o.ms } };
+  return { status: o.reason === "refused" ? 422 : 500, body: { ok: false, reason: o.reason, error: o.message, warnings: v.warnings } };
+}
+
 export const server = createServer(async (req, res) => {
   try {
     const refusal = allowedRequest(req);
@@ -389,6 +404,17 @@ export const server = createServer(async (req, res) => {
         return json(res, 400, { error: "body is not valid JSON" });
       }
       return json(res, 200, await checkAsync(doc));
+    }
+    if (req.method === "POST" && url === "/api/population") {
+      if (!(req.headers["content-type"] ?? "").startsWith("application/json")) return json(res, 415, { error: "send application/json" });
+      let doc: unknown;
+      try {
+        doc = JSON.parse(await readBody(req));
+      } catch {
+        return json(res, 400, { error: "body is not valid JSON" });
+      }
+      const r = await populationFor(doc);
+      return json(res, r.status, r.body);
     }
     if (req.method === "POST" && url === "/api/burnup-sweep") {
       if (!(req.headers["content-type"] ?? "").startsWith("application/json")) return json(res, 415, { error: "send application/json" });

@@ -270,7 +270,7 @@ input.bad,select.bad{border-color:var(--err)}
 const _fetch = window.fetch.bind(window);
 window.fetch = (u, o = {}) => (o.method && o.method.toUpperCase() !== "GET" ? _fetch(u, { ...o, headers: { ...(o.headers || {}), "x-feed-client": "1" } }) : _fetch(u, o));
 const $ = (id) => document.getElementById(id);
-const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"], burnup: ["MWd/kgHM", "GWd/tHM", "MWd/tHM"], pressure: ["Pa", "kPa", "MPa", "GPa", "psi", "ksi"], ratio: ["1"], lengthUm: ["um", "mm", "cm", "m"], powerDensity: ["MW/m3", "kW/m3", "W/m3", "W/cm3"], particlePower: ["W", "kW", "MW"] };
+const UNITS = { length: ["mm", "cm", "m"], temperature: ["K", "degC"], linearPower: ["kW/m", "W/m", "W/cm", "MW/m"], conductivity: ["W/m/K"], conductivityPerK: ["W/m/K2"], conductivityPerK2: ["W/m/K3"], conductivityPerK3: ["W/m/K4"], htc: ["W/m2/K", "kW/m2/K"], time: ["ms", "s", "us"], volumetricHeatCapacity: ["MJ/m3/K", "J/cm3/K", "J/m3/K"], volumetricHeatCapacityPerK: ["MJ/m3/K2", "J/cm3/K2", "J/m3/K2"],  volumetricHeatCapacityPerK2: ["MJ/m3/K3", "J/cm3/K3", "J/m3/K3"], power: ["kW", "W", "MW"], reactivity: ["$", "dk/k", "pcm"], reactivityPerK: ["dk/k/K", "pcm/K"], reactivityPerK2: ["dk/k/K2", "pcm/K2"], rate: ["1/s"], fraction: ["%", "1"], expansion: ["1/K", "1e-6/K", "ppm/K"], expansionPerK: ["1/K2", "1e-9/K2"], burnup: ["MWd/kgHM", "GWd/tHM", "MWd/tHM"], pressure: ["Pa", "kPa", "MPa", "GPa", "psi", "ksi"], ratio: ["1"], lengthUm: ["um", "mm", "cm", "m"], powerDensity: ["MW/m3", "kW/m3", "W/m3", "W/cm3"], particlePower: ["W", "kW", "MW"], temperatureDiff: ["K"] };
 let solverName = null, runId = null, runRec = null, solverRes = null, pollTimer = null, study = null, studyTimer = null;
 let sweepData = null, sweepFor = "", sweepMsg = "";
 let caseTab = "view";
@@ -2280,6 +2280,7 @@ function particleItems() {
   ];
   for (const n of particleRegions()) items.push([n, PARTICLE_LAYER_LABEL[n], "Materials", ["/materials/" + n]]);
   items.push(["limits", "Temperature limits", "Checks", ["/limits"]]);
+  if (doc && doc.population !== undefined) items.push(["population", "Population", "Checks", ["/population"]]); /* only a case that has one: a particle without a population has the items it always had */
   return items;
 }
 /** Where an error goes that no item names: a material of a region the particle does not have is a fault of its geometry; the materials as a whole belong with the kernel. */
@@ -2394,6 +2395,75 @@ function limitLines(limits, lo, hi, tmax) {
 }
 /** Energy made by a power table that is linear between its points, J. */
 function particleEnergy(times, power) { let e = 0; for (let i = 1; i < times.length; i++) e += 0.5 * (power[i] + power[i - 1]) * (times[i] - times[i - 1]); return e; }
+/* ---- a population of particles (plan 13, T6): the case's `population` section and the numbers the result view shows */
+const POPULATION_LABEL = { kernelRadius: "Kernel radius", buffer: "Buffer thickness", ipyc: "Inner PyC thickness", sic: "SiC thickness", opyc: "Outer PyC thickness", powerFactor: "Local power factor", matrixTemperature: "Matrix temperature" };
+const POPULATION_KINDS = [["none", "Not varied (the case's value)"], ["constant", "Constant"], ["normal", "Normal"], ["lognormal", "Lognormal"], ["uniform", "Uniform"]];
+const POPULATION_TEXT = "A sample of a stated population: the particles are drawn by a seeded generator from the distributions this case states, and every one is run through the independent closed form of the sphere. It is not a prediction for a real core: the distributions are the case's, the spread is the spread of this sample, and the draws that were not valid particles are counted and thrown away. Thermal only: no stress, no swelling or creep, no gas pressure and no failure fraction.";
+const POPULATION_SCALE = { um: 1e-6, "µm": 1e-6, mm: 1e-3, cm: 1e-2, m: 1, K: 1, degC: 1, "1": 1, "%": 0.01 };
+const roundSig = (x) => Number(Number(x).toPrecision(6));
+/** The variables a population of this particle can vary, in the order a particle is drawn: the kernel radius, the thickness of each layer it has, the power factor and the matrix temperature. */
+function populationVariables() { return ["kernelRadius"].concat(particleRegions().slice(1), ["powerFactor", "matrixTemperature"]); }
+/** The case's own value of a variable as {value, unit}, or null when the document does not have it. A temperature is returned in kelvin. */
+function populationNominal(v) {
+  if (v === "powerFactor") return uq(1, "1");
+  if (v === "matrixTemperature") { const t = particleOutsideTemperature(); return uq(roundSig(t.unit === "degC" ? t.value + 273.15 : t.value), "K"); }
+  if (v === "kernelRadius") { const q = doc && doc.geometry && doc.geometry.kernelRadius; return q && typeof q.value === "number" ? q : null; }
+  const l = doc && doc.geometry && Array.isArray(doc.geometry.layers) ? doc.geometry.layers.find((x) => x && x.name === v) : null;
+  return l && l.thickness && typeof l.thickness.value === "number" ? l.thickness : null;
+}
+function defaultPopulation() { return { size: 1000, seed: 20261016, distributions: {} }; }
+/** The distribution of a variable as the document has it: "none" when the case gives none. */
+const populationKind = (v) => { const d = doc && doc.population && doc.population.distributions && doc.population.distributions[v]; return d && d.kind ? d.kind : "none"; };
+/** Give a variable a distribution of a kind, built round the case's own value (5 % spread; 1 % of the kelvin value for the matrix), or take it away ("none"). Adds the section when the case has none. */
+function setPopulationKind(v, kind) {
+  if (!doc.population) doc.population = defaultPopulation();
+  if (!doc.population.distributions || typeof doc.population.distributions !== "object") doc.population.distributions = {};
+  const dist = doc.population.distributions;
+  if (kind === "none") { delete dist[v]; return true; }
+  const nom = populationNominal(v);
+  if (!nom) return false;
+  const at = (f) => uq(roundSig(nom.value * f), nom.unit);
+  const sd = v === "matrixTemperature" ? uq(roundSig(nom.value * 0.01), "K") : v === "powerFactor" ? uq(0.05, "1") : at(0.05);
+  if (kind === "constant") dist[v] = { kind, value: nom };
+  else if (kind === "normal") dist[v] = { kind, mean: nom, stdDev: sd };
+  else if (kind === "lognormal") dist[v] = { kind, median: nom, sigmaLog: uq(0.05, "1") };
+  else if (kind === "uniform") dist[v] = { kind, min: v === "matrixTemperature" ? uq(roundSig(nom.value - 0.01 * nom.value), "K") : at(0.95), max: v === "matrixTemperature" ? uq(roundSig(nom.value + 0.01 * nom.value), "K") : at(1.05) };
+  else return false;
+  return true;
+}
+/** Truncate a normal or lognormal distribution at three standard deviations (three sigma of ln x), or take the truncation away. Returns false for a kind that has none. */
+function setPopulationTruncation(v, on) {
+  const d = doc && doc.population && doc.population.distributions && doc.population.distributions[v];
+  if (!d || (d.kind !== "normal" && d.kind !== "lognormal")) return false;
+  if (!on) { delete d.truncate; return true; }
+  if (d.kind === "normal") {
+    const m = d.mean, s = d.stdDev, k = (POPULATION_SCALE[s.unit] || 1) / (POPULATION_SCALE[m.unit] || 1);
+    d.truncate = { min: uq(roundSig(m.value - 3 * s.value * k), m.unit), max: uq(roundSig(m.value + 3 * s.value * k), m.unit) };
+  } else {
+    const m = d.median, s = d.sigmaLog.value * (POPULATION_SCALE[d.sigmaLog.unit] || 1);
+    d.truncate = { min: uq(roundSig(m.value * Math.exp(-3 * s)), m.unit), max: uq(roundSig(m.value * Math.exp(3 * s)), m.unit) };
+  }
+  return true;
+}
+/** The short name of a quantity of a population result for a narrow table: "kernel peak", "peak - matrix", "buffer drop", "gap drop", "film drop". */
+function populationShortLabel(id) { return id === "kernelPeakT" ? "kernel peak" : id === "rise" ? "peak - matrix" : id.startsWith("drop:") ? id.slice(5) + " drop" : id; }
+/** The number of variables the population varies (a constant counts: it overrides the case's value). */
+const populationVaried = () => (doc && doc.population && doc.population.distributions ? Object.keys(doc.population.distributions).length : 0);
+/** One row per quantity of a population result for the table: the id, the label and the statistics. */
+function populationRows(res) { return res.quantities.map((q) => ({ id: q.id, label: q.label, mean: q.stat.mean, sd: q.stat.stdDev, p5: q.stat.p5, p50: q.stat.p50, p95: q.stat.p95, p99: q.stat.p99, min: q.stat.min, max: q.stat.max })); }
+/** The histogram as bars: the edges of each, its count, its share of the sample and its height as a fraction of the tallest bar. */
+function populationBars(h) {
+  const total = h.counts.reduce((a, b) => a + b, 0), top = Math.max(...h.counts, 1);
+  return h.counts.map((c, i) => ({ lo: h.edges[i], hi: h.edges[i + 1], count: c, share: total ? c / total : 0, height: c / top }));
+}
+/** The parameters of one sampled particle, as [label, text] rows, for the table of the hottest and the other representatives. */
+function populationParameterRows(rep, names) {
+  const um = (m) => { const v = m * 1e6; return v.toFixed(v >= 99.95 ? 1 : 2) + " µm"; };
+  const rows = [["kernel radius", um(rep.draw.kernelRadius)]];
+  names.forEach((n, i) => rows.push([n + " thickness", um(rep.draw.thicknesses[i])]));
+  rows.push(["power factor", rep.draw.powerFactor.toFixed(3)], ["matrix temperature", rep.draw.matrixTemperature.toFixed(1) + " K"], ["heat per particle", (rep.particlePower * 1e3).toPrecision(4) + " mW"], ["kernel peak", rep.kernelPeakT.toFixed(2) + " K"]);
+  return rows;
+}
 /* particle-pure:end */
 
 /* what the explorer shows beside a particle's items (the others, boundary, materials and limits, are the pin's) */
@@ -2403,6 +2473,7 @@ function particleMeta(id, fmt) {
     case "power": { if (particleTransient()) return "pulse · " + ((doc.transient && doc.transient.powerHistory) || []).length + " pts"; const p = doc.power || {}; return p.particlePower ? fmt(p.particlePower) : p.kernelPowerDensity ? fmt(p.kernelPowerDensity) : p.compactPowerDensity ? fmt(p.compactPowerDensity) + " compact" : "—"; }
     case "geometry": return fmt(doc.geometry.kernelRadius) + " kernel R · " + (Array.isArray(doc.geometry.layers) ? doc.geometry.layers.length : 0) + " layers";
     case "gap": return fmt(doc.gap && doc.gap.conductance);
+    case "population": return doc.population && typeof doc.population.size === "number" ? doc.population.size + " · " + populationVaried() + " varied" : "—";
     case "mesh": return particleRegions().map((n) => (cnt(n) === undefined ? "?" : cnt(n))).join(" / ");
     default: return undefined;
   }
@@ -2428,6 +2499,7 @@ function renderParticleProps(p) {
   else if (selected === "gap") particleGapPanel(p);
   else if (selected === "mesh") particleMeshPanel(p);
   else if (selected === "limits") particleLimitsPanel(p);
+  else if (selected === "population") particlePopulationPanel(p);
   else particleMaterialPanel(p, selected);
 }
 function particleAnalysisField() {
@@ -2460,6 +2532,12 @@ function particlePowerPanel(p) {
     p.append(note("Closed form: kernel centre <code>" + K(d.centreT) + "</code>, outer wall <code>" + K(d.wallT) + "</code>. Drops from the inner to the outer face: " + d.regionDrops.map((r) => esc(r.name) + " <code>" + sig(r.deltaT, 3) + " K</code>").join(", ") + "; gap <code>" + sig(d.gapDeltaT, 3) + " K</code>."));
   } else p.append(note("The volumetric power, the heat per particle and the closed-form temperatures appear once the case is valid."));
   p.append(sec("Scope"), note(PARTICLE_TEXT));
+  if (!doc.population) {
+    p.append(sec("Population"), note("Particles differ: kernel size, layer thickness, local power and matrix temperature all spread. A population draws many particles from distributions you state and reports the spread of the kernel temperature (a sample, not a prediction for a real core)."));
+    const bar = el("div", "prow note"), add = elt("button", "Add a population", { class: "tbtn", type: "button" });
+    add.addEventListener("click", () => { doc.population = defaultPopulation(); selected = "population"; changed(true); renderTree(); });
+    bar.append(add); p.append(bar);
+  }
 }
 function particleTransientPanel(p, d) {
   const t = doc.transient || {}, steady = t.initialSteadyParticlePower !== undefined;
@@ -2560,6 +2638,109 @@ function particleLimitsPanel(p) {
     const row = el("div", "prow note"); row.append(del); p.append(row);
   });
   p.append(note("Each rule becomes a check in the results: the limit minus the hottest cell of the region, in kelvin. A cell's temperature understates its region's hottest point by up to half a cell's drop, so the check's note says so. A temperature under a limit is not an integrity assessment: FEED computes no stress and no failure."));
+}
+
+/* ---- the population panel (plan 13, T6): the section's fields, Run population, the spread of the sample */
+let popRes = null, popFor = "", popDoc = null, popBusy = false, popMsg = ""; /* popDoc: the document object the sample was drawn for; loading another document replaces it, and its sample is not shown */
+const POPULATION_DIMS = { kernelRadius: "lengthUm", buffer: "lengthUm", ipyc: "lengthUm", sic: "lengthUm", opyc: "lengthUm", powerFactor: "fraction", matrixTemperature: "temperature" };
+function particlePopulationPanel(p) {
+  if (popDoc !== doc) { popRes = null; popMsg = ""; popDoc = null; }
+  const pop = doc.population;
+  if (!pop) { p.append(sec("Population"), note("This case has no population: it is the one particle. A population draws many particles from distributions you state (the kernel radius, each layer's thickness, a local power factor, the matrix temperature), runs each through the closed form of the sphere and reports the spread of the kernel's peak temperature and of every drop.")); return; }
+  p.append(sec("Sample"), iField("Particles", ["population", "size"]), iField("Seed", ["population", "seed"]));
+  generalErrors(p, (f) => f === "/population" || f === "/population/distributions" || (f.startsWith("/population/") && !/^\/population\/(size|seed|distributions\/)/.test(f)));
+  warnNotes(p, "population");
+  p.append(note("The seed names the sample: the same case gives the same particles every time, on every machine. A different seed is a different sample of the same population."));
+  p.append(sec("Distributions"));
+  const kv = (d, key) => d && d[key] !== undefined;
+  for (const v of populationVariables()) {
+    const base = ["population", "distributions", v], kind = populationKind(v), dim = POPULATION_DIMS[v];
+    const row = el("div", "prow"); row.append(elt("label", POPULATION_LABEL[v], { for: "pk_" + v }));
+    const sel = elt("select", "", { id: "pk_" + v });
+    for (const [k, t] of POPULATION_KINDS) sel.append(elt("option", t, { value: k }));
+    sel.value = kind;
+    sel.addEventListener("change", () => { setPopulationKind(v, sel.value); changed(true); });
+    row.append(sel); p.append(row);
+    const d = doc.population.distributions && doc.population.distributions[v];
+    if (kind === "constant") p.append(qField("value", base.concat("value"), dim));
+    else if (kind === "normal") p.append(qField("mean", base.concat("mean"), dim), qField("std dev", base.concat("stdDev"), v === "matrixTemperature" ? "temperatureDiff" : dim));
+    else if (kind === "lognormal") p.append(qField("median", base.concat("median"), dim), qField("σ of ln x", base.concat("sigmaLog"), "fraction"));
+    else if (kind === "uniform") p.append(qField("min", base.concat("min"), dim), qField("max", base.concat("max"), dim));
+    if (kind === "normal" || kind === "lognormal") {
+      const tr = el("div", "prow"); tr.append(elt("label", "truncate", { for: "pt_" + v }));
+      const cb = elt("input", "", { type: "checkbox", id: "pt_" + v }); cb.checked = kv(d, "truncate");
+      cb.addEventListener("change", () => { setPopulationTruncation(v, cb.checked); changed(true); });
+      const why = kind === "lognormal" ? "three sigma of ln x" : "three standard deviations"; tr.append(cb, elt("span", " at 3 σ", { title: "bounds at " + why + " from the centre; edit them below" })); p.append(tr);
+      if (kv(d, "truncate")) p.append(qField("min", base.concat("truncate", "min"), dim), qField("max", base.concat("truncate", "max"), dim));
+    }
+    generalErrors(p, (f) => f === ptr(base) || f === ptr(base.concat("kind")) || (f.startsWith(ptr(base) + "/") && !/\/(value|mean|stdDev|median|sigmaLog|min|max)$/.test(f) && !/\/truncate\/(min|max)$/.test(f)));
+  }
+  const bar = el("div", "prow note"), rm = elt("button", "Remove the population", { class: "tbtn", type: "button" });
+  rm.addEventListener("click", () => { delete doc.population; popRes = null; changed(true); });
+  bar.append(rm); p.append(bar);
+  p.append(sec("Run"));
+  const ok = result && result.ok && result.triso, row = el("div", "prow note");
+  const run = elt("button", popBusy ? "Running…" : "Run population", { class: "tbtn", type: "button", id: "popRun" });
+  run.disabled = !ok || popBusy;
+  run.addEventListener("click", runPopulation);
+  row.append(run, elt("span", "  " + (ok ? "closed form of every particle, in a worker thread with a deadline" : "fix the problems first"), { id: "popStatus" })); p.append(row);
+  p.append(note("The sample is run through the closed form (the independent solution). OFFBEAT is not run per particle: a handful of the sampled particles (the hottest, the median, the coldest) are the cases to run through it."));
+  const box = elt("div", "", { id: "popResult" }); p.append(box);
+  renderPopulationResult(box);
+}
+async function runPopulation() {
+  if (popBusy || !doc || !doc.population) return;
+  popBusy = true; popMsg = ""; const sent = JSON.stringify(doc); renderProps();
+  try {
+    const r = await fetch("/api/population", { method: "POST", headers: { "content-type": "application/json" }, body: sent });
+    const j = await r.json();
+    if (j.ok) { popRes = j.result; popFor = sent; popDoc = doc; logText += "Population of " + j.result.size + " particles run in " + j.ms + " ms (" + j.mode + ").\n"; }
+    else { popRes = null; popMsg = j.error || (j.errors || []).map((e) => e.message).join(" ") || "The population could not be run."; }
+  } catch (e) { popRes = null; popMsg = "Couldn't reach the server."; }
+  popBusy = false; if (selected === "population") renderProps();
+}
+function renderPopulationResult(box) {
+  box.replaceChildren();
+  if (popMsg) { box.append(elt("div", popMsg, { class: "ferr" })); return; }
+  if (!popRes) return;
+  const r = popRes, stale = popFor !== JSON.stringify(doc);
+  const names = particleRegions().slice(1);
+  box.append(sec("Spread of the sample"));
+  box.append(note("<b>" + esc(POPULATION_TEXT) + "</b>"));
+  if (stale) box.append(elt("div", "The case changed since this sample was drawn: run the population again.", { class: "ferr" }));
+  const rej = r.rejected;
+  box.append(note("<code>" + r.size + "</code> particles, seed <code>" + r.seed + "</code>. Draws thrown away because they were not valid particles: <code>" + rej.total + "</code>" + (rej.total ? " (" + Object.keys(rej.byReason).filter((k) => rej.byReason[k]).map((k) => esc(k) + " " + rej.byReason[k]).join(", ") + "): the sample is the distributions conditioned on being valid." : ".") + " The case's own particle (nothing varied) has a kernel peak of <code>" + r.nominal.kernelPeakT.toFixed(2) + " K</code>."));
+  const f2 = (x) => (Math.abs(x) >= 100 ? x.toFixed(1) : x.toFixed(2)), rows = populationRows(r), cell = (v) => ({ text: f2(v), mono: true });
+  box.append(table(["Quantity (K)", "mean", "sd", "max"], rows.map((x) => [populationShortLabel(x.id), cell(x.mean), cell(x.sd), cell(x.max)])));
+  box.append(table(["Percentile", "5 %", "50 %", "95 %", "99 %"], rows.map((x) => [populationShortLabel(x.id), cell(x.p5), cell(x.p50), cell(x.p95), cell(x.p99)])));
+  const hw = el("div", "vpwrap1"); hw.style.cssText = "flex:none;height:200px;margin:8px 0"; const cv = elt("canvas", "", { id: "popHist", "aria-label": "Histogram of the kernel peak temperature of the sampled particles" }); hw.append(cv); box.append(hw);
+  requestAnimationFrame(() => drawPopulationHistogram(cv, r));
+  if (r.limits.length) box.append(table(["Limit", "region", "above", "share"], r.limits.map((l) => [l.name + " (" + l.maxTemperature.toFixed(0) + " K)", l.region, { text: String(l.above), mono: true }, { text: (l.fraction * 100).toPrecision(3) + " %", mono: true }])));
+  else box.append(note("The case states no limits, so there is no fraction above a limit. Add limits (Temperature limits) to see one."));
+  box.append(sec("Representative particles"));
+  for (const rep of r.representatives) {
+    const d = el("details"), s = elt("summary", rep.role + " · particle " + rep.index + " · " + rep.kernelPeakT.toFixed(2) + " K");
+    d.append(s, table(["Parameter", "value"], populationParameterRows(rep, names).map((x) => [x[0], { text: x[1], mono: true }])));
+    box.append(d);
+  }
+  box.append(note("The hottest particle is particle <code>" + r.maximum.index + "</code> of the sample. These are the particles to run through OFFBEAT: copy a particle's numbers into the case, or see the saved cross-check (docs/triso.md)."));
+}
+function drawPopulationHistogram(cv, r) {
+  if (!cv.isConnected) return;
+  const [x, w, h] = sizeCanvas(cv); x.clearRect(0, 0, w, h);
+  const bars = populationBars(r.histogram), L = 52, R = 12, T = 10, B = 30, pw = w - L - R, ph = h - T - B;
+  const lo = r.histogram.edges[0], hi = r.histogram.edges[r.histogram.edges.length - 1], X = (v) => L + (hi > lo ? ((v - lo) / (hi - lo)) * pw : pw / 2);
+  x.font = "11px ui-monospace,Consolas,monospace"; x.fillStyle = "#8c949e"; x.strokeStyle = "#31363d";
+  x.beginPath(); x.moveTo(L, T); x.lineTo(L, T + ph); x.lineTo(L + pw, T + ph); x.stroke();
+  const top = Math.max(...r.histogram.counts, 1); x.fillText(String(top), 8, T + 10); x.fillText("0", 8, T + ph); x.fillText("particles", 8, T + ph / 2);
+  x.fillStyle = COL.solver;
+  bars.forEach((b) => { const x0 = X(b.lo), x1 = hi > lo ? X(b.hi) : L + pw; x.fillRect(x0 + 0.5, T + ph - b.height * ph, Math.max(1, x1 - x0 - 1), b.height * ph); });
+  const q0 = r.quantities[0].stat;
+  const mark = (v, label, col, dy) => { x.strokeStyle = col; x.beginPath(); x.moveTo(X(v), T); x.lineTo(X(v), T + ph); x.stroke(); x.fillStyle = col; const wtxt = x.measureText(label).width, onRight = X(v) + 4 + wtxt > L + pw; x.fillText(label, onRight ? X(v) - 4 - wtxt : X(v) + 4, T + 10 + dy); };
+  mark(q0.p50, "50 % " + q0.p50.toFixed(1), "#52b8ff", 0); mark(q0.p95, "95 % " + q0.p95.toFixed(1), "#f0a35e", 12); mark(q0.p99, "99 % " + q0.p99.toFixed(1), "#e6b455", 24);
+  for (const l of r.limits) if (l.maxTemperature > lo && l.maxTemperature < hi) mark(l.maxTemperature, l.name, "#ff6b6b", 36);
+  x.fillStyle = "#8c949e"; x.fillText(lo.toFixed(1) + " K", L, h - 12); x.fillText(hi.toFixed(1) + " K", L + pw - 56, h - 12); x.fillText("kernel peak temperature (K)", L + pw / 2 - 80, h - 2);
+  plotText(cv, "T (K)", "particles", [{ label: "histogram", x: bars.map((b) => (b.lo + b.hi) / 2), y: bars.map((b) => b.count) }]);
 }
 
 /* ---- the picture: concentric circles to scale, coloured by temperature, the gap marked */

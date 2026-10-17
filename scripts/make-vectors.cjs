@@ -1090,5 +1090,67 @@ badPeb("pebble-wrong-geometry-assumption", "E_UNSUPPORTED", "/assumptions/geomet
 badPeb("pebble-two-scale-outside", "E_GEOMETRY", "/compact/twoScale/at/0", (c) => (c.compact.twoScale = { at: [qv(40, "mm")] }));
 badPeb("pebble-fit-too-tight", "E_FIT", "/compact/fit", (c) => (c.compact.fit.tolerance = qv(1e-9, "%")));
 
+// ---- a population of particles (T6): size, seed and the distributions of the dimensions, the power and the matrix temperature
+const popBase = () => ({
+  size: 500,
+  seed: 20261016,
+  distributions: {
+    kernelRadius: { kind: "normal", mean: qv(250, "um"), stdDev: qv(5, "um"), truncate: { min: qv(235, "um"), max: qv(265, "um") } },
+    buffer: { kind: "normal", mean: qv(100, "um"), stdDev: qv(8, "um") },
+    ipyc: { kind: "uniform", min: qv(36, "um"), max: qv(44, "um") },
+    sic: { kind: "lognormal", median: qv(35, "um"), sigmaLog: qv(0.04, "1") },
+    opyc: { kind: "constant", value: qv(35, "um") },
+    powerFactor: { kind: "lognormal", median: qv(1, "1"), sigmaLog: qv(10, "%") },
+    matrixTemperature: { kind: "normal", mean: qv(1000, "K"), stdDev: qv(10, "K") },
+  },
+});
+const withPop = (edit) => { const c = trisoBase(); c.population = popBase(); if (edit) edit(c.population, c); return c; };
+const twoLayers = (c) => { c.geometry.layers = c.geometry.layers.slice(0, 2); delete c.materials.sic; delete c.materials.opyc; delete c.mesh.sicCells; delete c.mesh.opycCells; };
+add("good", "triso-population", withPop(), {});
+add("good", "triso-population-constants", withPop((p) => { p.distributions = { kernelRadius: { kind: "constant", value: qv(250, "um") }, powerFactor: { kind: "constant", value: qv(1, "1") } }; p.size = 1; }), {});
+add("good", "triso-population-empty-distributions", withPop((p) => { p.distributions = {}; }), {});
+add("good", "triso-population-convective", withPop((p, c) => { c.boundary = { bulkTemperature: qv(900, "K"), heatTransferCoefficient: qv(2000, "W/m2/K") }; p.distributions.matrixTemperature = { kind: "uniform", min: qv(850, "K"), max: qv(950, "K") }; }), {});
+add("good", "triso-population-degc", withPop((p) => { p.distributions.matrixTemperature = { kind: "normal", mean: qv(727, "degC"), stdDev: qv(10, "K") }; }), {});
+add("good", "triso-population-two-layers", withPop((p, c) => { delete p.distributions.sic; delete p.distributions.opyc; twoLayers(c); }), {});
+add("good", "triso-population-rejection-warning", withPop((p) => { p.distributions.buffer = { kind: "normal", mean: qv(100, "um"), stdDev: qv(45, "um") }; }), { warnings: ["W_POPULATION_REJECTION"] });
+const badPop = (name, code, field, edit) => add("bad", name, withPop(edit), { code, field });
+badPop("triso-population-not-an-object", "E_SCHEMA_INVALID", "/population", (p, c) => (c.population = 3));
+badPop("triso-population-unknown-key", "E_SCHEMA_INVALID", "/population/count", (p) => (p.count = 5));
+badPop("triso-population-no-size", "E_PROP_MISSING", "/population/size", (p) => delete p.size);
+badPop("triso-population-size-zero", "E_OUT_OF_RANGE", "/population/size", (p) => (p.size = 0));
+badPop("triso-population-size-over-cap", "E_OUT_OF_RANGE", "/population/size", (p) => (p.size = 100001));
+badPop("triso-population-size-fraction", "E_SCHEMA_INVALID", "/population/size", (p) => (p.size = 10.5));
+badPop("triso-population-no-seed", "E_PROP_MISSING", "/population/seed", (p) => delete p.seed);
+badPop("triso-population-seed-negative", "E_OUT_OF_RANGE", "/population/seed", (p) => (p.seed = -1));
+badPop("triso-population-seed-too-large", "E_OUT_OF_RANGE", "/population/seed", (p) => (p.seed = 4294967296));
+badPop("triso-population-seed-fraction", "E_SCHEMA_INVALID", "/population/seed", (p) => (p.seed = 1.5));
+badPop("triso-population-no-distributions", "E_PROP_MISSING", "/population/distributions", (p) => delete p.distributions);
+badPop("triso-population-distributions-list", "E_SCHEMA_INVALID", "/population/distributions", (p) => (p.distributions = []));
+badPop("triso-population-unknown-variable", "E_SCHEMA_INVALID", "/population/distributions/gapWidth", (p) => (p.distributions.gapWidth = { kind: "constant", value: qv(1, "um") }));
+badPop("triso-population-layer-absent", "E_GEOMETRY", "/population/distributions/sic", (p, c) => { twoLayers(c); delete p.distributions.opyc; });
+badPop("triso-population-unknown-kind", "E_SCHEMA_INVALID", "/population/distributions/buffer/kind", (p) => (p.distributions.buffer.kind = "weibull"));
+badPop("triso-population-distribution-not-an-object", "E_SCHEMA_INVALID", "/population/distributions/buffer", (p) => (p.distributions.buffer = 100));
+badPop("triso-population-unknown-parameter", "E_SCHEMA_INVALID", "/population/distributions/buffer/variance", (p) => (p.distributions.buffer.variance = qv(1, "um")));
+badPop("triso-population-no-stddev", "E_PROP_MISSING", "/population/distributions/buffer/stdDev", (p) => delete p.distributions.buffer.stdDev);
+badPop("triso-population-stddev-zero", "E_OUT_OF_RANGE", "/population/distributions/buffer/stdDev", (p) => (p.distributions.buffer.stdDev = qv(0, "um")));
+badPop("triso-population-thickness-in-kelvin", "E_UNITS", "/population/distributions/buffer/mean", (p) => (p.distributions.buffer.mean = qv(100, "K")));
+badPop("triso-population-bare-number", "E_UNITS", "/population/distributions/powerFactor/sigmaLog", (p) => (p.distributions.powerFactor.sigmaLog = 0.1));
+badPop("triso-population-temperature-spread-in-degc", "E_UNITS", "/population/distributions/matrixTemperature/stdDev", (p) => (p.distributions.matrixTemperature.stdDev = qv(10, "degC")));
+badPop("triso-population-uniform-inverted", "E_OUT_OF_RANGE", "/population/distributions/ipyc/max", (p) => (p.distributions.ipyc.max = qv(30, "um")));
+badPop("triso-population-uniform-no-max", "E_PROP_MISSING", "/population/distributions/ipyc/max", (p) => delete p.distributions.ipyc.max);
+badPop("triso-population-lognormal-median-zero", "E_OUT_OF_RANGE", "/population/distributions/sic/median", (p) => (p.distributions.sic.median = qv(0, "um")));
+badPop("triso-population-lognormal-sigma-zero", "E_OUT_OF_RANGE", "/population/distributions/sic/sigmaLog", (p) => (p.distributions.sic.sigmaLog = qv(0, "1")));
+badPop("triso-population-truncation-empty", "E_OUT_OF_RANGE", "/population/distributions/kernelRadius/truncate", (p) => (p.distributions.kernelRadius.truncate = { min: qv(265, "um"), max: qv(235, "um") }));
+badPop("triso-population-truncation-no-bound", "E_SCHEMA_INVALID", "/population/distributions/kernelRadius/truncate", (p) => (p.distributions.kernelRadius.truncate = {}));
+badPop("triso-population-truncation-unknown-key", "E_SCHEMA_INVALID", "/population/distributions/kernelRadius/truncate/mid", (p) => (p.distributions.kernelRadius.truncate.mid = qv(250, "um")));
+badPop("triso-population-truncation-on-uniform", "E_SCHEMA_INVALID", "/population/distributions/ipyc/truncate", (p) => (p.distributions.ipyc.truncate = { min: qv(37, "um") }));
+badPop("triso-population-truncation-cannot-be-sampled", "E_POPULATION_UNSAMPLABLE", "/population/distributions/kernelRadius", (p) => (p.distributions.kernelRadius.truncate = { min: qv(290, "um"), max: qv(300, "um") }));
+badPop("triso-population-mostly-invalid-thickness", "E_POPULATION_UNSAMPLABLE", "/population/distributions/buffer", (p) => (p.distributions.buffer = { kind: "normal", mean: qv(-30, "um"), stdDev: qv(10, "um") }));
+badPop("triso-population-constant-power-factor-zero", "E_OUT_OF_RANGE", "/population/distributions/powerFactor/value", (p) => (p.distributions.powerFactor = { kind: "constant", value: qv(0, "1") }));
+badPop("triso-population-constant-extra-key", "E_SCHEMA_INVALID", "/population/distributions/opyc/stdDev", (p) => (p.distributions.opyc.stdDev = qv(1, "um")));
+bad("pin-with-population", "E_UNSUPPORTED", "/population", (c) => (c.population = popBase()));
+badPop("triso-population-on-a-transient", "E_UNSUPPORTED", "/population", (p, c) => { const t = trisoPulse(); for (const k of Object.keys(c)) delete c[k]; Object.assign(c, t, { population: p }); });
+
+
 fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 console.log(index.length + " vectors written");
