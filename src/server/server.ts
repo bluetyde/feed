@@ -111,6 +111,11 @@ export function sourcedExpansion(): any[] {
   return JSON.parse(readFileSync(join(root, "library", "expansion.json"), "utf8"));
 }
 
+/** The coating layers' elastic and expansion sets (plan 14, M1): complete property sets of a coated particle's buffer, pyrolytic carbons and SiC, each with its source and range. */
+export function sourcedCoatings(): any[] {
+  return JSON.parse(readFileSync(join(root, "library", "coatings.json"), "utf8"));
+}
+
 function sourcedMaterials(): any[] {
   return JSON.parse(readFileSync(join(root, "library", "materials.json"), "utf8"));
 }
@@ -125,7 +130,7 @@ export function library() {
   const sourced = sourcedMaterials();
   const user = readUserEntries();
   const custom = latestEntries(user.entries).map((e) => ({ region: e.region, name: e.name, label: e.label, description: e.description, citation: e.citation, savedAt: e.savedAt, revisions: user.entries.filter((x) => x.material.materialId === e.material.materialId).length, material: e.material }));
-  return { pins, materials: [...sourced, ...custom], limits: sourcedLimits(), expansion: sourcedExpansion(), strengths: sourcedStrengths(), userLibrary: user.problem ? { problem: user.problem } : { entries: user.entries.length } };
+  return { pins, materials: [...sourced, ...custom], limits: sourcedLimits(), expansion: sourcedExpansion(), coatings: sourcedCoatings(), strengths: sourcedStrengths(), userLibrary: user.problem ? { problem: user.problem } : { entries: user.entries.length } };
 }
 
 /** Largest finest-level cell counts a study may request (the finest level is 4x the case's mesh). */
