@@ -1,0 +1,12 @@
+pin transient asym done in 948 ms
+pin transient coastdown done in 1170 ms
+pin transient pulse done in 941 ms
+pin transient short done in 1081 ms
+pin transient shortcool done in 1362 ms
+plate transient-asym done in 1056 ms
+plate transient-lossofcooling done in 1115 ms
+plate transient-lossofcooling-limit done in 1878 ms
+plate transient-lossofcooling-long done in 1777 ms
+plate transient-lossofcooling-short done in 568 ms
+plate transient-pulse done in 887 ms
+plate transient-short done in 1057 ms
