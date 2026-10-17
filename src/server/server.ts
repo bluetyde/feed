@@ -11,6 +11,7 @@ import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { axialProfiles, axialSummary, hottestLoad, sliceCase, sliceLoads } from "../core/axial";
 import { STACK_TEXT } from "../core/stackResults";
+import { axialField2d } from "../core/stackReference";
 import { quickLook, radialProfile } from "../core/quickLook";
 import { trisoDerived, trisoQuickLook } from "../core/trisoSolve";
 import { trisoProfile } from "../core/trisoProfile";
@@ -261,7 +262,8 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
     quick: look,
     ...(n.compact ? { compact: { spec: n.compact, hottestParticle: twoScaleParticle(n.compact, look.temperatures.centreT) } } : {}),
     profile: radialProfile(hot, look),
-    ...(stack ? { axial: stack, axialNote: STACK_TEXT, axialProfiles: axialProfiles(n) } : {}),
+    // plan 15, B5: the steady two-dimensional field of a stack of plates, for the case view's option "heat flow along the height: included"; a pin: not offered, with the reason
+    ...(stack ? { axial: stack, axialNote: STACK_TEXT, axialProfiles: axialProfiles(n), axialField2d: axialField2d(n) } : {}),
     derived: derivedOf(n, hot.qPrime),
   };
 }

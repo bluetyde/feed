@@ -818,8 +818,21 @@ const STACK_VIEW_LABEL = "1.5D: one radial solution per slice, drawn as a stack.
 function stackViewRunLabel(conduction) {
   return "1.5D: the temperatures OFFBEAT found in each slice, drawn as a stack. Not a three-dimensional picture: nothing varies around the axis. Unlike the case view's closed forms, this run includes the heat that flows along the height between the slices" + (conduction !== null && conduction !== undefined && Number.isFinite(conduction) ? ", which FEED estimates at " + (conduction * 100).toPrecision(2) + " % of the largest rise." : " (FEED could not estimate its size).");
 }
-const stackViewCaption = (d) => (d && d.run ? stackViewRunLabel(d.conduction) : STACK_VIEW_LABEL);
-const stackViewCanvasLabel = (d) => (d && d.run ? "1.5D: OFFBEAT's result in each slice" : "1.5D: one radial solution per slice");
+/* the case view's other state (plan 15, B5, plates only): FEED's own two-dimensional steady field of the whole stack, with the heat flow along the height in it; `effect` is how much that flow changes the temperatures (K) */
+function stackViewFlowLabel(effect) {
+  return "2D: FEED's own finite-volume solution of the whole stack on the writer's mesh (radius and height, the end faces insulated), steady. The heat that flows along the height between the slices IS in the temperatures drawn" + (typeof effect === "number" && Number.isFinite(effect) ? ": it changes them by up to " + effect.toPrecision(2) + " K against the same solution without it" : "") + ". A second method on the same mesh as the run, not OFFBEAT's result and not a measurement. Nothing varies across the width. Switch the option off for the closed forms, which let no heat flow between the slices. A run's picture is OFFBEAT's own cells.";
+}
+const stackViewCaption = (d) => (d && d.run ? stackViewRunLabel(d.conduction) : d && d.flow === "2d" ? stackViewFlowLabel(d.effect) : STACK_VIEW_LABEL);
+const stackViewCanvasLabel = (d) => (d && d.run ? "1.5D: OFFBEAT's result in each slice" : d && d.flow === "2d" ? "2D: FEED's reference field, heat flow along the height included" : "1.5D: one radial solution per slice");
+/* the option "Heat flow along the height": what is shown (the 2D field only when it was asked for AND the check offers it), whether the option can be chosen, and why not */
+function stackFlowChoice(field, wanted) {
+  const on = !!(field && field.available);
+  return { shown: on && wanted === "2d" ? "2d" : "closed", enabled: on, reason: field && !field.available ? String(field.reason || "") : on ? "" : "no two-dimensional field for this case" };
+}
+/* the view's data from the check's two-dimensional field: the same builder as the closed forms, the field's points as the samples of each slice */
+function stackDataTwoD(field, g) {
+  return { ...stackViewData(field.slices.map((s) => ({ index: s.index, z: s.height, samples: s.points })), g), flow: "2d", effect: field.effect };
+}
 const geomOfCase = (n) => ({ plate: !!n.plate, inner: n.fuelInnerRadius || 0, fuelR: n.fuelRadius, cladIn: n.claddingInnerRadius, cladOut: n.claddingOuterRadius, length: n.axial ? n.axial.length : 1 });
 /* samples {r, T, region} of one slice -> rings {a, b, T} (metres): a ring runs to the midpoints between its sample and the next ones, inside each region, plus the gap as a ring with no temperature */
 function ringsOf(samples, g) {
@@ -914,17 +927,29 @@ function draw3D(canvas, d, v) {
   canvas.setAttribute("aria-label", "3D stack of " + d.slices.length + " slices, " + d.geom.length.toFixed(3) + " m high, hottest slice " + (d.slices.reduce((m, s, i) => (Math.max(...s.rings.filter((r) => r.T !== null).map((r) => r.T)) > m.t ? { t: Math.max(...s.rings.filter((r) => r.T !== null).map((r) => r.T)), i } : m), { t: -Infinity, i: 0 }).i + 1) + ". Turn with the arrow keys, zoom with plus and minus, 0 resets, c toggles the cut-away. The numbers are in the table below.");
 }
 /* one panel for the view, used in the case view and in the results: the toolbar, the canvas, the caption, the numbers as a table */
-function make3dPanel(host, getData, id) {
+function make3dPanel(host, getData, id, flow) {
   host.replaceChildren();
   const view = host._view || (host._view = { ...V3_HOME });
   const bar = el("div", "toolbar"), seg = el("div", "seg"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "View");
   const readout = elt("span", "Drag to turn, wheel to zoom; or use the arrow keys with the picture focused", { class: "readout", id: id + "Read" });
-  const redraw = () => { const d = getData(); draw3D(canvas, d, view); cap.textContent = stackViewCaption(d); fillTable(); };
+  const redraw = () => { const d = getData(); draw3D(canvas, d, view); cap.textContent = stackViewCaption(d); fillTable(); if (flow) syncFlow(); };
   const btn = (text, fn, pressed) => { const b = elt("button", text, { type: "button" }); if (pressed !== undefined) b.setAttribute("aria-pressed", String(pressed)); b.addEventListener("click", () => { fn(b); redraw(); }); seg.append(b); return b; };
   const cutBtn = btn("Cut-away", (b) => { view.cut = !view.cut; b.setAttribute("aria-pressed", String(view.cut)); }, view.cut);
   btn("Reset", () => { Object.assign(view, V3_HOME); cutBtn.setAttribute("aria-pressed", "true"); });
   btn("Zoom +", () => Object.assign(view, V3_KEYS["+"](view))); btn("Zoom −", () => Object.assign(view, V3_KEYS["-"](view)));
   bar.append(seg, readout);
+  /* the case view's option (plan 15, B5): heat flow along the height not included (closed form per slice) | included (two-dimensional reference); the caption below says which is drawn */
+  let syncFlow = () => {}, fbar = null;
+  if (flow) {
+    fbar = el("div", "toolbar"); fbar.style.flex = "none"; const fseg = el("div", "seg"), why = elt("span", "", { class: "readout", id: id + "FlowWhy" }); fseg.setAttribute("role", "group"); fseg.setAttribute("aria-label", "Heat flow along the height"); fseg.style.flexWrap = "wrap";
+    const fb = {};
+    for (const [key, text] of [["closed", "Not included (closed form per slice, instant)"], ["2d", "Included (two-dimensional reference solution)"]]) {
+      const b = elt("button", text, { type: "button", id: id + "Flow" + key }); b.style.cssText = "white-space:normal;text-align:left"; fb[key] = b; fseg.append(b);
+      b.addEventListener("click", () => { flow.set(key); redraw(); });
+    }
+    const lab = elt("span", "Heat flow along the height:"); lab.style.cssText = "color:var(--muted);white-space:nowrap"; why.style.marginLeft = "0"; fbar.append(lab, fseg, why);
+    syncFlow = () => { const c = flow.get(); for (const key of ["closed", "2d"]) fb[key].setAttribute("aria-pressed", String(c.shown === key)); fb["2d"].disabled = !c.enabled; fb["2d"].title = c.enabled ? "" : c.reason; why.textContent = c.enabled ? "" : "Two-dimensional reference: " + c.reason; };
+  }
   const wrap = el("div", "vpwrap1"); wrap.style.cssText = "flex:none;height:380px;margin:0";
   const canvas = elt("canvas", "", { id: id + "Cv", tabindex: "0", role: "img", "aria-label": "3D stack" }); wrap.append(canvas);
   const cap = elt("div", stackViewCaption(getData()), { class: "banner", id: id + "Cap" }); cap.style.cssText = "border-top:1px solid var(--line)";
@@ -944,14 +969,17 @@ function make3dPanel(host, getData, id) {
   });
   canvas.addEventListener("wheel", (e) => { e.preventDefault(); Object.assign(view, (e.deltaY < 0 ? V3_KEYS["+"] : V3_KEYS["-"])(view)); redraw(); }, { passive: false });
   canvas.addEventListener("keydown", (e) => { if (e.key === "c" || e.key === "C") { view.cut = !view.cut; cutBtn.setAttribute("aria-pressed", String(view.cut)); redraw(); e.preventDefault(); return; } const f = V3_KEYS[e.key]; if (f) { Object.assign(view, f(view)); cutBtn.setAttribute("aria-pressed", String(view.cut)); redraw(); e.preventDefault(); } });
-  host.append(bar, wrap, cap, det);
+  host.append(bar); if (fbar) host.append(fbar); host.append(wrap, cap, det);
+  if (flow) syncFlow();
   requestAnimationFrame(redraw);
   host._redraw = redraw;
 }
 function inPoly(poly, x, y) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { if (((poly[i][1] > y) !== (poly[j][1] > y)) && x < ((poly[j][0] - poly[i][0]) * (y - poly[i][1])) / (poly[j][1] - poly[i][1]) + poly[i][0]) c = !c; } return c; }
 /* the case view's data: the closed form of every slice, from the check; a run's: OFFBEAT's cells of every slice */
+let case3dFlow = "closed";
 function stackDataFromCheck() {
   if (!(result && result.ok && result.axialProfiles && result.normalized && result.normalized.axial) || result.transient) return null;
+  if (stackFlowChoice(result.axialField2d, case3dFlow).shown === "2d") return stackDataTwoD(result.axialField2d, geomOfCase(result.normalized));
   return stackViewData(result.axialProfiles.map((s) => ({ index: s.index, z: s.height, samples: s.points })), geomOfCase(result.normalized));
 }
 function stackDataFromRun(d) {
@@ -961,18 +989,19 @@ function stackDataFromRun(d) {
   return { ...stackViewData(a.slices.map((s) => ({ index: s.index, z: s.height, samples: s.radial.map((p) => ({ r: p.r, T: p.T, region: p.region })) })), geomOfCase(n)), run: true, conduction: typeof cond === "number" ? cond : null };
 }
 let case3dShown = false;
+const case3dFlowOption = { get: () => stackFlowChoice(result && result.axialField2d, case3dFlow), set: (v) => { case3dFlow = v; } };
 function update3dTab() {
   const has = !!stackDataFromCheck();
   $("tab3d").hidden = !(mode === "case" && has);
   if (!has && caseTab === "3d") showCaseTab("view");
-  if (has && caseTab === "3d" && !$("doc3d").hidden) { if (!$("doc3d")._redraw) make3dPanel($("doc3d"), stackDataFromCheck, "c3"); else $("doc3d")._redraw(); }
+  if (has && caseTab === "3d" && !$("doc3d").hidden) { if (!$("doc3d")._redraw) make3dPanel($("doc3d"), stackDataFromCheck, "c3", case3dFlowOption); else $("doc3d")._redraw(); }
 }
 function showCaseTab(t) {
   caseTab = t;
   for (const [id, name] of [["tabView", "view"], ["tab3d", "3d"], ["tabJson", "json"]]) $(id).setAttribute("aria-selected", String(name === t));
   $("docView").hidden = t !== "view"; $("doc3d").hidden = t !== "3d"; $("docJson").hidden = t !== "json";
   if (t === "view") draw();
-  if (t === "3d") { if (!$("doc3d")._redraw) make3dPanel($("doc3d"), stackDataFromCheck, "c3"); else $("doc3d")._redraw(); }
+  if (t === "3d") { if (!$("doc3d")._redraw) make3dPanel($("doc3d"), stackDataFromCheck, "c3", case3dFlowOption); else $("doc3d")._redraw(); }
 }
 function renderStackResults3d(d) {
   const host = $("r3dHost"), data = stackDataFromRun(d);

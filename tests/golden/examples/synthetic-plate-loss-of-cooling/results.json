@@ -1326,19 +1326,19 @@
   "checks": [
     {
       "id": "energyBalance",
-      "label": "Energy balance (deposited = stored + rejected, from the outputs)",
-      "value": 0.07339379452954274,
+      "label": "Energy balance (deposited + received along the height = stored + rejected, from the outputs)",
+      "value": 0.013651355723489841,
       "unit": "relative",
       "verdict": "pass",
-      "note": "all 10 slices pass; the worst is slice 1 of 10 (height 0.0191 m): largest relative gap over the outputs; threshold 16.2% of the largest of the energy deposited, rejected and stored anywhere in the run (a boundary history: the energies can cross zero, and the heat leaving can change within a few steps between outputs). It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving"
+      "note": "all 10 slices pass; the worst is slice 6 of 10 (height 0.2095 m): largest relative gap over the outputs; threshold 3.00% of the largest of the energy deposited, rejected and stored anywhere in the run (a boundary history: the energies can cross zero, and the heat leaving can change within a few steps between outputs). It includes the first-order error of depositing the source at the new time (about 1/N of the energy over a ramp of N steps) and a trapezoid over the output times for the heat leaving"
     },
     {
       "id": "crossCheckFv",
       "label": "OFFBEAT vs the independent finite-volume solution (max cell deviation)",
-      "value": 5.571590071224534,
+      "value": 0.0004972444545501276,
       "unit": "K",
       "verdict": "pass",
-      "note": "all 10 slices pass; the worst is slice 1 of 10 (height 0.0191 m): largest at t = 59.99999999999873 s; bound 14.289 K = min(3 x 0.016 K [the independent solution's own change when its cells are halved], 0.5% of the peak rise) + 0.02 K + 14.2 K for the heat flow along the pin (an axial stack)"
+      "note": "all 10 slices pass; the worst is slice 5 of 10 (height 0.1715 m): largest at t = 59.99999999999873 s; bound 0.326 K = min(3 x 0.102 K [the independent solution's own change when its cells are halved], 0.5% of the peak rise) + 0.02 K"
     },
     {
       "id": "timeStep",
@@ -1346,7 +1346,7 @@
       "value": 0.16855354699674763,
       "unit": "K",
       "verdict": "pass",
-      "note": "all 10 slices pass; the worst is slice 5 of 10 (height 0.1715 m): the peak changes by at most 0.149 K, at any step of the run, when the step is halved; threshold 2% of the peak rise (12.53 K). With a boundary history every cell and the outer wall are compared at each output too: at most 0.169 K, threshold 2% of the largest excursion of any cell (11.22 K). If it fails, shorten the time step"
+      "note": "all 10 slices pass; the worst is slice 5 of 10 (height 0.1715 m): the peak changes by at most 0.149 K, at any step of the run, when the step is halved; threshold 2% of the peak rise (12.50 K). With a boundary history every cell and the outer wall are compared at each output too: at most 0.169 K, threshold 2% of the largest excursion of any cell (11.19 K). If it fails, shorten the time step"
     },
     {
       "id": "energyBalanceTotal",
@@ -1358,18 +1358,18 @@
     },
     {
       "id": "axialConduction",
-      "label": "Axial heat flow allowed for in the per-slice tolerances",
+      "label": "Axial heat flow (in the two-dimensional reference, no allowance)",
       "value": 0.0013422479239578555,
       "unit": "relative",
       "verdict": "na",
-      "note": "the steady estimate is 0.134 % of the largest rise (src/core/axial.ts); the per-slice cross-check is widened by 3 times it as a fraction of the largest rise of any slice (2.52 K), and the per-slice energy balance by 3 times it as a fraction of the slice's own power (the end slices make little heat and take a larger share). A transient's axial flow is not larger than the steady one for the same shape, but it was measured on the real solver only in the tests of docs/axial-stack.md. The heat the slices can exchange along the height during the run is bounded from the independent solutions (up to 14.2 K and 13.2 % of a slice's energy; the steady estimate does not bound a run in which the coolant cannot carry the heat away). The exchange number (rate x run time) is 0.0628, below 1, where the bound held on the real solver: each slice's allowance is the larger of the two"
+      "note": "information only: the heat flow along the height is in the reference, which is FEED's own two-dimensional finite-volume solution of the whole stack on the writer's mesh with the run's step, powers and coolants, started from the field the run was given. OFFBEAT's cells differ from it by up to 0.000497 K at any output; from the one-dimensional solutions of the slices by up to 5.57 K. The run starts from each slice's own steady state, 0.304 K from the stack's coupled steady state, and relaxes toward it; the reference starts from the same field. Without the reference the per-slice cross-check would be widened by 2.52 K (the steady estimate, 0.134 % of the largest rise; the exchange bound up to 14.2 K, exchange number 0.0628); that allowance is the fallback where the reference cannot be computed. The spatial and time-stepping error estimates in each slice's bound are those of its own one-dimensional runs."
     }
   ],
   "domain": {
     "verdict": "in-domain",
     "findings": []
   },
-  "thermalOnly": "Thermal-only result. It says nothing about stress, failure or fuel integrity. One through-thickness solution per axial slice of the plate, with the heat flow along the height that the solver includes. The checks compare each slice with its own one-dimensional slab closed form within a bound that includes an estimate of that heat flow.",
+  "thermalOnly": "Thermal-only result. It says nothing about stress, failure or fuel integrity. One through-thickness solution per axial slice of the plate, with the heat flow along the height that the solver includes. The checks compare the cells with FEED's own two-dimensional finite-volume solution of the whole stack on the same mesh, which includes that heat flow, within the mesh bound and with no allowance for it. The reference is a second method on the same discretisation, not a measurement.",
   "axial": {
     "length": 0.381,
     "slices": [
@@ -2445,6 +2445,12 @@
       "exchangeEnergy": 0.13231235914084327,
       "exchangeNumber": 0.06279065381445881,
       "exchangeCounted": true
+    },
+    "reference": {
+      "kind": "two-dimensional",
+      "deviation": 0.0004972444545501276,
+      "oneDimensionalDeviation": 5.571590071224534,
+      "startDistance": 0.30438968531240107
     }
   }
 }
