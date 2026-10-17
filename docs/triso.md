@@ -2,7 +2,7 @@
 
 A coated particle (TRISO) is a sphere: a fuel **kernel** and two to four coating layers (buffer, inner pyrolytic carbon, silicon carbide, outer pyrolytic carbon). FEED treats it as one-dimensional in the radius (spherically symmetric), **thermal only, steady or a thermal transient**. Heat is generated in the kernel and leaves through the layers to the outside.
 
-**Status (milestone T5, 2026-10-16): a valid particle, steady or a transient, runs through the real OFFBEAT and is read back with independent checks; the layers can carry stated temperature limits; the editor builds it from scratch and shows its results ("In the editor" below).** The editor's check, the run manager, the command line (`write-case`, `headless run`) and the server's run, results, detail and CSV routes all take a particle; the editor's page (milestone T5) has its own explorer items, panels, picture and results view for a particle. The reasons for each choice below are in [plan 13](plans/13-triso-particle.md) and [the probe](spike/triso-probe.md); the numbers of the real runs are in "Running a particle" below.
+**Status (milestone T6, 2026-10-16): a valid particle, steady or a transient, runs through the real OFFBEAT and is read back with independent checks; the layers can carry stated temperature limits; the editor builds it from scratch and shows its results ("In the editor" below); a population of sampled particles is run through the closed form and its spread reported ("A population of particles" below).** The editor's check, the run manager, the command line (`write-case`, `headless run`) and the server's run, results, detail and CSV routes all take a particle; the editor's page (milestone T5) has its own explorer items, panels, picture and results view for a particle. The reasons for each choice below are in [plan 13](plans/13-triso-particle.md) and [the probe](spike/triso-probe.md); the numbers of the real runs are in "Running a particle" below.
 
 **What it is not.** It says how hot the kernel and each layer are. It does not say whether the particle survives: the stress in the SiC, the swelling and creep of the carbon, the pressure of the fission gas and CO, a failure fraction and kernel migration are not modelled (decision D1 of plan 13: thermal only first). Gamma heating of the coatings is not modelled either: all the heat is in the kernel.
 
@@ -178,6 +178,97 @@ Energies in the record are the nominal sphere's (the wedge's, divided by lambda^
 | `coarse-step`: the pulse with a 5 ms step | 0.013 K | **3.9 %, fails** | **1.87 K, fails** | 1013.6 K |
 
 A step that does not resolve the pulse fails `timeStep` and says to shorten it, while the cells still agree with the independent solution of the same step. A heat capacity 1.5 times too large, a power 10 % too high, a wall table other than the one that was run, a conductivity 20 % off and a step twice the one that was run each fail a check on the saved real output.
+
+## A population of particles (T6)
+
+Particles are not identical: the kernel's size, each layer's thickness, the local power and the matrix temperature all spread. A **population** draws N particles from distributions the case states, runs every one through the independent closed form of the sphere (the same solution as "The independent solutions" below) and reports the **spread** of the kernel's peak temperature and of every drop. **It is a sample of a stated population, not a prediction for a real core**: the distributions are the case's, the spread is the spread of the N particles drawn, and it is thermal only (no stress, no failure fraction: that is plan 14). A real core holds billions of particles; N is thousands.
+
+Code: `src/core/trisoPopulation.ts` (the generator, the distributions, the batch and the statistics), `src/core/trisoPopulationCase.ts` (the case's section), `src/core/populationRunner.ts` and `populationWorker.ts` (a worker thread with a deadline), the server route `POST /api/population`, the editor's Population item. Tests: `tests/trisoPopulation.test.ts` (45), `tests/populationEditor.test.ts` (19), `tests/trisoPopulationGolden.test.ts` (14, ungated), `tests/trisoPopulationSolver.test.ts` (gated), `tests/seedOracleTriso.test.ts`, `tests/transferParticle.test.ts`.
+
+### The case's section
+
+```json
+"population": {
+  "size": 2000,
+  "seed": 20261016,
+  "distributions": {
+    "kernelRadius": { "kind": "normal", "mean": { "value": 250, "unit": "um" }, "stdDev": { "value": 5, "unit": "um" },
+                      "truncate": { "min": { "value": 235, "unit": "um" }, "max": { "value": 265, "unit": "um" } } },
+    "buffer":       { "kind": "normal", "mean": { "value": 100, "unit": "um" }, "stdDev": { "value": 8, "unit": "um" } },
+    "sic":          { "kind": "lognormal", "median": { "value": 35, "unit": "um" }, "sigmaLog": { "value": 0.04, "unit": "1" } },
+    "ipyc":         { "kind": "uniform", "min": { "value": 36, "unit": "um" }, "max": { "value": 44, "unit": "um" } },
+    "opyc":         { "kind": "constant", "value": { "value": 35, "unit": "um" } },
+    "powerFactor":  { "kind": "lognormal", "median": { "value": 1, "unit": "1" }, "sigmaLog": { "value": 0.1, "unit": "1" } },
+    "matrixTemperature": { "kind": "normal", "mean": { "value": 900, "unit": "K" }, "stdDev": { "value": 15, "unit": "K" } }
+  }
+}
+```
+
+- **`size`**: a whole number from 1 to **100000**. **`seed`**: a whole number from 0 to 4294967295, **always stated** (it names the sample: the case gives the same particles every time, on every machine). A different seed is another sample of the same population.
+- **Variables** (each optional; one not given is the case's own value and draws nothing): `kernelRadius`, the thickness of each layer **the particle has** (`buffer`, `ipyc`, `sic`, `opyc`; a thickness for a layer it lacks is `E_GEOMETRY`), `powerFactor` and `matrixTemperature`.
+- **What each changes.** The *power factor* multiplies the case's **kernel power density**, so the heat per particle is that density times the DRAWN kernel volume (a bigger kernel makes more heat in the same neutron field; the power per particle is not held fixed). The *matrix temperature* is the bulk temperature of a convective boundary or the temperature of a prescribed wall. The gap's conductance (at the buffer's outer radius), the film coefficient and every conductivity are the case's. A population of constants is the case's own particle.
+- **Kinds.** `constant` (`value`), `normal` (`mean`, `stdDev`), `lognormal` (`median`, `sigmaLog`: the standard deviation of ln x, a plain number such as 0.05 for about 5 %), `uniform` (`min`, `max`). A normal or lognormal may be **truncated** to `{min, max}` (either may be left out) by rejection inside the range. The spread of a temperature is a **difference**: `stdDev` of the matrix temperature is in `K`, a `degC` is refused (`E_UNITS`) because it would add 273.15.
+- **Steady only**: a population on a transient particle is `E_UNSUPPORTED` (a transient is one particle's history; its power is a table, not a density a factor can scale). A pin or a plate with a `population` is `E_UNSUPPORTED` too.
+
+### What is refused
+
+| Fault | Code and field |
+|---|---|
+| a population that is not an object, an unknown key, an unknown variable or kind, an unknown key of a distribution or truncation, `size` or `seed` that is not a whole number, a truncation with neither bound | `E_SCHEMA_INVALID` at the field |
+| no `size`, `seed`, `distributions` or a parameter of a kind | `E_PROP_MISSING` |
+| `size` of 0 or above 100000, a `seed` outside 0 to 4294967295, a `stdDev` or `sigmaLog` of 0 or less, a lognormal median of 0 or less, a uniform with `max` not above `min`, a truncation whose `max` is not above its `min`, a constant that is not a valid value | `E_OUT_OF_RANGE` |
+| a distribution for a layer the particle does not have | `E_GEOMETRY` |
+| a quantity in the wrong unit (a thickness in K, a bare number, a temperature spread in degC) | `E_UNITS` |
+| **a distribution that cannot be sampled**: once truncated and cut to the valid values of its variable (a thickness of at least 1 nm, a factor above 0 and at most 100, a temperature above 0 K and at most 10000 K) it keeps **under 1 %** of its draws | `E_POPULATION_UNSAMPLABLE` (new) |
+| a population on a transient particle, a pin or a plate | `E_UNSUPPORTED` |
+
+Warning `W_POPULATION_REJECTION` (new): more than 1 % of a distribution's draws are not valid values (for example a buffer of 100 +- 45 um, which is below 1 nm in 1.3 % of the draws): they are thrown away and counted, and the sample is then the distribution **conditioned on being valid**, with a mean and spread that differ from the stated ones. At run time a population whose draws mostly fail (more than ten rejections for each particle kept, plus 100) stops with the reason and the counts (HTTP 422). 43 vectors (7 good, 36 bad) are in `schema/vectors/*/triso-population-*.json` and `pin-with-population.json`; each bad one has one fault and one code.
+
+### The generator
+
+Written here, no `Math.random`: **xoshiro128\*\*** on 32-bit integers, its four words filled from the seed by **splitmix32**, and a **Box-Muller** normal, `sqrt(-2 ln u1) cos(2 pi u2)` from two uniforms of 53 bits each (the sine partner is thrown away, so a draw never depends on the one before). The integer generator gives the same numbers on every platform and engine. The normal draw uses `Math.log`, `Math.sqrt` and `Math.cos`, which are the same code on every platform of one engine (V8 takes them from fdlibm) and **may differ in the last bits on another engine**; the tests pin the first words of the seed 1 exactly and its first normal draws to 1e-12. One particle is drawn in a fixed order (kernel radius, buffer, inner PyC, SiC, outer PyC, power factor, matrix temperature); a constant draws nothing. A draw that is not a valid particle (a length outside 1 nm to 1 km, a power factor or a temperature outside its range, a closed form that does not exist) is **rejected as a whole and counted** by reason (`geometry`, `powerFactor`, `matrixTemperature`, `noClosedForm`), and the particle is drawn again.
+
+### What it reports
+
+For every sampled particle the closed form gives the kernel's peak temperature, its rise above the matrix, and the drop across the kernel, each layer, the gap and (for a convective boundary) the film. For each of them: **mean, standard deviation (n - 1), minimum, maximum and the 5, 50, 95 and 99 percentiles** (linear interpolation between the order statistics at position (n - 1) p: NumPy's and R's default). Also: a **histogram** of the kernel peak (20 equal bins), the **maximum** with its particle's parameters, five **representative particles** (the hottest, the one nearest the median, the coldest, the one with the thickest buffer, the one with the thinnest SiC) with their numbers, the **counts of rejected draws**, the case's own particle for comparison, and, when the case has `limits`, the **fraction of particles above each** (a region's hottest point is its inner face, from the closed form; so a limit on the SiC is judged at the SiC's inner face). Speed: 2000 particles take 0.3 s and 100000 take 4.4 s in one thread on the development machine; the server runs the batch in a worker thread with a deadline of 60 s.
+
+### How it was checked
+
+Written before the code, in the plan: the same seed gives the same sample, another seed another; the sampled **mean of the kernel temperature equals the mean particle's value plus the Jensen correction**, the correction computed by quadrature in the test (a kernel radius of 250 +- 30 um at 3000 MW/m3: the mean particle gives 1049.06 K, the quadrature gives 1049.27 K, 100000 draws give a mean within four standard errors of the quadrature and more than four from the mean particle's value); the percentiles against a sorted list done by hand (21 particles, the draws replayed with the generator); the population of constants equals the single particle; a population changes nothing for a case without one (the normalised particle is byte-identical to the saved real runs, and with a population it is the same particle plus the section). The generator is held against a second implementation in BigInt arithmetic; the distributions against their theory (mean, variance, skewness, a Kolmogorov-Smirnov distance, the truncated mean) with tolerances of four standard errors fixed in the test file first. Negative controls fail the same checks: a swapped distribution (the buffer's law given to the SiC) and a read of the wrong layer.
+
+### The real solver across the spread
+
+The population is run through the closed form; **OFFBEAT is the check on a few of its particles**, which is what `tests/trisoPopulationSolver.test.ts` does (`FEED_SOLVER=1`; saved in `tests/golden/offbeat-triso-pop/`, read again without the solver by `tests/trisoPopulationGolden.test.ts`). The five representatives of the example population are written out as cases of constants (`particleDocument`) and run through the run manager. Tolerances were fixed before the first run: the kernel centre against the closed form of the sampled particle 0.6 % of its internal rise, every region's drop against the closed form of the wedge's sphere 0.2 K, the spread (hottest minus coldest) within 1 %, and every check the run itself makes passing.
+
+| Particle (of 2000) | closed form of the sampled particle | OFFBEAT kernel centre | difference | cross-check against FEED's finite volumes (bound 0.3 % of the internal rise, 0.044 to 0.054 K) |
+|---|---|---|---|---|
+| hottest (1355) | 978.387 K | 978.358 K | -0.029 K | 0.015 K |
+| median (398) | 928.933 K | 928.899 K | -0.034 K | 0.020 K |
+| coldest (817) | 867.630 K | 867.612 K | -0.018 K | 0.005 K |
+| thickest buffer (1098, 123.5 um) | 916.176 K | 916.121 K | -0.055 K | 0.041 K |
+| thinnest SiC (7) | 930.655 K | 930.607 K | -0.048 K | 0.033 K |
+
+The real solver sees the same ordering and the same width (110.7 K from the coldest to the hottest). **A finding, and the reason the example's mesh is 48 cells:** on the 12 cells per region of the other examples, the four representatives that were run first (the hottest, median, coldest and thickest-buffer particles; the fifth was not reached) **all failed the run's own finite-volume cross-check**: the largest cell deviation from FEED's finite volumes was 0.087, 0.107, 0.046 and 0.190 K against bounds of 0.050, 0.051, 0.044 and 0.049 K (0.3 % of the internal rise of 14.6 to 16.9 K). T3's particle (49 K rise) agrees to 0.2 % of its rise. The deviation sits in the kernel and grows with the buffer's thickness in these four (99.7 um: 0.046 K, 103.5: 0.087, 107.9: 0.107, 123.5: 0.190), a step at the kernel-buffer interface of OFFBEAT's mesh; the mechanism was not isolated. **No tolerance was widened:** on 48 cells every check of every run passes, with the deviations 4.6 to 9 times smaller (the table). The closed form the population uses is right on either mesh; a sampled particle run through OFFBEAT on 12 cells can fail the real solver's own cross-check by this amount, so use 48.
+
+### The example
+
+`examples/synthetic-triso-population.json`: the generic particle (250/100/40/35/35 um, FEED's synthetic conductivities) at a kernel power density of 1000 MW/m3 in a 900 K, 2000 W/m2/K matrix (assumed), 48 cells per region, and a population of 2000 particles with the seed 20261016: normal spreads of a few percent in the radius (truncated at 3 sigma) and each thickness, a lognormal power factor (median 1, sigma of ln x 0.1) and a normal matrix temperature (900 K, 15 K). **The spreads are assumed numbers, not measured ones.** Result: a kernel peak of **929.0 K on average (sd 15.5 K), 5 % at 903.6 K, 50 % at 928.9 K, 95 % at 953.6 K, 99 % at 965.6 K, from 867.6 to 978.4 K**; the case's own particle has 928.66 K (the mean is 0.35 K higher: the Jensen effect of the radius and the thicknesses). Per drop (mean, sd): kernel 3.47 +- 0.36 K, buffer 11.89 +- 1.37 K, inner PyC 0.38 +- 0.05 K, SiC 0.08 +- 0.01 K, outer PyC 0.23 +- 0.03 K, gap 0.28 +- 0.03 K, film 12.3 +- 1.3 K. None of the 2000 draws was rejected.
+
+### In the editor
+
+A particle gets **Population** in the explorer when its case has the section (a particle without one has the items it always had); the **Power** item of a steady particle has *Add a population*. The panel has the size and the seed, one row for each variable with a kind (not varied, constant, normal, lognormal, uniform), its parameters with units and, for a normal or lognormal, a *truncate at 3 sigma* box whose bounds can be edited; the validator's errors show at their fields and the Run button is off until the case is valid. **Run population** posts the case to `/api/population` and shows the banner (a sample, not a prediction for a real core), the counts of particles and rejected draws, two small tables (mean, sd, max; then the 5, 50, 95 and 99 percentiles), a histogram of the kernel peak with the percentiles and the limits marked, the fraction above each limit and the five representative particles with their parameters. A sample is marked stale when the case changes and is not shown for another document. Driven in the browser pane on a server of its own port (8794): the particle from the menu, *Add a population*, five distributions and a truncation set, a limit added, the run (1000 particles), the tables and the histogram read, a size of 0 showing its error at the field with the Run button off and the sample marked stale, and a pin loaded after it showing no Population item. **Found by driving it and fixed:** the tables were unreadable in the narrow properties panel (a first column that wrapped letter by letter: now two four-column tables and a details block per particle), and the histogram's labels ran off the plot.
+
+### Power from OpenMC: per particle, and the gap
+
+OpenMC Studio (read 2026-10-16, branch `claude/mc-checks`): its result view turns any tally into a `kind: "table"` with the filter bins as labels (cell names; a material filter; and, for a part inside a lattice, a cell-instance filter whose bins are `(cell, instance)`) and for each row and score a `mean`, a `std` and a relative error, **per source particle**; its depletion writer already tallies `kappa-fission` per material to split the power. Its TRISO example (`examples/triso-particle`) is one particle with a flux tally by cell, in a fixed-source run with fission production off, and **no power tally and no packing fraction**: its own TODO says a packing template (`pack_spheres`, `create_triso_lattice`) is "eventually", with no TRISO users confirmed.
+
+**So a power per particle can be derived, by arithmetic outside FEED's transfer:** a `kappa-fission` (or `heating`) tally over the kernel cell(s) gives energy per source neutron summed over the kernels it covers; the heat per particle is that, times the source rate (or scaled to a stated total power, as the pin transfer does with `total-power`), **divided by the number of kernels the tally covers**. That number is a recipe input, not in the table: for a single-particle model it is 1; for a compact it is the count of the model (which Studio cannot express today); with a cell-instance filter every particle has its own row and no division is needed. FEED's `particlePower` (W) is then that number, or `kernelPowerDensity` if divided by the kernel volume.
+
+**FEED's transfer cannot carry it today, and this was not changed.** `transferHeating` (`src/core/transferRequest.ts`, [transfer-heating.md](transfer-heating.md)) maps a heating table onto the *axial slices of one pin* and writes `power.linearHeatRate` of the chosen slice; the transfer fields FEED describes to SEED are `heating-to-pin`, `coolant-boundary` and `burnup`. A particle as the target is refused with the validator's reason (`E_UNSUPPORTED` at `/target/content/power/linearHeatRate`: a particle's power is per particle, per kernel volume or per compact volume), and no case comes out (`tests/transferParticle.test.ts`). A per-particle form would be a new field (`heating-to-particle`: a label for the kernel cell, the count of kernels, the source rate or a total, `particlePower` as the product) with its own recipe vocabulary in SEED's contract (`seed.transfer-recipe`), which is a decision for SEED's side as well as FEED's, not a small change here. It is written as a question in [seed-triso-request.md](seed-triso-request.md). The packing fraction stays an input of the case.
+
+### SEED
+
+[seed-triso-request.md](seed-triso-request.md) (a document, **not sent**): 19 oracle entries for five sampled particles in `oracles/seed-triso/` (a separate folder: the 125 entries of `oracles/seed` are untouched), the new per-layer quantities, how FEED reads each, the tolerances, the real-solver numbers and the questions for SEED.
 
 ## The independent solutions (T2)
 
