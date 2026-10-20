@@ -7,6 +7,7 @@ import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { buildTrisoMechanicsResults, TrisoMechanicsInput } from "../src/core/trisoMechanicsResults";
 import { validateCase } from "../src/core/validate";
+import { buildCompactRecord, HomogenisedSpec } from "../src/core/compact";
 
 const root = join(__dirname, "golden", "offbeat-triso-mech");
 const g = (name: string) => {
@@ -114,5 +115,39 @@ describe("the SiC expansion has a stated range (R4-3)", () => {
     const cool = sicCase(900);
     // (the carbon layers warn here, their own law starts at 873 K: only the SiC field is judged)
     expect(cool.warnings.map((w) => w.code + " " + w.field)).not.toContain("W_EXPANSION_RANGE /materials/sic/sets/mechanical.thermalExpansion");
+  });
+});
+
+describe("the two-scale particle's own conductivity ranges (R4-2)", () => {
+  const spec0 = () => {
+    const d = JSON.parse(readFileSync(join(__dirname, "..", "examples", "synthetic-compact-steady.json"), "utf8"));
+    const v = validateCase(d);
+    expect(v.errors).toEqual([]);
+    return JSON.parse(JSON.stringify(v.normalized!.compact)) as HomogenisedSpec;
+  };
+  // a compact whose cells are all at one temperature: the two-scale particle behind the matrix shell is then the only thing that can be hotter than the solid's range
+  const record = (spec: HomogenisedSpec, matrixT: number) => {
+    const cells = Array.from({ length: 20 }, (_, i) => ({ r: (i + 0.5) * 1e-4, T: matrixT }));
+    return buildCompactRecord(spec, cells, () => matrixT, { inner: 0, outer: 2e-3 });
+  };
+  const withKernelRange = (spec: HomogenisedSpec, range: [number, number]) => {
+    const k = spec.particle.kernelConductivity as { kind: string; k?: number };
+    spec.particle.kernelConductivity = { kind: "linear", a: k.k ?? 3, b: 0, range } as never;
+    return spec;
+  };
+  it("a kernel that the two-scale step heats above its law's range fails twoScaleRange naming the region and the place; the same case with the matrix cooler passes", () => {
+    const base = record(spec0(), 600).twoScale[0]!.particle;
+    const rise = base.kernelCentreT - 600;
+    expect(rise).toBeGreaterThan(1); // the particle is hotter than the solid around it: the whole point
+    const top = 600 + rise / 2;
+    const hot = record(withKernelRange(spec0(), [300, top]), 600);
+    const c = hot.checks.find((x) => x.id === "twoScaleRange")!;
+    expect(c.verdict).toBe("fail");
+    expect(c.note).toMatch(/kernel at the hottest: \d+-\d+ K outside 300-/);
+    const ok = record(withKernelRange(spec0(), [300, top + rise]), 600);
+    expect(ok.checks.find((x) => x.id === "twoScaleRange")!.verdict).toBe("pass");
+  });
+  it("a particle whose laws are constants has no range to check: no such check is added", () => {
+    expect(record(spec0(), 600).checks.map((x) => x.id)).not.toContain("twoScaleRange");
   });
 });

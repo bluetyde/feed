@@ -493,6 +493,24 @@ export function buildCompactRecord(spec: HomogenisedSpec, fuelCells: { r: number
       note: `${e.matrixT.toFixed(3)} K from the solver's cells and ${e.matrixTIndependent.toFixed(3)} K from the closed form; bound ${bound.toFixed(3)} K = 5 x ${rise.toPrecision(3)} K / ${N}^2 + ${floor.toPrecision(3)} K. The kernel's centre is then ${e.particle.kernelCentreT.toFixed(2)} K (${e.particleIndependent.kernelCentreT.toFixed(2)} K from the closed form's field)`,
     };
   });
+  // the particle's own conductivity laws within their stated ranges: the compact's range check covers the homogenised solid only, but the hottest particle's kernel and layers run hotter
+  // than the solid around them (the two-scale step is where that rise is found), so each region of each particle is compared with its own law's range (as for a plain particle)
+  {
+    const ks: Conductivity[] = [spec.particle.kernelConductivity, ...spec.particle.layers.map((l) => l.conductivity)];
+    if (ks.some((k) => rangeOf(k) !== undefined)) {
+      const outside: string[] = [];
+      for (const e of entries) {
+        e.particle.closed.regions.forEach((reg, ri) => {
+          const r = rangeOf(ks[ri]!);
+          if (!r) return;
+          const lo = Math.min(reg.innerT, reg.outerT);
+          const hi = Math.max(reg.innerT, reg.outerT);
+          if (lo < r[0] || hi > r[1]) outside.push(`${reg.name} at the ${e.at}: ${lo.toFixed(0)}-${hi.toFixed(0)} K outside ${r[0]}-${r[1]} K`);
+        });
+      }
+      checks.push({ id: "twoScaleRange", label: "Particle conductivity laws within their stated ranges (two-scale step)", value: null, unit: "", verdict: outside.length === 0 ? "pass" : "fail", note: outside.length === 0 ? "the kernel's and every layer's temperatures in each two-scale particle are inside their conductivity laws' stated ranges" : outside.join("; ") + ". The law was extrapolated in the particle; this two-scale result is out-of-domain." });
+    }
+  }
   const domainMsg = mixtureDomainMessage(spec);
   const lawNote = mixtureLawNote(spec.law);
   const msg = domainMsg && lawNote ? domainMsg + " Also: " + lawNote : domainMsg ?? lawNote;
