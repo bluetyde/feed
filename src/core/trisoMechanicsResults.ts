@@ -36,6 +36,8 @@ export const TRISO_MECH_TOLERANCE = {
   equilibrium: { fraction: 0.02, floor: 1e4 },
   interface: { stressFraction: 0.02, floor: 1e4, displacementFraction: 0.005 },
   symmetry: { fraction: 1e-6, floor: 1 },
+  /** Off the radial axis: the displacement perpendicular to the radius, the shear stresses and the off-diagonal free strain (all zero for a sphere; measured on the six saved runs: 1e-25 m, 5.5e-8 Pa, 0). */
+  offAxis: { displacementFraction: 1e-6, displacementFloor: 1e-12, shearFraction: 1e-6, shearFloor: 1 },
   temperature: 0.01,
   freeStrain: 1e-9,
   /** Cell centres within this (relative) of where the case's mesh puts them. */
@@ -116,7 +118,7 @@ export interface TrisoMechanicsInput {
 }
 
 /** A list field of a vector or symmetric tensor: `internalField nonuniform List<type> N ( (a b c ...) ... )` or a uniform value, `width` numbers per cell. */
-function parseListField(text: string, name: string, width: number, cells: number): number[][] {
+export function parseListField(text: string, name: string, width: number, cells: number): number[][] {
   assertWholeFoamFile(text, name);
   const un = /internalField\s+uniform\s+\(([^)]*)\)/.exec(text);
   if (un) {
@@ -209,11 +211,14 @@ export function buildTrisoMechanicsResults(n: NormalizedTriso, input: TrisoMecha
     return { r, layer: ks[li]!.name, T: T[cell]!, sigmaR: S[cell]![XX]!, sigmaT: S[cell]![YY]!, sigmaTz: S[cell]![ZZ]!, ur, ind: independentAt(n, rEval, sol, li) };
   });
   const checks: Check[] = [];
+  // the bounds use the temperature the case gives each cell (the one the solver is told to keep), not the output T under test: a damaged T cannot widen them (it fails mechanicsTemperature)
+  const wantT = trisoMechanicsTemperatures(n);
+  const caseT = new Map(cellsAll.map((c, rank) => [c, wantT[rank]!] as const));
   const a2 = TRISO_MECH_WEDGE_HALF ** 2;
   const perLayer = ks.map((k, li) => {
     const cells = cellsAll.filter((c) => c.layer === k.name);
     const stressMax = Math.max(...cells.flatMap((c) => [Math.abs(c.ind.sigmaR), Math.abs(c.ind.sigmaT)]));
-    const dTmax = Math.max(...cells.map((c) => Math.abs(c.T - Tref)));
+    const dTmax = Math.max(...cells.map((c) => Math.abs(caseT.get(c)! - Tref)));
     const strainMax = Math.max(k.alpha * dTmax, Math.abs(k.freeStrain?.radial ?? 0), Math.abs(k.freeStrain?.tangential ?? 0));
     const scale = Math.max(stressMax, tol.stress.thermalFraction * k.E * k.alpha * dTmax);
     const allowance = tol.stress.wedgeAllowance * a2 * (k.E / (1 - k.nu)) * strainMax;
@@ -312,6 +317,25 @@ export function buildTrisoMechanicsResults(n: NormalizedTriso, input: TrisoMecha
     }
     checks.push({ id: "mechanicsSymmetry", label: "The two tangential stresses agree (yy and zz)", value: worst, unit: "Pa", verdict: pass ? "pass" : "fail", note: "a sphere has one tangential stress; the wedge's yy and zz components must be equal; bound 1e-6 of the layer's scale + 1 Pa" });
   }
+  // --- off the radial axis: a sphere has no shear and no displacement across the radius
+  {
+    let worstU = 0;
+    let worstS = 0;
+    let pass = true;
+    const byCell = new Map(order.map((cell, rank) => [cellsAll[rank]!, cell] as const));
+    for (const p of perLayer) for (const c of p.cells) {
+      const cell = byCell.get(c)!;
+      const rr = [C[cell]![0]! / c.r, C[cell]![1]! / c.r, C[cell]![2]! / c.r];
+      const d = D[cell]!;
+      const dr = d[0]! * rr[0]! + d[1]! * rr[1]! + d[2]! * rr[2]!;
+      const perp = Math.hypot(d[0]! - dr * rr[0]!, d[1]! - dr * rr[1]!, d[2]! - dr * rr[2]!);
+      const shear = Math.max(Math.abs(S[cell]![1]!), Math.abs(S[cell]![2]!), Math.abs(S[cell]![4]!));
+      worstU = Math.max(worstU, perp);
+      worstS = Math.max(worstS, shear);
+      if (perp > tol.offAxis.displacementFraction * p.uMax + tol.offAxis.displacementFloor || shear > tol.offAxis.shearFraction * p.scale + tol.offAxis.shearFloor) pass = false;
+    }
+    checks.push({ id: "mechanicsOffAxis", label: "No shear and no displacement across the radius (max shear)", value: worstS, unit: "Pa", verdict: pass ? "pass" : "fail", note: `a sphere has neither: the displacement perpendicular to the radius (largest ${worstU.toExponential(2)} m) against 1e-6 of the layer's displacement + 1e-12 m, and the shear stresses xy, xz, yz against 1e-6 of the layer's scale + 1 Pa` });
+  }
   // --- the free strain OFFBEAT applied is the one the case stated
   if (m.freeStrains.length > 0) {
     if (input.epsilonSwelling === undefined) {
@@ -324,9 +348,9 @@ export function buildTrisoMechanicsResults(n: NormalizedTriso, input: TrisoMecha
         const wantR = k.freeStrain?.radial ?? 0;
         const wantT = k.freeStrain?.tangential ?? 0;
         const e = eps[cell]!;
-        worst = Math.max(worst, Math.abs(e[XX]! - wantR), Math.abs(e[YY]! - wantT), Math.abs(e[ZZ]! - wantT));
+        worst = Math.max(worst, Math.abs(e[XX]! - wantR), Math.abs(e[YY]! - wantT), Math.abs(e[ZZ]! - wantT), Math.abs(e[1]!), Math.abs(e[2]!), Math.abs(e[4]!));
       }
-      checks.push({ id: "mechanicsFreeStrain", label: "Free strain applied as stated (max deviation)", value: worst, unit: "", verdict: worst <= tol.freeStrain ? "pass" : "fail", note: `OFFBEAT's own swelling strain of every cell against the radial and tangential strain the case states for its layer (0 for a layer without one); bound ${tol.freeStrain}` });
+      checks.push({ id: "mechanicsFreeStrain", label: "Free strain applied as stated (max deviation)", value: worst, unit: "", verdict: worst <= tol.freeStrain ? "pass" : "fail", note: `OFFBEAT's own swelling strain of every cell against the radial and tangential strain the case states for its layer (0 for a layer without one), and its shear components against 0; bound ${tol.freeStrain}` });
     }
   }
   for (const ch of checks) if (ch.value !== null && !Number.isFinite(ch.value)) bad(`check ${ch.id} is not a finite number (${ch.value})`);

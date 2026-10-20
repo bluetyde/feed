@@ -676,12 +676,20 @@
       "note": "a sphere has one tangential stress; the wedge's yy and zz components must be equal; bound 1e-6 of the layer's scale + 1 Pa"
     },
     {
+      "id": "mechanicsOffAxis",
+      "label": "No shear and no displacement across the radius (max shear)",
+      "value": 4.30264e-8,
+      "unit": "Pa",
+      "verdict": "pass",
+      "note": "a sphere has neither: the displacement perpendicular to the radius (largest 8.52e-25 m) against 1e-6 of the layer's displacement + 1e-12 m, and the shear stresses xy, xz, yz against 1e-6 of the layer's scale + 1 Pa"
+    },
+    {
       "id": "mechanicsFreeStrain",
       "label": "Free strain applied as stated (max deviation)",
       "value": 0,
       "unit": "",
       "verdict": "pass",
-      "note": "OFFBEAT's own swelling strain of every cell against the radial and tangential strain the case states for its layer (0 for a layer without one); bound 1e-9"
+      "note": "OFFBEAT's own swelling strain of every cell against the radial and tangential strain the case states for its layer (0 for a layer without one), and its shear components against 0; bound 1e-9"
     }
   ],
   "domain": {
