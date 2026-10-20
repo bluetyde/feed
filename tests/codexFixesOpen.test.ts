@@ -171,7 +171,7 @@ describe("a coupled start that could not be solved says why (R1-3)", () => {
     return v.normalized!;
   };
   it("over the steady work cap the transient reference is still solved, startDistance is null and the record carries the reason", () => {
-    const c = plate(30, 100, 20, "steady");
+    const c = plate(13, 100, 20, "steady");
     expect(stackSteadyBandWork(c)).toBeGreaterThan(STACK_STEADY_BAND_WORK_MAX);
     const r = stackTransientReference(c);
     expect("reference" in r).toBe(true);
