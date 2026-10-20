@@ -6,6 +6,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { buildTrisoMechanicsResults, TrisoMechanicsInput } from "../src/core/trisoMechanicsResults";
+import { validateCase } from "../src/core/validate";
 
 const root = join(__dirname, "golden", "offbeat-triso-mech");
 const g = (name: string) => {
@@ -86,5 +87,32 @@ describe("the bounds do not depend on the output temperature under test (R2b-4)"
     expect(bounds(bad)).toBe(bounds(base));
     // the stress itself is unchanged by T (it is OFFBEAT's own), so the stress check still passes: only the temperature check reports the damage
     expect(failed(bad)).toEqual(["mechanicsTemperature"]);
+  });
+});
+
+describe("the SiC expansion has a stated range (R4-3)", () => {
+  const lib = JSON.parse(readFileSync(join(__dirname, "..", "library", "coatings.json"), "utf8")) as { id: string; sets: Record<string, any> }[];
+  const sicCase = (surfaceK: number) => {
+    const d = JSON.parse(readFileSync(join(__dirname, "..", "schema", "vectors", "good", "triso-mechanics-library.json"), "utf8"));
+    d.materials.sic.sets["mechanical.thermalExpansion"] = JSON.parse(JSON.stringify(lib.find((e) => e.id === "sic-parfume-25-940")!.sets["mechanical.thermalExpansion"]));
+    d.boundary.surfaceTemperature = { value: surfaceK, unit: "K" };
+    return validateCase(d);
+  };
+  it("the three PARFUME segments state the coefficient as a linear law with b = 0 over 22 to 1300 C, so the same value is used and the range can be checked", () => {
+    for (const id of ["sic-parfume-25-940", "sic-parfume-940-1215", "sic-parfume-1215-1600"]) {
+      const x = lib.find((e) => e.id === id)!.sets["mechanical.thermalExpansion"].linearExpansion;
+      expect(x.model, id).toBe("linear");
+      expect(x.a.value, id).toBe(4.9e-6);
+      expect(x.b.value, id).toBe(0);
+      expect([x.validRange.min.value, x.validRange.max.value], id).toEqual([295.15, 1573.15]);
+    }
+  });
+  it("a SiC layer hotter than 1573 K gets W_EXPANSION_RANGE, one inside the range does not", () => {
+    const hot = sicCase(1700);
+    expect(hot.errors).toEqual([]);
+    expect(hot.warnings.map((w) => w.code + " " + w.field)).toContain("W_EXPANSION_RANGE /materials/sic/sets/mechanical.thermalExpansion");
+    const cool = sicCase(900);
+    // (the carbon layers warn here, their own law starts at 873 K: only the SiC field is judged)
+    expect(cool.warnings.map((w) => w.code + " " + w.field)).not.toContain("W_EXPANSION_RANGE /materials/sic/sets/mechanical.thermalExpansion");
   });
 });
