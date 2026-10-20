@@ -66,10 +66,10 @@ describe("the editor's check response for a mechanics case", () => {
 describe("the library the editor loads", () => {
   it("includes the sourced strength tables", () => {
     const l: any = library();
-    expect(l.strengths.map((s: any) => s.id)).toEqual(["ss304-ut-sar-ultimate", "ss304-ut-sar-yield"]);
+    expect(l.strengths.map((s: any) => s.id)).toEqual(["ss304-ut-sar-ultimate", "ss304-ut-sar-yield", "ss304-sandia-fig-ultimate", "ss304-sandia-fig-yield", "ss304l-inl-plate-ultimate", "ss304l-inl-plate-yield"]);
     for (const s of l.strengths) {
-      expect(s.table.length).toBeGreaterThan(4);
-      expect(s.citation).toMatch(/Safety Analysis Report/);
+      expect(s.table.length).toBeGreaterThan(2);
+      expect(s.citation).toMatch(/Safety Analysis Report|SAND2009-7374C|INL\/CON-06-11962/);
     }
   });
 });
