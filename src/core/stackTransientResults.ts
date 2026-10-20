@@ -101,6 +101,8 @@ export type StackTransientReferenceInfo =
       oneDimensionalDeviation: number;
       /** The largest difference between the run's start (every slice at its own steady state) and the stack's coupled steady state (K); null for a uniform start. */
       startDistance: number | null;
+      /** Why startDistance is null for a steady start; absent for a uniform start. */
+      startDistanceReason?: string;
     }
   | { kind: "allowance"; reason: string };
 
@@ -247,7 +249,7 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
       hottest,
       conduction: summary.conduction ? { fraction } : null,
       allowance: { field, energy: widen, ...(exchange ? { exchangeField: Math.max(...exchange.field), exchangeEnergy: Math.max(...exchange.energy), exchangeNumber: exchange.number, exchangeCounted: counted !== undefined } : {}) },
-      ...(c.plate ? { reference: ref ? ({ kind: "two-dimensional", deviation, oneDimensionalDeviation, startDistance: ref.startDistance } as StackTransientReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackTransientReferenceInfo) } : {}),
+      ...(c.plate ? { reference: ref ? ({ kind: "two-dimensional", deviation, oneDimensionalDeviation, startDistance: ref.startDistance, ...(ref.startDistanceReason ? { startDistanceReason: ref.startDistanceReason } : {}) } as StackTransientReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackTransientReferenceInfo) } : {}),
     },
   };
 }
