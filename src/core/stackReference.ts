@@ -222,6 +222,9 @@ export type StackTransientReferenceResult = { reference: StackTransientReference
  */
 export interface StackTransientSolved {
   solution: StackTransient;
+  /** The same stack at half the step and on a radial mesh of twice the cells: the time and space error estimates of the COUPLED solution (R2a-1, R2a-2 of the Codex review of 2026-10-17). */
+  half?: StackTransient;
+  fine?: StackTransient;
   start: Float64Array;
   startDistance: number | null;
   startDistanceReason?: string;
@@ -240,9 +243,19 @@ export function solveStackTransientReference(c: NormalizedCase, o: { axialConduc
   const t = c.transient!;
   let solution: StackTransient;
   let start: Float64Array;
+  let half: StackTransient;
+  let fine: StackTransient;
   try {
+    const budget = o.deadlineMs ?? STACK_TRANSIENT_DEADLINE_MS;
+    const t0 = Date.now();
+    const left = () => budget - (Date.now() - t0);
     start = runStartField(c);
-    solution = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep, steps: t.steps, outputEvery: t.steps / t.outputs, initial: start, trace: true, deadlineMs: o.deadlineMs ?? STACK_TRANSIENT_DEADLINE_MS });
+    solution = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep, steps: t.steps, outputEvery: t.steps / t.outputs, initial: start, trace: true, deadlineMs: left() });
+    // the error estimates of the checks come from the coupled problem itself: the same stack at half the step, and on twice the cells (the one-dimensional runs of the slices, which these replace,
+    // leave out the conduction along the height and so cannot see its effect on the time and space error)
+    half = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep / 2, steps: t.steps * 2, outputEvery: (t.steps / t.outputs) * 2, initial: start, trace: true, deadlineMs: left() });
+    const cFine = { ...c, mesh: { ...c.mesh, fuelCells: c.mesh.fuelCells * 2, claddingCells: c.mesh.claddingCells * 2 } };
+    fine = solveStackTransient(stackModelOf(cFine, o), { dt: t.timeStep, steps: t.steps, outputEvery: t.steps / t.outputs, initial: runStartField(cFine), deadlineMs: left() });
   } catch (e) {
     return { fallback: "the two-dimensional reference could not be computed: " + (e instanceof Error ? e.message : String(e)) };
   }
@@ -259,7 +272,7 @@ export function solveStackTransientReference(c: NormalizedCase, o: { axialConduc
       startDistanceReason = "the distance of the start from the coupled steady state was not computed: " + (e instanceof Error ? e.message : String(e));
     }
   }
-  return { solved: { solution, start, startDistance, ...(startDistanceReason ? { startDistanceReason } : {}) } };
+  return { solved: { solution, half, fine, start, startDistance, ...(startDistanceReason ? { startDistanceReason } : {}) } };
 }
 
 /** The transient two-dimensional reference of the case in this thread (solve, then build). */
@@ -271,7 +284,7 @@ export function stackTransientReference(c: NormalizedCase, o: { axialConduction?
 /** The reference of a case from a solution computed elsewhere (a worker thread): the cut into slices and the error estimates of each slice. */
 export function stackTransientReferenceFrom(c: NormalizedCase, solved: StackTransientSolved): StackTransientReference {
   const a = c.axial!;
-  const { solution, startDistance, startDistanceReason } = solved;
+  const { solution, half, fine, startDistance, startDistanceReason } = solved;
   const n = c.mesh.fuelCells + c.mesh.claddingCells;
   const height = a.length / a.slices;
   const nf = c.mesh.fuelCells;
@@ -288,6 +301,15 @@ export function stackTransientReferenceFrom(c: NormalizedCase, solved: StackTran
         states: solution.states.map((s, j) => ({ time: s.time, T: cells(j), deposited: s.layerDeposited[k]!, rejected: s.layerRejected[k]!, wall: s.wall[k]! })),
         trace: solution.traces![k]!,
       };
+      if (half && fine) {
+        // the estimates are the coupled solution's own: the stack at half the step and on twice the cells, cut into this slice
+        const cut = (sol: StackTransient, m: number, trace: boolean): FvTransient => ({
+          r: sol.r,
+          states: sol.states.map((s) => ({ time: s.time, T: Array.from(s.T.subarray(k * m, (k + 1) * m)), deposited: s.layerDeposited[k]!, rejected: s.layerRejected[k]!, wall: s.wall[k]! })),
+          ...(trace ? { trace: sol.traces![k]! } : {}),
+        });
+        return { fv, fv2: cut(fine, 2 * n, false), fvh: cut(half, n, true) };
+      }
       // The error estimates of a slice (what its cross-check bound is made of) come from its own one-dimensional runs on the doubled mesh and at half the step: the radial mesh and the
       // Euler step do not depend on the conduction along the height to first order. Each is carried over as the same difference, added to the two-dimensional solution.
       const shift = (j: number) => ({ dT: fv.states[j]!.T.map((x, i) => x - own.fv.states[j]!.T[i]!), dw: fv.states[j]!.wall - own.fv.states[j]!.wall });
