@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 import { buildTrisoMechanicsResults, TrisoMechanicsInput } from "../src/core/trisoMechanicsResults";
 import { validateCase } from "../src/core/validate";
 import { buildCompactRecord, HomogenisedSpec } from "../src/core/compact";
+import { AddressInfo } from "net";
+import { server, populationFor } from "../src/server/server";
 import { stackSteadyBandWork, STACK_STEADY_BAND_WORK_MAX, stackTransientReference } from "../src/core/stackReference";
 
 const root = join(__dirname, "golden", "offbeat-triso-mech");
@@ -185,4 +187,48 @@ describe("a coupled start that could not be solved says why (R1-3)", () => {
     expect(uniform.reference.startDistance).toBeNull();
     expect(uniform.reference.startDistanceReason).toBeUndefined();
   }, 120_000);
+});
+
+describe("a population whose client went away is stopped (R3-1, the part left open)", () => {
+  const particle = (size: number) => {
+    const c = JSON.parse(readFileSync(join(__dirname, "..", "schema", "vectors", "good", "triso-steady.json"), "utf8"));
+    c.power = { kernelPowerDensity: { value: 600, unit: "MW/m3" } };
+    c.population = { size, seed: 1, distributions: { kernelRadius: { kind: "normal", mean: { value: 250, unit: "um" }, stdDev: { value: 5, unit: "um" } } } };
+    return c;
+  };
+  it("populationFor with a signal that is aborted answers 'cancelled' at once, and the slot is free again", async () => {
+    const ac = new AbortController();
+    const t0 = Date.now();
+    const p = populationFor(particle(100000), 30000, { signal: ac.signal });
+    setTimeout(() => ac.abort(), 100);
+    const r = await p;
+    expect(r.status).toBe(500);
+    expect((r.body as { reason: string }).reason).toBe("cancelled");
+    expect(Date.now() - t0).toBeLessThan(2000);
+    expect((await populationFor(particle(100), 30000)).status).toBe(200);
+    // a signal that is aborted before the call stops the job as soon as it starts
+    const pre = new AbortController();
+    pre.abort();
+    expect((await populationFor(particle(100000), 30000, { signal: pre.signal })).status).toBe(500);
+  }, 60_000);
+  it("through the server: two requests dropped by their clients free both slots, so the next request is served (without the fix it is answered 429 busy while the abandoned workers run on)", async () => {
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    const base = "http://127.0.0.1:" + (server.address() as AddressInfo).port;
+    const post = (body: unknown, signal?: AbortSignal) => fetch(base + "/api/population", { method: "POST", headers: { "content-type": "application/json", "x-feed-client": "1" }, body: JSON.stringify(body), signal });
+    try {
+      const a = new AbortController();
+      const b = new AbortController();
+      const pa = post(particle(100000), a.signal).catch(() => undefined);
+      const pb = post(particle(100000), b.signal).catch(() => undefined);
+      await new Promise((r) => setTimeout(r, 400));
+      a.abort();
+      b.abort();
+      await Promise.all([pa, pb]);
+      await new Promise((r) => setTimeout(r, 400));
+      const next = await post(particle(100));
+      expect(next.status).toBe(200);
+    } finally {
+      await new Promise<void>((r) => server.close(() => r()));
+    }
+  }, 60_000);
 });

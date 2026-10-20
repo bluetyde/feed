@@ -275,7 +275,7 @@ function checkWith(v: ReturnType<typeof validateCase>, external?: { fv: FvTransi
 /** Population runs the server accepts at once (each is a worker thread for up to the deadline); a further request is answered 429 at once (Codex review, 2026-10-17). */
 export const POPULATION_MAX_JOBS = 2;
 let populationJobs = 0;
-export async function populationFor(doc: unknown, deadlineMs = POPULATION_DEADLINE_MS, opts: { workerFile?: string | null } = {}): Promise<{ status: number; body: unknown }> {
+export async function populationFor(doc: unknown, deadlineMs = POPULATION_DEADLINE_MS, opts: { workerFile?: string | null; signal?: AbortSignal } = {}): Promise<{ status: number; body: unknown }> {
   const v = validateCase(doc);
   if (!v.ok) return { status: 400, body: { ok: false, errors: unrunnableErrors(v), warnings: v.warnings } };
   if (!v.triso) return { status: 400, body: { ok: false, errors: [{ code: "E_UNSUPPORTED", severity: "error", field: "/geometry/kind", message: "a population is for a coated particle (geometry.kind 'triso')" }], warnings: v.warnings } };
@@ -287,7 +287,11 @@ export async function populationFor(doc: unknown, deadlineMs = POPULATION_DEADLI
   populationJobs++;
   let o;
   try {
-    o = await startPopulation(v.triso, { deadlineMs, workerFile }).done;
+    const job = startPopulation(v.triso, { deadlineMs, workerFile });
+    // a client that went away (its request was cancelled or its connection dropped) stops the worker instead of leaving it to run to the deadline (Codex review, 2026-10-17, R3-1)
+    if (opts.signal?.aborted) job.cancel();
+    else opts.signal?.addEventListener("abort", () => job.cancel(), { once: true });
+    o = await job.done;
   } finally {
     populationJobs--;
   }
@@ -428,7 +432,11 @@ export const server = createServer(async (req, res) => {
       } catch {
         return json(res, 400, { error: "body is not valid JSON" });
       }
-      const r = await populationFor(doc);
+      const gone = new AbortController();
+      res.on("close", () => {
+        if (!res.writableEnded) gone.abort();
+      });
+      const r = await populationFor(doc, undefined, { signal: gone.signal });
       return json(res, r.status, r.body);
     }
     if (req.method === "POST" && url === "/api/burnup-sweep") {
