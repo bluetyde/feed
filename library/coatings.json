@@ -162,10 +162,27 @@
       },
       "mechanical.thermalExpansion": {
         "linearExpansion": {
-          "value": 4.9e-06,
-          "unit": "1/K"
+          "model": "linear",
+          "a": {
+            "value": 4.9e-06,
+            "unit": "1/K"
+          },
+          "b": {
+            "value": 0.0,
+            "unit": "1/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 295.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1573.15,
+              "unit": "K"
+            }
+          }
         },
-        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C; free carbon in the SiC could lower it by 40 %"
+        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C (stated as a linear law with b = 0 over 22 to 1300 C so that the range warning can fire outside it); free carbon in the SiC could lower it by 40 %"
       }
     }
   },
@@ -207,10 +224,27 @@
       },
       "mechanical.thermalExpansion": {
         "linearExpansion": {
-          "value": 4.9e-06,
-          "unit": "1/K"
+          "model": "linear",
+          "a": {
+            "value": 4.9e-06,
+            "unit": "1/K"
+          },
+          "b": {
+            "value": 0.0,
+            "unit": "1/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 295.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1573.15,
+              "unit": "K"
+            }
+          }
         },
-        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C; free carbon in the SiC could lower it by 40 %"
+        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C (stated as a linear law with b = 0 over 22 to 1300 C so that the range warning can fire outside it); free carbon in the SiC could lower it by 40 %"
       }
     }
   },
@@ -252,10 +286,27 @@
       },
       "mechanical.thermalExpansion": {
         "linearExpansion": {
-          "value": 4.9e-06,
-          "unit": "1/K"
+          "model": "linear",
+          "a": {
+            "value": 4.9e-06,
+            "unit": "1/K"
+          },
+          "b": {
+            "value": 0.0,
+            "unit": "1/K2"
+          },
+          "validRange": {
+            "min": {
+              "value": 295.15,
+              "unit": "K"
+            },
+            "max": {
+              "value": 1573.15,
+              "unit": "K"
+            }
+          }
         },
-        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C; free carbon in the SiC could lower it by 40 %"
+        "source": "INL/EXT-08-14497 section 7.2.3.3: SiC mean linear expansion 4.9e-6 per C between 22 and 1000 C, taken constant to 1300 C (stated as a linear law with b = 0 over 22 to 1300 C so that the range warning can fire outside it); free carbon in the SiC could lower it by 40 %"
       }
     }
   },
