@@ -45,6 +45,7 @@ Tolerances fixed in `trisoMechanicsResults.ts` before the first golden run (the 
 | `mechanicsEquilibrium` | OFFBEAT's own stress between neighbouring cells of a layer, residual times the layer's thickness | 2 % of the scale + 10 kPa |
 | `mechanicsInterface` | radial stress and displacement either side of each interface, each extrapolated linearly from the two nearest cells | 2 % of the scale + 10 kPa, 0.5 % |
 | `mechanicsSymmetry` | the two tangential stress components (yy, zz) | 1e-6 of the scale + 1 Pa |
+| `mechanicsOffAxis` | the displacement perpendicular to the radius and the shear stresses (zero for a sphere) | 1e-6 of the layer + 1e-12 m; 1e-6 of the scale + 1 Pa |
 | `mechanicsTemperature` | the field the solver kept against the closed form | 0.01 K |
 | `mechanicsFreeStrain` | OFFBEAT's own swelling strain of each cell against the case's (a field that was not collected fails) | 1e-9 |
 

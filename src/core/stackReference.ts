@@ -250,7 +250,7 @@ export function solveStackTransientReference(c: NormalizedCase, o: { axialConduc
     const t0 = Date.now();
     const left = () => budget - (Date.now() - t0);
     start = runStartField(c);
-    solution = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep, steps: t.steps, outputEvery: t.steps / t.outputs, initial: start, trace: true, deadlineMs: left() });
+    solution = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep, steps: t.steps, outputEvery: t.steps / t.outputs, initial: start, trace: true, deadlineMs: budget });
     // the error estimates of the checks come from the coupled problem itself: the same stack at half the step, and on twice the cells (the one-dimensional runs of the slices, which these replace,
     // leave out the conduction along the height and so cannot see its effect on the time and space error)
     half = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep / 2, steps: t.steps * 2, outputEvery: (t.steps / t.outputs) * 2, initial: start, trace: true, deadlineMs: left() });
