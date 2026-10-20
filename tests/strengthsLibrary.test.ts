@@ -95,7 +95,7 @@ describe("the cold-range strength tables agree with the numbers their sources st
       expect(Math.abs(ksi("ss304-sandia-fig-yield", T) - ksi("ss304-ut-sar-yield", T))).toBeLessThan(2);
     }
   });
-  it("INL plate: above the ASME room-temperature minimum of its own paper (25 ksi yield, 70 ksi ultimate), and the cold ultimate is about twice the hot yield", () => {
+  it("INL plate: above the ASME room-temperature minimum of its own paper (25 ksi yield, 70 ksi ultimate), and the ultimate at 316 C is still above 60 ksi", () => {
     expect(ksi("ss304l-inl-plate-yield", 21)).toBeGreaterThan(25);
     expect(ksi("ss304l-inl-plate-ultimate", 21)).toBeGreaterThan(70);
     expect(ksi("ss304l-inl-plate-ultimate", 316)).toBeGreaterThan(60);
