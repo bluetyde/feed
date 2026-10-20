@@ -7,7 +7,7 @@ import { StackModel, solveStackSteady, solveStackTransient } from "../src/core/a
 import { buildTransientResults, computeIndependent } from "../src/core/transientResults";
 import { solveTransientFv, steadyFv, TransientPin } from "../src/core/transientFv";
 import { computeIndependentStack } from "../src/core/stackTransientResults";
-import { stackModelOf, stackTransientReference } from "../src/core/stackReference";
+import { stackModelOf, solveStackTransientReference, stackTransientReferenceFrom, StackTransientSolved } from "../src/core/stackReference";
 
 const root = join(__dirname, "..");
 const read = (...p: string[]) => readFileSync(join(root, ...p), "utf8");
@@ -116,9 +116,11 @@ describe("the power history of the stack model (kills: the power before the firs
 describe("the slice of the transient reference is that slice's, with the error estimates carried over (kills: the first layer's trace; the estimates not carried)", () => {
   const dir = join("tests", "golden", "offbeat-plate-stack", "transient-lossofcooling");
   const n = JSON.parse(read(dir, "normalized.json"));
-  const res = stackTransientReference(n);
+  // the older form of the reference, whose estimates are the slices' own one-dimensional runs carried over (a solution without the coupled half-step and doubled-mesh runs); the coupled form is tested in codexFixesOpen.test.ts
+  const solved = solveStackTransientReference(n);
+  const { half: _h, fine: _f, ...older } = (solved as { solved: StackTransientSolved }).solved;
+  const ref = stackTransientReferenceFrom(n, older);
   const sets = computeIndependentStack(n);
-  const ref = (res as { reference: Extract<typeof res, { reference: unknown }>["reference"] }).reference;
   const nf = n.mesh.fuelCells;
   it("each slice's trace and states are its own layer's", () => {
     for (const k of [0, 4, 9]) {

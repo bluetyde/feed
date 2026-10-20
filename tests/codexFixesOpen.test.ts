@@ -10,7 +10,8 @@ import { validateCase } from "../src/core/validate";
 import { buildCompactRecord, HomogenisedSpec } from "../src/core/compact";
 import { AddressInfo } from "net";
 import { server, populationFor } from "../src/server/server";
-import { stackSteadyBandWork, STACK_STEADY_BAND_WORK_MAX, stackTransientReference } from "../src/core/stackReference";
+import { solveStackTransientReference, stackSteadyBandWork, STACK_STEADY_BAND_WORK_MAX, stackTransientReference, stackTransientReferenceFrom, StackTransientSolved } from "../src/core/stackReference";
+import { computeIndependentStack } from "../src/core/stackTransientResults";
 
 const root = join(__dirname, "golden", "offbeat-triso-mech");
 const g = (name: string) => {
@@ -177,7 +178,7 @@ describe("a coupled start that could not be solved says why (R1-3)", () => {
     expect("reference" in r).toBe(true);
     const ref = (r as { reference: { startDistance: number | null; startDistanceReason?: string } }).reference;
     expect(ref.startDistance).toBeNull();
-    expect(ref.startDistanceReason).toMatch(/was not computed: the coupled steady state is more work \(5\.18e\+7\) than the 2e\+7/);
+    expect(ref.startDistanceReason).toMatch(/was not computed: the coupled steady state is more work \(2\.25e\+7\) than the 2e\+7/);
   }, 120_000);
   it("a case under the cap has a distance and no reason; a uniform start has neither (there is no coupled state to compare with, which is not a failure)", () => {
     const small = stackTransientReference(plate(10, 20, 6, "steady")) as { reference: { startDistance: number | null; startDistanceReason?: string } };
@@ -231,4 +232,30 @@ describe("a population whose client went away is stopped (R3-1, the part left op
       await new Promise<void>((r) => server.close(() => r()));
     }
   }, 60_000);
+});
+
+describe("the time and space error estimates come from the coupled solution (R2a-1, R2a-2)", () => {
+  it("a slice's half-step and doubled-mesh runs are cuts of the stack solved at half the step and on twice the cells, not its own one-dimensional runs carried over", () => {
+    const dir = join(__dirname, "golden", "offbeat-plate-stack", "transient-lossofcooling");
+    const n = JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8"));
+    const solved = (solveStackTransientReference(n) as { solved: StackTransientSolved }).solved;
+    expect(solved.half && solved.fine).toBeTruthy();
+    const coupled = stackTransientReferenceFrom(n, solved);
+    const { half: _h, fine: _f, ...older } = solved;
+    const carried = stackTransientReferenceFrom(n, older);
+    const nf = n.mesh.fuelCells;
+    const nc = n.mesh.claddingCells;
+    const k = 0; // the end slice, where the heat along the height matters most
+    const own = computeIndependentStack(n)[k]!;
+    const a = coupled.sliceIndependent(k, own);
+    const b = carried.sliceIndependent(k, own);
+    expect(a.fv2.states[0]!.T).toHaveLength(2 * (nf + nc));
+    expect(a.fvh.states).toHaveLength(a.fv.states.length);
+    expect(a.fvh.trace!.peakByStep).toHaveLength(2 * n.transient.steps + 1);
+    // the two forms differ: the coupled half-step difference includes the conduction along the height, the carried one cannot
+    const last = a.fv.states.length - 1;
+    const diff = (x: number[], y: number[]) => Math.max(...x.map((v, i) => Math.abs(v - y[i]!)));
+    expect(diff(a.fvh.states[last]!.T, b.fvh.states[last]!.T)).toBeGreaterThan(1e-9);
+    expect(diff(a.fv2.states[last]!.T, b.fv2.states[last]!.T)).toBeGreaterThan(1e-9);
+  }, 300_000);
 });
