@@ -220,11 +220,11 @@ describe("a population whose client went away is stopped (R3-1, the part left op
       const b = new AbortController();
       const pa = post(particle(100000), a.signal).catch(() => undefined);
       const pb = post(particle(100000), b.signal).catch(() => undefined);
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 120)); // a population of 100000 takes about 300 ms here: the workers are running
       a.abort();
       b.abort();
       await Promise.all([pa, pb]);
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 50));
       const next = await post(particle(100));
       expect(next.status).toBe(200);
     } finally {
