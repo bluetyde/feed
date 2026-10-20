@@ -210,6 +210,8 @@ export interface StackTransientReference {
   received(k: number): number[];
   /** The largest difference between the run's start and the coupled steady state (K), for a steady start. */
   startDistance: number | null;
+  /** Why `startDistance` is null for a steady start (the coupled steady state was not solved); absent for a uniform start, which has no coupled state to compare with. */
+  startDistanceReason?: string;
 }
 
 export type StackTransientReferenceResult = { reference: StackTransientReference } | { fallback: string };
@@ -222,6 +224,7 @@ export interface StackTransientSolved {
   solution: StackTransient;
   start: Float64Array;
   startDistance: number | null;
+  startDistanceReason?: string;
 }
 export type StackTransientSolveResult = { solved: StackTransientSolved } | { fallback: string };
 
@@ -244,16 +247,19 @@ export function solveStackTransientReference(c: NormalizedCase, o: { axialConduc
     return { fallback: "the two-dimensional reference could not be computed: " + (e instanceof Error ? e.message : String(e)) };
   }
   let startDistance: number | null = null;
+  let startDistanceReason: string | undefined;
   if (t.initial.kind === "steady") {
     try {
-      if (stackSteadyBandWork(c) > STACK_STEADY_BAND_WORK_MAX) throw new Error("too much work");
+      const work = stackSteadyBandWork(c);
+      if (work > STACK_STEADY_BAND_WORK_MAX) throw new Error(`the coupled steady state is more work (${work.toExponential(2)}) than the ${STACK_STEADY_BAND_WORK_MAX.toExponential(0)} the steady reference solves`);
       const coupled = coupledSteadyStart(c);
       startDistance = Math.max(...Array.from(start, (x, i) => Math.abs(x - coupled.T[i]!)));
-    } catch {
+    } catch (e) {
       startDistance = null;
+      startDistanceReason = "the distance of the start from the coupled steady state was not computed: " + (e instanceof Error ? e.message : String(e));
     }
   }
-  return { solved: { solution, start, startDistance } };
+  return { solved: { solution, start, startDistance, ...(startDistanceReason ? { startDistanceReason } : {}) } };
 }
 
 /** The transient two-dimensional reference of the case in this thread (solve, then build). */
@@ -265,7 +271,7 @@ export function stackTransientReference(c: NormalizedCase, o: { axialConduction?
 /** The reference of a case from a solution computed elsewhere (a worker thread): the cut into slices and the error estimates of each slice. */
 export function stackTransientReferenceFrom(c: NormalizedCase, solved: StackTransientSolved): StackTransientReference {
   const a = c.axial!;
-  const { solution, startDistance } = solved;
+  const { solution, startDistance, startDistanceReason } = solved;
   const n = c.mesh.fuelCells + c.mesh.claddingCells;
   const height = a.length / a.slices;
   const nf = c.mesh.fuelCells;
@@ -273,6 +279,7 @@ export function stackTransientReferenceFrom(c: NormalizedCase, solved: StackTran
     kind: "two-dimensional",
     solution,
     startDistance,
+    ...(startDistanceReason ? { startDistanceReason } : {}),
     received: (k) => solution.states.map((s) => s.layerAxialIn[k]! / height),
     sliceIndependent: (k, own) => {
       const cells = (j: number) => Array.from(solution.states[j]!.T.subarray(k * n, (k + 1) * n));

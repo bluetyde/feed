@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { buildTrisoMechanicsResults, TrisoMechanicsInput } from "../src/core/trisoMechanicsResults";
 import { validateCase } from "../src/core/validate";
 import { buildCompactRecord, HomogenisedSpec } from "../src/core/compact";
+import { stackSteadyBandWork, STACK_STEADY_BAND_WORK_MAX, stackTransientReference } from "../src/core/stackReference";
 
 const root = join(__dirname, "golden", "offbeat-triso-mech");
 const g = (name: string) => {
@@ -150,4 +151,38 @@ describe("the two-scale particle's own conductivity ranges (R4-2)", () => {
   it("a particle whose laws are constants has no range to check: no such check is added", () => {
     expect(record(spec0(), 600).checks.map((x) => x.id)).not.toContain("twoScaleRange");
   });
+});
+
+describe("a coupled start that could not be solved says why (R1-3)", () => {
+  const plate = (slices: number, fuelCells: number, claddingCells: number, initial: "steady" | "uniform") => {
+    const d = JSON.parse(readFileSync(join(__dirname, "..", "examples", "synthetic-plate-loss-of-cooling.json"), "utf8"));
+    d.mesh = { fuelCells, claddingCells };
+    d.axial.slices = slices;
+    d.transient.timeStep = { value: 0.6, unit: "s" }; // 100 steps: the transient is cheap, the steady coupled start is not
+    d.transient.outputs = 10;
+    if (initial === "uniform") {
+      delete d.transient.initialSteadyLinearHeatRate;
+      d.transient.initialTemperature = { value: 300, unit: "K" };
+    }
+    const v = validateCase(d);
+    expect(v.errors).toEqual([]);
+    return v.normalized!;
+  };
+  it("over the steady work cap the transient reference is still solved, startDistance is null and the record carries the reason", () => {
+    const c = plate(30, 100, 20, "steady");
+    expect(stackSteadyBandWork(c)).toBeGreaterThan(STACK_STEADY_BAND_WORK_MAX);
+    const r = stackTransientReference(c);
+    expect("reference" in r).toBe(true);
+    const ref = (r as { reference: { startDistance: number | null; startDistanceReason?: string } }).reference;
+    expect(ref.startDistance).toBeNull();
+    expect(ref.startDistanceReason).toMatch(/was not computed: the coupled steady state is more work \(5\.18e\+7\) than the 2e\+7/);
+  }, 120_000);
+  it("a case under the cap has a distance and no reason; a uniform start has neither (there is no coupled state to compare with, which is not a failure)", () => {
+    const small = stackTransientReference(plate(10, 20, 6, "steady")) as { reference: { startDistance: number | null; startDistanceReason?: string } };
+    expect(small.reference.startDistance).toBeGreaterThan(0);
+    expect(small.reference.startDistanceReason).toBeUndefined();
+    const uniform = stackTransientReference(plate(10, 20, 6, "uniform")) as { reference: { startDistance: number | null; startDistanceReason?: string } };
+    expect(uniform.reference.startDistance).toBeNull();
+    expect(uniform.reference.startDistanceReason).toBeUndefined();
+  }, 120_000);
 });
