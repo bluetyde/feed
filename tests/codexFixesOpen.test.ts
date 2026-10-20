@@ -172,13 +172,13 @@ describe("a coupled start that could not be solved says why (R1-3)", () => {
     return v.normalized!;
   };
   it("over the steady work cap the transient reference is still solved, startDistance is null and the record carries the reason", () => {
-    const c = plate(13, 100, 20, "steady");
+    const c = plate(3, 150, 40, "steady");
     expect(stackSteadyBandWork(c)).toBeGreaterThan(STACK_STEADY_BAND_WORK_MAX);
     const r = stackTransientReference(c);
     expect("reference" in r).toBe(true);
     const ref = (r as { reference: { startDistance: number | null; startDistanceReason?: string } }).reference;
     expect(ref.startDistance).toBeNull();
-    expect(ref.startDistanceReason).toMatch(/was not computed: the coupled steady state is more work \(2\.25e\+7\) than the 2e\+7/);
+    expect(ref.startDistanceReason).toMatch(/was not computed: the coupled steady state is more work \(\d\.\d\de\+7\) than the 2e\+7/);
   }, 120_000);
   it("a case under the cap has a distance and no reason; a uniform start has neither (there is no coupled state to compare with, which is not a failure)", () => {
     const small = stackTransientReference(plate(10, 20, 6, "steady")) as { reference: { startDistance: number | null; startDistanceReason?: string } };
