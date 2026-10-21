@@ -466,6 +466,7 @@ ${inner}${gap("fuelOuter", cells[nf - 1] ?? 0)}${gap("cladInner", cells[nf * lay
 }
 `;
 }
+// The displacement field. The surface of a central hole is free (no traction, no pressure) in a mechanics case: zeroGradient there left the radial stress at the hole at -18.9 MPa where the exact value is 0 (plan 17 M0 probe).
 const displacementField = (c: NormalizedCase) => `${FOAM_HEADER("volVectorField", "D")}
 dimensions          [0 1 0 0 0 0 0];
 
@@ -486,11 +487,19 @@ ${c.mechanics ? `        type            tractionDisplacement;
         value           uniform (0 0 0);` : `        type            fixedValue;
         value           uniform (0 0 0);`}
     }
-${c.fuelInnerRadius > 0 ? `    fuelInner
+${c.fuelInnerRadius > 0 ? (c.mechanics ? `    fuelInner
+    {
+        type            tractionDisplacement;
+        traction        uniform (0 0 0);
+        pressure        uniform 0;
+        relax           1.0;
+        value           uniform (0 0 0);
+    }
+` : `    fuelInner
     {
         type            zeroGradient;
     }
-` : ""}    "fuelOuter|cladInner"
+`) : ""}    "fuelOuter|cladInner"
     {
         type            gapContact;
         patchType       regionCoupledOFFBEAT;
@@ -630,7 +639,7 @@ export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
   const mapping: WrittenCase["mapping"] = [
     ...(c.plate ? [{ field: "geometry", file: "system/blockMeshDict, constant/solverDict, 0/T, 0/D", note: "a plate: a Cartesian mesh, the meat from the insulated mid-plane x = 0 (no patch there: the face is a default `empty` face, no heat crosses it) to " + (c.fuelRadius * 1000) + " mm, the gap, and the cladding to " + (c.claddingOuterRadius * 1000) + " mm; one metre wide in y (the side and end faces are `empty`); angularFraction 1 because there is no wedge; lhgr is the heat per metre of height per metre of width" }] : []),
     { field: "geometry.fuelRadius", file: "system/blockMeshDict", note: "block 'fuel' outer radius (mm), wedge " + WEDGE_ANGLE_DEG + " deg" + hotNote("fuelRadius", "fuel") },
-    ...(c.fuelInnerRadius > 0 ? [{ field: "geometry.fuelInnerRadius", file: "system/blockMeshDict", note: "block 'fuel' inner radius (central hole); patch fuelInner, zeroGradient in 0/T (insulated) and 0/D" + hotNote("fuelInnerRadius", "fuel") }] : []),
+    ...(c.fuelInnerRadius > 0 ? [{ field: "geometry.fuelInnerRadius", file: "system/blockMeshDict", note: "block 'fuel' inner radius (central hole); patch fuelInner, zeroGradient in 0/T (insulated); in 0/D zeroGradient for a thermal case and a free surface (tractionDisplacement, no traction, no pressure) for a mechanics case" + hotNote("fuelInnerRadius", "fuel") }] : []),
     { field: "geometry.claddingInnerRadius", file: "system/blockMeshDict", note: "block 'cladding' inner radius" + hotNote("claddingInnerRadius", "cladding") },
     { field: "geometry.claddingOuterRadius", file: "system/blockMeshDict", note: "block 'cladding' outer radius" + hotNote("claddingOuterRadius", "cladding") },
     ...(c.axial ? [{ field: "axial", file: "system/blockMeshDict, constant/solverDict, 0/T", note: "mesh: " + c.axial.slices + " layers per solid over " + heightMm(c) + " mm (the end faces stay empty); heatSourceOptions.axialProfile: the " + c.axial.shape.kind + " shape as a table normalised to an integral of 1 over 0 to 1, lhgr = the average heat rate " + c.qPrime + " W/m (OFFBEAT samples it at the cell centres)" + (c.axial.boundary ? "; cladOuter: the coolant table as " + (c.axial.boundary.kind === "convective" ? "timeDependentAxialProfileHTC" : "timeDependentAxialProfileT") + " with heights in metres from the bottom" : "; cladOuter: the case's own boundary on every layer") }] : []),

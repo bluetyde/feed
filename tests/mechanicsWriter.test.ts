@@ -107,3 +107,30 @@ describe("a case without mechanics is written as it was", () => {
     for (const f of ["system/blockMeshDict", "system/controlDict", "system/fvSchemes", "0/T"]) expect(m.files[f], f).toBe(thermal.files[f]);
   });
 });
+
+describe("the surface of a central hole in 0/D (plan 17 M0 probe: zeroGradient there left -18.9 MPa radial stress at the hole where the exact value is 0)", () => {
+  const annular = (thermalOnly: boolean) => {
+    const d = mechCase();
+    d.geometry.fuelInnerRadius = q(1, "mm");
+    d.assumptions.thermalOnly = thermalOnly;
+    if (thermalOnly) delete d.mechanics;
+    return d;
+  };
+  const patch = (text: string, name: string) => new RegExp(`    ${name}\\n    \\{[\\s\\S]*?\\n    \\}`).exec(text)![0];
+  it("a mechanics case with a hole: the hole is traction free, with no pressure", () => {
+    const p = patch(written(annular(false)).files["0/D"]!, "fuelInner");
+    expect(p).toMatch(/type\s+tractionDisplacement;/);
+    expect(p).toMatch(/traction\s+uniform \(0 0 0\);/);
+    expect(p).toMatch(/pressure\s+uniform 0;/);
+    expect(p).not.toMatch(/zeroGradient/);
+  });
+  it("a thermal case with a hole is written as before (zeroGradient in D and in T)", () => {
+    const w = written(annular(true));
+    expect(patch(w.files["0/D"]!, "fuelInner")).toMatch(/type\s+zeroGradient;/);
+    expect(patch(w.files["0/T"]!, "fuelInner")).toMatch(/type\s+zeroGradient;/);
+  });
+  it("a mechanics case keeps zeroGradient for the hole's temperature (insulated), and a case without a hole has no fuelInner patch", () => {
+    expect(patch(written(annular(false)).files["0/T"]!, "fuelInner")).toMatch(/type\s+zeroGradient;/);
+    expect(written(mechCase()).files["0/D"]!).not.toMatch(/fuelInner/);
+  });
+});
