@@ -1,0 +1,20 @@
+{
+ "note": "the writer as it is (explicit gapContact 0.7, hole zeroGradient, 1000 outer iterations allowed), zero cold gap, stopped by hand at 25.1 ms (502 of 2000 steps) after 10 minutes",
+ "summary": {
+  "steps": 502,
+  "firstTime": 0.00005,
+  "lastTime": 0.0251,
+  "maxOuterIter": 1000,
+  "totalOuterIterations": 498624,
+  "meanIterations": 993.2749003984064,
+  "maxIterations": 1000,
+  "stepsAtMaxOuter": 498,
+  "stepsNotConverged": 499,
+  "thermalNotConverged": 0,
+  "mechNotConverged": 499,
+  "firstNotConverged": 0.0002,
+  "lastNotConverged": 0.0251,
+  "worstRelD": 4.9230724,
+  "worstAbsErrD": 0.00061229097
+ }
+}
