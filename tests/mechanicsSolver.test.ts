@@ -246,3 +246,25 @@ describe.skipIf(!solverOn)("a gas pressure in the gap (needs FEED_SOLVER=1)", ()
     expect(m.summary.contact).toBe(false);
   }, 300_000);
 });
+
+describe.skipIf(!solverOn)("a fuel with a central hole through the real solver (needs FEED_SOLVER=1; plan 17 M0 probe: the hole was not traction free)", () => {
+  it("uniform-modulus annular fuel heated against a closed-form: every check passes, and the radial stress at the hole is zero (it was -18.9 MPa with zeroGradient)", async () => {
+    const d = mechanicsCase({ fuel: [2e11, 0.3, 1e-5], cladding: [2e11, 0.3, 1e-5] });
+    d.geometry.fuelInnerRadius = q(1, "mm");
+    d.power.linearHeatRate = q(2000, "W/m"); // enough temperature rise across the fuel for a stress that is large against the checks' floor
+    const { rec, res } = await run(d);
+    expect(rec.state).toBe("completed");
+    expect(allPass(res!)).toEqual([]);
+    const m = res!.mechanics!;
+    const fuel = res!.radial.map((p, k) => ({ p, k })).filter((x) => x.p.region === "fuel");
+    const atHole = m.points[fuel[0]!.k]!;
+    const scale = Math.max(...fuel.map((x) => Math.abs(m.points[x.k]!.sigmaTheta)));
+    expect(scale).toBeGreaterThan(1e6); // the case has a stress to speak of
+    // the cell next to the hole is half a cell from it, so its radial stress is not zero: it is the independent solution's value at that radius (zeroGradient at the hole: far from it, 18.9 MPa)
+    const n = validateCase(d).normalized!;
+    const want = independentSolution(n, effectiveMechanics(n)!, n.mechanics!).fuel.at(res!.radial[fuel[0]!.k]!.r).sigmaR;
+    expect(Math.abs(atHole.sigmaR - want) / scale).toBeLessThan(0.01);
+    // and it is small against the hoop stress at that radius, as a free surface needs
+    expect(Math.abs(atHole.sigmaR) / scale).toBeLessThan(0.1);
+  }, 300_000);
+});
