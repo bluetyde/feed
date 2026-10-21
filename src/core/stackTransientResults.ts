@@ -101,6 +101,8 @@ export type StackTransientReferenceInfo =
       oneDimensionalDeviation: number;
       /** The largest difference between the run's start (every slice at its own steady state) and the stack's coupled steady state (K); null for a uniform start. */
       startDistance: number | null;
+      /** The basis of the slices' time and space error estimates. */
+      errorEstimates: "coupled" | "one-dimensional";
       /** Why startDistance is null for a steady start; absent for a uniform start. */
       startDistanceReason?: string;
     }
@@ -218,7 +220,7 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
       value: fraction,
       unit: "relative",
       verdict: "na",
-      note: `information only: the heat flow along the height is in the reference, which is FEED's own two-dimensional finite-volume solution of the whole stack on the writer's mesh with the run's step, powers and coolants, started from the field the run was given. OFFBEAT's cells differ from it by up to ${deviation.toPrecision(3)} K at any output; from the one-dimensional solutions of the slices by up to ${oneDimensionalDeviation.toPrecision(3)} K. ${ref.startDistance !== null ? `The run starts from each slice's own steady state, ${ref.startDistance.toPrecision(3)} K from the stack's coupled steady state, and relaxes toward it; the reference starts from the same field. ` : ""}Without the reference the per-slice cross-check would be widened by ${field.toPrecision(3)} K (the steady estimate, ${(fraction * 100).toPrecision(3)} % of the largest rise${exchange ? `; the exchange bound up to ${Math.max(...exchange.field).toPrecision(3)} K, exchange number ${exchange.number.toPrecision(3)}${counted ? "" : ", above the limit where the bound held"}` : ""}); that allowance is the fallback where the reference cannot be computed. The spatial and time-stepping error estimates in each slice's bound are those of its own one-dimensional runs.`,
+      note: `information only: the heat flow along the height is in the reference, which is FEED's own two-dimensional finite-volume solution of the whole stack on the writer's mesh with the run's step, powers and coolants, started from the field the run was given. OFFBEAT's cells differ from it by up to ${deviation.toPrecision(3)} K at any output; from the one-dimensional solutions of the slices by up to ${oneDimensionalDeviation.toPrecision(3)} K. ${ref.startDistance !== null ? `The run starts from each slice's own steady state, ${ref.startDistance.toPrecision(3)} K from the stack's coupled steady state, and relaxes toward it; the reference starts from the same field. ` : ""}Without the reference the per-slice cross-check would be widened by ${field.toPrecision(3)} K (the steady estimate, ${(fraction * 100).toPrecision(3)} % of the largest rise${exchange ? `; the exchange bound up to ${Math.max(...exchange.field).toPrecision(3)} K, exchange number ${exchange.number.toPrecision(3)}${counted ? "" : ", above the limit where the bound held"}` : ""}); that allowance is the fallback where the reference cannot be computed. ${ref.errorEstimates === "coupled" ? "The spatial and time-stepping error estimates in each slice's bound are those of the stack itself, solved at half the step and on twice the cells (the heat along the height included)." : "The spatial and time-stepping error estimates in each slice's bound are those of its own one-dimensional runs (the heat along the height not included)."}`,
     });
   } else checks.push({
     id: "axialConduction",
@@ -249,7 +251,7 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
       hottest,
       conduction: summary.conduction ? { fraction } : null,
       allowance: { field, energy: widen, ...(exchange ? { exchangeField: Math.max(...exchange.field), exchangeEnergy: Math.max(...exchange.energy), exchangeNumber: exchange.number, exchangeCounted: counted !== undefined } : {}) },
-      ...(c.plate ? { reference: ref ? ({ kind: "two-dimensional", deviation, oneDimensionalDeviation, startDistance: ref.startDistance, ...(ref.startDistanceReason ? { startDistanceReason: ref.startDistanceReason } : {}) } as StackTransientReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackTransientReferenceInfo) } : {}),
+      ...(c.plate ? { reference: ref ? ({ kind: "two-dimensional", deviation, oneDimensionalDeviation, startDistance: ref.startDistance, errorEstimates: ref.errorEstimates, ...(ref.startDistanceReason ? { startDistanceReason: ref.startDistanceReason } : {}) } as StackTransientReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackTransientReferenceInfo) } : {}),
     },
   };
 }

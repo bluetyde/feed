@@ -15,6 +15,8 @@ export type PopulationOutcome =
 
 export interface PopulationHandle {
   done: Promise<PopulationOutcome>;
+  /** Settles when the worker thread has ended (done settles first on a cancel or a deadline: terminate is asynchronous). */
+  closed: Promise<void>;
   cancel(): void;
 }
 
@@ -40,22 +42,24 @@ export function startPopulation(n: NormalizedTriso, o: PopulationRunOptions = {}
   let worker: Worker | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let finish!: (out: PopulationOutcome) => void;
+  let terminated: Promise<unknown> = Promise.resolve();
   const done = new Promise<PopulationOutcome>((resolve) => {
     finish = (out) => {
       if (settled) return;
       settled = true;
       if (timer) clearTimeout(timer);
-      void worker?.terminate();
+      if (worker) terminated = worker.terminate().catch(() => undefined);
       resolve(out);
     };
   });
+  const closed = done.then(() => terminated).then(() => undefined);
   const fail = (reason: "deadline" | "cancelled" | "worker-failed" | "refused", message: string) => finish({ ok: false, reason, message, ms: Date.now() - started });
   if (file) {
     try {
       worker = new Worker(file, { workerData: { n } });
     } catch (e) {
       fail("worker-failed", "the worker could not be started: " + String((e as Error).message));
-      return { done, cancel: () => {} };
+      return { done, closed, cancel: () => {} };
     }
     timer = setTimeout(() => fail("deadline", `the population did not finish within ${(deadlineMs / 1000).toFixed(deadlineMs < 1000 ? 3 : 0)} s and was stopped`), deadlineMs);
     worker.once("message", (m: { ok: boolean; result?: PopulationResult; message?: string; refused?: boolean; ms: number }) => {
@@ -74,5 +78,5 @@ export function startPopulation(n: NormalizedTriso, o: PopulationRunOptions = {}
       }
     });
   }
-  return { done, cancel: () => fail("cancelled", "cancelled") };
+  return { done, closed, cancel: () => fail("cancelled", "cancelled") };
 }

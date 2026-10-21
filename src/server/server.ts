@@ -283,15 +283,18 @@ export async function populationFor(doc: unknown, deadlineMs = POPULATION_DEADLI
   // the route needs the worker: without it the batch would run on the server thread, with no deadline that can interrupt it
   const workerFile = opts.workerFile === undefined ? resolvePopulationWorker() : opts.workerFile;
   if (!workerFile) return { status: 503, body: { ok: false, reason: "no-worker", error: "the population worker (dist/core/populationWorker.js) is not built: run npm run build", warnings: v.warnings } };
+  // a client that is already gone gets no worker
+  if (opts.signal?.aborted) return { status: 499, body: { ok: false, reason: "cancelled", error: "the client went away before the population started", warnings: v.warnings } };
   if (populationJobs >= POPULATION_MAX_JOBS) return { status: 429, body: { ok: false, reason: "busy", error: `${populationJobs} populations are running already (at most ${POPULATION_MAX_JOBS} at once): try again when one has finished`, warnings: v.warnings } };
   populationJobs++;
   let o;
   try {
     const job = startPopulation(v.triso, { deadlineMs, workerFile });
     // a client that went away (its request was cancelled or its connection dropped) stops the worker instead of leaving it to run to the deadline (Codex review, 2026-10-17, R3-1)
-    if (opts.signal?.aborted) job.cancel();
-    else opts.signal?.addEventListener("abort", () => job.cancel(), { once: true });
+    opts.signal?.addEventListener("abort", () => job.cancel(), { once: true });
     o = await job.done;
+    // the slot stays taken until the worker thread has really ended (terminate is asynchronous): a cancelled job does not let a new one start beside a thread still running
+    await job.closed;
   } finally {
     populationJobs--;
   }
@@ -426,16 +429,17 @@ export const server = createServer(async (req, res) => {
     }
     if (req.method === "POST" && url === "/api/population") {
       if (!(req.headers["content-type"] ?? "").startsWith("application/json")) return json(res, 415, { error: "send application/json" });
+      // the disconnect listener goes in before the body is read, so a client that leaves while the body arrives is seen
+      const gone = new AbortController();
+      res.on("close", () => {
+        if (!res.writableEnded) gone.abort();
+      });
       let doc: unknown;
       try {
         doc = JSON.parse(await readBody(req));
       } catch {
         return json(res, 400, { error: "body is not valid JSON" });
       }
-      const gone = new AbortController();
-      res.on("close", () => {
-        if (!res.writableEnded) gone.abort();
-      });
       const r = await populationFor(doc, undefined, { signal: gone.signal });
       return json(res, r.status, r.body);
     }

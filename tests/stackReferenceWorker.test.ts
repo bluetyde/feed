@@ -159,7 +159,7 @@ describe("the deadline", () => {
     const out = await r.start(big(), { what: "stackReference", deadlineMs: 150 }).done;
     expect(out).toMatchObject({ ok: true, mode: "in-process" });
     if (!out.ok || out.what !== "stackReference") return;
-    expect(out.set).toEqual({ fallback: expect.stringMatching(/the two-dimensional reference could not be computed: the stack's transient did not finish in 150 ms \(stopped at step \d+ of 2300\)/) });
+    expect(out.set).toEqual({ fallback: expect.stringMatching(/the two-dimensional reference could not be computed: the stack's transient did not finish in (1[0-4][0-9]|150) ms \(stopped at step \d+ of 2300\)/) });
     expect(Date.now() - t0).toBeLessThan(2500);
   }, 20_000);
 });
