@@ -2,13 +2,15 @@
 //   R2b-2  the particle mechanics reader looked at the radial displacement and the diagonal stress only: a displacement across the radius or a shear stress could be anything
 //   R2b-3  the free-strain check compared the diagonal of epsilonSwelling only
 //   R2b-4  the mechanics bounds were widened by the largest temperature step of the output T under test, so a damaged T inflated them
-import { readFileSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { buildTrisoMechanicsResults, TrisoMechanicsInput } from "../src/core/trisoMechanicsResults";
 import { validateCase } from "../src/core/validate";
 import { buildCompactRecord, HomogenisedSpec } from "../src/core/compact";
 import { AddressInfo } from "net";
+import { startPopulation } from "../src/core/populationRunner";
+import { buildStackTransientResults } from "../src/core/stackTransientResults";
 import { server, populationFor } from "../src/server/server";
 import { solveStackTransientReference, stackSteadyBandWork, STACK_STEADY_BAND_WORK_MAX, stackTransientReference, stackTransientReferenceFrom, StackTransientSolved } from "../src/core/stackReference";
 import { computeIndependentStack } from "../src/core/stackTransientResults";
@@ -210,7 +212,9 @@ describe("a population whose client went away is stopped (R3-1, the part left op
     // a signal that is aborted before the call stops the job as soon as it starts
     const pre = new AbortController();
     pre.abort();
-    expect((await populationFor(particle(100000), 30000, { signal: pre.signal })).status).toBe(500);
+    const refused = await populationFor(particle(100000), 30000, { signal: pre.signal });
+    expect(refused.status).toBe(499);
+    expect((refused.body as { reason: string }).reason).toBe("cancelled");
   }, 60_000);
   it("through the server: two requests dropped by their clients free both slots, so the next request is served (without the fix it is answered 429 busy while the abandoned workers run on)", async () => {
     await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
@@ -258,4 +262,35 @@ describe("the time and space error estimates come from the coupled solution (R2a
     expect(diff(a.fvh.states[last]!.T, b.fvh.states[last]!.T)).toBeGreaterThan(1e-9);
     expect(diff(a.fv2.states[last]!.T, b.fv2.states[last]!.T)).toBeGreaterThan(1e-9);
   }, 300_000);
+});
+
+describe("Codex round 2 (2026-10-20): the coupled estimates are labelled and checked, a cancelled worker holds its slot until it ends", () => {
+  const dir = join(__dirname, "golden", "offbeat-plate-stack", "transient-lossofcooling");
+  const n = JSON.parse(readFileSync(join(dir, "normalized.json"), "utf8"));
+  const solved = (solveStackTransientReference(n) as { solved: StackTransientSolved }).solved;
+  it("the reference says where its error estimates come from, and a half-step or doubled-mesh run without the base run's outputs is refused", () => {
+    expect(stackTransientReferenceFrom(n, solved).errorEstimates).toBe("coupled");
+    const { half: _h, fine: _f, ...older } = solved;
+    expect(stackTransientReferenceFrom(n, older).errorEstimates).toBe("one-dimensional");
+    expect(() => stackTransientReferenceFrom(n, { ...solved, fine: undefined })).toThrow(/both the half-step and the doubled-mesh run/);
+    const short = { ...solved.half!, states: solved.half!.states.slice(0, -1) };
+    expect(() => stackTransientReferenceFrom(n, { ...solved, half: short })).toThrow(/half-step run does not have the base run's output times/);
+  }, 300_000);
+  it("the result's note states the coupled basis (it said the slices' own one-dimensional runs)", () => {
+    const r = buildStackTransientResults(n, { C: readFileSync(join(dir, "C"), "utf8"), fields: readdirSync(join(dir, "times")).sort((a, b) => Number(a) - Number(b)).map((t) => ({ time: Number(t), T: readFileSync(join(dir, "times", t, "T"), "utf8") })) });
+    const note = r.checks.find((c) => c.id === "axialConduction")!.note;
+    expect(note).toMatch(/error estimates in each slice's bound are those of the stack itself/);
+    expect((r.axial.reference as { errorEstimates: string }).errorEstimates).toBe("coupled");
+  }, 300_000);
+  it("startPopulation's handle has a closed promise that settles after a cancel, once the worker is terminated", async () => {
+    const c = JSON.parse(readFileSync(join(__dirname, "..", "schema", "vectors", "good", "triso-steady.json"), "utf8"));
+    c.power = { kernelPowerDensity: { value: 600, unit: "MW/m3" } };
+    c.population = { size: 100000, seed: 1, distributions: { kernelRadius: { kind: "normal", mean: { value: 250, unit: "um" }, stdDev: { value: 5, unit: "um" } } } };
+    const v = validateCase(c);
+    const job = startPopulation(v.triso!, { deadlineMs: 30000 });
+    job.cancel();
+    const o = await job.done;
+    expect(o.ok === false && o.reason).toBe("cancelled");
+    await expect(job.closed).resolves.toBeUndefined();
+  }, 60_000);
 });

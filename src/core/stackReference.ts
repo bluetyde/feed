@@ -210,6 +210,8 @@ export interface StackTransientReference {
   received(k: number): number[];
   /** The largest difference between the run's start and the coupled steady state (K), for a steady start. */
   startDistance: number | null;
+  /** Where the error estimates of the slices' checks come from: the stack solved at half the step and on twice the cells ("coupled"), or each slice's own one-dimensional runs carried over (a solution given without them). */
+  errorEstimates: "coupled" | "one-dimensional";
   /** Why `startDistance` is null for a steady start (the coupled steady state was not solved); absent for a uniform start, which has no coupled state to compare with. */
   startDistanceReason?: string;
 }
@@ -250,7 +252,7 @@ export function solveStackTransientReference(c: NormalizedCase, o: { axialConduc
     const t0 = Date.now();
     const left = () => budget - (Date.now() - t0);
     start = runStartField(c);
-    solution = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep, steps: t.steps, outputEvery: t.steps / t.outputs, initial: start, trace: true, deadlineMs: budget });
+    solution = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep, steps: t.steps, outputEvery: t.steps / t.outputs, initial: start, trace: true, deadlineMs: left() });
     // the error estimates of the checks come from the coupled problem itself: the same stack at half the step, and on twice the cells (the one-dimensional runs of the slices, which these replace,
     // leave out the conduction along the height and so cannot see its effect on the time and space error)
     half = solveStackTransient(stackModelOf(c, o), { dt: t.timeStep / 2, steps: t.steps * 2, outputEvery: (t.steps / t.outputs) * 2, initial: start, trace: true, deadlineMs: left() });
@@ -285,6 +287,13 @@ export function stackTransientReference(c: NormalizedCase, o: { axialConduction?
 export function stackTransientReferenceFrom(c: NormalizedCase, solved: StackTransientSolved): StackTransientReference {
   const a = c.axial!;
   const { solution, half, fine, startDistance, startDistanceReason } = solved;
+  // a half-step or doubled-mesh run that does not have the base run's outputs would leave a comparison out silently (fieldTimeError skips a missing state): refuse it
+  if (!!half !== !!fine) throw new RangeError("the stack's error estimates need both the half-step and the doubled-mesh run, or neither");
+  for (const [name, sol] of [["half-step", half], ["doubled-mesh", fine]] as const) {
+    if (!sol) continue;
+    const ok = sol.states.length === solution.states.length && sol.states.every((st, j) => Math.abs(st.time - solution.states[j]!.time) <= 1e-9 * Math.max(1, Math.abs(st.time)));
+    if (!ok) throw new RangeError(`the stack's ${name} run does not have the base run's output times (${sol.states.length} outputs against ${solution.states.length})`);
+  }
   const n = c.mesh.fuelCells + c.mesh.claddingCells;
   const height = a.length / a.slices;
   const nf = c.mesh.fuelCells;
@@ -292,6 +301,7 @@ export function stackTransientReferenceFrom(c: NormalizedCase, solved: StackTran
     kind: "two-dimensional",
     solution,
     startDistance,
+    errorEstimates: half && fine ? "coupled" : "one-dimensional",
     ...(startDistanceReason ? { startDistanceReason } : {}),
     received: (k) => solution.states.map((s) => s.layerAxialIn[k]! / height),
     sliceIndependent: (k, own) => {
