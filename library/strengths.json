@@ -36,5 +36,77 @@
       { "temperature": { "value": 800, "unit": "degC" }, "strength": { "value": 14, "unit": "ksi" } },
       { "temperature": { "value": 870, "unit": "degC" }, "strength": { "value": 10, "unit": "ksi" } }
     ]
+  },
+  {
+    "id": "ss304-sandia-fig-ultimate",
+    "name": "304 stainless steel cladding: ultimate tensile strength against temperature (Sandia SAND2009-7374C slide 19)",
+    "label": "sourced, read from a figure",
+    "region": "cladding",
+    "kind": "ultimate tensile strength",
+    "citation": "M. K. Black, J. J. Dahl, J. L. Dohner, M. R. Greutman, S. A. Walker, 'TRIGA Type U-ZrH Cladding Steady State Mechanical Limitations', Sandia National Laboratories slides, SAND2009-7374C, slide 19 'SS 304 cladding property' (the same Carpenter / Crucible Steel curves as the UT-Austin SAR figure 4.3a, here drawn from near room temperature).",
+    "uncertainty": "Digitised from the embedded image of the slide (a log stress axis, tick marks used for the calibration, a pixel read against the tick spacing): the reading itself is good to about 1 to 3 %, but the figure is a smoothed handbook curve with no stated product form or heat, so treat it as good to about 10 %. Against the same curves in UT-Austin SAR figure 4.3a (library entries ss304-ut-sar-*) it agrees to 1 ksi from 400 to 600 C and is 3 ksi (ultimate) higher at 700 C and 3.5 ksi higher at 800 C. The slide's own text gives, for the cladding at 154 C, a yield strength of 2.0e8 Pa (29 ksi) and an ultimate strength of 5.1e8 Pa (74 ksi); the curve gives 34.6 ksi and 76 ksi there, so the yield curve is 16 % above the slide's own number at 154 C (the ultimate agrees to 3 %). Simnad (GA E-117-833, p. 4-2) states 38 ksi yield and 68 ksi ultimate for type 304L at 138 C and about 57 ksi ultimate at 500 C (the curve: 57.0). The left edge of the plot is not labelled; the table starts at 20 C where the curve is read between the ticks. The yield curve is drawn only to about 860 C.",
+    "validRange": { "min": { "value": 20, "unit": "degC" }, "max": { "value": 800, "unit": "degC" } },
+    "table": [
+      { "temperature": { "value": 20, "unit": "degC" }, "strength": { "value": 85, "unit": "ksi" } },
+      { "temperature": { "value": 100, "unit": "degC" }, "strength": { "value": 79.5, "unit": "ksi" } },
+      { "temperature": { "value": 200, "unit": "degC" }, "strength": { "value": 73.5, "unit": "ksi" } },
+      { "temperature": { "value": 300, "unit": "degC" }, "strength": { "value": 67.5, "unit": "ksi" } },
+      { "temperature": { "value": 400, "unit": "degC" }, "strength": { "value": 62.5, "unit": "ksi" } },
+      { "temperature": { "value": 500, "unit": "degC" }, "strength": { "value": 57, "unit": "ksi" } },
+      { "temperature": { "value": 600, "unit": "degC" }, "strength": { "value": 49, "unit": "ksi" } },
+      { "temperature": { "value": 700, "unit": "degC" }, "strength": { "value": 37, "unit": "ksi" } },
+      { "temperature": { "value": 800, "unit": "degC" }, "strength": { "value": 22.5, "unit": "ksi" } }
+    ]
+  },
+  {
+    "id": "ss304-sandia-fig-yield",
+    "name": "304 stainless steel cladding: 0.2 % yield strength against temperature (Sandia SAND2009-7374C slide 19)",
+    "label": "sourced, read from a figure",
+    "region": "cladding",
+    "kind": "0.2 % yield strength",
+    "citation": "M. K. Black, J. J. Dahl, J. L. Dohner, M. R. Greutman, S. A. Walker, 'TRIGA Type U-ZrH Cladding Steady State Mechanical Limitations', Sandia National Laboratories slides, SAND2009-7374C, slide 19 'SS 304 cladding property' (the same Carpenter / Crucible Steel curves as the UT-Austin SAR figure 4.3a, here drawn from near room temperature).",
+    "uncertainty": "Digitised from the embedded image of the slide (a log stress axis, tick marks used for the calibration, a pixel read against the tick spacing): the reading itself is good to about 1 to 3 %, but the figure is a smoothed handbook curve with no stated product form or heat, so treat it as good to about 10 %. Against the same curves in UT-Austin SAR figure 4.3a (library entries ss304-ut-sar-*) it agrees to 1 ksi from 400 to 600 C and is 3 ksi (ultimate) higher at 700 C and 3.5 ksi higher at 800 C. The slide's own text gives, for the cladding at 154 C, a yield strength of 2.0e8 Pa (29 ksi) and an ultimate strength of 5.1e8 Pa (74 ksi); the curve gives 34.6 ksi and 76 ksi there, so the yield curve is 16 % above the slide's own number at 154 C (the ultimate agrees to 3 %). Simnad (GA E-117-833, p. 4-2) states 38 ksi yield and 68 ksi ultimate for type 304L at 138 C and about 57 ksi ultimate at 500 C (the curve: 57.0). The left edge of the plot is not labelled; the table starts at 20 C where the curve is read between the ticks. The yield curve is drawn only to about 860 C.",
+    "validRange": { "min": { "value": 20, "unit": "degC" }, "max": { "value": 860, "unit": "degC" } },
+    "table": [
+      { "temperature": { "value": 20, "unit": "degC" }, "strength": { "value": 34.5, "unit": "ksi" } },
+      { "temperature": { "value": 500, "unit": "degC" }, "strength": { "value": 34.5, "unit": "ksi" } },
+      { "temperature": { "value": 550, "unit": "degC" }, "strength": { "value": 33.5, "unit": "ksi" } },
+      { "temperature": { "value": 600, "unit": "degC" }, "strength": { "value": 32, "unit": "ksi" } },
+      { "temperature": { "value": 650, "unit": "degC" }, "strength": { "value": 29, "unit": "ksi" } },
+      { "temperature": { "value": 700, "unit": "degC" }, "strength": { "value": 25, "unit": "ksi" } },
+      { "temperature": { "value": 750, "unit": "degC" }, "strength": { "value": 20.5, "unit": "ksi" } },
+      { "temperature": { "value": 800, "unit": "degC" }, "strength": { "value": 15, "unit": "ksi" } },
+      { "temperature": { "value": 860, "unit": "degC" }, "strength": { "value": 10, "unit": "ksi" } }
+    ]
+  },
+  {
+    "id": "ss304l-inl-plate-ultimate",
+    "name": "304L stainless steel plate, annealed, measured: ultimate tensile strength against temperature (INL/CON-06-11962)",
+    "label": "sourced",
+    "region": "cladding",
+    "kind": "ultimate tensile strength",
+    "citation": "R. K. Blandford, D. K. Morton, S. D. Snow, T. E. Rahl, 'Tensile Stress-Strain Results for 304L and 316L Stainless Steel Plate at Temperature', Idaho National Laboratory, INL/CON-06-11962, ASME PVP2007-26096 (2007), Table 2, 304L base metal, heats 72K9, 54M7, 485896, 64A1 (ASTM A 370 round specimens, quasi-static, tested at 70, 300 and 600 F).",
+    "uncertainty": "Measured, but on hot-rolled annealed and pickled SA-240 304L PLATE, not on drawn TRIGA cladding tube, and three tests per heat and temperature. The values are the mean over the four heats, worked out here from the paper's table: yield at 70, 300, 600 F = 40.2, 30.4, 22.7 (72K9); 39.2, 24.3, 22.3 (54M7); 44.3, 31.5, 32.5 (485896); 37.8, 20.9, 24.1 (64A1) ksi, so the heat-to-heat range is 38 to 44, 21 to 32 and 22 to 33 ksi: the yield of one heat can be 20 % under the mean at 300 F. Ultimate: 95.7, 73.1, 67.6; 95.7, 69.4, 65.1; 96.0, 73.5, 69.3; 97.3, 70.0, 65.8 ksi (a spread of 4 ksi). The ASME minimum at room temperature is 25.0 ksi yield and 70.0 ksi ultimate (the paper, from SA-240). A cold-drawn thin tube is stronger in yield than annealed plate and the paper says nothing about it. Three temperatures only: 21, 149 and 316 C, linear in between (the curve of the material bends, so this is a coarse interpolation); nothing above 316 C.",
+    "validRange": { "min": { "value": 21, "unit": "degC" }, "max": { "value": 316, "unit": "degC" } },
+    "table": [
+      { "temperature": { "value": 21, "unit": "degC" }, "strength": { "value": 96.2, "unit": "ksi" } },
+      { "temperature": { "value": 149, "unit": "degC" }, "strength": { "value": 71.5, "unit": "ksi" } },
+      { "temperature": { "value": 316, "unit": "degC" }, "strength": { "value": 67, "unit": "ksi" } }
+    ]
+  },
+  {
+    "id": "ss304l-inl-plate-yield",
+    "name": "304L stainless steel plate, annealed, measured: 0.2 % yield strength against temperature (INL/CON-06-11962)",
+    "label": "sourced",
+    "region": "cladding",
+    "kind": "0.2 % yield strength",
+    "citation": "R. K. Blandford, D. K. Morton, S. D. Snow, T. E. Rahl, 'Tensile Stress-Strain Results for 304L and 316L Stainless Steel Plate at Temperature', Idaho National Laboratory, INL/CON-06-11962, ASME PVP2007-26096 (2007), Table 2, 304L base metal, heats 72K9, 54M7, 485896, 64A1 (ASTM A 370 round specimens, quasi-static, tested at 70, 300 and 600 F).",
+    "uncertainty": "Measured, but on hot-rolled annealed and pickled SA-240 304L PLATE, not on drawn TRIGA cladding tube, and three tests per heat and temperature. The values are the mean over the four heats, worked out here from the paper's table: yield at 70, 300, 600 F = 40.2, 30.4, 22.7 (72K9); 39.2, 24.3, 22.3 (54M7); 44.3, 31.5, 32.5 (485896); 37.8, 20.9, 24.1 (64A1) ksi, so the heat-to-heat range is 38 to 44, 21 to 32 and 22 to 33 ksi: the yield of one heat can be 20 % under the mean at 300 F. Ultimate: 95.7, 73.1, 67.6; 95.7, 69.4, 65.1; 96.0, 73.5, 69.3; 97.3, 70.0, 65.8 ksi (a spread of 4 ksi). The ASME minimum at room temperature is 25.0 ksi yield and 70.0 ksi ultimate (the paper, from SA-240). A cold-drawn thin tube is stronger in yield than annealed plate and the paper says nothing about it. Three temperatures only: 21, 149 and 316 C, linear in between (the curve of the material bends, so this is a coarse interpolation); nothing above 316 C.",
+    "validRange": { "min": { "value": 21, "unit": "degC" }, "max": { "value": 316, "unit": "degC" } },
+    "table": [
+      { "temperature": { "value": 21, "unit": "degC" }, "strength": { "value": 40.4, "unit": "ksi" } },
+      { "temperature": { "value": 149, "unit": "degC" }, "strength": { "value": 26.8, "unit": "ksi" } },
+      { "temperature": { "value": 316, "unit": "degC" }, "strength": { "value": 25.4, "unit": "ksi" } }
+    ]
   }
 ]
