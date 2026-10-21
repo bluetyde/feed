@@ -35,7 +35,9 @@ const relaxD = arg("relax", "0.5");
 const maxOuter = arg("max-outer");
 const nCorr = arg("ncorr");
 const relaxIf = arg("relax-interface");
-const timeStepMs = arg("dt-ms");
+const INNER_ZG = "    fuelInner\n    {\n        type            zeroGradient;\n    }";
+const INNER_TRACTION = "    fuelInner\n    {\n        type            tractionDisplacement;\n        traction        uniform (0 0 0);\n        pressure        uniform 0;\n        relax           1.0;\n        value           uniform (0 0 0);\n    }";
+const innerBc = arg("inner-bc", "zeroGradient"); // the hole of the TRIGA fuel: the writer's zeroGradient or a traction-free tractionDisplacement
 const TREF = 293.15; // 20 C: the temperature the pulse starts at
 
 const q = (value, unit) => ({ value, unit });
@@ -54,6 +56,8 @@ const cladMech = mechSets("ss304-k166");
 const base = JSON.parse(JSON.stringify(example));
 delete base.limits;
 base.geometry.claddingInnerRadius = q(18.161 + gapUm / 1000, "mm");
+// --keep-thickness 1: the cladding keeps its 0.508 mm wall (the outer radius moves with the gap); otherwise the gap is cut from the wall and the outer radius stays 18.669 mm (the runs of the gap sweep)
+if (arg("keep-thickness", "0") === "1") base.geometry.claddingOuterRadius = q(18.669 + gapUm / 1000, "mm");
 base.transient.outputs = outputs;
 if (endMs !== 100) base.transient.endTime = q(endMs, "ms");
 const v = validateCase(base);
@@ -106,6 +110,8 @@ if (mech) {
   files["system/fvSolution"] = sf["system/fvSolution"].replace(/fields \{ D [0-9.]+; \}/, `fields { D ${relaxD}; }`);
   if (maxOuter) files["system/fvSolution"] = files["system/fvSolution"].replace(/maxOuterIter    \d+;/, `maxOuterIter    ${maxOuter};`);
   if (nCorr) files["system/fvSolution"] = files["system/fvSolution"].replace(/nCorrectors \{ D \d+; default 1; \}/, `nCorrectors { D ${nCorr}; default 1; }`);
+  if (innerBc === "traction") files["0/D"] = files["0/D"].replace(INNER_ZG, INNER_TRACTION);
+  if (arg("implicit", "0") === "1") files["0/D"] = files["0/D"].replace("type            gapContact;", "type            implicitGapContact;").replace("frictionCoefficient        0;", "frictionCoefficient        0;\n        penaltyFactorFriction 0.1;");
   if (relaxIf) files["0/D"] = files["0/D"].replace(/relaxInterfacePressure\s+[0-9.e-]+;/, `relaxInterfacePressure           ${relaxIf};`);
   let sd = files["constant/solverDict"];
   const block = /rheologyOptions[\s\S]*?(?=heatSourceOptions)/.exec(sf["constant/solverDict"])[0];
@@ -132,12 +138,30 @@ if (mech) {
     // strain(T) = alphaA (T-Tref) + alphaB/2 (T^2 - Tref^2), T in K -> in C: t = T - 273.15
     // = alphaA (t - t0) + alphaB/2 ((t+273.15)^2 - (t0+273.15)^2) = alphaB/2 t^2 + (alphaA + alphaB 273.15) t - [alphaA t0 + alphaB/2 (t0^2 + 2 t0 273.15)]
     const p3 = alphaB / 2, p2 = alphaA + alphaB * 273.15, p1 = -(alphaA * T0 + (alphaB / 2) * (T0 * T0 + 2 * T0 * 273.15));
-    const add = `        YoungModulusModel YoungModulusTobbe1515Ti;\n        YoungModulus { par1 ${par1E}; par2 ${par2E}; }\n        thermalExpansionModel thermalExpansionGehr1515Ti;\n        thermalExpansion { par1 ${p1}; par2 ${p2}; par3 ${p3}; }\n`;
+    const add = `        YoungModulusModel steel1515TiTobbe;\n        YoungModulus { par1 ${par1E}; par2 ${par2E}; }\n        thermalExpansionModel steel1515TiGehr;\n        thermalExpansion { par1 ${p1}; par2 ${p2}; par3 ${p3}; }\n`;
     sd = sd.replace(/(    fuel\n    \{\n        material constant;\n)/, `$1${add}`);
     void k1;
   }
+  if (arg("dynamic", "0") === "1") {
+    // inertia: the displacement equation of smallStrain has d2dt2(rho, D) and FEED's fvSchemes switch it off (steadyState). Here: Euler, and the real densities (the fuel 5996 kg/m3 and the
+    // cladding 7900 kg/m3, the figures the example quotes from the K-State SAR) with the heat capacities rescaled so that rho c, the only thing the heat equation sees, is unchanged
+    files["system/fvSchemes"] = files["system/fvSchemes"].replace("d2dt2Schemes { default steadyState; }", "d2dt2Schemes { default Euler; }");
+    const rho = { fuel: 5996, cladding: 7900 };
+    sd = sd.replace(/(    (fuel|cladding)\n    \{[\s\S]*?\n    \})/g, (blk, _x, name) => {
+      const k = 10000 / rho[name];
+      let b = blk.replace(/rho         rho   \[1 -3 0 0 0\]   10000;/, `rho         rho   [1 -3 0 0 0]   ${rho[name]};`);
+      b = b.replace(/heatCapacity \{ par1 ([^;]+); par2 ([^;]+); par3 0; \}/, (m0, p1, p2) => `heatCapacity { par1 ${Number(p1) * k}; par2 ${Number(p2) * k}; par3 0; }`);
+      b = b.replace(/(    Cp          Cp    \[0 2 -2 -1 0\]  )([0-9.eE+-]+);/, (m0, pre, v) => `${pre}${Number(v) * k};`);
+      return b;
+    });
+  }
+  files["constant/solverDict"] = sd;
+}
+
+
   // the power table: with a cooldown, the pulse's own points, then a ramp to zero 0.5 ms after the pulse and zero for good
   if (coolS > 0) {
+    let sd = files["constant/solverDict"];
     const m = /timePoints  \(([^)]*)\);\n    lhgr        \(([^)]*)\);/.exec(sd);
     const tp = m[1].trim().split(/\s+/).map(Number);
     const lh = m[2].trim().split(/\s+/).map(Number);
@@ -155,8 +179,23 @@ if (mech) {
       .replace(/endTime         [^;]+;/, `endTime         ${coolS};`)
       .replace(/deltaT          [^;]+;/, `deltaT          ${coolDtMs / 1e3};`)
       .replace(/writeInterval   [^;]+;/, `writeInterval   ${every};`);
+    files["constant/solverDict"] = sd;
   }
-  files["constant/solverDict"] = sd;
+
+// a restart at the end of stage 1 (--end-ms) with the same step to --restart-to-ms, and optionally new fuel constants (--stage2-e, --stage2-alpha) in a stage2 solverDict
+const restartTo = arg("restart-to-ms");
+if (restartTo) {
+  const cd = files["system/controlDict"];
+  files["stage2/controlDict"] = cd.replace(/endTime         [^;]+;/, `endTime         ${Number(restartTo) / 1e3};`);
+  if (arg("stage2-e")) {
+    const E2 = Number(arg("stage2-e")), a2 = Number(arg("stage2-alpha"));
+    files["stage2/solverDict"] = files["constant/solverDict"].replace(/(    fuel\n    \{[\s\S]*?\n    \})/, (blk) =>
+      blk
+        .replace(/E           E     \[1 -1 -2 0 0\]  [^;]+;/, `E           E     [1 -1 -2 0 0]  ${E2};`)
+        .replace(/G           G     \[1 -1 -2 0 0\]  [^;]+;/, `G           G     [1 -1 -2 0 0]  ${E2 / (2 * 1.32)};`)
+        .replace(/alpha       alpha \[0 0 0 0 0\]    [^;]+;/, `alpha       alpha [0 0 0 0 0]    ${a2};`),
+    );
+  }
 }
 
 fs.mkdirSync(out, { recursive: true });

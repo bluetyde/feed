@@ -1,0 +1,1249 @@
+{
+ "i-g20-p07": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    81.876,
+    79.8,
+    2.076
+   ],
+   "stage2_real_user_sys_s": [
+    42.451,
+    41.024,
+    1.249
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 63905,
+   "meanIterations": 31.9525,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0023185043,
+   "worstAbsErrD": 2.3043688e-9
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 33658,
+   "meanIterations": 16.845845845845847,
+   "maxIterations": 85,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0001777767,
+   "worstAbsErrD": 2.3959778e-9
+  }
+ },
+ "i-g20-p05": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    85.059,
+    83.006,
+    1.996
+   ],
+   "stage2_real_user_sys_s": [
+    44.373,
+    42.994,
+    1.224
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 67458,
+   "meanIterations": 33.729,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000030275225,
+   "worstAbsErrD": 4.0281649e-11
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 36090,
+   "meanIterations": 18.063063063063062,
+   "maxIterations": 72,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000085337976,
+   "worstAbsErrD": 1.4018981e-9
+  }
+ },
+ "i-g20-p03": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    85.03,
+    82.889,
+    2.169
+   ],
+   "stage2_real_user_sys_s": [
+    46.964,
+    45.499,
+    1.279
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 68553,
+   "meanIterations": 34.2765,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.00003884348,
+   "worstAbsErrD": 4.0045279e-11
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 38061,
+   "meanIterations": 19.04954954954955,
+   "maxIterations": 52,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000076055473,
+   "worstAbsErrD": 1.2011435e-9
+  }
+ },
+ "i-g40-p07": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    69.35,
+    67.515,
+    1.667
+   ],
+   "stage2_real_user_sys_s": [
+    33.236,
+    32.2,
+    1.005
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 54129,
+   "meanIterations": 27.0645,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0088873522,
+   "worstAbsErrD": 8.3897128e-9
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 29031,
+   "meanIterations": 14.53003003003003,
+   "maxIterations": 86,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.00031774565,
+   "worstAbsErrD": 4.0221895e-9
+  }
+ },
+ "i-g40-p05": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    70.09,
+    68.342,
+    1.653
+   ],
+   "stage2_real_user_sys_s": [
+    50.935,
+    49.345,
+    1.424
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 57098,
+   "meanIterations": 28.549,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0046111813,
+   "worstAbsErrD": 4.3398636e-9
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 30069,
+   "meanIterations": 15.04954954954955,
+   "maxIterations": 72,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.00026121625,
+   "worstAbsErrD": 3.3901342e-9
+  }
+ },
+ "i-g40-p03": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    76.512,
+    74.383,
+    2.004
+   ],
+   "stage2_real_user_sys_s": [
+    59.06,
+    57.117,
+    1.835
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 61910,
+   "meanIterations": 30.955,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0020696821,
+   "worstAbsErrD": 1.9454669e-9
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 32328,
+   "meanIterations": 16.18018018018018,
+   "maxIterations": 56,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000075148627,
+   "worstAbsErrD": 1.1884451e-9
+  }
+ },
+ "i-g0-p07": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    132.407,
+    129.121,
+    3.225
+   ],
+   "stage2_real_user_sys_s": [
+    86.196,
+    83.668,
+    2.294
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 100682,
+   "meanIterations": 50.341,
+   "maxIterations": 165,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000013531943,
+   "worstAbsErrD": 4.0318807e-11
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 57296,
+   "meanIterations": 28.676676676676678,
+   "maxIterations": 87,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 9.9999767e-7,
+   "worstAbsErrD": 5.9646343e-11
+  }
+ },
+ "i-g0-p05": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    166.755,
+    162.293,
+    4.107
+   ],
+   "stage2_real_user_sys_s": [
+    76.212,
+    74.351,
+    1.869
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 97906,
+   "meanIterations": 48.953,
+   "maxIterations": 166,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000017560712,
+   "worstAbsErrD": 4.0330484e-11
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 58974,
+   "meanIterations": 29.516516516516518,
+   "maxIterations": 102,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 9.9999209e-7,
+   "worstAbsErrD": 7.0255783e-11
+  }
+ },
+ "i-g0-p03": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    112.584,
+    109.837,
+    2.708
+   ],
+   "stage2_real_user_sys_s": [
+    71.961,
+    70.027,
+    1.869
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 90769,
+   "meanIterations": 45.3845,
+   "maxIterations": 158,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000025016502,
+   "worstAbsErrD": 3.9853214e-11
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 56572,
+   "meanIterations": 28.314314314314313,
+   "maxIterations": 542,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 9.9999852e-7,
+   "worstAbsErrD": 5.8864518e-11
+  }
+ },
+ "x-g20-p01": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    79.359,
+    77.127,
+    2.058
+   ],
+   "stage2_real_user_sys_s": [
+    62.256,
+    60.641,
+    1.746
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 70075,
+   "meanIterations": 35.0375,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0022932609,
+   "worstAbsErrD": 2.1657557e-9
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 55507,
+   "meanIterations": 27.78128128128128,
+   "maxIterations": 712,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.00041997637,
+   "worstAbsErrD": 6.8727231e-9
+  }
+ },
+ "l2-g20-p07": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    124.579,
+    121.347,
+    3.162
+   ],
+   "stage2_real_user_sys_s": [
+    43.777,
+    42.277,
+    1.211
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 78098,
+   "meanIterations": 39.049,
+   "maxIterations": 163,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000031336656,
+   "worstAbsErrD": 4.376141e-11
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 34925,
+   "meanIterations": 17.47997997997998,
+   "maxIterations": 84,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.00016443404,
+   "worstAbsErrD": 2.9169929e-9
+  }
+ },
+ "n-g300-p07": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    76.54,
+    74.401,
+    1.927
+   ],
+   "stage2_real_user_sys_s": [
+    31.652,
+    30.834,
+    1.038
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 66035,
+   "meanIterations": 33.0175,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0000022216606,
+   "worstAbsErrD": 2.0510775e-11
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 26996,
+   "meanIterations": 13.511511511511511,
+   "maxIterations": 41,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 9.9934875e-7,
+   "worstAbsErrD": 5.1877208e-11
+  }
+ },
+ "r0b-g20": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    78.897,
+    76.901,
+    1.969
+   ],
+   "stage2_real_user_sys_s": [
+    41.976,
+    40.529,
+    1.319
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 63941,
+   "meanIterations": 31.9705,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0023076192,
+   "worstAbsErrD": 2.3090604e-9
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 33574,
+   "meanIterations": 16.803803803803802,
+   "maxIterations": 82,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.00016240065,
+   "worstAbsErrD": 2.3553685e-9
+  }
+ },
+ "r1-g20": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "0.099999999999997146727",
+   "stage1_real_user_sys_s": [
+    73.379,
+    71.356,
+    1.929
+   ],
+   "stage2_real_user_sys_s": [
+    9.884,
+    9.446,
+    0.324
+   ]
+  },
+  "stage1": {
+   "steps": 1200,
+   "firstTime": 0.00005,
+   "lastTime": 0.06,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 55788,
+   "meanIterations": 46.49,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000021951364,
+   "worstAbsErrD": 4.0099688e-11
+  },
+  "stage2": {
+   "steps": 800,
+   "firstTime": 0.06005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 8157,
+   "meanIterations": 10.19625,
+   "maxIterations": 38,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0023105262,
+   "worstAbsErrD": 2.3038043e-9
+  }
+ },
+ "r3-g20": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "0.099999999999997146727",
+   "stage1_real_user_sys_s": [
+    67.642,
+    66.029,
+    1.708
+   ],
+   "stage2_real_user_sys_s": [
+    10.416,
+    9.819,
+    0.383
+   ]
+  },
+  "stage1": {
+   "steps": 1200,
+   "firstTime": 0.00005,
+   "lastTime": 0.06,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 52911,
+   "meanIterations": 44.0925,
+   "maxIterations": 154,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.000021612619,
+   "worstAbsErrD": 8.723765e-11
+  },
+  "stage2": {
+   "steps": 800,
+   "firstTime": 0.06005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 8420,
+   "meanIterations": 10.525,
+   "maxIterations": 331,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0023089239,
+   "worstAbsErrD": 2.3058118e-9
+  }
+ },
+ "e2H1": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "wallStage1": 143.089,
+   "wallStage2": 0
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 100,
+   "totalOuterIterations": 70569,
+   "meanIterations": 78.41,
+   "maxIterations": 100,
+   "stepsAtMaxOuter": 477,
+   "stepsNotConverged": 477,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 477,
+   "firstNotConverged": 0.00365,
+   "lastNotConverged": 0.045,
+   "worstRelD": 54.461853,
+   "worstAbsErrD": 0.0037273902
+  }
+ },
+ "e2H2": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "wallStage1": 100.764,
+   "wallStage2": 0
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 100,
+   "totalOuterIterations": 70569,
+   "meanIterations": 78.41,
+   "maxIterations": 100,
+   "stepsAtMaxOuter": 477,
+   "stepsNotConverged": 477,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 477,
+   "firstNotConverged": 0.00365,
+   "lastNotConverged": 0.045,
+   "worstRelD": 107.46903,
+   "worstAbsErrD": 0.0012872885
+  }
+ },
+ "h-g20-p05": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "stage1_real_user_sys_s": [
+    77.612,
+    75.723,
+    1.812
+   ],
+   "stage2_real_user_sys_s": null
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 100,
+   "totalOuterIterations": 70569,
+   "meanIterations": 78.41,
+   "maxIterations": 100,
+   "stepsAtMaxOuter": 477,
+   "stepsNotConverged": 477,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 477,
+   "firstNotConverged": 0.00365,
+   "lastNotConverged": 0.045,
+   "worstRelD": 16.074356,
+   "worstAbsErrD": 0.0026513244
+  }
+ },
+ "w-g20-p07": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "stage1_real_user_sys_s": [
+    588.629,
+    574.786,
+    13.732
+   ],
+   "stage2_real_user_sys_s": null
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 495611,
+   "meanIterations": 550.6788888888889,
+   "maxIterations": 1000,
+   "stepsAtMaxOuter": 475,
+   "stepsNotConverged": 475,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 475,
+   "firstNotConverged": 0.0213,
+   "lastNotConverged": 0.045,
+   "worstRelD": 8.821644,
+   "worstAbsErrD": 0.0039979105
+  }
+ },
+ "e3I1": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "wallStage1": 45.4456,
+   "wallStage2": 0
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 100,
+   "totalOuterIterations": 40507,
+   "meanIterations": 45.007777777777775,
+   "maxIterations": 100,
+   "stepsAtMaxOuter": 6,
+   "stepsNotConverged": 6,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 6,
+   "firstNotConverged": 0.00365,
+   "lastNotConverged": 0.0134,
+   "worstRelD": 0.000013629681,
+   "worstAbsErrD": 1.995988e-10
+  }
+ },
+ "e3I2": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "wallStage1": 42.4264,
+   "wallStage2": 0
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 100,
+   "totalOuterIterations": 39602,
+   "meanIterations": 44.00222222222222,
+   "maxIterations": 100,
+   "stepsAtMaxOuter": 6,
+   "stepsNotConverged": 6,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 6,
+   "firstNotConverged": 0.00365,
+   "lastNotConverged": 0.0134,
+   "worstRelD": 0.0000013084562,
+   "worstAbsErrD": 2.8094784e-11
+  }
+ },
+ "e1A": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "wallStage1": 121.032,
+   "wallStage2": 0
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 100,
+   "totalOuterIterations": 67977,
+   "meanIterations": 75.53,
+   "maxIterations": 100,
+   "stepsAtMaxOuter": 481,
+   "stepsNotConverged": 481,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 481,
+   "firstNotConverged": 0.00365,
+   "lastNotConverged": 0.045,
+   "worstRelD": 11.971276,
+   "worstAbsErrD": 0.0036322194
+  }
+ },
+ "c-g20": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    1.384,
+    1.021,
+    0.303
+   ],
+   "stage2_real_user_sys_s": [
+    1.94,
+    1.581,
+    0.295
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 4772,
+   "meanIterations": 2.386,
+   "maxIterations": 3,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 2000,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 2000,
+   "firstNotConverged": 0.00005,
+   "lastNotConverged": 0.1,
+   "worstRelD": 0,
+   "worstAbsErrD": 0
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 7998,
+   "meanIterations": 4.003003003003003,
+   "maxIterations": 5,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 1998,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 1998,
+   "firstNotConverged": 0.15,
+   "lastNotConverged": 100,
+   "worstRelD": 0,
+   "worstAbsErrD": 0
+  }
+ },
+ "c-g0": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    1.266,
+    0.916,
+    0.285
+   ],
+   "stage2_real_user_sys_s": [
+    1.78,
+    1.393,
+    0.322
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 4772,
+   "meanIterations": 2.386,
+   "maxIterations": 3,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 2000,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 2000,
+   "firstNotConverged": 0.00005,
+   "lastNotConverged": 0.1,
+   "worstRelD": 0,
+   "worstAbsErrD": 0
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 7996,
+   "meanIterations": 4.002002002002002,
+   "maxIterations": 5,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 1998,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 1998,
+   "firstNotConverged": 0.15,
+   "lastNotConverged": 100,
+   "worstRelD": 0,
+   "worstAbsErrD": 0
+  }
+ },
+ "c-g40": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    1.356,
+    0.997,
+    0.283
+   ],
+   "stage2_real_user_sys_s": [
+    1.976,
+    1.548,
+    0.354
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 4772,
+   "meanIterations": 2.386,
+   "maxIterations": 3,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 2000,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 2000,
+   "firstNotConverged": 0.00005,
+   "lastNotConverged": 0.1,
+   "worstRelD": 0,
+   "worstAbsErrD": 0
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 8001,
+   "meanIterations": 4.004504504504505,
+   "maxIterations": 5,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 1998,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 1998,
+   "firstNotConverged": 0.15,
+   "lastNotConverged": 100,
+   "worstRelD": 0,
+   "worstAbsErrD": 0
+  }
+ },
+ "c-g300": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": 139,
+   "finalTime": "99.999999999996447286",
+   "stage1_real_user_sys_s": [
+    1.895,
+    1.372,
+    0.449
+   ],
+   "stage2_real_user_sys_s": [
+    2.385,
+    1.858,
+    0.404
+   ]
+  },
+  "stage1": {
+   "steps": 2000,
+   "firstTime": 0.00005,
+   "lastTime": 0.1,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 4771,
+   "meanIterations": 2.3855,
+   "maxIterations": 3,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 2000,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 2000,
+   "firstNotConverged": 0.00005,
+   "lastNotConverged": 0.1,
+   "worstRelD": 0,
+   "worstAbsErrD": 0
+  },
+  "stage2": {
+   "steps": 1998,
+   "firstTime": 0.15,
+   "lastTime": 100,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 7996,
+   "meanIterations": 4.002002002002002,
+   "maxIterations": 5,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 1998,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 1998,
+   "firstNotConverged": 0.15,
+   "lastNotConverged": 100,
+   "worstRelD": 0,
+   "worstAbsErrD": 0
+  }
+ },
+ "dyn2-g20": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "stage1_real_user_sys_s": [
+    61.124,
+    59.51,
+    1.467
+   ],
+   "stage2_real_user_sys_s": null
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 45858,
+   "meanIterations": 50.95333333333333,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0000071183017,
+   "worstAbsErrD": 4.0228765e-11
+  }
+ },
+ "sta2-g20": {
+  "exit": {
+   "blockMeshExit": 0,
+   "offbeatExit": 139,
+   "offbeat2Exit": -1,
+   "finalTime": "0.045000000000000775491",
+   "stage1_real_user_sys_s": [
+    60.131,
+    58.631,
+    1.401
+   ],
+   "stage2_real_user_sys_s": null
+  },
+  "stage1": {
+   "steps": 900,
+   "firstTime": 0.00005,
+   "lastTime": 0.045,
+   "maxOuterIter": 1000,
+   "totalOuterIterations": 46048,
+   "meanIterations": 51.16444444444444,
+   "maxIterations": 151,
+   "stepsAtMaxOuter": 0,
+   "stepsNotConverged": 0,
+   "thermalNotConverged": 0,
+   "mechNotConverged": 0,
+   "firstNotConverged": null,
+   "lastNotConverged": null,
+   "worstRelD": 0.0000082809105,
+   "worstAbsErrD": 4.1194778e-11
+  }
+ }
+}

@@ -52,6 +52,7 @@ const times = fs.readdirSync(path.join(outDir, "times")).map((d) => ({ d, t: Num
 const ex = JSON.parse(fs.readFileSync(path.join(root, "examples/ut-triga-pulse-4p40-limits.json"), "utf8"));
 delete ex.limits;
 ex.geometry.claddingInnerRadius = { value: 18.161 + meta.gapUm / 1000, unit: "mm" };
+ex.geometry.claddingOuterRadius = { value: meta.claddingOuterRadius * 1e3, unit: "mm" };
 const c = validateCase(ex).normalized;
 const sd = fs.readFileSync(path.join(inDir, "constant/solverDict"), "utf8");
 const pm = /timePoints  \(([^)]*)\);\n    lhgr        \(([^)]*)\);/.exec(sd);
@@ -89,7 +90,16 @@ const fvAt = (t) => {
 };
 
 // ---- the independent thermo-elastic solution from a list of cell temperatures ----
+const CELLWISE = !process.argv.includes("--interp"); // default: the thermal strain piecewise constant per cell (the finite-volume temperatures as they are); --interp: linear between cell centres
 function thetaFrom(rs, Ts) {
+  if (CELLWISE) {
+    // piecewise constant: the value of the cell the radius is in (cell faces halfway between centres, the first and last cell to the solid's surfaces)
+    return (x) => {
+      let i = 0;
+      while (i + 1 < rs.length && x > 0.5 * (rs[i] + rs[i + 1])) i++;
+      return Ts[i] - Tref;
+    };
+  }
   // piecewise linear between cell centres, linear extrapolation to the faces
   return (x) => {
     let i = rs.findIndex((v) => v >= x);
@@ -100,17 +110,44 @@ function thetaFrom(rs, Ts) {
   };
 }
 const fuelProps = meta.fuel, cladProps = meta.clad;
+// a restart with new constants (stage2/solverDict): the fuel's constants after the end of stage 1
+let fuelProps2 = null;
+if (fs.existsSync(path.join(inDir, "stage2/solverDict"))) {
+  const t2 = fs.readFileSync(path.join(inDir, "stage2/solverDict"), "utf8");
+  const blk = /    fuel\n    \{[\s\S]*?\n    \}/.exec(t2)[0];
+  const g = (k) => Number(new RegExp(`${k}\\s+${k}\\s*\\[[^\\]]*\\]\\s+([^;]+);`).exec(blk)[1]);
+  fuelProps2 = { E: g("E"), nu: g("nu"), alpha: g("alpha") };
+}
 function independent(Tcells, props = { fuel: fuelProps, clad: cladProps }) {
+  if (props.fuel === undefined) props = { fuel: fuelProps, clad: cladProps };
   const fuel = { a: meta.fuelInnerRadius, b: meta.fuelRadius, E: props.fuel.E, nu: props.fuel.nu, alpha: props.fuel.alpha, theta: thetaFrom(r.slice(0, nf), Tcells.slice(0, nf)) };
   const clad = { a: meta.claddingInnerRadius, b: meta.claddingOuterRadius, E: props.clad.E, nu: props.clad.nu, alpha: props.clad.alpha, theta: thetaFrom(r.slice(nf), Tcells.slice(nf)) };
+  if (meta.laws) {
+    // the fuel's E(T) and thermal strain as the library's laws, cell by cell (the probe-local finite-element solution, vp.cjs); the fuel record keeps the constants only for the stress scale
+    const { solveSliceVP } = require("./vp.cjs");
+    const lib = JSON.parse(fs.readFileSync(path.join(root, "library/materials.json"), "utf8"));
+    const fm = lib.find((e) => e.material && e.material.materialId === "triga-uzrh-h16").material.sets;
+    const Ea = fm["mechanical.elasticity"].a.value, Eb = fm["mechanical.elasticity"].b.value;
+    const aA = fm["mechanical.thermalExpansion"].linearExpansion.a.value, aB = fm["mechanical.thermalExpansion"].linearExpansion.b.value;
+    const strain = (T) => aA * (T - Tref) + 0.5 * aB * (T * T - Tref * Tref);
+    const tf = fuel.theta, tc = clad.theta;
+    const vp = solveSliceVP(
+      { a: fuel.a, b: fuel.b, nu: fuel.nu, E: (x) => Ea + Eb * (tf(x) + Tref), th: (x) => strain(tf(x) + Tref) },
+      { a: clad.a, b: clad.b, nu: clad.nu, E: () => clad.E, th: (x) => clad.alpha * tc(x) },
+      0,
+      240,
+    );
+    return { sol: vp, fuel, clad };
+  }
   const sol = solveSlice(fuel, clad, "free-axial", 0, 0);
   return { sol, fuel, clad };
 }
 
 // ---- compare ----
 const TOL = { dispFrac: 0.01, dispFloor: 1e-9, stressFrac: 0.03, stressFloor: 1e4, thermalFrac: 0.01, eqFrac: 0.02, pFrac: 0.03, pFloor: 1e4, gapFrac: 0.02, gapFloor: 1e-8, nearlyClosed: 0.5e-6 };
-function compare(Toff, D, S, gapW, intP, Tindep) {
-  const { sol, fuel, clad } = independent(Tindep);
+function compare(Toff, D, S, gapW, intP, Tindep, props) {
+  const { sol, fuel, clad } = independent(Tindep, props);
+  const fuelProps = (props && props.fuel) || meta.fuel;
   const res = { freeGapUm: sol.freeGap * 1e6, indepContact: sol.contact, indepP: sol.contactPressure, indepGapUm: sol.gap * 1e6 };
   const solids = [
     { name: "fuel", idx: [...Array(nf).keys()], f: sol.fuel, p: fuelProps, th: fuel.theta },
@@ -148,7 +185,8 @@ function compare(Toff, D, S, gapW, intP, Tindep) {
   }
   // contact: OFFBEAT's interface pressure and gap width at fuelOuter
   const nearly = Math.abs(sol.freeGap) < TOL.nearlyClosed;
-  const touch = (intP !== null && intP > 0) || (gapW !== null && gapW <= 0);
+  // a pressure above the 10 kPa floor of the steady checks means touching; a smaller one (OFFBEAT writes 1e-6 Pa to 1e-3 Pa at an open gap while its relaxed pressure decays) and a gap at or below zero with no pressure do not, the same floor as the contact tolerance
+  const touch = intP !== null ? intP > TOL.pFloor : gapW !== null && gapW <= 0;
   res.offContact = touch;
   res.offP = intP;
   res.offGapUm = gapW === null ? null : gapW * 1e6;
@@ -171,6 +209,22 @@ function compare(Toff, D, S, gapW, intP, Tindep) {
   return res;
 }
 
+if (process.argv.includes("--tonly")) {
+  // only the temperatures: OFFBEAT's T of each written time against FEED's finite-volume T (a run with or without mechanics)
+  let worst = 0;
+  const pts = [];
+  for (const { d, t } of times) {
+    const fv = fvAt(t);
+    if (!fv) continue;
+    const Tt = listField(fs.readFileSync(path.join(outDir, "times", d, "T"), "utf8"), 1).map((v) => v[0]);
+    const dT = Math.max(...Tt.map((x, i) => Math.abs(x - fv.T[i])));
+    worst = Math.max(worst, dT);
+    pts.push([t, dT]);
+  }
+  const at = (t) => pts.reduce((p, q) => (Math.abs(q[0] - t) < Math.abs(p[0] - t) ? q : p));
+  console.log(JSON.stringify({ worstDiffK: worst, at: [0.03, 0.06, 0.1, 1, 10, 30, 100].map((t) => at(t)) }));
+  process.exit(0);
+}
 const rows = [];
 for (const { d, t } of times) {
   const dir = path.join(outDir, "times", d);
@@ -181,11 +235,12 @@ for (const { d, t } of times) {
   const D = listField(Dt, 3), S = listField(St, 6);
   const gapW = Gt ? patchScalar(Gt, "fuelOuter") : null;
   const intP = It ? patchScalar(It, "fuelOuter") : null;
-  const a = compare(Toff, D, S, gapW, intP, Toff);
+  const props = fuelProps2 && t > s1.end + 1e-9 ? { fuel: fuelProps2, clad: cladProps } : undefined;
+  const a = compare(Toff, D, S, gapW, intP, Toff, props);
   const row = { time: t, dir: d, Tfuel: { min: Math.min(...Toff.slice(0, nf)), max: Math.max(...Toff.slice(0, nf)) }, Tclad: { min: Math.min(...Toff.slice(nf)), max: Math.max(...Toff.slice(nf)) }, withOffbeatT: a };
   const fv = fvAt(t);
   if (fv) {
-    row.withFvT = compare(Toff, D, S, gapW, intP, fv.T);
+    row.withFvT = compare(Toff, D, S, gapW, intP, fv.T, props);
     row.dTfvMax = Math.max(...Toff.map((x, i) => Math.abs(x - fv.T[i])));
   }
   row.ur = { fuelOuter: D[nf - 1][0], cladInner: D[nf][0] };
