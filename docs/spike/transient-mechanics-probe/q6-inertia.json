@@ -1,0 +1,52 @@
+{
+ "rows": [
+  {
+   "name": "fuel, 293 K",
+   "E_GPa": 62.7422913640435,
+   "c_bar": 3234.814457903053,
+   "c_dilatational": 3869.5959146826954,
+   "transit_us_bar": 4.6327232040735264,
+   "transit_us_dil": 3.8727557942516704,
+   "lengthMm": 14.985999999999999
+  },
+  {
+   "name": "fuel, 923 K (end of the library's range)",
+   "E_GPa": 41.3685437527435,
+   "c_bar": 2626.6626854939254,
+   "c_dilatational": 3142.103922592703,
+   "transit_us_bar": 5.705338596677094,
+   "transit_us_dil": 4.769415770193342,
+   "lengthMm": 14.985999999999999
+  },
+  {
+   "name": "fuel, 1097 K (the pulse's peak, law extrapolated)",
+   "E_GPa": 35.47040720953,
+   "c_bar": 2432.216750305911,
+   "c_dilatational": 2909.501031075409,
+   "transit_us_bar": 6.161457443344695,
+   "transit_us_dil": 5.150711355637801,
+   "lengthMm": 14.985999999999999
+  },
+  {
+   "name": "cladding, 190 GPa",
+   "E_GPa": 190,
+   "c_bar": 4904.14446273684,
+   "c_dilatational": 5689.9782069973835,
+   "transit_us_bar": 0.10358585556766042,
+   "transit_us_dil": 0.08927977955614577,
+   "lengthMm": 0.508
+  }
+ ],
+ "peakMW_per_m": 237.611,
+ "peakTime_ms": 30,
+ "t10pct_ms": 18.5,
+ "riseFrom10pct_ms": 11.5,
+ "fastestLogRate_per_s": 309.6076871390586,
+ "doublingTime_ms": 2.2387918948815444,
+ "atTime_ms": 0.5,
+ "steps_ms": 0.05,
+ "ratio": {
+  "doublingTime_over_barTransit_fuel": 363.354273800881,
+  "riseTime_over_barTransit_fuel": 1866.4415206538088
+ }
+}

@@ -1,0 +1,104 @@
+# Restart comparisons (restart-compare.cjs; fields matched by time to the microsecond)
+
+## r1-g20 (stop at 60 ms, restart with the same constants to 100 ms) against r0b-g20 (continuous run, same constants), before the restart 1 to 60 ms
+{"timesCompared":60,"from":0.001,"to":0.06,"worstRelD":0,"worstAbsD_m":0,"worstRelSigma":0,"worstAbsSigma_Pa":0,"worstAbsT_K":0,"worstAbsDP_Pa":0,"PatFirst_Pa":5.7088232e-7,"worstAbsDGap_m":0,"firstRow":{"t":0.001,"D":{"abs":0,"rel":0},"sigma":{"abs":0,"rel":0},"T":{"abs":0,"rel":0},"dP_Pa":0,"P_A":5.7088232e-7,"dGap_m":0}}
+## same, after the restart 61 to 100 ms
+{"timesCompared":40,"from":0.061,"to":0.1,"worstRelD":2.7951160393029828e-9,"worstAbsD_m":3.000000001565119e-11,"worstRelSigma":2.24947992024244e-7,"worstAbsSigma_Pa":300,"worstAbsT_K":0.00010000000020227162,"worstAbsDP_Pa":136,"PatFirst_Pa":36865475,"worstAbsDGap_m":8.500000000128752e-13,"firstRow":{"t":0.061,"D":{"abs":1.00000
+## r3-g20 (constants E 62.7 GPa, alpha 1.0e-5 to 60 ms, then E 35.53 GPa, alpha 1.2626e-5) against r0b-g20 (the second pair throughout), 1 to 60 ms (different constants: the runs differ)
+{"timesCompared":60,"from":0.001,"to":0.06,"worstRelD":0.0037527278805726963,"worstAbsD_m":0.000030174949999999998,"worstRelSigma":0.9298846575902185,"worstAbsSigma_Pa":311604660,"worstAbsT_K":0.06891000000001668,"worstAbsDP_Pa":8268120,"PatFirst_Pa":8.1013718e-7,"worstAbsDGap_m":0.0000037215303,"firstRow":{"t":0.001,"D":{"abs":
+## same, 61 to 100 ms (after the change of constants at the restart)
+{"timesCompared":40,"from":0.061,"to":0.1,"worstRelD":1.6290731804674762e-7,"worstAbsD_m":1.7600000000011487e-9,"worstRelSigma":0.00014731697387432099,"worstAbsSigma_Pa":210600,"worstAbsT_K":0.060960000000022774,"worstAbsDP_Pa":3567,"PatFirst_Pa":36869043,"worstAbsDGap_m":3.897000000001481e-11,"firstRow":{"t":0.061,"D":{"abs":1.
+## r2-g20 was meant as a change of constants but the first pair was reduced from a finite-volume run that ends at 60 ms, so both pairs were the same: a no-op restart; it equals r0b-g20 as r1-g20 does
+{"timesCompared":40,"from":0.061,"to":0.1,"worstRelD":2.7951160393029828e-9,"worstAbsD_m":3.000000001565119e-11,"worstRelSigma":2.24947992024244e-7,"worstAbsSigma_Pa":300,"worstAbsT_K":0.00010000000020227162,"worstAbsDP_Pa":136,"PatFirst_Pa":36865475,"worstAbsDGap_m":8.500000000128752e-13,"firstRow":{"t":0.061,"D":{"abs":1.00000
+
+# Inertia (d2dt2 Euler with the real densities) against the static scheme, 1 to 45 ms, same constants
+{"timesCompared":45,"from":0.001,"to":0.045,"worstRelD":6.5153930315836e-8,"worstAbsD_m":5.0000000017050295e-11,"worstRelSigma":0.0031840325560459296,"worstAbsSigma_Pa":2622,"worstAbsT_K":0.000010000000031595846,"worstAbsDP_Pa":16,"PatFirst_Pa":5.6381856e-7,"worstAbsDGap_m":1.1500000000211563e-11,"firstRow":{"t":0.001,"D":{"abs"
+
+# Temperatures with the mechanics on against the same case with it off (tcompare.cjs): i-g20-p07 against c-g20
+{
+ "timesCompared": 200,
+ "worstDiffK": 1.1270399999999654,
+ "atTime": 5.099999999999987,
+ "worstFractionOfRise": 0.005388579531698517,
+ "atSample": [
+  {
+   "t": 0.030000000000000346,
+   "dT_K": 0.0453200000000038,
+   "rise_K": 487.63404,
+   "frac": 0.00009293854875267485
+  },
+  {
+   "t": 0.060000000000001205,
+   "dT_K": 0.44849999999996726,
+   "rise_K": 803.3916,
+   "frac": 0.0005582582640893522
+  },
+  {
+   "t": 0.09999999999999715,
+   "dT_K": 0.7651599999999803,
+   "rise_K": 803.7104,
+   "frac": 0.0009520344641552234
+  },
+  {
+   "t": 1.0999999999999974,
+   "dT_K": 0.8652799999999843,
+   "rise_K": 803.7102000000001,
+   "frac": 0.0010766069660432132
+  },
+  {
+   "t": 10.100000000000007,
+   "dT_K": 1.0095099999999775,
+   "rise_K": 722.7373,
+   "frac": 0.0013967869099878719
+  },
+  {
+   "t": 30.10000000000029,
+   "dT_K": 0.8379999999999654,
+   "rise_K": 288.84232,
+   "frac": 0.002901236910159029
+  },
+  {
+   "t": 99.99999999999645,
+   "dT_K": 0.007229999999992742,
+   "rise_K": 1.3419700000000034,
+   "frac": 0.005387601809274964
+  }
+ ]
+}
+## i-g0-p07 against c-g0
+{
+ "timesCompared": 200,
+ "worstDiffK": 1.1462999999999965,
+ "atTime": 5.099999999999987,
+ "worstFractionOfRise": 0.0056514892253491985,
+ "atSample": [
+  {
+   "t": 0.030000000000000346,
+## i-g40-p07 against c-g40
+{
+ "timesCompared": 200,
+ "worstDiffK": 1.105950000000007,
+ "atTime": 5.099999999999987,
+ "worstFractionOfRise": 0.005215169615845827,
+ "atSample": [
+  {
+   "t": 0.030000000000000346,
+## n-g300-p07 against c-g300 (no contact)
+{
+ "timesCompared": 200,
+ "worstDiffK": 0.998269999999934,
+ "atTime": 5.099999999999987,
+ "worstFractionOfRise": 0.0049044914816629955,
+ "atSample": [
+  {
+   "t": 0.030000000000000346,
+
+# OFFBEAT's temperatures against FEED's finite-volume ones (analyze.cjs --tonly)
+## c-g20
+{"worstDiffK":0.9237282087983658,"at":[[0.030000000000000346,0.5240778749804349],[0.060000000000001205,0.6085228719264251],[0.09999999999999715,0.6084641509246467],[1.0999999999999974,0.7921483397257134],[10.100000000000007,0.8137055225462291],[30.10000000000029,0.7590873126317774],[99.0999999999965,0.007131767754060547]]}
+## i-g20-p07
+{"worstDiffK":1.7486268082195693,"at":[[0.030000000000000346,0.5295217126779335],[0.060000000000001205,0.843657651445028],[0.09999999999999715,1.0246956697499172],[1.0999999999999974,1.5932987416774722],[10.100000000000007,1.5211300063111821],[30.10000000000029,1.5970873126317429],[99.0999999999965,0.014921767754060511]]}
+## c-g0
+{"worstDiffK":0.9237898453701519,"at":[[0.030000000000000346,0.524077881203084],[0.060000000000001205,0.6085228721351541],[0.09999999999999715,0.6084017767955174],[1.0999999999999974,0.7921856142321531],[10.100000000000007,0.8134226965141806],[30.10000000000029,0.7604561468151587],[99.0999999999965,0.007251524161915768]]}
+## i-g0-p07
+{"worstDiffK":1.7688374927894301,"at":[[0.030000000000000346,0.5268254341715419],[0.060000000000001205,0.827871590391851],[0.09999999999999715,1.0006993867984875],[1.0999999999999974,1.605886308683239],[10.100000000000007,1.5401789819384248],[30.10000000000029,1.6220961468151245],[99.0999999999965,0.015538662351389121]]}

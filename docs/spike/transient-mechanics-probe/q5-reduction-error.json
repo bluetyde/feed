@@ -1,0 +1,1766 @@
+[
+ {
+  "gapUm": 0,
+  "t": 0.01,
+  "TfuelMax": 295.97066426924323,
+  "TfuelMean": 295.969064046651,
+  "contact": true,
+  "pExactMPa": 0.06738256604791458,
+  "freeGapUm": -0.24996707673006016,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 0.1218845596182351,
+    "sigmaFuelScaleMPa": 0.1331685868977476,
+    "dSigmaCladMPa": 2.2359376661584047,
+    "sigmaCladScaleMPa": 2.4225242497105643,
+    "dUum": 0.2157436846836485,
+    "pMPa": 0.12915980350555914,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 0.19489957859287876,
+    "sigmaFuelScaleMPa": 0.1331685868977476,
+    "dSigmaCladMPa": 3.5772323425475783,
+    "sigmaCladScaleMPa": 2.4225242497105643,
+    "dUum": 0.34516404381598614,
+    "pMPa": 0.16621874346785873,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 0.00011840220393566414,
+   "sigmaFuelScaleMPa": 0.1331685868977476,
+   "dSigmaCladMPa": 0.0000029397973446175458,
+   "sigmaCladScaleMPa": 2.4225242497105643,
+   "dUum": 6.849589625473986e-7,
+   "pMPa": 0.06738248482465384,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 0.02,
+  "TfuelMax": 352.37351440022167,
+  "TfuelMean": 352.33706488997205,
+  "contact": true,
+  "pExactMPa": 1.563709098782941,
+  "freeGapUm": -5.811453498984257,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 2.2536787798493134,
+    "sigmaFuelScaleMPa": 3.092166294929959,
+    "dSigmaCladMPa": 41.359675040026325,
+    "sigmaCladScaleMPa": 56.28844026411927,
+    "dUum": 3.9907591458717286,
+    "pMPa": 2.70644509938583,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 3.7869203975166457,
+    "sigmaFuelScaleMPa": 3.092166294929959,
+    "dSigmaCladMPa": 69.52521599081217,
+    "sigmaCladScaleMPa": 56.28844026411927,
+    "dUum": 6.708427745459838,
+    "pMPa": 3.4846373262126917,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 0.052934312397018075,
+   "sigmaFuelScaleMPa": 3.092166294929959,
+   "dSigmaCladMPa": 0.001350412120319903,
+   "sigmaCladScaleMPa": 56.28844026411927,
+   "dUum": 0.000325228426299246,
+   "pMPa": 1.5636717879430693,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 0.03,
+  "TfuelMax": 781.308117752423,
+  "TfuelMean": 781.0436815158043,
+  "contact": true,
+  "pExactMPa": 22.1737107625075,
+  "freeGapUm": -83.95945914720657,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 2.5323684016028642,
+    "sigmaFuelScaleMPa": 43.83105852907074,
+    "dSigmaCladMPa": 0.07781859660673142,
+    "sigmaCladScaleMPa": 798.0266103300819,
+    "dUum": 0.018815066275254318,
+    "pMPa": 22.171560694636707,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 12.592780825525999,
+    "sigmaFuelScaleMPa": 43.83105852907074,
+    "dSigmaCladMPa": 232.2051491238425,
+    "sigmaCladScaleMPa": 798.0266103300819,
+    "dUum": 22.40527329164798,
+    "pMPa": 28.589360381504584,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 2.5323684016028642,
+   "sigmaFuelScaleMPa": 43.83105852907074,
+   "dSigmaCladMPa": 0.07781859660673142,
+   "sigmaCladScaleMPa": 798.0266103300819,
+   "dUum": 0.018815066275254318,
+   "pMPa": 22.171560694636707,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 0.04,
+  "TfuelMax": 1072.9844437765257,
+  "TfuelMean": 1072.241628548275,
+  "contact": true,
+  "pExactMPa": 44.14049998088173,
+  "freeGapUm": -170.64771799611086,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 19.006742229538084,
+    "sigmaFuelScaleMPa": 87.42467300018846,
+    "dSigmaCladMPa": 345.98282850310875,
+    "sigmaCladScaleMPa": 1603.5609361070524,
+    "dUum": 33.383582816836544,
+    "pMPa": 34.581260618240584,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 8.777766483076572,
+    "sigmaFuelScaleMPa": 87.42467300018846,
+    "dSigmaCladMPa": 25.668185124011277,
+    "sigmaCladScaleMPa": 1603.5609361070524,
+    "dUum": 2.4767009052372866,
+    "pMPa": 44.84969218809054,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 8.723651720799207,
+   "sigmaFuelScaleMPa": 87.42467300018846,
+   "dSigmaCladMPa": 0.2968783934164047,
+   "sigmaCladScaleMPa": 1603.5609361070524,
+   "dUum": 0.07942496883209423,
+   "pMPa": 44.132297459168235,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 0.06,
+  "TfuelMax": 1097.1500249413257,
+  "TfuelMean": 1095.2326557666652,
+  "contact": true,
+  "pExactMPa": 44.01861992137471,
+  "freeGapUm": -170.5416095365633,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 21.474724899999142,
+    "sigmaFuelScaleMPa": 88.0613167738421,
+    "dSigmaCladMPa": 385.20293211710884,
+    "sigmaCladScaleMPa": 1620.799878579123,
+    "dUum": 37.16789658164034,
+    "pMPa": 33.37575926807868,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 18.386651690382003,
+    "sigmaFuelScaleMPa": 88.0613167738421,
+    "dSigmaCladMPa": 0.6110907707114219,
+    "sigmaCladScaleMPa": 1620.799878579123,
+    "dUum": 0.2051872490889579,
+    "pMPa": 44.0017359534007,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 18.386651690382003,
+   "sigmaFuelScaleMPa": 88.0613167738421,
+   "dSigmaCladMPa": 0.6110907707114219,
+   "sigmaCladScaleMPa": 1620.799878579123,
+   "dUum": 0.2051872490889579,
+   "pMPa": 44.0017359534007,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 0.08,
+  "TfuelMax": 1097.3891288325806,
+  "TfuelMean": 1094.3433372394811,
+  "contact": true,
+  "pExactMPa": 42.06380255845202,
+  "freeGapUm": -162.95856261575614,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 25.10258928206897,
+    "sigmaFuelScaleMPa": 85.1472871571989,
+    "dSigmaCladMPa": 385.70736269576037,
+    "sigmaCladScaleMPa": 1558.5481059488159,
+    "dUum": 37.21656864798676,
+    "pMPa": 31.407004877020384,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 24.682634850771784,
+    "sigmaFuelScaleMPa": 85.1472871571989,
+    "dSigmaCladMPa": 0.14427516163492202,
+    "sigmaCladScaleMPa": 1558.5481059488159,
+    "dUum": 0.23502627633916418,
+    "pMPa": 42.0677887694956,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 24.674481824395418,
+   "sigmaFuelScaleMPa": 85.1472871571989,
+   "dSigmaCladMPa": 0.8047980001306534,
+   "sigmaCladScaleMPa": 1558.5481059488159,
+   "dUum": 0.319793443566554,
+   "pMPa": 42.041566608690545,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 0.1,
+  "TfuelMax": 1097.4686875314299,
+  "TfuelMean": 1093.3466400238335,
+  "contact": true,
+  "pExactMPa": 40.37956633575907,
+  "freeGapUm": -156.42235236912998,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 29.875828012588382,
+    "sigmaFuelScaleMPa": 82.76787009740161,
+    "dSigmaCladMPa": 385.71946650389566,
+    "sigmaCladScaleMPa": 1504.5273506754045,
+    "dUum": 37.21773653275919,
+    "pMPa": 29.722434235758328,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 29.380389588182688,
+    "sigmaFuelScaleMPa": 82.76787009740161,
+    "dSigmaCladMPa": 1.0790249390444755,
+    "sigmaCladScaleMPa": 1504.5273506754045,
+    "dUum": 0.2470504519369121,
+    "pMPa": 40.40937896456086,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 29.36007699772537,
+   "sigmaFuelScaleMPa": 82.76787009740161,
+   "dSigmaCladMPa": 0.9439166677217483,
+   "sigmaCladScaleMPa": 1504.5273506754045,
+   "dUum": 0.42654467989673855,
+   "pMPa": 40.35348664365995,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 1,
+  "TfuelMax": 1097.4685297918757,
+  "TfuelMean": 1054.811552507077,
+  "contact": true,
+  "pExactMPa": 29.648173891279836,
+  "freeGapUm": -114.50440005516155,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 82.10842385313035,
+    "sigmaFuelScaleMPa": 193.68197176734196,
+    "dSigmaCladMPa": 336.74753523665237,
+    "sigmaCladScaleMPa": 1144.7657876997573,
+    "dUum": 32.6010296643575,
+    "pMPa": 20.344098574816638,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 80.81738551948929,
+    "sigmaFuelScaleMPa": 193.68197176734196,
+    "dSigmaCladMPa": 38.99174224828386,
+    "sigmaCladScaleMPa": 1144.7657876997573,
+    "dUum": 3.8033767860501455,
+    "pMPa": 30.72548573058793,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 79.65366266823602,
+   "sigmaFuelScaleMPa": 193.68197176734196,
+   "dSigmaCladMPa": 1.712097440911293,
+   "sigmaCladScaleMPa": 1144.7657876997573,
+   "dUum": 3.1362163467771547,
+   "pMPa": 29.60086995588747,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 3,
+  "TfuelMax": 1096.7984912069592,
+  "TfuelMean": 990.9904663644957,
+  "contact": true,
+  "pExactMPa": 27.320368027667914,
+  "freeGapUm": -105.01406263279861,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 102.55862188722992,
+    "sigmaFuelScaleMPa": 247.34709998328148,
+    "dSigmaCladMPa": 250.22392466476632,
+    "sigmaCladScaleMPa": 1043.5464503182297,
+    "dUum": 25.94340152966845,
+    "pMPa": 20.406873503560124,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 102.1770069795388,
+    "sigmaFuelScaleMPa": 247.34709998328148,
+    "dSigmaCladMPa": 93.52196131318617,
+    "sigmaCladScaleMPa": 1043.5464503182297,
+    "dUum": 9.113641675712692,
+    "pMPa": 29.90430786604604,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 97.33032878982604,
+   "sigmaFuelScaleMPa": 247.34709998328148,
+   "dSigmaCladMPa": 0.714661836063385,
+   "sigmaCladScaleMPa": 1043.5464503182297,
+   "dUum": 5.482635304173417,
+   "pMPa": 27.30062247135985,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 6,
+  "TfuelMax": 1080.5223625413146,
+  "TfuelMean": 909.4027417298756,
+  "contact": true,
+  "pExactMPa": 23.227478801256837,
+  "freeGapUm": -88.77640251454292,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 97.29793207441783,
+    "sigmaFuelScaleMPa": 249.78976840479154,
+    "dSigmaCladMPa": 151.9895667670176,
+    "sigmaCladScaleMPa": 883.7038090315967,
+    "dUum": 18.256516023589118,
+    "pMPa": 19.02812400690703,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 101.116089693928,
+    "sigmaFuelScaleMPa": 249.78976840479154,
+    "dSigmaCladMPa": 151.50145802302194,
+    "sigmaCladScaleMPa": 883.7038090315967,
+    "dUum": 14.71470381988949,
+    "pMPa": 27.413347526369506,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 91.6146907082901,
+   "sigmaFuelScaleMPa": 249.78976840479154,
+   "dSigmaCladMPa": 0.5348404263765812,
+   "sigmaCladScaleMPa": 883.7038090315967,
+   "dUum": 6.482871749237667,
+   "pMPa": 23.24225603065021,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 10,
+  "TfuelMax": 1016.8651226965142,
+  "TfuelMean": 816.7646433599925,
+  "contact": true,
+  "pExactMPa": 18.233824263689723,
+  "freeGapUm": -69.27246675487598,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 77.31844196670926,
+    "sigmaFuelScaleMPa": 224.8228148451339,
+    "dSigmaCladMPa": 56.52671803254318,
+    "sigmaCladScaleMPa": 694.7887629342413,
+    "dUum": 10.19141042265567,
+    "pMPa": 16.672034534520694,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 83.26332952550847,
+    "sigmaFuelScaleMPa": 224.8228148451339,
+    "dSigmaCladMPa": 201.3767333526101,
+    "sigmaCladScaleMPa": 694.7887629342413,
+    "dUum": 19.453596877356127,
+    "pMPa": 23.797708473916558,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 73.57395708687525,
+   "sigmaFuelScaleMPa": 224.8228148451339,
+   "dSigmaCladMPa": 0.659662274873495,
+   "sigmaCladScaleMPa": 694.7887629342413,
+   "dUum": 6.024833942937732,
+   "pMPa": 18.252050224969814,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 15,
+  "TfuelMax": 902.7793710464742,
+  "TfuelMean": 717.4859431322062,
+  "contact": true,
+  "pExactMPa": 13.061526038103029,
+  "freeGapUm": -49.33265705324034,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 52.917736790583966,
+    "sigmaFuelScaleMPa": 192.2605154932643,
+    "dSigmaCladMPa": 23.103259435549976,
+    "sigmaCladScaleMPa": 501.351998588283,
+    "dUum": 3.000687286674104,
+    "pMPa": 13.699851321623756,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 57.590421646650135,
+    "sigmaFuelScaleMPa": 192.2605154932643,
+    "dSigmaCladMPa": 232.13095451587154,
+    "sigmaCladScaleMPa": 501.351998588283,
+    "dUum": 22.398114319591905,
+    "pMPa": 19.47512571752622,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 53.004359118433115,
+   "sigmaFuelScaleMPa": 192.2605154932643,
+   "dSigmaCladMPa": 0.0382451189854145,
+   "sigmaCladScaleMPa": 501.351998588283,
+   "dUum": 4.566436984560851,
+   "pMPa": 13.060469354845885,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 20,
+  "TfuelMax": 784.0370633403841,
+  "TfuelMean": 631.4079067822578,
+  "contact": true,
+  "pExactMPa": 9.053477350999177,
+  "freeGapUm": -34.040340465630365,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 34.1009097059114,
+    "sigmaFuelScaleMPa": 145.8908118065077,
+    "dSigmaCladMPa": 68.86745389664448,
+    "sigmaCladScaleMPa": 351.46061572097994,
+    "dUum": 6.686327018051713,
+    "pMPa": 10.956232117747405,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 35.947688113643856,
+    "sigmaFuelScaleMPa": 145.8908118065077,
+    "dSigmaCladMPa": 235.50065782752765,
+    "sigmaCladScaleMPa": 351.46061572097994,
+    "dUum": 22.723254065238734,
+    "pMPa": 15.560179339788904,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 38.2567837253986,
+   "sigmaFuelScaleMPa": 145.8908118065077,
+   "dSigmaCladMPa": 0.42778147902584074,
+   "sigmaCladScaleMPa": 351.46061572097994,
+   "dUum": 3.08693728415476,
+   "pMPa": 9.04165807761268,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 0,
+  "t": 30,
+  "TfuelMax": 583.5054961468152,
+  "TfuelMean": 493.8473882038069,
+  "contact": true,
+  "pExactMPa": 3.98923875692383,
+  "freeGapUm": -14.906229718203564,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 8.222743491707563,
+    "sigmaFuelScaleMPa": 70.8397930561625,
+    "dSigmaCladMPa": 90.36201941596883,
+    "sigmaCladScaleMPa": 159.79250674019602,
+    "dUum": 8.718952820784573,
+    "pMPa": 6.485871831403348,
+    "contact": true,
+    "E": 46.18972563409622,
+    "alpha": 0.000009601006610437033
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 10.153188464291542,
+    "sigmaFuelScaleMPa": 70.8397930561625,
+    "dSigmaCladMPa": 189.23343934102732,
+    "sigmaCladScaleMPa": 159.79250674019602,
+    "dUum": 18.258970311797857,
+    "pMPa": 9.217613095380921,
+    "contact": true,
+    "E": 35.53036716125315,
+    "alpha": 0.000012625686995371972
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 15.179971783002735,
+   "sigmaFuelScaleMPa": 70.8397930561625,
+   "dSigmaCladMPa": 0.35334118596220015,
+   "sigmaCladScaleMPa": 159.79250674019602,
+   "dUum": 1.1281846341443111,
+   "pMPa": 3.97947621185651,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 0.01,
+  "TfuelMax": 295.97066426924323,
+  "TfuelMean": 295.96906387700653,
+  "contact": false,
+  "pExactMPa": 0,
+  "freeGapUm": 19.750304003100016,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 0.009308580313284881,
+    "sigmaFuelScaleMPa": 0.021774670513290913,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 0.89731206167124,
+    "dUum": 0.2374406728599612,
+    "pMPa": 0,
+    "contact": false,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 0.009667966225214769,
+    "sigmaFuelScaleMPa": 0.021774670513290913,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 0.89731206167124,
+    "dUum": 0.3912644938240766,
+    "pMPa": 0,
+    "contact": false,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 0.00011773631403269247,
+   "sigmaFuelScaleMPa": 0.021774670513290913,
+   "dSigmaCladMPa": 0,
+   "sigmaCladScaleMPa": 0.89731206167124,
+   "dUum": 7.102393124118281e-7,
+   "pMPa": 0,
+   "contact": false
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 0.02,
+  "TfuelMax": 352.37351440022167,
+  "TfuelMean": 352.3370612805589,
+  "contact": false,
+  "pExactMPa": 0,
+  "freeGapUm": 14.195157138460889,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 0.11797030985050648,
+    "sigmaFuelScaleMPa": 0.5636211952579245,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 18.943099046961184,
+    "dUum": 4.405751512188203,
+    "pMPa": 0,
+    "contact": false,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 0.12585090078229458,
+    "sigmaFuelScaleMPa": 0.5636211952579245,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 18.943099046961184,
+    "dUum": 7.635360510444147,
+    "pMPa": 0,
+    "contact": false,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 0.05258151756448299,
+   "sigmaFuelScaleMPa": 0.5636211952579245,
+   "dSigmaCladMPa": 0,
+   "sigmaCladScaleMPa": 18.943099046961184,
+   "dUum": 0.0003378968939281383,
+   "pMPa": 0,
+   "contact": false
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 0.03,
+  "TfuelMax": 781.308117752423,
+  "TfuelMean": 781.0436583045126,
+  "contact": true,
+  "pExactMPa": 16.23614980260907,
+  "freeGapUm": -63.87927622510722,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 2.519335856767297,
+    "sigmaFuelScaleMPa": 32.13416269960046,
+    "dSigmaCladMPa": 0.07938246405732631,
+    "sigmaCladScaleMPa": 612.1099323557737,
+    "dUum": 0.01905454711702769,
+    "pMPa": 16.234043959813068,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 12.382315635793686,
+    "sigmaFuelScaleMPa": 32.13416269960046,
+    "dSigmaCladMPa": 237.82670183014895,
+    "sigmaCladScaleMPa": 612.1099323557737,
+    "dUum": 22.96631614851146,
+    "pMPa": 22.545171768316706,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 2.519335856767297,
+   "sigmaFuelScaleMPa": 32.13416269960046,
+   "dSigmaCladMPa": 0.07938246405732631,
+   "sigmaCladScaleMPa": 612.1099323557737,
+   "dUum": 0.01905454711702769,
+   "pMPa": 16.234043959813068,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 0.04,
+  "TfuelMax": 1072.9844437765257,
+  "TfuelMean": 1072.241586693618,
+  "contact": true,
+  "pExactMPa": 37.46762262218416,
+  "freeGapUm": -150.39340952087724,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 18.56621270168817,
+    "sigmaFuelScaleMPa": 74.28043977244926,
+    "dSigmaCladMPa": 351.88650410766957,
+    "sigmaCladScaleMPa": 1423.3796154321603,
+    "dUum": 33.98077944808611,
+    "pMPa": 28.132843697972596,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 8.761581324466349,
+    "sigmaFuelScaleMPa": 74.28043977244926,
+    "dSigmaCladMPa": 26.254627593773126,
+    "sigmaCladScaleMPa": 1423.3796154321603,
+    "dUum": 2.535342219055328,
+    "pMPa": 38.164100439836396,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 8.673432502008081,
+   "sigmaFuelScaleMPa": 74.28043977244926,
+   "dSigmaCladMPa": 0.3044133345208168,
+   "sigmaCladScaleMPa": 1423.3796154321603,
+   "dUum": 0.08060807943989544,
+   "pMPa": 37.459547203000916,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 0.06,
+  "TfuelMax": 1097.1500249413257,
+  "TfuelMean": 1095.2330101959474,
+  "contact": true,
+  "pExactMPa": 37.29087416274373,
+  "freeGapUm": -149.99323463353738,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 20.98722790909326,
+    "sigmaFuelScaleMPa": 74.81200336216081,
+    "dSigmaCladMPa": 391.7758324097353,
+    "sigmaCladScaleMPa": 1432.1272310539393,
+    "dUum": 37.83278983016892,
+    "pMPa": 26.89791864828325,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 18.270721922229647,
+    "sigmaFuelScaleMPa": 74.81200336216081,
+    "dSigmaCladMPa": 0.6280453515763282,
+    "sigmaCladScaleMPa": 1432.1272310539393,
+    "dUum": 0.20812338186594442,
+    "pMPa": 37.274213493345194,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 18.270721922229647,
+   "sigmaFuelScaleMPa": 74.81200336216081,
+   "dSigmaCladMPa": 0.6280453515763282,
+   "sigmaCladScaleMPa": 1432.1272310539393,
+   "dUum": 0.20812338186594442,
+   "pMPa": 37.274213493345194,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 0.08,
+  "TfuelMax": 1097.3891288325806,
+  "TfuelMean": 1094.345149642504,
+  "contact": true,
+  "pExactMPa": 35.356546535778925,
+  "freeGapUm": -142.20492277035464,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 24.931355527409433,
+    "sigmaFuelScaleMPa": 71.9406922906227,
+    "dSigmaCladMPa": 392.25134834155904,
+    "sigmaCladScaleMPa": 1364.0786093281558,
+    "dUum": 37.878709186738675,
+    "pMPa": 24.950976624332366,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 24.511768240332604,
+    "sigmaFuelScaleMPa": 71.9406922906227,
+    "dSigmaCladMPa": 0.1428727452697754,
+    "sigmaCladScaleMPa": 1364.0786093281558,
+    "dUum": 0.2372765555833025,
+    "pMPa": 35.360336636878614,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 24.503636425774335,
+   "sigmaFuelScaleMPa": 71.9406922906227,
+   "dSigmaCladMPa": 0.8279729156632424,
+   "sigmaCladScaleMPa": 1364.0786093281558,
+   "dUum": 0.32407512093324264,
+   "pMPa": 35.33458222679063,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 0.1,
+  "TfuelMax": 1097.4686875314299,
+  "TfuelMean": 1093.350775242487,
+  "contact": true,
+  "pExactMPa": 33.70025313078737,
+  "freeGapUm": -135.53382107045437,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 29.655199653328896,
+    "sigmaFuelScaleMPa": 72.35862406206596,
+    "dSigmaCladMPa": 392.2248570241585,
+    "sigmaCladScaleMPa": 1305.6133958160094,
+    "dUum": 37.876150988731325,
+    "pMPa": 23.29538597581249,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 29.16044858040881,
+    "sigmaFuelScaleMPa": 72.35862406206596,
+    "dSigmaCladMPa": 1.0963398099930286,
+    "sigmaCladScaleMPa": 1305.6133958160094,
+    "dUum": 0.24825030262687992,
+    "pMPa": 33.72933662733298,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 29.1402090766114,
+   "sigmaFuelScaleMPa": 72.35862406206596,
+   "dSigmaCladMPa": 0.9719122063586711,
+   "sigmaCladScaleMPa": 1305.6133958160094,
+   "dUum": 0.4319394719646153,
+   "pMPa": 33.674470426679086,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 1,
+  "TfuelMax": 1097.4685300644167,
+  "TfuelMean": 1054.7805507290232,
+  "contact": true,
+  "pExactMPa": 23.592546709788056,
+  "freeGapUm": -94.6071241156917,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 81.82436189403391,
+    "sigmaFuelScaleMPa": 193.58482019558014,
+    "dSigmaCladMPa": 341.8980514073508,
+    "sigmaCladScaleMPa": 962.4323338143067,
+    "dUum": 33.11079969122848,
+    "pMPa": 14.522739578063739,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 80.53119092449236,
+    "sigmaFuelScaleMPa": 193.58482019558014,
+    "dSigmaCladMPa": 39.815649511255266,
+    "sigmaCladScaleMPa": 962.4323338143067,
+    "dUum": 3.8859572510437252,
+    "pMPa": 24.64876876322993,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 79.3639906427045,
+   "sigmaFuelScaleMPa": 193.58482019558014,
+   "dSigmaCladMPa": 1.8410235093445777,
+   "sigmaCladScaleMPa": 962.4323338143067,
+   "dUum": 3.1743012666436514,
+   "pMPa": 23.543708383302565,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 3,
+  "TfuelMax": 1096.798640493993,
+  "TfuelMean": 990.7880331627913,
+  "contact": true,
+  "pExactMPa": 21.31550316551112,
+  "freeGapUm": -85.08495974773192,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 102.24551028109455,
+    "sigmaFuelScaleMPa": 247.34311386094927,
+    "dSigmaCladMPa": 253.88608491075922,
+    "sigmaCladScaleMPa": 859.7838071947376,
+    "dUum": 26.308886616436553,
+    "pMPa": 14.580460909290844,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 103.07754026679599,
+    "sigmaFuelScaleMPa": 247.34311386094927,
+    "dSigmaCladMPa": 95.65002622726274,
+    "sigmaCladScaleMPa": 859.7838071947376,
+    "dUum": 9.32640114197509,
+    "pMPa": 23.85288905052768,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 96.99652597739733,
+   "sigmaFuelScaleMPa": 247.34311386094927,
+   "dSigmaCladMPa": 0.94355602374506,
+   "sigmaCladScaleMPa": 859.7838071947376,
+   "dUum": 5.556564954541319,
+   "pMPa": 21.29047268958882,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 6,
+  "TfuelMax": 1080.496808192341,
+  "TfuelMean": 909.0382368596875,
+  "contact": true,
+  "pExactMPa": 17.329578611471984,
+  "freeGapUm": -68.79670559658508,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 96.9184493108238,
+    "sigmaFuelScaleMPa": 249.67992267102338,
+    "dSigmaCladMPa": 154.00788175790262,
+    "sigmaCladScaleMPa": 698.2348863044441,
+    "dUum": 18.47570978521155,
+    "pMPa": 13.24408652230871,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 101.90328418277085,
+    "sigmaFuelScaleMPa": 249.67992267102338,
+    "dSigmaCladMPa": 155.02632047697162,
+    "sigmaCladScaleMPa": 698.2348863044441,
+    "dUum": 15.066397968207387,
+    "pMPa": 21.442087651020827,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 92.45060918585617,
+   "sigmaFuelScaleMPa": 249.67992267102338,
+   "dSigmaCladMPa": 0.2566676236271858,
+   "sigmaCladScaleMPa": 698.2348863044441,
+   "dUum": 6.570615941431349,
+   "pMPa": 17.336387441937948,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 10,
+  "TfuelMax": 1016.7010055225462,
+  "TfuelMean": 816.2651144653904,
+  "contact": true,
+  "pExactMPa": 12.479056462472503,
+  "freeGapUm": -49.25428403833105,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 78.02464681171936,
+    "sigmaFuelScaleMPa": 218.61248706647433,
+    "dSigmaCladMPa": 56.97343517604375,
+    "sigmaCladScaleMPa": 507.6203502900404,
+    "dUum": 10.280314785840531,
+    "pMPa": 10.96767590206828,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 83.81376099687618,
+    "sigmaFuelScaleMPa": 218.61248706647433,
+    "dSigmaCladMPa": 206.19079480119515,
+    "sigmaCladScaleMPa": 507.6203502900404,
+    "dUum": 19.932522882166314,
+    "pMPa": 17.948847043229968,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 74.20856641283203,
+   "sigmaFuelScaleMPa": 218.61248706647433,
+   "dSigmaCladMPa": 0.4057539508266449,
+   "sigmaCladScaleMPa": 507.6203502900404,
+   "dUum": 6.101984886190996,
+   "pMPa": 12.489820226945545,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 15,
+  "TfuelMax": 902.3827283643975,
+  "TfuelMean": 716.8833261790817,
+  "contact": true,
+  "pExactMPa": 7.4630034124500115,
+  "freeGapUm": -29.290584437122504,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 53.47663680498409,
+    "sigmaFuelScaleMPa": 181.91186033998324,
+    "dSigmaCladMPa": 23.99168773152244,
+    "sigmaCladScaleMPa": 312.68015096784615,
+    "dUum": 2.9897062126513885,
+    "pMPa": 8.099450387137674,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 57.89888352211779,
+    "sigmaFuelScaleMPa": 181.91186033998324,
+    "dSigmaCladMPa": 237.98290735032762,
+    "sigmaCladScaleMPa": 312.68015096784615,
+    "dUum": 22.9814005152561,
+    "pMPa": 13.776169168585131,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 53.57971158918774,
+   "sigmaFuelScaleMPa": 181.91186033998324,
+   "dSigmaCladMPa": 0.22474467589914798,
+   "sigmaCladScaleMPa": 312.68015096784615,
+   "dUum": 4.620606745452376,
+   "pMPa": 7.457041427913414,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 20,
+  "TfuelMax": 783.4479680681185,
+  "TfuelMean": 630.7470303701976,
+  "contact": true,
+  "pExactMPa": 3.580148795233499,
+  "freeGapUm": -13.990315013848564,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 33.82277968747908,
+    "sigmaFuelScaleMPa": 135.5108294455288,
+    "dSigmaCladMPa": 70.62161293695891,
+    "sigmaCladScaleMPa": 161.802354868903,
+    "dUum": 6.8603988859002545,
+    "pMPa": 5.453585645660643,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 36.10857325897786,
+    "sigmaFuelScaleMPa": 135.5108294455288,
+    "dSigmaCladMPa": 241.97033451539767,
+    "sigmaCladScaleMPa": 161.802354868903,
+    "dUum": 23.36645615509691,
+    "pMPa": 9.99909226836407,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 38.64493617431277,
+   "sigmaFuelScaleMPa": 135.5108294455288,
+   "dSigmaCladMPa": 0.554202882953763,
+   "sigmaCladScaleMPa": 161.802354868903,
+   "dUum": 3.1215499099779995,
+   "pMPa": 3.5654470053616962,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 20,
+  "t": 30,
+  "TfuelMax": 582.7514073126317,
+  "TfuelMean": 493.18358210982933,
+  "contact": false,
+  "pExactMPa": 0,
+  "freeGapUm": 5.134927344126161,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 8.041161724081158,
+    "sigmaFuelScaleMPa": 64.46550110566533,
+    "dSigmaCladMPa": 43.19621448095566,
+    "sigmaCladScaleMPa": 18.241342485251366,
+    "dUum": 9.23767340187485,
+    "pMPa": 1.1459010443976163,
+    "contact": true,
+    "E": 46.18972642157605,
+    "alpha": 0.000009601006392223097
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 8.765075730356395,
+    "sigmaFuelScaleMPa": 64.46550110566533,
+    "dSigmaCladMPa": 146.4285894806775,
+    "sigmaCladScaleMPa": 18.241342485251366,
+    "dUum": 19.08645758872521,
+    "pMPa": 3.8844300506330427,
+    "contact": true,
+    "E": 35.530355136678516,
+    "alpha": 0.000012625690111017235
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 15.263568539984286,
+   "sigmaFuelScaleMPa": 64.46550110566533,
+   "dSigmaCladMPa": 0,
+   "sigmaCladScaleMPa": 18.241342485251366,
+   "dUum": 1.1387151093917174,
+   "pMPa": 0,
+   "contact": false
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 0.01,
+  "TfuelMax": 295.97066426924323,
+  "TfuelMean": 295.96906371268454,
+  "contact": false,
+  "pExactMPa": 0,
+  "freeGapUm": 39.750595141476445,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 0.009309528269368223,
+    "sigmaFuelScaleMPa": 0.021776887844305485,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 0.8664290598291905,
+    "dUum": 0.23744065396123398,
+    "pMPa": 0,
+    "contact": false,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 0.009668947135066148,
+    "sigmaFuelScaleMPa": 0.021776887844305485,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 0.8664290598291905,
+    "dUum": 0.3912646910077569,
+    "pMPa": 0,
+    "contact": false,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 0.00011774815284460783,
+   "sigmaFuelScaleMPa": 0.021776887844305485,
+   "dSigmaCladMPa": 0,
+   "sigmaCladScaleMPa": 0.8664290598291905,
+   "dUum": 7.103116150912662e-7,
+   "pMPa": 0,
+   "contact": false
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 0.02,
+  "TfuelMax": 352.37351440022167,
+  "TfuelMean": 352.3370578211082,
+  "contact": false,
+  "pExactMPa": 0,
+  "freeGapUm": 34.20224849555895,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 0.11798150872964412,
+    "sigmaFuelScaleMPa": 0.5636743624841943,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 18.259386017034398,
+    "dUum": 4.405751153452877,
+    "pMPa": 0,
+    "contact": false,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 0.12586276397373528,
+    "sigmaFuelScaleMPa": 0.5636743624841943,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 18.259386017034398,
+    "dUum": 7.635364685825433,
+    "pMPa": 0,
+    "contact": false,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 0.052586424060560764,
+   "sigmaFuelScaleMPa": 0.5636743624841943,
+   "dSigmaCladMPa": 0,
+   "sigmaCladScaleMPa": 18.259386017034398,
+   "dUum": 0.0003379285099377262,
+   "pMPa": 0,
+   "contact": false
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 0.03,
+  "TfuelMax": 781.308117752423,
+  "TfuelMean": 781.0436364713738,
+  "contact": true,
+  "pExactMPa": 10.694446867770777,
+  "freeGapUm": -43.793532740209706,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 2.5071711637238265,
+    "sigmaFuelScaleMPa": 21.21710073895824,
+    "dSigmaCladMPa": 0.0808753253275156,
+    "sigmaCladScaleMPa": 425.25487731395566,
+    "dUum": 0.019280476214588047,
+    "pMPa": 10.692390762131135,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 12.133452180262447,
+    "sigmaFuelScaleMPa": 21.21710073895824,
+    "dSigmaCladMPa": 243.19916207430768,
+    "sigmaCladScaleMPa": 425.25487731395566,
+    "dUum": 23.500127229541345,
+    "pMPa": 16.87733660650532,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 2.5071711637238265,
+   "sigmaFuelScaleMPa": 21.21710073895824,
+   "dSigmaCladMPa": 0.0808753253275156,
+   "sigmaCladScaleMPa": 425.25487731395566,
+   "dUum": 0.019280476214588047,
+   "pMPa": 10.692390762131135,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 0.04,
+  "TfuelMax": 1072.9844437765257,
+  "TfuelMean": 1072.241553982762,
+  "contact": true,
+  "pExactMPa": 31.170220450890557,
+  "freeGapUm": -130.1216304347052,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 18.08772373061478,
+    "sigmaFuelScaleMPa": 61.87581386098182,
+    "dSigmaCladMPa": 357.591296682467,
+    "sigmaCladScaleMPa": 1241.537429818944,
+    "dUum": 34.553741450626504,
+    "pMPa": 22.0791218639082,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 8.817485078774213,
+    "sigmaFuelScaleMPa": 61.87581386098182,
+    "dSigmaCladMPa": 26.821044448112012,
+    "sigmaCladScaleMPa": 1241.537429818944,
+    "dUum": 2.5916946072210822,
+    "pMPa": 31.85209599294536,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 8.625937765039206,
+   "sigmaFuelScaleMPa": 61.87581386098182,
+   "dSigmaCladMPa": 0.3116723491742611,
+   "sigmaCladScaleMPa": 1241.537429818944,
+   "dUum": 0.0817352774415002,
+   "pMPa": 31.162296755942243,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 0.06,
+  "TfuelMax": 1097.1500249413257,
+  "TfuelMean": 1095.233481535062,
+  "contact": true,
+  "pExactMPa": 30.937513758102952,
+  "freeGapUm": -129.40677975066865,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 20.45745413235712,
+    "sigmaFuelScaleMPa": 62.29989801300836,
+    "dSigmaCladMPa": 398.13098027239965,
+    "sigmaCladScaleMPa": 1246.527652569904,
+    "dUum": 38.4710564354951,
+    "pMPa": 20.815768554317017,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 18.15959632922101,
+    "sigmaFuelScaleMPa": 62.29989801300836,
+    "dSigmaCladMPa": 0.6443207656338215,
+    "sigmaCladScaleMPa": 1246.527652569904,
+    "dUum": 0.21090510875972363,
+    "pMPa": 30.921133092976,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 18.15959632922101,
+   "sigmaFuelScaleMPa": 62.29989801300836,
+   "dSigmaCladMPa": 0.6443207656338215,
+   "sigmaCladScaleMPa": 1246.527652569904,
+   "dUum": 0.21090510875972363,
+   "pMPa": 30.921133092976,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 0.08,
+  "TfuelMax": 1097.3891288325806,
+  "TfuelMean": 1094.3472955780217,
+  "contact": true,
+  "pExactMPa": 29.02549821376124,
+  "freeGapUm": -121.40259289375352,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 24.76526666840923,
+    "sigmaFuelScaleMPa": 60.93337675202727,
+    "dSigmaCladMPa": 398.57710003125334,
+    "sigmaCladScaleMPa": 1176.146133354792,
+    "dUum": 38.514164610171136,
+    "pMPa": 18.892411237751002,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 24.346105958723307,
+    "sigmaFuelScaleMPa": 60.93337675202727,
+    "dSigmaCladMPa": 0.14137245704960824,
+    "sigmaCladScaleMPa": 1176.146133354792,
+    "dUum": 0.2393841953572727,
+    "pMPa": 29.02909234783791,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 24.337998587828995,
+   "sigmaFuelScaleMPa": 60.93337675202727,
+   "dSigmaCladMPa": 0.8501164893357753,
+   "sigmaCladScaleMPa": 1176.146133354792,
+   "dUum": 0.32810014035451923,
+   "pMPa": 29.00388557231016,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 0.1,
+  "TfuelMax": 1097.4686875314299,
+  "TfuelMean": 1093.3554958462885,
+  "contact": true,
+  "pExactMPa": 27.399308437529623,
+  "freeGapUm": -114.59319709058146,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 29.43985088886857,
+    "sigmaFuelScaleMPa": 72.07847276577199,
+    "dSigmaCladMPa": 398.51142090816353,
+    "sigmaCladScaleMPa": 1116.1651203575152,
+    "dUum": 38.50781808998703,
+    "pMPa": 17.267891232664226,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 28.945874433161617,
+    "sigmaFuelScaleMPa": 72.07847276577199,
+    "dSigmaCladMPa": 1.1125535662817956,
+    "sigmaCladScaleMPa": 1116.1651203575152,
+    "dUum": 0.24933610461258354,
+    "pMPa": 27.427593058504957,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 28.925716970898748,
+   "sigmaFuelScaleMPa": 72.07847276577199,
+   "dSigmaCladMPa": 0.9985643524594306,
+   "sigmaCladScaleMPa": 1116.1651203575152,
+   "dUum": 0.4369753257490452,
+   "pMPa": 27.373921781900187,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 1,
+  "TfuelMax": 1097.468530355481,
+  "TfuelMean": 1054.7481757208238,
+  "contact": true,
+  "pExactMPa": 17.91455908203344,
+  "freeGapUm": -74.71495957133358,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 81.56983276738536,
+    "sigmaFuelScaleMPa": 193.5221186212194,
+    "dSigmaCladMPa": 346.8542734756467,
+    "sigmaCladScaleMPa": 778.9849020253213,
+    "dUum": 33.59742372382305,
+    "pMPa": 9.096429489152579,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 80.27447818118739,
+    "sigmaFuelScaleMPa": 193.5221186212194,
+    "dSigmaCladMPa": 40.61119475525951,
+    "sigmaCladScaleMPa": 778.9849020253213,
+    "dUum": 3.965238516387068,
+    "pMPa": 18.94702373894819,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 79.1036814760685,
+   "sigmaFuelScaleMPa": 193.5221186212194,
+   "dSigmaCladMPa": 1.9637012900619506,
+   "sigmaCladScaleMPa": 778.9849020253213,
+   "dUum": 3.210380201621886,
+   "pMPa": 17.864635601979167,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 3,
+  "TfuelMax": 1096.7987932519804,
+  "TfuelMean": 990.5839310062544,
+  "contact": true,
+  "pExactMPa": 15.691881115327757,
+  "freeGapUm": -65.15637196169111,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 101.96438792689311,
+    "sigmaFuelScaleMPa": 247.37238711248338,
+    "dSigmaCladMPa": 257.3913875783124,
+    "sigmaCladScaleMPa": 675.3820072381941,
+    "dUum": 26.65593900265339,
+    "pMPa": 9.148180243209682,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 103.9277959374994,
+    "sigmaFuelScaleMPa": 247.37238711248338,
+    "dSigmaCladMPa": 97.7062345633695,
+    "sigmaCladScaleMPa": 675.3820072381941,
+    "dUum": 9.530897185737377,
+    "pMPa": 18.17588175805216,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 97.67818327632868,
+   "sigmaFuelScaleMPa": 247.37238711248338,
+   "dSigmaCladMPa": 1.1599697372756004,
+   "sigmaCladScaleMPa": 675.3820072381941,
+   "dUum": 5.626648766146033,
+   "pMPa": 15.662391026177152,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 6,
+  "TfuelMax": 1080.4709374907006,
+  "TfuelMean": 908.6720491370562,
+  "contact": true,
+  "pExactMPa": 11.819001115969431,
+  "freeGapUm": -48.81729245759017,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 96.57022889461452,
+    "sigmaFuelScaleMPa": 249.6017210151503,
+    "dSigmaCladMPa": 155.91914774585723,
+    "sigmaCladScaleMPa": 512.2296013842011,
+    "dUum": 18.681764558449068,
+    "pMPa": 7.855044618887284,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 102.63213472800052,
+    "sigmaFuelScaleMPa": 249.6017210151503,
+    "dSigmaCladMPa": 158.4203482333498,
+    "sigmaCladScaleMPa": 512.2296013842011,
+    "dUum": 15.403337530199023,
+    "pMPa": 15.846546018454054,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 93.24152293395865,
+   "sigmaFuelScaleMPa": 249.6017210151503,
+   "dSigmaCladMPa": 0.004684614502668381,
+   "sigmaCladScaleMPa": 512.2296013842011,
+   "dUum": 6.653339107149457,
+   "pMPa": 11.818882018430303,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 10,
+  "TfuelMax": 1016.5357922136125,
+  "TfuelMean": 815.764067104987,
+  "contact": true,
+  "pExactMPa": 7.117881279060722,
+  "freeGapUm": -29.236278630053533,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 78.69116388168102,
+    "sigmaFuelScaleMPa": 218.41850190252495,
+    "dSigmaCladMPa": 57.372380168446064,
+    "sigmaCladScaleMPa": 319.8930394852717,
+    "dUum": 10.361628203640329,
+    "pMPa": 5.6592944252984445,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 84.3045536092481,
+    "sigmaFuelScaleMPa": 218.41850190252495,
+    "dSigmaCladMPa": 210.80443561563956,
+    "sigmaCladScaleMPa": 319.8930394852717,
+    "dUum": 20.38933383100044,
+    "pMPa": 12.47719489923943,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 74.80200658817202,
+   "sigmaFuelScaleMPa": 218.41850190252495,
+   "dSigmaCladMPa": 0.16829139904665946,
+   "sigmaCladScaleMPa": 319.8930394852717,
+   "dUum": 6.174175852295465,
+   "pMPa": 7.122159776879633,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 15,
+  "TfuelMax": 901.9844027747869,
+  "TfuelMean": 716.2794966905428,
+  "contact": true,
+  "pExactMPa": 2.263915657646166,
+  "freeGapUm": -9.248656110484319,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 54.00137081421864,
+    "sigmaFuelScaleMPa": 172.3108161125635,
+    "dSigmaCladMPa": 24.863460010351538,
+    "sigmaCladScaleMPa": 123.38246407872128,
+    "dUum": 2.9765202935367494,
+    "pMPa": 2.896023229267116,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 58.15109940212846,
+    "sigmaFuelScaleMPa": 172.3108161125635,
+    "dSigmaCladMPa": 243.55911364317643,
+    "sigmaCladScaleMPa": 123.38246407872128,
+    "dUum": 23.534909040973552,
+    "pMPa": 8.45595650024393,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 54.11470458385682,
+   "sigmaFuelScaleMPa": 172.3108161125635,
+   "dSigmaCladMPa": 0.39857120829987525,
+   "sigmaCladScaleMPa": 123.38246407872128,
+   "dUum": 4.67078155966112,
+   "pMPa": 2.253782720420369,
+   "contact": true
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 20,
+  "TfuelMax": 782.8571536987029,
+  "TfuelMean": 630.0853123404412,
+  "contact": false,
+  "pExactMPa": 0,
+  "freeGapUm": 6.059562475989136,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 35.360195678113044,
+    "sigmaFuelScaleMPa": 129.8706809923654,
+    "dSigmaCladMPa": 13.716007724203228,
+    "sigmaCladScaleMPa": 29.587903458810032,
+    "dUum": 7.419280958507509,
+    "pMPa": 0.34870417602768455,
+    "contact": true,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 34.53906690820697,
+    "sigmaFuelScaleMPa": 129.8706809923654,
+    "dSigmaCladMPa": 189.51188933126974,
+    "sigmaCladScaleMPa": 29.587903458810032,
+    "dUum": 24.201333113629413,
+    "pMPa": 4.817989938147763,
+    "contact": true,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 38.855073327796816,
+   "sigmaFuelScaleMPa": 129.8706809923654,
+   "dSigmaCladMPa": 0,
+   "sigmaCladScaleMPa": 29.587903458810032,
+   "dUum": 3.145097961311288,
+   "pMPa": 0,
+   "contact": false
+  }
+ },
+ {
+  "gapUm": 40,
+  "t": 30,
+  "TfuelMax": 581.9966162241775,
+  "TfuelMean": 492.5199092454266,
+  "contact": false,
+  "pExactMPa": 0,
+  "freeGapUm": 25.175923872458814,
+  "byRef": {
+   "30ms": {
+    "dSigmaFuelMPa": 8.613608589887589,
+    "sigmaFuelScaleMPa": 64.33682862807534,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 17.574012634595395,
+    "dUum": 9.561413401258418,
+    "pMPa": 0,
+    "contact": false,
+    "E": 46.18972716229985,
+    "alpha": 0.000009601006186956241
+   },
+   "60ms": {
+    "dSigmaFuelMPa": 7.986128460147292,
+    "sigmaFuelScaleMPa": 64.33682862807534,
+    "dSigmaCladMPa": 0,
+    "sigmaCladScaleMPa": 17.574012634595395,
+    "dUum": 20.50750228141375,
+    "pMPa": 0,
+    "contact": false,
+    "E": 35.53033914575268,
+    "alpha": 0.000012625694263022787
+   }
+  },
+  "constAtSameTime": {
+   "dSigmaFuelMPa": 15.208322835435181,
+   "sigmaFuelScaleMPa": 64.33682862807534,
+   "dSigmaCladMPa": 0,
+   "sigmaCladScaleMPa": 17.574012634595395,
+   "dUum": 1.1337365079959154,
+   "pMPa": 0,
+   "contact": false
+  }
+ }
+]
