@@ -1,4 +1,4 @@
-const fs=require("fs");const root="C:/Users/jwncr/Claude Code Test/fuel-performance-studio";
+const fs=require("fs");const root=process.env.FEED_REPO || process.cwd();
 const {validateCase}=require(root+"/dist/core/validate.js");const {quickLook}=require(root+"/dist/core/quickLook.js");
 const {rows}=require(__dirname+"/summ.cjs");
 const L=0.381,avg=20000,n=20;

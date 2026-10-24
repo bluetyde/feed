@@ -1,5 +1,5 @@
 const fs=require("fs"),path=require("path");
-const root="C:/Users/jwncr/Claude Code Test/fuel-performance-studio";
+const root=process.env.FEED_REPO || process.cwd();
 const {validateCase}=require(root+"/dist/core/validate.js");
 const {writeOffbeatCase}=require(root+"/dist/core/caseWriter.js");
 const [,, ex, out]=process.argv;

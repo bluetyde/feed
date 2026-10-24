@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # go.sh <name> <json options> <nr>
-SP="C:/Users/jwncr/AppData/Local/Temp/claude/C--Users-jwncr-Claude-Code-Test/7b1a52f2-7616-45df-8e7b-b6fd4baa7173/scratchpad/a0"
+SP="${SP:-./scratch/a0}" # a scratch directory of your own
 W=$(echo "$SP" | sed 's#C:#/mnt/c#')
-cd "C:/Users/jwncr/Claude Code Test/fuel-performance-studio"
+cd "${FEED_REPO:-.}"
 rm -rf "$SP/$1"; node "$SP/${VARIANT:-variant.cjs}" "${BASE:-$SP/base}" "$SP/$1" "$2" || exit 1
 MSYS_NO_PATHCONV=1 wsl.exe -d feed-solver -u feed --exec bash "$W/runprobe.sh" "$W/$1" "$1" 2>&1 | grep -E "^(blockMesh|offbeat|final)|rror"
 node "$SP/summ.cjs" "$1" "${@:3}"

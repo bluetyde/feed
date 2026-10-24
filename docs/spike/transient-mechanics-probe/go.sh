@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Throw-away driver (plan 17 M0), Git Bash: generate a case (gen-case.cjs), run it in the feed-solver distro (run-case.sh) and summarise the convergence of every step.
 # usage: go.sh <tag> <gen-case.cjs arguments...>      the case and its output go to $M0DIR/in-<tag> and $M0DIR/out-<tag>
-M0DIR=${M0DIR:-/c/Users/jwncr/AppData/Local/Temp/claude/C--Users-jwncr-Claude-Code-Test/7b1a52f2-7616-45df-8e7b-b6fd4baa7173/scratchpad/m0}
-WIN=${M0WSL:-/mnt/c/Users/jwncr/AppData/Local/Temp/claude/C--Users-jwncr-Claude-Code-Test/7b1a52f2-7616-45df-8e7b-b6fd4baa7173/scratchpad/m0}
+M0DIR=${M0DIR:-./scratch/m0}
+WIN=${M0WSL:?set M0WSL to the WSL path of $M0DIR (a /mnt/... path)}
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TAG="$1"; shift
 mkdir -p "$M0DIR"
