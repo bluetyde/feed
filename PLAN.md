@@ -9,7 +9,7 @@ Detailed documents:
 - [docs/AGENT-TASKS.md](docs/AGENT-TASKS.md): delegation board
 - [docs/plans/](docs/plans/): one plan per area: [01 backend](docs/plans/01-backend.md), [02 case and materials](docs/plans/02-case-and-materials.md),
   [03 editor and adapter](docs/plans/03-editor-and-adapter.md), [04 verification](docs/plans/04-verification.md), [05 suite transfers](docs/plans/05-suite-transfers.md),
-  [06 mechanics and irradiation](docs/plans/06-mechanics-and-irradiation.md), [07 release](docs/plans/07-release.md)
+  [06 mechanics and irradiation](docs/plans/06-mechanics-and-irradiation.md), [07 release](docs/plans/07-release.md), [18 parity with OFFBEAT](docs/plans/18-offbeat-parity.md)
 - Suite context: FEED is one app of a small suite of nuclear engineering tools; the contracts between the apps (hand-off files, the oracle format) are defined by SEED, the experiment harness, in its own repository. This repository restates only what FEED must implement.
 
 ## Goal
@@ -20,13 +20,13 @@ It is a teaching tool. A **thermal-only result never implies stress, failure or 
 
 ## Design principles
 
-- **Use an existing solver.** OFFBEAT (OpenFOAM-based) does the calculation; this app builds validated cases, runs them in isolation and explains the results. No replacement solver.
+- **Use an existing solver.** OFFBEAT (OpenFOAM-based) does the calculation; this app builds validated cases, runs them in isolation and explains the results. No replacement solver: more physics comes by exposing models OFFBEAT already has, slice by slice ([plan 18](docs/plans/18-offbeat-parity.md)), each labelled with how far its numbers are checked.
 - **A case is structured, not free-form.** The app writes the solver's case files from a typed case document and refuses options it does not model. It is not an OpenFOAM case editor.
 - **Required properties depend on the model.** Composition and density are not enough for a thermal run. A missing conductivity, range or boundary datum blocks the affected run with a named reason. No implicit property substitution.
 - **Explicit boundaries.** A convective boundary needs a heat-transfer coefficient and a bulk temperature; bulk temperature alone is not a boundary condition. Prescribed surface temperature is a different, stated choice.
 - **Say which number it is.** Total W, linear W/m and volumetric W/m3 are distinct quantities, and per-source-particle scores are not watts.
-- **Independent oracles.** Closed-form conduction solutions, energy balance and mesh refinement, derived without the solver.
-- **Honest scope.** Thermal first; mechanics, irradiation, burnup, gas release and accidents are later capabilities with their own property needs and validation ([plan 06](docs/plans/06-mechanics-and-irradiation.md)).
+- **Independent oracles, and a label for what has none.** Closed-form solutions, energy balance and mesh refinement, derived without the solver, are the strongest check and stay the standard where they exist (conduction, transients, the elastic parts). A model that OFFBEAT holds and FEED has no independent solution for is exposed only at a lower, stated level (reproduces a reference case; or model parity only) and the result says which ([plan 18](docs/plans/18-offbeat-parity.md), "How independent check reads under parity").
+- **Honest scope.** Thermal first, then the elastic mechanics built so far; irradiation, burnup, gas release and accidents come as parity slices with their own property needs and validation ([plan 06](docs/plans/06-mechanics-and-irradiation.md) for the order, [plan 18](docs/plans/18-offbeat-parity.md) for the slices P1 to P9). Parity with OFFBEAT does not make a result validated.
 - **Standalone.** Nothing requires SEED. Materials may travel in a project envelope; unknown sets are preserved unchanged.
 
 ## Why it's worth building
