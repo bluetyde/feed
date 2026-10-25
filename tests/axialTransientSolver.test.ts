@@ -75,19 +75,23 @@ describe.skipIf(!solverOn)("a transient on an axial stack through the real solve
     expect(res.checks.find((c) => c.id === "energyBalanceTotal")!.verdict).toBe("pass");
   }, 600_000);
 
-  it("a pulse on a short operating stack (0.06 m, 12 slices), where the axial conduction is 4 % of the rise: the checks pass with their allowance (golden output kept)", async () => {
+  it("a pulse on a short operating stack (0.06 m, 12 slices), where the axial conduction is 4 % of the rise: the checks pass, judged against the stack's two-dimensional solution because the heat along the height exceeds the pin's radial bound (plan 19 D1; the run manager started the reference job; golden output kept)", async () => {
     const d = example("synthetic-pulse-operating");
     d.axial = cosine(0.06, 12);
     const { res } = await run(d, GOLDEN ? join(GOLDEN, "short") : undefined);
     expect(failing(res)).toEqual([]);
     expect(res.axial.conduction!.fraction).toBeGreaterThan(0.02);
+    expect((res.axial as unknown as { reference?: { kind: string } }).reference?.kind).toBe("two-dimensional");
   }, 600_000);
 
-  it("a pump coastdown over 60 s on a short stack (0.06 m, 12 slices), long enough for heat to flow along the pin: the checks pass with their allowance (golden output kept)", async () => {
+  it("a pump coastdown over 60 s on a short stack (0.06 m, 12 slices), long enough for heat to flow along the pin: the checks pass against the stack's two-dimensional solution (plan 19 D1: the cross-check bound is about 6 K, not the allowance's 136 K; golden output kept)", async () => {
     const d = example("synthetic-coastdown");
     d.axial = cosine(0.06, 12);
     const { res } = await run(d, GOLDEN ? join(GOLDEN, "shortcool") : undefined);
     expect(failing(res)).toEqual([]);
+    expect((res.axial as unknown as { reference?: { kind: string } }).reference?.kind).toBe("two-dimensional");
+    const cross = res.checks.find((c) => c.id === "crossCheckFv")!;
+    expect(Number(/bound ([0-9.]+) K/.exec(cross.note)![1])).toBeLessThan(10);
   }, 600_000);
 
   it("a control: five equal slices (a flat shape) give every slice the history of the one-slice pin at the same power", async () => {
