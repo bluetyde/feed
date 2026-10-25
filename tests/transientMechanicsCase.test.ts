@@ -86,6 +86,7 @@ describe("the gas pressure of a transient (plan 17 D4)", () => {
   it("a table must start at 0, increase in time, hold non-negative pressures, have two points, and reach the end time", () => {
     expect(codes(pulse({ internalPressure: table([[1, 0.1], [100, 2]]) }))).toEqual(["E_OUT_OF_RANGE /mechanics/internalPressure/table/0/time"]);
     expect(codes(pulse({ internalPressure: table([[0, 0.1], [50, 2], [20, 1]]) }))).toEqual(["E_OUT_OF_RANGE /mechanics/internalPressure/table/2/time"]);
+    expect(codes(pulse({ internalPressure: table([[0, 0.1], [50, 2], [50, 3], [100, 1]]) }))).toEqual(["E_OUT_OF_RANGE /mechanics/internalPressure/table/2/time"]);
     expect(codes(pulse({ internalPressure: table([[0, 0.1], [100, -2]]) }))).toEqual(["E_OUT_OF_RANGE /mechanics/internalPressure/table/1/pressure"]);
     expect(codes(pulse({ internalPressure: table([[0, 0.1]]) }))).toEqual(["E_SCHEMA_INVALID /mechanics/internalPressure/table"]);
     expect(codes(pulse({ internalPressure: table([[0, 0.1], [50, 2]]) }))).toEqual(["E_TRANSIENT_INCOMPLETE /mechanics/internalPressure/table"]);

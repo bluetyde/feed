@@ -29,7 +29,8 @@ Small strain, **linear elastic**, one radial slice, thermal expansion, a contact
 
 - **`stressLimits`** (optional, M4): a list of limits the case states, each `{name, region, table, source}` where the table is 2 to 200 points `{temperature, strength}` with increasing temperatures. A limit is the case's own input; `library/strengths.json` holds two sourced tables to copy into it: the 304 stainless steel's ultimate tensile and 0.2 % yield strength from the UT-Austin SAR figure 4.3a (read by eye from a log plot, good to about 10 %; ultimate 400 to 1100 C, yield 400 to 870 C; below 400 C nothing is stated, which is where a TRIGA cladding usually runs, so such a cladding is not judged by them and the check says so). The result carries one check per limit, `stressLimit:<name>`: the smallest margin (the strength at the cell's temperature, linear between points, minus the cell's von Mises stress) over the solid's cells and where it is. **A cell whose temperature is outside the table is not judged and the check fails**, saying how many cells and what the table covers: nothing is extrapolated and a limit that cannot be judged does not pass. A pass says the stress is below that strength; it is **not an integrity assessment** (no creep, fatigue, plasticity or strain limit is checked).
 
-- **Not combined** with a transient, with hot dimensions (a mechanics case computes the expansion itself: the two would count it twice) or with a burnup (`E_UNSUPPORTED`).
+- **A transient of a pin** is accepted by the validator since plan 17 M2 (with the warning `W_TRANSIENT_MECHANICS_NOT_SOLVABLE`) but **cannot be run yet**: the writer refuses it (M4), so no thermal-only run is made in its place. A stack, a plate, a particle, a compact and a pebble keep their refusals.
+- **Not combined** with hot dimensions (a mechanics case computes the expansion itself: the two would count it twice) or with a burnup (`E_UNSUPPORTED`).
 
 ## A law of temperature becomes a constant
 
