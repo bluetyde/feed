@@ -1197,10 +1197,81 @@
     "field": "/burnup"
   },
   {
-    "file": "bad/mechanics-in-transient.json",
+    "file": "good/mechanics-transient.json",
+    "valid": true,
+    "warnings": [
+      "W_TRANSIENT_MECHANICS_NOT_SOLVABLE"
+    ]
+  },
+  {
+    "file": "good/mechanics-transient-pressure-table.json",
+    "valid": true,
+    "warnings": [
+      "W_TRANSIENT_MECHANICS_NOT_SOLVABLE"
+    ]
+  },
+  {
+    "file": "good/mechanics-transient-hydrogen-instantaneous.json",
+    "valid": true,
+    "warnings": [
+      "W_TRANSIENT_MECHANICS_NOT_SOLVABLE"
+    ]
+  },
+  {
+    "file": "good/mechanics-transient-quasi-static-warning.json",
+    "valid": true,
+    "warnings": [
+      "W_QUASI_STATIC",
+      "W_TRANSIENT_MECHANICS_NOT_SOLVABLE"
+    ]
+  },
+  {
+    "file": "bad/mechanics-transient-pressure-table-short.json",
+    "valid": false,
+    "code": "E_TRANSIENT_INCOMPLETE",
+    "field": "/mechanics/internalPressure/table"
+  },
+  {
+    "file": "bad/mechanics-pressure-table-not-from-zero.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/internalPressure/table/0/time"
+  },
+  {
+    "file": "bad/mechanics-pressure-table-unordered.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/internalPressure/table/2/time"
+  },
+  {
+    "file": "bad/mechanics-pressure-table-negative.json",
+    "valid": false,
+    "code": "E_OUT_OF_RANGE",
+    "field": "/mechanics/internalPressure/table/1/pressure"
+  },
+  {
+    "file": "bad/mechanics-pressure-table-one-point.json",
+    "valid": false,
+    "code": "E_SCHEMA_INVALID",
+    "field": "/mechanics/internalPressure/table"
+  },
+  {
+    "file": "bad/mechanics-pressure-table-in-steady.json",
     "valid": false,
     "code": "E_UNSUPPORTED",
-    "field": "/mechanics"
+    "field": "/mechanics/internalPressure/model"
+  },
+  {
+    "file": "bad/mechanics-hydrogen-peak-in-transient.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics/internalPressure/fuelTemperature"
+  },
+  {
+    "file": "bad/mechanics-hydrogen-instantaneous-in-steady.json",
+    "valid": false,
+    "code": "E_UNSUPPORTED",
+    "field": "/mechanics/internalPressure/fuelTemperature"
   },
   {
     "file": "good/axial-cosine.json",

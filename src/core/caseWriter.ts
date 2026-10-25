@@ -595,6 +595,8 @@ relaxationFactors
  * both were checked against closed-form oracles in OFFBEAT.
  */
 export function writeOffbeatCase(c: NormalizedCase): WrittenCase {
+  // plan 17 M2: the validator accepts mechanics with a transient, but the run is not built until M4; writing it would give a thermal-only run that looks complete
+  if (c.mechanics && c.transient) throw new Error("E_UNSUPPORTED: mechanics through a transient is valid but cannot be solved yet (plan 17, M4); no thermal-only run is made in its place");
   const kf = c.fuelConductivity;
   const kc = c.claddingConductivity;
   const tr = c.transient;

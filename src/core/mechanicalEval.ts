@@ -63,6 +63,8 @@ function effective(p: MechanicalProps, mean: { meanT: number; mean: number; min:
 /** The constants for a case that asks for mechanics (c.mechanics and c.mechanical present), or undefined. */
 export function effectiveMechanics(c: NormalizedCase): EffectiveMechanics | undefined {
   if (!c.mechanics || !c.mechanical) return undefined;
+  // a transient has no one set of constants: its law reduction and gas pressure belong to each output time (plan 17 M3)
+  if (c.transient) return undefined;
   const Tref = c.mechanics.referenceTemperature;
   const stats = profileStats(c, (T) => thermalStrain(c.mechanical!.fuel.expansion, T, Tref), (T) => thermalStrain(c.mechanical!.cladding.expansion, T, Tref));
   const ip = c.mechanics.internalPressure;

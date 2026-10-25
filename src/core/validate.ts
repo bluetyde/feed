@@ -12,6 +12,7 @@ import { heatCapacityLaw } from "./heatCapacity";
 import type { LimitRule } from "./limits";
 import { alphaAt, ExpansionLaw, hotGeometry, HotRecord, HotSpec, MAX_EXPANSION_COEFFICIENT, MAX_REFERENCE_TEMPERATURE } from "./hotDimensions";
 import { effectiveMechanics } from "./mechanicalEval";
+import { fastestDoubling, lowestModulus, QUASI_STATIC_TRANSITS, waveTransitTime, WAVE_DENSITY_BOUND } from "./quasiStatic";
 import { HYDROGEN_RATIO_RANGE } from "./hydrogenPressure";
 import { GeneratedPulse, KineticsError, KineticsSpec, generatePulse } from "./pointKinetics";
 import { fuelMean, initialState } from "./transientResults";
@@ -174,10 +175,15 @@ export interface StressLimit {
   source: string;
 }
 
-/** A constant pressure, or the hydrogen dissociation pressure of the hydride fuel at a fuel temperature the case names (src/core/hydrogenPressure.ts). */
+/**
+ * A constant pressure, or the hydrogen dissociation pressure of the hydride fuel at a fuel temperature the case names (src/core/hydrogenPressure.ts). A transient (plan 17 D4) takes
+ * a table against time (linear between points, from 0 to the end time) or the hydrogen EQUILIBRIUM pressure at the instantaneous peak or mean fuel temperature of each output time:
+ * an equilibrium assumption, not a kinetics model (the SAR's upper bound; Simnad measured 46 % of it in a pulse).
+ */
 export type InternalPressure =
   | { kind: "constant"; pressure: number; source: string }
-  | { kind: "hydrogen-zrh"; hZrRatio: number; basis: "peak" | "mean"; source: string };
+  | { kind: "table"; times: number[]; pressures: number[]; source: string }
+  | { kind: "hydrogen-zrh"; hZrRatio: number; basis: "peak" | "mean" | "instantaneous-peak" | "instantaneous-mean"; source: string };
 
 export interface NormalizedCase {
   caseId: string;
@@ -429,9 +435,9 @@ export function validateCase(doc: unknown): ValidationResult {
 
   const limits = c.limits === undefined ? undefined : parseLimits(c.limits, err, qty);
   const hotSpec = c.hotDimensions === undefined ? undefined : parseHot(c.hotDimensions, err, qty);
-  const mechanicsSpec = c.mechanics === undefined ? undefined : parseMechanics(c.mechanics, err, qty);
+  const mechanicsSpec = c.mechanics === undefined ? undefined : parseMechanics(c.mechanics, err, qty, isTransient);
   if (c.mechanics !== undefined) {
-    if (isTransient) err("E_UNSUPPORTED", "/mechanics", "mechanics is for steady cases in this release: a transient needs the time history of the stress, which is not offered");
+    // plan 17 M2: a pin takes mechanics and a transient together (a plate, a stack, a particle, a compact and a pebble keep their own refusals below and in their own validators)
     if (c.hotDimensions !== undefined) err("E_UNSUPPORTED", "/hotDimensions", "a mechanics case computes the thermal expansion itself: hot dimensions would count it twice, so the two cannot be combined");
     if (c.burnup !== undefined) err("E_UNSUPPORTED", "/burnup", "mechanics with a burnup is not offered: the burnup conductivity is frozen and the mechanical response of burnt fuel (swelling, relocation) is not modelled");
   }
@@ -555,7 +561,7 @@ export function validateCase(doc: unknown): ValidationResult {
       }
     }
     // Mechanics: a modulus or an expansion coefficient stated as a law of temperature is reduced to a constant for the solver (src/core/mechanicalEval.ts); say where a solid's temperatures leave the range a law is stated for.
-    if (result.normalized && result.normalized.mechanics && result.normalized.mechanical) {
+    if (result.normalized && result.normalized.mechanics && result.normalized.mechanical && !result.normalized.transient) {
       const eff = effectiveMechanics(result.normalized);
       for (const solid of ["fuel", "cladding"] as const) {
         const s = eff?.[solid];
@@ -563,6 +569,27 @@ export function validateCase(doc: unknown): ValidationResult {
         const range = "from " + s.temperatureRange[0].toFixed(1) + " to " + s.temperatureRange[1].toFixed(1) + " K";
         if (s.elasticityOutOfRange) result.warnings.push({ code: "W_ELASTICITY_RANGE", severity: "warning", field: "/materials/" + solid + "/sets/mechanical.elasticity", message: "the " + solid + " runs " + range + ", outside the range its Young's modulus law is stated for: the modulus is applied beyond it as given" });
         if (s.expansionOutOfRange) result.warnings.push({ code: "W_EXPANSION_RANGE", severity: "warning", field: "/materials/" + solid + "/sets/mechanical.thermalExpansion", message: "the " + solid + " runs " + range + " (and the reference temperature counts), outside the range its expansion law is stated for: the formula is applied beyond it as given" });
+      }
+    }
+    // Mechanics through a transient (plan 17 M2): the pressure table must cover the run, the quasi-static assumption is checked with numbers, and until the writer and the reader are built (M4) the run is refused.
+    if (result.normalized && result.normalized.mechanics && result.normalized.transient) {
+      const n = result.normalized;
+      const ip = n.mechanics!.internalPressure;
+      if (ip?.kind === "table" && Math.abs(ip.times[ip.times.length - 1]! - n.transient!.endTime) > 1e-9 * n.transient!.endTime) {
+        result.errors.push({ code: "E_TRANSIENT_INCOMPLETE", severity: "error", field: "/mechanics/internalPressure/table", message: "the table of the gas pressure ends at " + ip.times[ip.times.length - 1] + " s but the run ends at " + n.transient!.endTime + " s: the table must reach the end time (a pressure is not extrapolated)", unit: "s" });
+        result.ok = false;
+        delete result.normalized;
+      } else {
+        const tr = n.transient!;
+        const E = n.mechanical ? lowestModulus(n.mechanical.fuel.elasticity) : undefined;
+        const fast = fastestDoubling(tr.times, tr.linearHeatRate);
+        if (E !== undefined && fast) {
+          const transit = waveTransitTime(n.fuelRadius, E);
+          if (fast.time < QUASI_STATIC_TRANSITS * transit) {
+            result.warnings.push({ code: "W_QUASI_STATIC", severity: "warning", field: "/transient/powerHistory", message: "the power changes by a factor of two in " + fast.time.toExponential(2) + " s (from " + fast.at.toExponential(2) + " s) and a stress wave needs " + transit.toExponential(2) + " s to cross the fuel (the density bound " + WAVE_DENSITY_BOUND + " kg/m3, the lowest modulus " + (E / 1e9).toPrecision(3) + " GPa): that is " + (fast.time / transit).toFixed(0) + " transit times, below " + QUASI_STATIC_TRANSITS + "; the mechanics is static (inertia is not modelled), so the stress may be wrong", unit: "s" });
+          }
+        }
+        result.warnings.push({ code: "W_TRANSIENT_MECHANICS_NOT_SOLVABLE", severity: "warning", field: "/mechanics", message: "the case is valid, but its mechanics through a transient cannot be solved yet (plan 17, the writer and the reader, M4): a run is refused rather than made thermal only" });
       }
     }
     // A transient that starts from a steady operating state needs that state to exist and to lie where the heat capacity laws hold (the uniform start is checked above).
@@ -1673,13 +1700,14 @@ const MAX_STRESS_LIMITS = 8;
 const PENALTY_MIN = 0.05;
 const PENALTY_MAX = 1;
 const MAX_PRESSURE = 1e9;
+const MAX_PRESSURE_TABLE = 200;
 
 /**
  * The mechanics section: the stress-free (reference) temperature, the plane condition, the penalty factor of the gap contact and the coolant pressure on the cladding.
  * Nothing is defaulted. The penalty factor decides the contact pressure (a factor of 10 gave an answer eleven times too large with nothing in the log to say so,
  * docs/spike/mechanics-probe.md), so it is bounded to the range that was shown to be close, and the results check the contact against the closed form (M3).
  */
-function parseMechanics(raw: unknown, err: ErrFn, qty: QtyFn): MechanicsSpec | undefined {
+function parseMechanics(raw: unknown, err: ErrFn, qty: QtyFn, isTransient: boolean): MechanicsSpec | undefined {
   if (!isObject(raw)) {
     err("E_SCHEMA_INVALID", "/mechanics", "mechanics is an object with referenceTemperature, plane, contact and coolantPressure");
     return undefined;
@@ -1729,7 +1757,7 @@ function parseMechanics(raw: unknown, err: ErrFn, qty: QtyFn): MechanicsSpec | u
       coolantPressure = undefined;
     }
   }
-  const internalPressure = raw.internalPressure === undefined ? undefined : parseInternalPressure(raw.internalPressure, bad, qty);
+  const internalPressure = raw.internalPressure === undefined ? undefined : parseInternalPressure(raw.internalPressure, bad, qty, isTransient);
   if (raw.internalPressure !== undefined && internalPressure === undefined) ok = false;
   const stressLimits = raw.stressLimits === undefined ? undefined : parseStressLimits(raw.stressLimits, bad, qty);
   if (raw.stressLimits !== undefined && stressLimits === undefined) ok = false;
@@ -1738,21 +1766,28 @@ function parseMechanics(raw: unknown, err: ErrFn, qty: QtyFn): MechanicsSpec | u
 }
 
 /**
- * The pressure of the gas in the gap (plan 09 M4), an input that names its source: `{model: "constant", pressure, source}`, or `{model: "hydrogen-zrh", hZrRatio, fuelTemperature:
- * "peak" | "mean", source}`, the hydrogen pressure the hydride fuel holds at the hottest (or the area-mean) fuel temperature of the run. FEED computes no fuel hydrogen inventory,
- * no fission gas and no plenum: the case states what it takes the pressure to be.
+ * The pressure of the gas in the gap (plan 09 M4, plan 17 D4), an input that names its source. A steady case: `{model: "constant", pressure, source}`, or `{model: "hydrogen-zrh",
+ * hZrRatio, fuelTemperature: "peak" | "mean", source}`, the hydrogen pressure the hydride fuel holds at the hottest (or the area-mean) fuel temperature of the closed-form profile.
+ * A transient: the constant; `{model: "table", table: [{time, pressure}, ...], source}`, linear between points, from time 0 to the end time; or the hydrogen model with
+ * `fuelTemperature: "instantaneous-peak" | "instantaneous-mean"`, the EQUILIBRIUM pressure at the fuel temperature of each output time (an equilibrium assumption, not a kinetics
+ * model: in a pulse the hydrogen cannot redistribute in time, so it is an upper bound). FEED computes no fuel hydrogen inventory, no fission gas and no plenum: the case states what
+ * it takes the pressure to be. The table reaching the end time is checked after the transient is parsed.
  */
-function parseInternalPressure(raw: unknown, bad: (code: string, field: string, message: string, extra?: Partial<Issue>) => void, qty: QtyFn): InternalPressure | undefined {
+function parseInternalPressure(raw: unknown, bad: (code: string, field: string, message: string, extra?: Partial<Issue>) => void, qty: QtyFn, isTransient: boolean): InternalPressure | undefined {
   const F = "/mechanics/internalPressure";
   if (!isObject(raw)) {
-    bad("E_SCHEMA_INVALID", F, "internalPressure is an object: {model: 'constant', pressure, source} or {model: 'hydrogen-zrh', hZrRatio, fuelTemperature, source}");
+    bad("E_SCHEMA_INVALID", F, "internalPressure is an object: {model: 'constant', pressure, source}, {model: 'hydrogen-zrh', hZrRatio, fuelTemperature, source} or, in a transient, {model: 'table', table, source}");
     return undefined;
   }
-  const keysFor = raw.model === "constant" ? ["model", "pressure", "source"] : ["model", "hZrRatio", "fuelTemperature", "source"];
-  if (raw.model !== "constant" && raw.model !== "hydrogen-zrh") {
-    bad("E_UNSUPPORTED", F + "/model", "the internal pressure models are 'constant' and 'hydrogen-zrh'");
+  if (raw.model !== "constant" && raw.model !== "hydrogen-zrh" && raw.model !== "table") {
+    bad("E_UNSUPPORTED", F + "/model", "the internal pressure models are 'constant', 'hydrogen-zrh' and (transient only) 'table'");
     return undefined;
   }
+  if (raw.model === "table" && !isTransient) {
+    bad("E_UNSUPPORTED", F + "/model", "a table of the gas pressure against time is for a transient; a steady case states a constant pressure");
+    return undefined;
+  }
+  const keysFor = raw.model === "constant" ? ["model", "pressure", "source"] : raw.model === "table" ? ["model", "table", "source"] : ["model", "hZrRatio", "fuelTemperature", "source"];
   let ok = true;
   for (const k of Object.keys(raw)) {
     if (!keysFor.includes(k)) {
@@ -1778,6 +1813,51 @@ function parseInternalPressure(raw: unknown, bad: (code: string, field: string, 
     }
     return ok && source !== undefined ? { kind: "constant", pressure, source } : undefined;
   }
+  if (raw.model === "table") {
+    const T = F + "/table";
+    if (!Array.isArray(raw.table) || raw.table.length < 2 || raw.table.length > MAX_PRESSURE_TABLE) {
+      bad("E_SCHEMA_INVALID", T, "the table is a list of 2 to " + MAX_PRESSURE_TABLE + " points {time, pressure}");
+      return undefined;
+    }
+    const times: number[] = [];
+    const pressures: number[] = [];
+    raw.table.forEach((p: unknown, i: number) => {
+      const f = T + "/" + i;
+      if (!isObject(p)) {
+        bad("E_SCHEMA_INVALID", f, "a point is an object {time, pressure}");
+        ok = false;
+        return;
+      }
+      for (const k of Object.keys(p)) {
+        if (k !== "time" && k !== "pressure") {
+          bad("E_SCHEMA_INVALID", f + "/" + k, "unknown key '" + k + "' (a point has time and pressure)");
+          ok = false;
+        }
+      }
+      const t = p.time === undefined ? undefined : qty(p.time, "time", f + "/time");
+      const pr = p.pressure === undefined ? undefined : qty(p.pressure, "pressure", f + "/pressure");
+      if (p.time === undefined) bad("E_PROP_MISSING", f + "/time", "the point needs its time");
+      if (p.pressure === undefined) bad("E_PROP_MISSING", f + "/pressure", "the point needs its pressure (0 for none)");
+      if (t === undefined || pr === undefined) {
+        ok = false;
+        return;
+      }
+      if (i === 0 && t !== 0) {
+        bad("E_OUT_OF_RANGE", f + "/time", "the table starts at time 0", { unit: "s" });
+        ok = false;
+      } else if (i > 0 && !(t > times[times.length - 1]!)) {
+        bad("E_OUT_OF_RANGE", f + "/time", "the times of the table must increase", { unit: "s" });
+        ok = false;
+      }
+      if (!(pr >= 0 && pr <= MAX_PRESSURE)) {
+        bad("E_OUT_OF_RANGE", f + "/pressure", "the gas pressure is from 0 to " + MAX_PRESSURE + " Pa", { unit: "Pa" });
+        ok = false;
+      }
+      times.push(t);
+      pressures.push(pr);
+    });
+    return ok && source !== undefined && times.length === raw.table.length ? { kind: "table", times, pressures, source } : undefined;
+  }
   let hZrRatio: number | undefined;
   if (raw.hZrRatio === undefined) {
     bad("E_PROP_MISSING", F + "/hZrRatio", "the hydrogen-to-zirconium atom ratio of the fuel is required");
@@ -1791,14 +1871,24 @@ function parseInternalPressure(raw: unknown, bad: (code: string, field: string, 
     }
   }
   const basis = raw.fuelTemperature;
+  const steadyBasis = basis === "peak" || basis === "mean";
+  const timeBasis = basis === "instantaneous-peak" || basis === "instantaneous-mean";
   if (basis === undefined) {
-    bad("E_PROP_MISSING", F + "/fuelTemperature", "the fuel temperature the hydrogen pressure is taken at is required: 'peak' (the hottest point, as the SARs do) or 'mean' (the area-weighted mean)");
+    bad("E_PROP_MISSING", F + "/fuelTemperature", isTransient
+      ? "the fuel temperature the hydrogen pressure is taken at is required: 'instantaneous-peak' (the hottest point of each output time) or 'instantaneous-mean' (the area-weighted mean of each output time)"
+      : "the fuel temperature the hydrogen pressure is taken at is required: 'peak' (the hottest point, as the SARs do) or 'mean' (the area-weighted mean)");
     ok = false;
-  } else if (basis !== "peak" && basis !== "mean") {
-    bad("E_UNSUPPORTED", F + "/fuelTemperature", "the fuel temperature is 'peak' or 'mean'");
+  } else if (!steadyBasis && !timeBasis) {
+    bad("E_UNSUPPORTED", F + "/fuelTemperature", "the fuel temperature is " + (isTransient ? "'instantaneous-peak' or 'instantaneous-mean'" : "'peak' or 'mean'"));
+    ok = false;
+  } else if (isTransient && steadyBasis) {
+    bad("E_UNSUPPORTED", F + "/fuelTemperature", "'" + String(basis) + "' is the temperature of a steady profile; a transient takes the equilibrium pressure at each output time's temperature: 'instantaneous-" + String(basis) + "' (an equilibrium assumption, not a kinetics model)");
+    ok = false;
+  } else if (!isTransient && timeBasis) {
+    bad("E_UNSUPPORTED", F + "/fuelTemperature", "'" + String(basis) + "' follows the temperature through time, which a steady case does not have; use 'peak' or 'mean'");
     ok = false;
   }
-  return ok && hZrRatio !== undefined && source !== undefined && (basis === "peak" || basis === "mean") ? { kind: "hydrogen-zrh", hZrRatio, basis, source } : undefined;
+  return ok && hZrRatio !== undefined && source !== undefined && (steadyBasis || timeBasis) ? { kind: "hydrogen-zrh", hZrRatio, basis: basis as "peak" | "mean" | "instantaneous-peak" | "instantaneous-mean", source } : undefined;
 }
 
 /**

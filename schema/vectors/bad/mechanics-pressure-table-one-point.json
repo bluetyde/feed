@@ -1,6 +1,6 @@
 {
   "schema": "feed.case/0.1",
-  "caseId": "mechanics-in-transient",
+  "caseId": "mechanics-pressure-table-one-point",
   "name": "Synthetic pulse: a 10 ms triangular power pulse on a cold pin (illustrative numbers, not a real fuel design)",
   "label": "synthetic",
   "assumptions": {
@@ -217,6 +217,22 @@
     "coolantPressure": {
       "value": 0.1,
       "unit": "MPa"
+    },
+    "internalPressure": {
+      "model": "table",
+      "table": [
+        {
+          "time": {
+            "value": 0,
+            "unit": "ms"
+          },
+          "pressure": {
+            "value": 0.1,
+            "unit": "MPa"
+          }
+        }
+      ],
+      "source": "a synthetic input"
     }
   }
 }
