@@ -49,7 +49,18 @@ OFFBEAT has no classes for: plate fuel with aluminium cladding, U-ZrH (TRIGA), m
 
 [PLAN.md](../../PLAN.md) said "no replacement solver, teaching tool, thermal first". The first two stay true (FEED still runs OFFBEAT and teaches). "Thermal first" is rewritten as the order of work, with this plan as the path beyond the thermal and elastic results. The README's "experimental and educational" status line is unchanged: no slice makes a result validated.
 
-## Questions for the owner
+## Decisions of the owner (2026-10-25)
+
+The four questions below were answered on 2026-10-25 ("finish the TRIGA and plate work first, then probe the light-water slices (P1 to P4)", "claim parity only, since no public validation data was found", "write FEED's own models for the missing fuels"):
+
+1. **Which fuel first:** the TRIGA and plate work first (plan 17 and what follows from it), **then** the light-water rod slices P1 to P4, each started with a probe like plan 17's M0. Order inside them: plan 06's, P1 to P4.
+2. **Order:** plan 06's order (P1, P2, P3, P4); P4 is not brought forward.
+3. **Claim:** **parity only**: "same models as OFFBEAT where OFFBEAT's own documentation gives them", no validation claim (no public validation data was found).
+4. **Fuels OFFBEAT lacks** (plates, U-ZrH, metallic, silicides and nitrides, particle failure statistics): **FEED's own models**, in FEED's own solvers, not an OFFBEAT extension, so the MIT repository holds no GPL code.
+
+Nothing in this plan starts before plan 17 reaches its end. The questions as asked, kept for the record:
+
+## Questions that were asked
 
 1. Which fuel first: a light-water rod (P1 to P4), a coated particle (P8), or the TRIGA and plate track (plan 17 and further parity)?
 2. Order inside OFFBEAT parity: plan 06's order as above, or P4 first (gap gas, plenum and fission gas: the most visible feature)?
