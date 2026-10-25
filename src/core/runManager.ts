@@ -18,7 +18,7 @@ import { lastRelativeRate } from "./steadyState";
 import { buildResults, ResultsError, ResultsRecord } from "./resultsParser";
 import { buildStackResults } from "./stackResults";
 import { buildStackTransientResults } from "./stackTransientResults";
-import { STACK_TRANSIENT_DEADLINE_MS, StackTransientReferenceResult, stackTransientReferenceFrom } from "./stackReference";
+import { STACK_TRANSIENT_DEADLINE_MS, StackTransientReferenceResult, pinReferenceDecision, stackTransientReferenceFrom } from "./stackReference";
 import { IndependentHandle, IndependentRunner } from "./independentRunner";
 import { IndependentSet, buildTransientResults, TransientResultsRecord } from "./transientResults";
 import { Issue, unrunnableErrors, validateCase } from "./validate";
@@ -446,7 +446,7 @@ export class RunManager {
         const job = this.independent.start(normalized, { what: "full" });
         // A transient stack of plates is judged against FEED's two-dimensional solution of the whole stack (plan 15): a second job, in its own thread and with its own deadline. If it
         // cannot finish the checks keep the allowance and the record says why; a cancel stops both jobs.
-        const refJob = normalized.axial && normalized.plate ? this.independent.start(normalized, { what: "stackReference", deadlineMs: this.opts.referenceDeadlineMs ?? STACK_TRANSIENT_DEADLINE_MS }) : undefined;
+        const refJob = normalized.axial && (normalized.plate || pinReferenceDecision(normalized).use) ? this.independent.start(normalized, { what: "stackReference", deadlineMs: this.opts.referenceDeadlineMs ?? STACK_TRANSIENT_DEADLINE_MS }) : undefined;
         this.postJobs.set(r.id, refJob ? { done: job.done, cancel: () => (job.cancel(), refJob.cancel()) } : job);
         let ind: Awaited<typeof job.done>;
         let refOut: Awaited<NonNullable<typeof refJob>["done"]> | undefined;

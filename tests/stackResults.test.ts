@@ -84,7 +84,8 @@ describe("real OFFBEAT output of a stack, read layer by layer", () => {
   const judge = (x: ReturnType<typeof g>, mutate?: (n: any) => void, T = x.T, C = x.C) => {
     const n = JSON.parse(JSON.stringify(x.n));
     mutate?.(n);
-    return buildStackResults(n, { T, C, time: 5e7 });
+    // the allowance regime, forced (null): the fallback, and the regime of a long pin; a short pin's default is the reference of plan 19 D1 (tests/pinReference.test.ts)
+    return buildStackResults(n, { T, C, time: 5e7 }, null);
   };
   it("a cosine stack and a stack with a warming coolant: every check passes, the record carries one result per slice and the hottest slice's summary", () => {
     for (const x of [cos, rise]) {

@@ -6,7 +6,7 @@
 import { axialExchange, axialSummary, sliceCase, sliceLoads, SliceLoad } from "./axial";
 import { Check, DomainFinding, ResultsError, THERMAL_ONLY_TEXT, parsePatchValues, parseScalarField, parseVectorField } from "./resultsParser";
 import { AXIAL_TOLERANCE_FACTOR, stackText, worstOf } from "./stackResults";
-import { StackTransientReferenceResult, stackTransientReference } from "./stackReference";
+import { StackTransientReferenceResult, pinReferenceDecision, stackTransientReference } from "./stackReference";
 import { IndependentSet, TransientInput, TransientResultsRecord, TransientAllowance, buildTransientResults, computeIndependent, ENERGY_BALANCE_TOLERANCE } from "./transientResults";
 import { NormalizedCase } from "./validate";
 
@@ -163,9 +163,9 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
   const exchange = exchangeAllowances(c, solutions, loads);
   const counted = exchange !== undefined && exchange.number <= AXIAL_EXCHANGE_NUMBER_LIMIT ? exchange : undefined;
   // plan 15, B3: a stack of plates is judged against the two-dimensional solution of the whole stack; the allowance and the exchange bound above are then information only
-  const choice = reference === undefined ? (c.plate ? stackTransientReference(c) : null) : reference;
+  const choice = reference === undefined ? (c.plate || pinReferenceDecision(c).use ? stackTransientReference(c) : null) : reference;
   const ref = choice && "reference" in choice ? choice.reference : undefined;
-  const fallbackReason = ref ? "" : choice && "fallback" in choice ? choice.fallback : c.plate ? "the allowance was asked for" : "a pin keeps the allowance (plan 15: plates first)";
+  const fallbackReason = ref ? "" : choice && "fallback" in choice ? choice.fallback : c.plate ? "the allowance was asked for" : "a pin keeps the allowance (the heat along the height does not exceed its radial mesh bound)";
   const recs: TransientResultsRecord[] = [];
   for (let k = 0; k < N; k++) {
     const sc = sliceCase(c, loads[k]!);
@@ -251,7 +251,7 @@ export function buildStackTransientResults(c: NormalizedCase, input: TransientIn
       hottest,
       conduction: summary.conduction ? { fraction } : null,
       allowance: { field, energy: widen, ...(exchange ? { exchangeField: Math.max(...exchange.field), exchangeEnergy: Math.max(...exchange.energy), exchangeNumber: exchange.number, exchangeCounted: counted !== undefined } : {}) },
-      ...(c.plate ? { reference: ref ? ({ kind: "two-dimensional", deviation, oneDimensionalDeviation, startDistance: ref.startDistance, errorEstimates: ref.errorEstimates, ...(ref.startDistanceReason ? { startDistanceReason: ref.startDistanceReason } : {}) } as StackTransientReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackTransientReferenceInfo) } : {}),
+      ...(c.plate || ref ? { reference: ref ? ({ kind: "two-dimensional", deviation, oneDimensionalDeviation, startDistance: ref.startDistance, errorEstimates: ref.errorEstimates, ...(ref.startDistanceReason ? { startDistanceReason: ref.startDistanceReason } : {}) } as StackTransientReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackTransientReferenceInfo) } : {}),
     },
   };
 }

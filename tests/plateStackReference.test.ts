@@ -145,14 +145,26 @@ describe("the fallback to the allowance", () => {
   });
 });
 
-describe("a pin stack is not changed by plan 15: its record equals the one saved before it", () => {
+describe("a pin stack is not changed by plan 15: its record equals the one saved before it (the allowance regime; plan 19 D1 makes the reference the default for a SHORT pin only)", () => {
   const saved = JSON.parse(read("tests/fixtures/pin-stack-records-0b60d93.json"));
   for (const name of ["cosine", "rise", "short"]) {
-    it(`pin ${name}: the record is character for character the saved one, and it has no reference section`, () => {
+    it(`pin ${name}: the allowance regime gives the record character for character as saved, with no reference section`, () => {
       const x = g("offbeat-stack", name);
-      const r = buildStackResults(x.n, { T: x.T, C: x.C, time: 5e7 });
+      const r = buildStackResults(x.n, { T: x.T, C: x.C, time: 5e7 }, null);
       expect(JSON.stringify(r)).toBe(JSON.stringify(saved[name]));
       expect(r.axial.reference).toBeUndefined();
     });
   }
+  for (const name of ["cosine", "rise"]) {
+    it(`pin ${name} (0.381 m): the default is still the allowance regime, the saved record`, () => {
+      const x = g("offbeat-stack", name);
+      expect(JSON.stringify(buildStackResults(x.n, { T: x.T, C: x.C, time: 5e7 }))).toBe(JSON.stringify(saved[name]));
+    });
+  }
+  it("pin short (0.06 m): the default is the two-dimensional reference, so the record is not the saved one (tests/pinReference.test.ts judges it)", () => {
+    const x = g("offbeat-stack", "short");
+    const r = buildStackResults(x.n, { T: x.T, C: x.C, time: 5e7 });
+    expect(JSON.stringify(r)).not.toBe(JSON.stringify(saved["short"]));
+    expect((r.axial.reference as { kind: string }).kind).toBe("two-dimensional");
+  });
 });

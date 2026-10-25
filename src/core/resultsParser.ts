@@ -303,6 +303,23 @@ export function wallFlux(c: NormalizedCase, clad: { r: number; T: number }[]): n
   return (primitive(lawOf(c.claddingConductivity), clad[0]!.T) - primitive(lawOf(c.claddingConductivity), clad[1]!.T)) / geometryOf(c.plate).resist(clad[0]!.r, clad[1]!.r, 1);
 }
 
+/**
+ * The one-dimensional closed form of a slice (or of the whole one-slice pin): the outer wall, the cladding and the fuel at any radius, from the slice's own heat rate and boundary.
+ * Shared by the checks of finishResults and by the stack's pins that are judged with the heat along the height added (stackResults.ts).
+ */
+export function sliceClosedForm(c: NormalizedCase) {
+  const kf = lawOf(c.fuelConductivity);
+  const kc = lawOf(c.claddingConductivity);
+  const slab = c.plate === true;
+  const filmDrop = c.boundary.kind === "convective" ? (slab ? c.qPrime / c.boundary.heatTransferCoefficient : closedForm.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.boundary.heatTransferCoefficient)) : 0;
+  const tOuter = c.boundary.kind === "convective" ? c.boundary.bulkTemperature + filmDrop : c.boundary.surfaceTemperature;
+  const claddingAt = (r: number) => solveHot(kc, tOuter, slab ? c.qPrime * (c.claddingOuterRadius - r) : (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI));
+  const tCladInner = claddingAt(c.claddingInnerRadius);
+  const tFuelSurface = tCladInner + (slab ? c.qPrime / c.gapConductance : closedForm.gapDeltaT(c.qPrime, c.fuelRadius, c.gapConductance));
+  const fuelAt = (r: number) => fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, r, tFuelSurface, c.fuelInnerRadius, slab);
+  return { tOuter, claddingAt, tCladInner, tFuelSurface, fuelAt };
+}
+
 /** The checks and the record of one slice (or of the whole one-slice pin) from its cells: shared by buildResults and the stack's builder. */
 export function finishResults(c: NormalizedCase, x: CellsContext): ResultsRecord {
   const { T, radial, fuel, clad, wall, input } = x;
@@ -330,11 +347,7 @@ export function finishResults(c: NormalizedCase, x: CellsContext): ResultsRecord
 
   // Closed-form agreement (constant or linear conductivity), same discretization-error bound used for the finite-volume cross-check.
   const slab = c.plate === true;
-  const filmDrop = c.boundary.kind === "convective" ? (slab ? c.qPrime / c.boundary.heatTransferCoefficient : closedForm.filmDeltaT(c.qPrime, c.claddingOuterRadius, c.boundary.heatTransferCoefficient)) : 0;
-  const tOuter = c.boundary.kind === "convective" ? c.boundary.bulkTemperature + filmDrop : c.boundary.surfaceTemperature;
-  const claddingAt = (r: number) => solveHot(kc, tOuter, slab ? c.qPrime * (c.claddingOuterRadius - r) : (c.qPrime * Math.log(c.claddingOuterRadius / r)) / (2 * Math.PI));
-  const tCladInner = claddingAt(c.claddingInnerRadius);
-  const tFuelSurface = tCladInner + (slab ? c.qPrime / c.gapConductance : closedForm.gapDeltaT(c.qPrime, c.fuelRadius, c.gapConductance));
+  const { tOuter, claddingAt, tCladInner, tFuelSurface } = sliceClosedForm(c);
   // the hottest fuel point: the axis of solid fuel, or the surface of the central hole
   const fuelDeltaT = fuelTemperatureLaw(kf, c.qPrime, c.fuelRadius, c.fuelInnerRadius === 0 ? 0 : c.fuelInnerRadius, tFuelSurface, c.fuelInnerRadius, slab) - tFuelSurface;
   const claddingDeltaT = tCladInner - tOuter;
