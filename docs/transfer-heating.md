@@ -54,6 +54,10 @@ An unknown key is a refusal (`E_RECIPE_INVALID`), not an ignored one.
 
 `E_SCHEMA_INVALID`, `E_RECIPE_INVALID`, `E_UNSUPPORTED` (another field, a time series, a transient target), `E_UNITS`, `E_NORMALIZATION_MISSING`, `E_NORMALIZATION_DOMAIN` (a total over a partial export), `E_FRAME_MISMATCH`, `E_UNCERTAINTY_MISSING`, `E_COVERAGE_INCOMPLETE` (no rows for the pin, no power), `E_COVERAGE` (a slice not fully covered), `E_CONSERVATION`, `E_NUMERIC`, and the validator's own codes (a target case that is not valid, with `field` under `/target/content`).
 
+## Applying again replaces (2026-10-25)
+
+The case has one heat rate, so applying heating again **replaces** the earlier heating: `power.linearHeatRate` is overwritten and the earlier entry of kind `heating` in `provenance.transfers` is dropped before the new one is appended (it used to be kept, so a loop that applied heating 25 times left 25 entries). Entries of other transfers (burnup, coolant boundary) are kept. The fuel temperature that comes back out of the run, with the slice's position from this entry, is described in [seed-fuel-temperature.md](seed-fuel-temperature.md).
+
 ## What it does not do
 
 - No time series (a pulse from a transferred power history is a later step).

@@ -70,3 +70,5 @@ An **oracle** is an expected value that does not come from the code it checks. T
 3. Fix the tolerance, with its reasoning, before running the code.
 4. Make the test, then break the code on purpose and see it fail.
 5. For a SEED entry, add it to `scripts/gen-seed-oracles.cjs`, run it, check that the existing entries are byte-identical (`git status oracles/seed`), and keep it on a branch until SEED's count test has been told the new total.
+
+- **Fuel temperature entries (2026-10-25, branch claude/seed-fuel-temperature):** 13 entries for the return quantity of SEED's power-temperature loop, bringing the SEED set to 138 (92 good, 43 bad-input, 3 known-limit): the largest, smallest and all-slice mean of the volume-mean fuel temperature for each of the four stack models, and one `temperature_fuel_mean` for a one-slice pin whose heat rate came from a heating transfer. See [seed-fuel-temperature.md](seed-fuel-temperature.md).
