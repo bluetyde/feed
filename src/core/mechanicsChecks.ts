@@ -120,13 +120,14 @@ export function mechanicsChecks(c: NormalizedCase, props: EffectiveMechanics, re
   return out;
 }
 
-function contactCheck(sol: ReturnType<typeof independentSolution>, record: MechanicsRecord): Check {
+/** `allow`: what the temperature allowance of a transient (plan 17 M3) adds to the pressure bound (Pa) and to the free-gap bands (m); none for a steady result. */
+export function contactCheck(sol: ReturnType<typeof independentSolution>, record: MechanicsRecord, allow: { pressure: number; gap: number } = { pressure: 0, gap: 0 }): Check {
   const tol = MECHANICS_TOLERANCE.contact;
   const id = "mechanicsContact";
   const label = "Contact between the solids vs the independent solution";
   const s = record.summary;
   const refTouch = sol.contact;
-  const nearly = Math.abs(sol.freeGap) < tol.nearlyClosed;
+  const nearly = Math.abs(sol.freeGap) < tol.nearlyClosed + allow.gap;
   const p = s.contactPressure ?? 0;
   if (s.gapWidth === null && s.contactPressure === null) {
     return { id, label, value: null, unit: "Pa", verdict: "fail", note: "OFFBEAT's gap width and interface pressure could not be read, so the contact cannot be judged" };
@@ -143,13 +144,13 @@ function contactCheck(sol: ReturnType<typeof independentSolution>, record: Mecha
   }
   if (refTouch && s.contact) {
     const dev = Math.abs(p - sol.contactPressure);
-    const bound = tol.fraction * sol.contactPressure + tol.floor;
+    const bound = tol.fraction * sol.contactPressure + tol.floor + allow.pressure;
     return { id, label, value: dev, unit: "Pa", verdict: dev <= bound ? "pass" : "fail", note: `interface pressure ${(p / 1e6).toFixed(3)} MPa against ${(sol.contactPressure / 1e6).toFixed(3)} MPa; bound ${tol.fraction * 100} % + ${tol.floor} Pa` };
   }
   if (!refTouch && !s.contact && s.gapWidth !== null) {
     const g = MECHANICS_TOLERANCE.gap;
     const dev = Math.abs(s.gapWidth - sol.gap);
-    const bound = g.fraction * Math.abs(sol.gap) + g.floor;
+    const bound = g.fraction * Math.abs(sol.gap) + g.floor + allow.gap;
     return { id, label, value: dev, unit: "m", verdict: dev <= bound ? "pass" : "fail", note: `gap ${(s.gapWidth * 1e6).toFixed(3)} micron against ${(sol.gap * 1e6).toFixed(3)} micron, no contact; bound ${g.fraction * 100} % + ${g.floor} m` };
   }
   if (!nearly) return { id, label, value: null, unit: "Pa", verdict: "fail", note: `the contact cannot be judged: the independent solution says the solids ${refTouch ? "touch" : "do not touch (free gap " + (sol.freeGap * 1e6).toFixed(2) + " micron)"} and OFFBEAT's gap width is unread or its result is not comparable, and a gap that is not nearly closed is never passed unread` };
