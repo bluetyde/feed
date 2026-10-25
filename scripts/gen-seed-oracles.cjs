@@ -1230,6 +1230,47 @@ for (const c of STACKS) {
   add("temperature_peak", round(st.slices[hotI].centre, 4), "K", { abs: tolHot.total, rel: 0 }, "The hottest fuel of the stack, the hottest slice's. " + common(hotI, tolHot));
   add("axial_hottest_slice", hotI, "1", { abs: 0, rel: 0 }, "The index of the slice with the hottest fuel, counted from 0 at the bottom (its centre is at " + heightOf(hotI) + " m of " + st.L + " m). The next slice is cooler by " + round(gap, 2) + " K, more than twice the largest tolerance of any slice (" + tolMax + " K), so the solver's own choice cannot differ. An integer: no tolerance.");
   add("temperature_peak_slice_min", round(st.slices[coldI].centre, 4), "K", { abs: tolCold.total, rel: 0 }, "The lowest of the slices' hottest cells: the end slice (index " + coldI + "), which makes the least heat. " + common(coldI, tolCold));
+  // the fuel temperature by slice, the return quantity of SEED's power-temperature loop (src/core/fuelTemperature.ts): the volume mean of each slice's fuel, in plain arithmetic. For a solid pin
+  // T = Ts + rise (1 - r^2/R^2), whose mean over the cross-section is Ts + rise/2; for a plate T = Ts + rise (1 - x^2/L^2) through the half-thickness, whose mean is Ts + 2 rise/3. Ts is the slice's
+  // closed-form fuel surface (the centre minus the rise). The three scalar quantities are the series' largest and smallest value and its length-weighted mean (every slice has the same length).
+  const meanOf = (x) => (isPlate(doc) ? x.centre - x.fuelRise / 3 : x.centre - x.fuelRise / 2);
+  const means = st.slices.map(meanOf);
+  const meanText = "the volume-mean fuel temperature of a slice, " + (isPlate(doc) ? "the surface temperature plus 2/3 of the centre-to-surface rise (the slab's parabola)" : "the surface temperature plus 1/2 of the centre-to-surface rise (the solid cylinder's parabola)") + ", from the closed-form solution of each slice at its own heat rate and coolant. The power shape is " + c.shapeText + ". The tolerance is the sum of the three terms of the peak entries of this case, each fixed before any run (the mesh term 5 x rise / 100^2 is for a cell-centre value; a volume mean of the cells is less sensitive to the mesh, so it is conservative here), taken at its largest over the slices: " + tolMax + " K (including the axial conduction allowance of 3 x " + round(est.fraction, 5) + " x " + round(Math.max(...st.slices.map((x) => x.rise)), 1) + " K" + (cosine ? " and the cosine's 41-point table" : "") + "), rounded up to 0.05 K.";
+  const meanCheck = "Second method: FEED's closed form of each slice integrated over the fuel cross-section (Simpson, tests/seedFuelTemperature.test.ts), the same means worked by hand in tests/seedOracleStack.test.ts, and the real solver (FEED_SOLVER=1): the solver's cell-weighted means are inside the tolerance.";
+  const addMean = (quantity, value, text) => {
+    entry({ id: "feed-" + c.name + "-" + quantity.replace(/_/g, "-"), tag: "good", casePath: rel, expected: { quantity, value: round(value, 4), unit: "K" }, tolerance: { abs: tolMax, rel: 0 }, source: { kind: "analytic", text, check: meanCheck }, coverage: { quantities: [quantity], domain: c.domain } });
+    stackGood++;
+  };
+  addMean("temperature_fuel_mean_slice_max", Math.max(...means), "The largest volume-mean fuel temperature of any slice: " + meanText);
+  addMean("temperature_fuel_mean_slice_min", Math.min(...means), "The smallest volume-mean fuel temperature of any slice (an end slice): " + meanText);
+  addMean("temperature_fuel_mean", means.reduce((x, y) => x + y, 0) / means.length, "The volume-mean fuel temperature of the whole heated fuel, the mean of the " + st.N + " slices' means (equal lengths, equal fuel cross-section): " + meanText);
+}
+
+// ---- the return quantity on the path the loop takes: ONE slice whose heat rate a heating transfer set (the case's provenance names the slice and its z bounds); the quantity then has one slice
+{
+  const doc = withMesh(load("examples/synthetic-pin.json"));
+  doc.caseId = "fuel-mean-transferred-pin";
+  doc.name = "Synthetic pin whose heat rate came from a heating transfer (one axial slice, 0.25 to 0.5 m of the source frame), 20 kW/m (illustrative numbers)";
+  delete doc.description;
+  doc.provenance = { transfers: [{ kind: "heating", recipeId: "oracle-recipe", pin: "p1", sliceId: "slice-2", z: { min: 0.25, max: 0.5 }, frame: "pin-axis z up, m, origin at bottom of fuel" }] };
+  const sres = analytic(doc);
+  const rel = writeCase("fuel-mean-transferred-pin", doc);
+  const mean = sres.centre - sres.fuelRise / 2;
+  const tol = peakTolerance(sres);
+  entry({
+    id: "feed-fuel-mean-transferred-pin-temperature-fuel-mean",
+    tag: "good",
+    casePath: rel,
+    expected: { quantity: "temperature_fuel_mean", value: round(mean, 4), unit: "K" },
+    tolerance: { abs: tol, rel: 0 },
+    source: {
+      kind: "analytic",
+      text: "The volume-mean fuel temperature of the one slice the case holds (slice-2, 0.25 to 0.5 m of the source's frame, set by a heating transfer): the closed-form fuel surface " + round(sres.centre - sres.fuelRise, 4) + " K plus half of the centre-to-surface rise " + round(sres.fuelRise, 4) + " K (the solid cylinder's parabola) = " + round(mean, 4) + " K. The tolerance is the mesh bound of the peak entries, 5 x rise / 100^2 rounded up to 0.05 K (" + tol + " K), fixed before any run.",
+      check: "Second method: FEED's closed form integrated over the fuel cross-section (tests/seedFuelTemperature.test.ts) and the real solver (FEED_SOLVER=1, tests/seedOracleStack.test.ts): the solver's cell-weighted mean is inside the tolerance.",
+    },
+    coverage: { quantities: ["temperature_fuel_mean"], domain: "the synthetic pin (constant conductivities, convective boundary 573 K and 30000 W/m2/K) as ONE radial slice whose position comes from the case's heating provenance; steady; mesh 100/20" },
+  });
+  stackGood++;
 }
 
 // ---- a plate alone: the through-thickness closed form (docs/plate.md); the pin entries of the set have the series

@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-cosine-pin-temperature-fuel-mean-slice-min",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-cosine-pin.case.json",
+      "sha256": "d233119aa3c427237fe71374c32fac981f817ec1d41ce465d367acc2eac8ba67"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_fuel_mean_slice_min",
+    "value": 701.1989,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 5,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The smallest volume-mean fuel temperature of any slice (an end slice): the volume-mean fuel temperature of a slice, the surface temperature plus 1/2 of the centre-to-surface rise (the solid cylinder's parabola), from the closed-form solution of each slice at its own heat rate and coolant. The power shape is a cosine, normalised to an average of 1 (the slice at the middle has (pi/2) cos(0) = 1.571 of the average). The tolerance is the sum of the three terms of the peak entries of this case, each fixed before any run (the mesh term 5 x rise / 100^2 is for a cell-centre value; a volume mean of the cells is less sensitive to the mesh, so it is conservative here), taken at its largest over the slices: 5 K (including the axial conduction allowance of 3 x 0.00099 x 1154.9 K and the cosine's 41-point table), rounded up to 0.05 K.",
+    "check": "Second method: FEED's closed form of each slice integrated over the fuel cross-section (Simpson, tests/seedFuelTemperature.test.ts), the same means worked by hand in tests/seedOracleStack.test.ts, and the real solver (FEED_SOLVER=1): the solver's cell-weighted means are inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_fuel_mean_slice_min"
+    ],
+    "domain": "synthetic pin (constant conductivities, convective boundary 573 K and 30000 W/m2/K on every slice) as 9 radial slices over 0.381 m with a cosine power shape, 20 kW/m on average (31.4 kW/m at the peak)"
+  },
+  "toleranceHash": "5f927ddd6930c074290186d752e5040397825bbaae1207e062cdce20f634d7da"
+}

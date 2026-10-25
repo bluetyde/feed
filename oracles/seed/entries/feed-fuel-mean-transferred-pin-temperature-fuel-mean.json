@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-fuel-mean-transferred-pin-temperature-fuel-mean",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/fuel-mean-transferred-pin.case.json",
+      "sha256": "c9b94ea541597627f35b149f19b08839e4734283f602cb785471096169187115"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_fuel_mean",
+    "value": 1042.996,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 0.3,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The volume-mean fuel temperature of the one slice the case holds (slice-2, 0.25 to 0.5 m of the source's frame, set by a heating transfer): the closed-form fuel surface 777.7377 K plus half of the centre-to-surface rise 530.5165 K (the solid cylinder's parabola) = 1042.996 K. The tolerance is the mesh bound of the peak entries, 5 x rise / 100^2 rounded up to 0.05 K (0.3 K), fixed before any run.",
+    "check": "Second method: FEED's closed form integrated over the fuel cross-section (tests/seedFuelTemperature.test.ts) and the real solver (FEED_SOLVER=1, tests/seedOracleStack.test.ts): the solver's cell-weighted mean is inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_fuel_mean"
+    ],
+    "domain": "the synthetic pin (constant conductivities, convective boundary 573 K and 30000 W/m2/K) as ONE radial slice whose position comes from the case's heating provenance; steady; mesh 100/20"
+  },
+  "toleranceHash": "2db1e935d0380f3a291c9340e2005c16f744283fa1fa7d135c7df1af89dc69db"
+}
