@@ -135,13 +135,16 @@ describe("cross-checks", () => {
     const d = mechCase(null);
     expect(codes(d).filter((x) => x.endsWith(" /mechanics"))).toEqual(["E_PROP_MISSING /mechanics"]);
   });
-  it("a transient case with the section is unsupported at /mechanics", () => {
+  it("a transient case with the section is valid since plan 17 M2, with the warning that it cannot be solved yet", () => {
     const d = read("examples/synthetic-pulse.json");
     Object.assign(d.materials.fuel.sets, both);
     Object.assign(d.materials.cladding.sets, both);
     d.assumptions.thermalOnly = false;
     d.mechanics = sec();
-    expect(codes(d)).toEqual(["E_UNSUPPORTED /mechanics"]);
+    const r = validateCase(d);
+    expect(r.errors).toEqual([]);
+    expect(r.normalized?.mechanics).toBeDefined();
+    expect(r.warnings.map((w) => w.code)).toEqual(["W_TRANSIENT_MECHANICS_NOT_SOLVABLE"]);
   });
   it("hot dimensions with the section are unsupported at /hotDimensions", () => {
     const d = mechCase();

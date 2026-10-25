@@ -470,11 +470,31 @@ bad("mechanics-with-hot-dimensions", "E_UNSUPPORTED", "/hotDimensions", (c) => {
   };
 });
 bad("mechanics-with-burnup", "E_UNSUPPORTED", "/burnup", (c) => { mech(c); nfi(c); burnup(c); });
+// plan 17 M2: mechanics through a transient (a pin): valid, with the warning that it cannot be solved yet; the gas pressure forms of a transient
+const NS = "W_TRANSIENT_MECHANICS_NOT_SOLVABLE";
+const badMechT = (name, code, field, mutate) => { const c = pulse(); mutate(c); add("bad", name, c, { code, field }); };
+const mechPulse = (extra = {}) => { const c = pulse(); mech(c, extra); return c; };
+const ptab = (rows) => ({ model: "table", table: rows.map(([t, p]) => ({ time: { value: t, unit: "ms" }, pressure: { value: p, unit: "MPa" } })), source: "a synthetic input" });
+const hydr = (basis) => ({ model: "hydrogen-zrh", hZrRatio: { value: 1.65, unit: "1" }, fuelTemperature: basis, source: "Simnad GA E-117-833 section 2.4" });
+add("good", "mechanics-transient", mechPulse(), { warnings: [NS] });
+add("good", "mechanics-transient-pressure-table", mechPulse({ internalPressure: ptab([[0, 0.1], [10, 2], [100, 0.5]]) }), { warnings: [NS] });
+add("good", "mechanics-transient-hydrogen-instantaneous", mechPulse({ internalPressure: hydr("instantaneous-peak") }), { warnings: [NS] });
 {
-  const c = pulse();
-  mech(c);
-  add("bad", "mechanics-in-transient", c, { code: "E_UNSUPPORTED", field: "/mechanics" });
+  // the power doubles in 50 microseconds, about 37 wave transit times of the fuel radius: the static solution may be wrong
+  const c = mechPulse();
+  const pt = (t, q) => ({ time: { value: t, unit: "ms" }, linearHeatRate: { value: q, unit: "MW/m" } });
+  c.transient.powerHistory = [pt(0, 0), pt(1, 1), pt(1.05, 2), pt(5, 0), pt(100, 0)];
+  c.transient.timeStep = { value: 0.05, unit: "ms" };
+  add("good", "mechanics-transient-quasi-static-warning", c, { warnings: ["W_QUASI_STATIC", NS] });
 }
+badMechT("mechanics-transient-pressure-table-short", "E_TRANSIENT_INCOMPLETE", "/mechanics/internalPressure/table", (c) => { mech(c, { internalPressure: ptab([[0, 0.1], [50, 2]]) }); });
+badMechT("mechanics-pressure-table-not-from-zero", "E_OUT_OF_RANGE", "/mechanics/internalPressure/table/0/time", (c) => { mech(c, { internalPressure: ptab([[1, 0.1], [100, 2]]) }); });
+badMechT("mechanics-pressure-table-unordered", "E_OUT_OF_RANGE", "/mechanics/internalPressure/table/2/time", (c) => { mech(c, { internalPressure: ptab([[0, 0.1], [50, 2], [20, 1]]) }); });
+badMechT("mechanics-pressure-table-negative", "E_OUT_OF_RANGE", "/mechanics/internalPressure/table/1/pressure", (c) => { mech(c, { internalPressure: ptab([[0, 0.1], [100, -2]]) }); });
+badMechT("mechanics-pressure-table-one-point", "E_SCHEMA_INVALID", "/mechanics/internalPressure/table", (c) => { mech(c, { internalPressure: ptab([[0, 0.1]]) }); });
+bad("mechanics-pressure-table-in-steady", "E_UNSUPPORTED", "/mechanics/internalPressure/model", (c) => { mech(c, { internalPressure: ptab([[0, 0.1], [100, 2]]) }); });
+badMechT("mechanics-hydrogen-peak-in-transient", "E_UNSUPPORTED", "/mechanics/internalPressure/fuelTemperature", (c) => { mech(c, { internalPressure: hydr("peak") }); });
+bad("mechanics-hydrogen-instantaneous-in-steady", "E_UNSUPPORTED", "/mechanics/internalPressure/fuelTemperature", (c) => { mech(c, { internalPressure: hydr("instantaneous-mean") }); });
 
 
 // ---- the axial stack (plan 12, A1): four good vectors and the refusals
