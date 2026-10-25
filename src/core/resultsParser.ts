@@ -12,6 +12,7 @@ import { effectiveMechanics } from "./mechanicalEval";
 import { mechanicsChecks, stressLimitChecks } from "./mechanicsChecks";
 import { MECHANICS_TEXT, MechanicsInput, MechanicsRecord, buildMechanics } from "./mechanicsResults";
 import { buildCompactRecord, CompactRecord } from "./compact";
+import { FuelTemperatureRecord, fuelTemperatureRecord } from "./fuelTemperature";
 import { Conductivity, NormalizedCase } from "./validate";
 
 export class ResultsError extends Error {
@@ -154,6 +155,8 @@ export interface ResultsRecord {
   mechanics?: MechanicsRecord;
   /** Present for a compact (plan 13, T4): the mixture, and the hottest particle solved with the matrix at the compact's local temperature (src/core/compact.ts). */
   compact?: CompactRecord;
+  /** Present for a steady axial stack, and for a steady one-slice case whose heat rate a heating transfer set: the volume-mean fuel temperature of each slice against z, declared for SEED's loop (src/core/fuelTemperature.ts). */
+  fuelTemperature?: FuelTemperatureRecord;
 }
 
 /**
@@ -239,7 +242,9 @@ export function buildResults(c: NormalizedCase, input: ParseInput): ResultsRecor
   assertWholeFoamFile(input.T, "T");
   assertWholeFoamFile(input.C, "C");
 
-  return finishResults(c, { T, radial, fuel, clad, wall, input });
+  const record = finishResults(c, { T, radial, fuel, clad, wall, input });
+  const fuelTemperature = fuelTemperatureRecord(c, [fuel.map((p) => p.T)]);
+  return fuelTemperature ? { ...record, fuelTemperature } : record;
 }
 
 /** The cells of one slice split into the fuel and the cladding by radius: every centre inside the pin and inside a solid, none in the central hole, positive temperatures, distinct radii. */
