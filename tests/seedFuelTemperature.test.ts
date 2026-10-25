@@ -159,6 +159,15 @@ describe("1. the declared quantity", () => {
   it("a transient has none, and the builder refuses a count of slices that is not the case's", () => {
     const tr = validateCase(JSON.parse(read("examples/synthetic-pulse.json"))).normalized!;
     expect(fuelTemperatureRecord(tr, [[500, 600]])).toBeUndefined();
+    // even where it would have a position: a transient stack, and a transient case whose heat rate a heating transfer set
+    const stackT = validateCase(JSON.parse(read("examples/synthetic-plate-loss-of-cooling.json"))).normalized!;
+    expect(stackT.axial && stackT.transient).toBeTruthy();
+    expect(fuelTemperatureRecord(stackT, Array.from({ length: stackT.axial!.slices }, () => Array.from({ length: stackT.mesh.fuelCells }, () => 600)))).toBeUndefined();
+    const pulse = JSON.parse(read("examples/synthetic-pulse.json"));
+    pulse.provenance = { transfers: [{ kind: "heating", recipeId: "r", pin: "p", sliceId: "s", z: { min: 0, max: 1 }, frame: "f" }] };
+    const pulseN = validateCase(pulse).normalized!;
+    expect(pulseN.heatingSlice).toBeDefined();
+    expect(fuelTemperatureRecord(pulseN, [Array.from({ length: pulseN.mesh.fuelCells }, () => 600)])).toBeUndefined();
     const { n } = golden("offbeat-stack", "cosine");
     expect(() => fuelTemperatureRecord(n, [[1]])).toThrow(/slices/);
   });
