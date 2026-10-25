@@ -213,6 +213,31 @@ export interface NormalizedCase {
   axial?: AxialSpec;
   /** Present when the fuel is a compact of coated particles in a matrix (plan 13, T4): `fuelConductivity` is then the fitted mixture and `qPrime` the compact's power density times its cross-section. */
   compact?: HomogenisedSpec;
+  /** Present when the case's heat rate came from a heating transfer (provenance.transfers, kind "heating"): the axial slice the heat rate is for, in the frame the transfer was made in. A one-slice case has no height of its own; this gives its result a position (src/core/fuelTemperature.ts). */
+  heatingSlice?: HeatingSlice;
+}
+
+/** The axial slice of the last heating transfer recorded in a case's provenance. `frame` is the source table's own coordinate frame (FEED applies no transform). */
+export interface HeatingSlice {
+  id: string;
+  pin: string;
+  z: { min: number; max: number };
+  frame: string;
+}
+
+/** The last heating transfer in the raw case's provenance with a usable slice (finite z, min below max), or undefined. Earlier ones are superseded: the case has one heat rate. */
+function heatingSliceOf(raw: unknown): HeatingSlice | undefined {
+  const list = (raw as { provenance?: { transfers?: unknown } } | null)?.provenance?.transfers;
+  if (!Array.isArray(list)) return undefined;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const e = list[i] as { kind?: unknown; sliceId?: unknown; pin?: unknown; frame?: unknown; z?: { min?: unknown; max?: unknown } } | null;
+    if (!e || e.kind !== "heating") continue;
+    const zmin = e.z?.min;
+    const zmax = e.z?.max;
+    if (typeof zmin !== "number" || typeof zmax !== "number" || !Number.isFinite(zmin) || !Number.isFinite(zmax) || !(zmin < zmax)) return undefined;
+    return { id: typeof e.sliceId === "string" ? e.sliceId : String(e.sliceId ?? ""), pin: typeof e.pin === "string" ? e.pin : String(e.pin ?? ""), z: { min: zmin, max: zmax }, frame: typeof e.frame === "string" ? e.frame : "" };
+  }
+  return undefined;
 }
 
 export interface ValidationResult {
@@ -507,6 +532,7 @@ export function validateCase(doc: unknown): ValidationResult {
       ...(fuelK.kind === "uo2-nfi" && burnupSpec ? { burnup: burnupSpec } : {}),
       ...(axialSpec ? { axial: axialSpec } : {}),
       ...(isPlate ? { plate: true as const } : {}),
+      ...(heatingSliceOf(c) ? { heatingSlice: heatingSliceOf(c) } : {}),
     };
     // Hot dimensions: the radii above are cold; replace them with the radii each solid has at its own mean temperature (the temperatures and the radii are iterated together).
     if (hotSpec && !isTransient) {

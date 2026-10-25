@@ -4,6 +4,7 @@
 
 import { AxialEstimate, axialConductionEstimate, axialSummary, sliceCase, sliceLoads } from "./axial";
 import { BALANCE_TOLERANCE, Check, DomainFinding, ParseInput, RadialPoint, ResultsError, ResultsRecord, SliceAllowance, SliceReference, THERMAL_ONLY_TEXT, assertWholeFoamFile, finishResults, sliceClosedForm, parsePatchValues, parseScalarField, parseVectorField, radialSplit, wallFlux } from "./resultsParser";
+import { fuelTemperatureRecord } from "./fuelTemperature";
 import { StackReferenceResult, pinReferenceDecision, stackReference } from "./stackReference";
 import { NormalizedCase } from "./validate";
 
@@ -129,6 +130,7 @@ export function buildStackResults(c: NormalizedCase, input: ParseInput, referenc
   const height = a.length / N;
   const eps = 1e-6 * a.length;
   const perSlice: { rec: ResultsRecord; load: (typeof loads)[number]; flux: number | null }[] = [];
+  const fuelBySlice: number[][] = [];
   let deviation = 0;
   let oneDimensionalDeviation = 0;
   for (let k = 0; k < N; k++) {
@@ -169,6 +171,7 @@ export function buildStackResults(c: NormalizedCase, input: ParseInput, referenc
         at.forEach((p, i) => (oneDimensionalDeviation = Math.max(oneDimensionalDeviation, Math.abs(p.T - (i < nf ? one.fuel[i]! : one.clad[i - nf]!)))));
       }
     }
+    fuelBySlice.push(fuel.map((p) => p.T));
     perSlice.push({ rec: finishResults(sc, { T: Tk, radial, fuel, clad, wall: walls[k]!, input: { ...input, T: input.T, C: input.C }, allow, ...(sliceRef ? { reference: sliceRef } : {}) }), load: loads[k]!, flux: wallFlux(sc, clad) });
   }
 
@@ -232,8 +235,10 @@ export function buildStackResults(c: NormalizedCase, input: ParseInput, referenc
   });
   const hot = perSlice[hottest]!.rec;
   const findings: DomainFinding[] = perSlice.flatMap((s) => s.rec.domain.findings);
+  const fuelTemperature = fuelTemperatureRecord(c, fuelBySlice);
   return {
     ...hot,
+    ...(fuelTemperature ? { fuelTemperature } : {}),
     time: input.time,
     caseId: c.caseId,
     summary: { ...hot.summary, maxT: Math.max(...slices.map((s) => s.maxT)), minT: Math.min(...perSlice.map((s) => s.rec.summary.minT)) },

@@ -376,7 +376,10 @@ export function transferHeating(requestIn: unknown): TransferReply {
     totals: { mappedW: mapped, sourceW, relativeDifference: rel },
     uncertaintyModel: "independent-bins",
   };
-  doc.provenance = { ...(doc.provenance ?? {}), transfers: [...((doc.provenance?.transfers as unknown[]) ?? []), structuredClone(entry)] };
+  // Applying heating again REPLACES the earlier heating: the case has one heat rate (set above), so an earlier heating entry no longer describes it and is dropped, never kept beside the new one
+  // (a loop applies it up to 25 times in a row; the other transfers' entries, boundary and burnup, are kept as they are).
+  const kept = ((doc.provenance?.transfers as unknown[]) ?? []).filter((e) => !(isObj(e) && e.kind === "heating"));
+  doc.provenance = { ...(doc.provenance ?? {}), transfers: [...kept, structuredClone(entry)] };
   const after = validateCase(doc);
   if (!after.ok) {
     return { ok: false, errors: after.errors.slice(0, 20).map((e): TransferIssue => ({ code: e.code, field: "/target/content" + e.field, message: "the mapped case is not valid: " + e.message })) };

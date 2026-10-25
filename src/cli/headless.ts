@@ -15,6 +15,7 @@ import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { isAbsolute, join } from "path";
 import { RunManager } from "../core/runManager";
+import { DESCRIBE_RESULT_QUANTITIES } from "../core/fuelTemperature";
 import { DESCRIBE_TRANSFERS, transfer as runTransfer } from "../core/transferRequest";
 import { Issue, validateCase } from "../core/validate";
 import { solverAvailable, WslBackend } from "../core/wslBackend";
@@ -65,6 +66,7 @@ async function describe() {
       solver: { text: SOLVER, available: await solverAvailable() },
       thermalOnly: "Thermal calculation only. Not a stress, failure or integrity assessment.",
       transfers: DESCRIBE_TRANSFERS,
+      resultQuantities: DESCRIBE_RESULT_QUANTITIES,
     },
     0,
   );
