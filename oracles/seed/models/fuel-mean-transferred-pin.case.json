@@ -1,0 +1,107 @@
+{
+  "schema": "feed.case/0.1",
+  "caseId": "fuel-mean-transferred-pin",
+  "name": "Synthetic pin whose heat rate came from a heating transfer (one axial slice, 0.25 to 0.5 m of the source frame), 20 kW/m (illustrative numbers)",
+  "label": "synthetic",
+  "assumptions": {
+    "thermalOnly": true,
+    "steadyState": true,
+    "geometry": "1D-radial"
+  },
+  "geometry": {
+    "fuelRadius": {
+      "value": 4.1,
+      "unit": "mm"
+    },
+    "claddingInnerRadius": {
+      "value": 4.18,
+      "unit": "mm"
+    },
+    "claddingOuterRadius": {
+      "value": 4.75,
+      "unit": "mm"
+    }
+  },
+  "power": {
+    "linearHeatRate": {
+      "value": 20,
+      "unit": "kW/m"
+    },
+    "radialShape": "uniform"
+  },
+  "boundary": {
+    "bulkTemperature": {
+      "value": 573,
+      "unit": "K"
+    },
+    "heatTransferCoefficient": {
+      "value": 30000,
+      "unit": "W/m2/K"
+    }
+  },
+  "materials": {
+    "fuel": {
+      "materialId": "synthetic-fuel",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 3,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 1000,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    },
+    "cladding": {
+      "materialId": "synthetic-cladding",
+      "revision": 1,
+      "sets": {
+        "thermal.conductivity": {
+          "model": "constant",
+          "value": {
+            "value": 15,
+            "unit": "W/m/K"
+          },
+          "referenceTemperature": {
+            "value": 600,
+            "unit": "K"
+          },
+          "source": "synthetic: chosen for the closed-form oracle, not a sourced property"
+        }
+      }
+    }
+  },
+  "gap": {
+    "model": "constant-conductance",
+    "conductance": {
+      "value": 5000,
+      "unit": "W/m2/K"
+    },
+    "source": "synthetic: chosen for the closed-form oracle"
+  },
+  "mesh": {
+    "fuelCells": 100,
+    "claddingCells": 20
+  },
+  "provenance": {
+    "transfers": [
+      {
+        "kind": "heating",
+        "recipeId": "oracle-recipe",
+        "pin": "p1",
+        "sliceId": "slice-2",
+        "z": {
+          "min": 0.25,
+          "max": 0.5
+        },
+        "frame": "pin-axis z up, m, origin at bottom of fuel"
+      }
+    ]
+  }
+}

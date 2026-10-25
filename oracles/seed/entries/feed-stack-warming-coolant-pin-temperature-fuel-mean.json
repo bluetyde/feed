@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-warming-coolant-pin-temperature-fuel-mean",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-warming-coolant-pin.case.json",
+      "sha256": "58f903181cef5ff06f080b5ba39f40bcd52de9d17dcfb95e726addaeff125fd4"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_fuel_mean",
+    "value": 841.0977,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 1.25,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The volume-mean fuel temperature of the whole heated fuel, the mean of the 9 slices' means (equal lengths, equal fuel cross-section): the volume-mean fuel temperature of a slice, the surface temperature plus 1/2 of the centre-to-surface rise (the solid cylinder's parabola), from the closed-form solution of each slice at its own heat rate and coolant. The power shape is a cosine, normalised to an average of 1, with the coolant read from the table at each slice's centre (linear between the two points). The tolerance is the sum of the three terms of the peak entries of this case, each fixed before any run (the mesh term 5 x rise / 100^2 is for a cell-centre value; a volume mean of the cells is less sensitive to the mesh, so it is conservative here), taken at its largest over the slices: 1.25 K (including the axial conduction allowance of 3 x 0.00099 x 288.7 K and the cosine's 41-point table), rounded up to 0.05 K.",
+    "check": "Second method: FEED's closed form of each slice integrated over the fuel cross-section (Simpson, tests/seedFuelTemperature.test.ts), the same means worked by hand in tests/seedOracleStack.test.ts, and the real solver (FEED_SOLVER=1): the solver's cell-weighted means are inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_fuel_mean"
+    ],
+    "domain": "synthetic pin as 9 radial slices over 0.381 m with a cosine power shape, 5 kW/m on average (7.9 kW/m at the peak), a coolant table that warms linearly from 573 K at the bottom to 873 K at the top (a sodium-like rise; film coefficient 30000 W/m2/K)"
+  },
+  "toleranceHash": "6040c1ed5ae08ab8bd445d2cb99550c7fab74e7fad6c3021e02f423788fb34b1"
+}

@@ -61,13 +61,45 @@ const REF: Record<string, number[]> = {
 /** The cosine's table term is part of the tolerance for a cosine and absent for a table. */
 const COSINE = new Set(["stack-cosine-pin", "stack-warming-coolant-pin", "stack-cosine-plate"]);
 
+describe("the fuel temperature entries (the return quantity of SEED's power-temperature loop), worked by hand", () => {
+  // the volume mean of a slice: a solid pin's parabola has its mean at the surface plus half the rise (q / (4 pi k) = the centre-to-surface rise), a plate's through the half-thickness at two thirds
+  const pinMean = (q: number, Tb: number, h: number) => pinCentre(q, Tb, h) - q / (8 * Math.PI * 3);
+  const plateMean = (q: number, Tb: number, h: number) => plateCentre(q, Tb, h) - ((q * 4.1e-3) / (2 * 3)) / 3;
+  const MEANS: Record<string, number[]> = {
+    "stack-cosine-pin": cosineFactor(9).map((f) => pinMean(20000 * f, 573, 30000)),
+    "stack-warming-coolant-pin": cosineFactor(9).map((f, k) => pinMean(5000 * f, 573 + 300 * ((k + 0.5) / 9), 30000)),
+    "stack-skewed-pin": tableFactor(caseNamed("stack-skewed-pin"), 10).map((f) => pinMean(20000 * f, 573, 30000)),
+    "stack-cosine-plate": cosineFactor(9).map((f) => plateMean(200000 * f, 573, 30000)),
+  };
+  for (const [name, means] of Object.entries(MEANS)) {
+    it(name + ": the largest, the smallest and the all-slice mean are the hand values (to the 4 digits written), with the tolerance of the stack's peak entries", () => {
+      const all = means.reduce((a, b) => a + b, 0) / means.length;
+      for (const [q, want] of [["temperature_fuel_mean_slice_max", Math.max(...means)], ["temperature_fuel_mean_slice_min", Math.min(...means)], ["temperature_fuel_mean", all]] as const) {
+        const e = entry("feed-" + name + "-" + q.replace(/_/g, "-"));
+        expect(e.expected.quantity).toBe(q);
+        expect(e.expected.unit).toBe("K");
+        expect(Math.abs(e.expected.value - want), q).toBeLessThan(6e-4);
+        expect(e.tolerance.rel).toBe(0);
+        expect(e.tolerance.abs).toBeGreaterThanOrEqual(entry("feed-" + name + "-temperature-peak").tolerance.abs); // at least the peak entry's: the largest over the slices
+      }
+    });
+  }
+  it("the transferred one-slice pin: the mean is the hand value, 20 kW/m, 573 K, 30000 W/m2/K, and the case carries the slice it is for", () => {
+    const e = entry("feed-fuel-mean-transferred-pin-temperature-fuel-mean");
+    expect(Math.abs(e.expected.value - pinMean(20000, 573, 30000))).toBeLessThan(6e-4);
+    const c = caseNamed("fuel-mean-transferred-pin");
+    expect(c.provenance.transfers[0]).toMatchObject({ kind: "heating", z: { min: 0.25, max: 0.5 } });
+    expect(norm(c).heatingSlice).toMatchObject({ id: "slice-2", z: { min: 0.25, max: 0.5 } });
+  });
+});
+
 describe("the set as a whole", () => {
-  it("there are 125 entries: 79 good, 43 bad-input, 3 known-limit; 24 are new and 101 are the earlier ones", () => {
+  it("there are 138 entries: 92 good, 43 bad-input, 3 known-limit; 37 are new (24 of plan 12 A8 and 13 fuel temperature entries) and 101 are the earlier ones", () => {
     const n = (t: string) => entries.filter((e) => e.tag === t).length;
-    expect([entries.length, n("good"), n("bad-input"), n("known-limit")]).toEqual([125, 79, 43, 3]);
+    expect([entries.length, n("good"), n("bad-input"), n("known-limit")]).toEqual([138, 92, 43, 3]);
     const old = JSON.parse(readFileSync(join(golden, "files-of-101.json"), "utf8")) as Record<string, string>;
     expect(Object.keys(old).filter((k) => k.startsWith("entries/"))).toHaveLength(101);
-    expect(entries.length - 101).toBe(24);
+    expect(entries.length - 101).toBe(37);
   });
   it("the 101 earlier entries and the 72 cases they pin are byte for byte what they were (their hashes, taken from main before this milestone)", () => {
     const old = JSON.parse(readFileSync(join(golden, "files-of-101.json"), "utf8")) as Record<string, string>;
@@ -297,7 +329,16 @@ const inside = (e: any, got: number) => expect(Math.abs(got - e.expected.value),
 
 /** What each quantity is read as in a stack's record (the readings docs/seed-stack-request.md gives SEED). */
 function steadyQuantities(r: StackRecord) {
-  return { temperature_peak: r.summary.maxT, axial_hottest_slice: r.axial.hottest, temperature_peak_slice_min: Math.min(...r.axial.slices.map((s) => s.maxT)) } as Record<string, number>;
+  const ft = r.fuelTemperature!.scalars;
+  return {
+    temperature_peak: r.summary.maxT,
+    axial_hottest_slice: r.axial.hottest,
+    temperature_peak_slice_min: Math.min(...r.axial.slices.map((s) => s.maxT)),
+    // the fuel temperature by slice (src/core/fuelTemperature.ts): the largest and the smallest slice mean and the mean over all slices
+    temperature_fuel_mean_slice_max: ft.temperature_fuel_mean_slice_max.value,
+    temperature_fuel_mean_slice_min: ft.temperature_fuel_mean_slice_min.value,
+    temperature_fuel_mean: ft.temperature_fuel_mean.value,
+  } as Record<string, number>;
 }
 const SAVED = existsSync(join(golden, "stack-cosine-pin", "normalized.json"));
 describe.skipIf(!SAVED)("saved real OFFBEAT output of the stack entries, read back: every check passes and every quantity is inside its tolerance", () => {
@@ -311,6 +352,13 @@ describe.skipIf(!SAVED)("saved real OFFBEAT output of the stack entries, read ba
       expect(r.axial.slices).toHaveLength(x.n.axial.slices);
     });
   }
+  it("the transferred one-slice pin: every check passes and the saved solver output's volume-mean fuel temperature is inside the entry's tolerance (the slice's position is the transfer's)", () => {
+    const x = readGolden("fuel-mean-transferred-pin");
+    const r = buildResults(x.n, { T: x.T, C: x.C, time: 5e7, drift: { relativeRate: 1e-12 } });
+    expect(failingIds(r)).toEqual([]);
+    inside(entry("feed-fuel-mean-transferred-pin-temperature-fuel-mean"), r.fuelTemperature!.scalars.temperature_fuel_mean.value);
+    expect(r.fuelTemperature!.slices[0]).toMatchObject({ zMin: 0.25, zMax: 0.5 });
+  });
   it("the plate alone (mesh 100/20): every check passes, the centre and the face are inside the tolerances", () => {
     const x = readGolden("plate-steady");
     const r = buildResults(x.n, { T: x.T, C: x.C, time: 5e7, drift: { relativeRate: 1e-12 } });
@@ -388,6 +436,12 @@ describe.skipIf(!solverOn)("the stack and plate entries against the real solver 
       r.axial.slices.forEach((s, k) => expect(Math.abs(s.maxT - REF[name]![k]!), name + " slice " + k).toBeLessThanOrEqual(widest));
     }, 600_000);
   }
+  it("fuel-mean-transferred-pin: every check passes and the solver's volume-mean fuel temperature of its one slice is inside the entry's tolerance, with the slice's position in the record", async () => {
+    const r = await run("fuel-mean-transferred-pin");
+    expect(failing(r)).toEqual([]);
+    inside(entry("feed-fuel-mean-transferred-pin-temperature-fuel-mean"), r.fuelTemperature!.scalars.temperature_fuel_mean.value);
+    expect(r.fuelTemperature!.slices[0]).toMatchObject({ zMin: 0.25, zMax: 0.5 });
+  }, 600_000);
   it("plate-steady: every check passes and the centre and the face are inside the tolerances", async () => {
     const r = await run("plate-steady");
     expect(failing(r)).toEqual([]);

@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-skewed-pin-temperature-fuel-mean",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-skewed-pin.case.json",
+      "sha256": "e0bcd171bd6f063bad9c702336df9df3bb590e016ff5fbf69c218b3a03c31547"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_fuel_mean",
+    "value": 1042.996,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 6.05,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The volume-mean fuel temperature of the whole heated fuel, the mean of the 10 slices' means (equal lengths, equal fuel cross-section): the volume-mean fuel temperature of a slice, the surface temperature plus 1/2 of the centre-to-surface rise (the solid cylinder's parabola), from the closed-form solution of each slice at its own heat rate and coolant. The power shape is the table as written (relative power at eleven heights, linear between them), normalised so that its integral over the length is 1, read at each slice's centre; the shape is not symmetric, so a stack read from the top gives a different answer. The tolerance is the sum of the three terms of the peak entries of this case, each fixed before any run (the mesh term 5 x rise / 100^2 is for a cell-centre value; a volume mean of the cells is less sensitive to the mesh, so it is conservative here), taken at its largest over the slices: 6.05 K (including the axial conduction allowance of 3 x 0.002 x 952.5 K), rounded up to 0.05 K.",
+    "check": "Second method: FEED's closed form of each slice integrated over the fuel cross-section (Simpson, tests/seedFuelTemperature.test.ts), the same means worked by hand in tests/seedOracleStack.test.ts, and the real solver (FEED_SOLVER=1): the solver's cell-weighted means are inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_fuel_mean"
+    ],
+    "domain": "synthetic pin as 10 radial slices over 0.381 m with a table power shape that peaks near 0.33 of the height and falls to 0.35 of the peak at both ends (0.35 + 0.65 sin(pi x^0.62) at eleven points, linear between them), 20 kW/m on average, flat coolant"
+  },
+  "toleranceHash": "61bedf232fa062f9bc782ada35ac042cc58fea1584896a9ba8d2f4bda8864b09"
+}

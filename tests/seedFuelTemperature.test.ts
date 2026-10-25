@@ -278,3 +278,34 @@ describe("4. a thermal solve that does not converge is a typed failure, never a 
     expect(mgr.results(s.id)).toBeUndefined();
   });
 });
+
+// ---- 3, through the real solver (needs FEED_SOLVER=1): the same case twice gives the same result, the new quantity included
+import { execFileSync } from "child_process";
+import { WslBackend } from "../src/core/wslBackend";
+const solverOn = (() => {
+  if (process.env.FEED_SOLVER !== "1" || process.platform !== "win32") return false;
+  try {
+    return execFileSync("wsl.exe", ["-l", "-q"], { encoding: "utf16le" }).split(/\r?\n/).some((l) => l.trim() === "feed-solver");
+  } catch {
+    return false;
+  }
+})();
+describe.skipIf(!solverOn)("3. determinism through the real solver (needs FEED_SOLVER=1)", () => {
+  it("the same case run twice gives byte-identical results (a stack and a transferred one-slice pin), the fuel temperature record included", async () => {
+    for (const name of ["stack-cosine-pin", "fuel-mean-transferred-pin"]) {
+      const results: string[] = [];
+      for (let i = 0; i < 2; i++) {
+        const runsRoot = mkdtempSync(join(tmpdir(), "feed-det-"));
+        const mgr = new RunManager({ runsRoot, backend: new WslBackend(), timeoutMs: 580_000 });
+        const s = mgr.start(JSON.parse(read("oracles/seed/models", name + ".case.json")));
+        if (!s.ok) throw new Error("start refused: " + JSON.stringify(s));
+        const rec = await mgr.done(s.id);
+        expect(rec.state, name).toBe("completed");
+        results.push(JSON.stringify(mgr.results(s.id)));
+        rmSync(runsRoot, { recursive: true, force: true });
+      }
+      expect(results[0], name).toBe(results[1]);
+      expect(JSON.parse(results[0]!).fuelTemperature, name).toBeDefined();
+    }
+  }, 600_000);
+});

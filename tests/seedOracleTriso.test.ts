@@ -69,10 +69,10 @@ const TOL_KEY: Record<string, "centre" | "buffer" | "gap"> = { "temperature-kern
 const observed = (r: TrisoResultsRecord) => ({ "temperature-kernel-centre": r.summary.kernelCentreT, "temperature-drop-buffer": r.regions[1]!.drop, "temperature-drop-gap": r.summary.gapDeltaT }) as Record<string, number>;
 
 describe("the set as a whole", () => {
-  it("there are 19 entries: 15 good (3 for each of 5 sampled particles) and 4 bad-input; the 125 entries of oracles/seed are another folder and untouched", () => {
+  it("there are 19 entries: 15 good (3 for each of 5 sampled particles) and 4 bad-input; the 138 entries of oracles/seed are another folder and untouched", () => {
     const n = (t: string) => entries.filter((e) => e.tag === t).length;
     expect([entries.length, n("good"), n("bad-input"), n("known-limit")]).toEqual([19, 15, 4, 0]);
-    expect(readdirSync(join(root, "oracles", "seed", "entries"))).toHaveLength(125);
+    expect(readdirSync(join(root, "oracles", "seed", "entries"))).toHaveLength(138);
     expect(readdirSync(join(root, "oracles", "seed", "entries")).some((f) => f.includes("triso"))).toBe(false);
   });
   it("the generator reproduces every committed file byte for byte (a fresh run into a temporary folder, the README included)", () => {

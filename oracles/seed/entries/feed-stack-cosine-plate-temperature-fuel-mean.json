@@ -1,0 +1,37 @@
+{
+  "schema": "seed.oracle/0.1",
+  "oracleId": "feed-stack-cosine-plate-temperature-fuel-mean",
+  "entryVersion": 1,
+  "adapter": "feed",
+  "adapterVersions": [
+    "*"
+  ],
+  "tag": "good",
+  "inputs": [
+    {
+      "path": "models/stack-cosine-plate.case.json",
+      "sha256": "bec1008d20e1d4fb978bad91353b628e2aed90fd42a9cabd768f4698d7bae790"
+    }
+  ],
+  "expected": {
+    "quantity": "temperature_fuel_mean",
+    "value": 719.1185,
+    "unit": "K"
+  },
+  "tolerance": {
+    "abs": 1.65,
+    "rel": 0
+  },
+  "source": {
+    "kind": "analytic",
+    "text": "The volume-mean fuel temperature of the whole heated fuel, the mean of the 9 slices' means (equal lengths, equal fuel cross-section): the volume-mean fuel temperature of a slice, the surface temperature plus 2/3 of the centre-to-surface rise (the slab's parabola), from the closed-form solution of each slice at its own heat rate and coolant. The power shape is a cosine, normalised to an average of 1 (the heat rate is per metre of height and per metre of width). The tolerance is the sum of the three terms of the peak entries of this case, each fixed before any run (the mesh term 5 x rise / 100^2 is for a cell-centre value; a volume mean of the cells is less sensitive to the mesh, so it is conservative here), taken at its largest over the slices: 1.65 K (including the axial conduction allowance of 3 x 0.00134 x 299.9 K and the cosine's 41-point table), rounded up to 0.05 K.",
+    "check": "Second method: FEED's closed form of each slice integrated over the fuel cross-section (Simpson, tests/seedFuelTemperature.test.ts), the same means worked by hand in tests/seedOracleStack.test.ts, and the real solver (FEED_SOLVER=1): the solver's cell-weighted means are inside the tolerance."
+  },
+  "coverage": {
+    "quantities": [
+      "temperature_fuel_mean"
+    ],
+    "domain": "synthetic plate (meat half-thickness 4.1 mm, gap 0.08 mm, cladding 0.57 mm, constant conductivities, one face cooled at 573 K and 30000 W/m2/K) as 9 through-thickness slices over 0.381 m with a cosine power shape, 200 kW per metre of height and width on average"
+  },
+  "toleranceHash": "304650ceb53249ec7bc94fb66115f7d69eb69ca2ca797ff7c80a75ba0b79b27e"
+}
