@@ -8,7 +8,7 @@ import { validateCase, type NormalizedCase } from "../src/core/validate";
 import { gasPressureAt, independentAtTime, meshCells, STRESS_NOISE_FLOOR, TOUCHING_FLOOR, transientMechanicsChecks, type MechanicsAtTime, type TemperatureField } from "../src/core/transientMechanics";
 import type { MechanicsRecord } from "../src/core/mechanicsResults";
 import { hydrogenPressure } from "../src/core/hydrogenPressure";
-import type { ThermoElasticSolution } from "../src/core/thermoElastic";
+import { solveSlice, type ThermoElasticSolution } from "../src/core/thermoElastic";
 
 const q = (value: number, unit: string) => ({ value, unit });
 const Tref = 300;
@@ -23,13 +23,14 @@ const CO = 4.75e-3;
 const G0 = CI - FR;
 
 /** The pulse example as a pin with mechanics (constant properties on both solids), the given plane condition, coolant pressure 0 and a fine mesh. */
-function fixture(over: { plane?: "free-axial" | "plane-strain"; internalPressure?: unknown; fuelCells?: number; claddingCells?: number; alphaFuel?: number } = {}): NormalizedCase {
+function fixture(over: { plane?: "free-axial" | "plane-strain"; internalPressure?: unknown; fuelCells?: number; claddingCells?: number; alphaFuel?: number; fuelModulusLinear?: boolean } = {}): NormalizedCase {
   const d = JSON.parse(readFileSync(join(__dirname, "..", "examples", "synthetic-pulse.json"), "utf8"));
   const sets = (a: number) => ({
     "mechanical.elasticity": { model: "constant", youngModulus: q(E / 1e9, "GPa"), poissonRatio: q(nu, "1"), source: "a test" },
     "mechanical.thermalExpansion": { linearExpansion: q(a * 1e6, "ppm/K"), source: "a test" },
   });
   Object.assign(d.materials.fuel.sets, sets(over.alphaFuel ?? alpha));
+  if (over.fuelModulusLinear) d.materials.fuel.sets["mechanical.elasticity"] = { model: "linear", a: q(106, "GPa"), b: q(-0.02, "GPa/K"), poissonRatio: q(nu, "1"), validRange: { min: q(250, "K"), max: q(5000, "K") }, source: "a test" };
   Object.assign(d.materials.cladding.sets, sets(alpha));
   d.assumptions.thermalOnly = false;
   d.mechanics = { referenceTemperature: q(Tref, "K"), plane: over.plane ?? "plane-strain", contact: { penaltyFactor: q(0.7, "1") }, coolantPressure: q(0, "MPa"), ...(over.internalPressure ? { internalPressure: over.internalPressure } : {}) };
@@ -298,5 +299,93 @@ describe("the checks at every output time", () => {
   });
   it("the noise floor is 0.35 MPa and is the only floor of the stress check", () => {
     expect(STRESS_NOISE_FLOOR).toBe(0.35e6);
+  });
+});
+
+describe("the laws of temperature are applied cell by cell (decision D3)", () => {
+  it("closed form (b) with the fuel's modulus at its own temperature: E_f = 106 - 0.02 T GPa gives the interference pressure of THAT modulus, not of the modulus at the reference temperature", () => {
+    const c = fixture({ plane: "plane-strain", fuelModulusLinear: true });
+    const k = ((1 + nu) * CI * ((1 - 2 * nu) * CI * CI + CO * CO)) / (E * (CO * CO - CI * CI));
+    for (const dT of [2000, 3000, 4000]) {
+      const Ef = 106e9 - 0.02e9 * (Tref + dT);
+      const lf = (Ef * nu) / ((1 + nu) * (1 - 2 * nu));
+      const mf = Ef / (2 * (1 + nu));
+      const sval = alpha * dT;
+      const p = (FR * (3 * lf + 2 * mf) * sval / (2 * (lf + mf)) - G0) / (k + FR / (2 * (lf + mf)));
+      const sol = independentAtTime(c, uniform(c, Tref + dT, Tref), 0);
+      expect(sol.contact).toBe(true);
+      expect(sol.contactPressure / p).toBeCloseTo(1, 9);
+      // the modulus at the reference temperature (100 GPa) would give a different pressure
+      const lr = lambda;
+      const mr = mu;
+      const pRef = (FR * (3 * lr + 2 * mr) * sval / (2 * (lr + mr)) - G0) / (k + FR / (2 * (lr + mr)));
+      expect(Math.abs(pRef / p - 1)).toBeGreaterThan(0.01);
+    }
+  });
+});
+
+describe("what the bounds carry (each term is needed: removing it makes one of these fail)", () => {
+  const c = fixture({ plane: "plane-strain", fuelCells: 60, claddingCells: 12 });
+  const cold = uniform(c, Tref);
+  const coldSol = independentAtTime(c, cold, 0);
+  const withStress = (add: number) => {
+    const rec = resultFrom(c, coldSol);
+    return [{ time: 0, field: cold, record: { ...rec, points: rec.points.map((p, i) => (i === 20 ? { ...p, sigmaZ: p.sigmaZ + add } : p)) } }];
+  };
+  it("the noise floor: with no stress at all, 0.2 MPa of noise passes and 0.5 MPa fails (the bound is the floor alone)", () => {
+    expect(verdicts(transientMechanicsChecks(c, withStress(0.2e6), 0)).mechanicsStress).toBe("pass");
+    expect(verdicts(transientMechanicsChecks(c, withStress(0.5e6), 0)).mechanicsStress).toBe("fail");
+  });
+  it("the same floor in the radial balance: a 0.1 MPa step in sigma_r between two cells passes, 1 MPa fails", () => {
+    const stepR = (add: number) => {
+      const rec = resultFrom(c, coldSol);
+      return [{ time: 0, field: cold, record: { ...rec, points: rec.points.map((p, i) => (i === 20 ? { ...p, sigmaR: p.sigmaR + add } : p)) } }];
+    };
+    expect(verdicts(transientMechanicsChecks(c, stepR(0.1e6), 0)).mechanicsEquilibrium).toBe("pass");
+    expect(verdicts(transientMechanicsChecks(c, stepR(1e6), 0)).mechanicsEquilibrium).toBe("fail");
+  });
+  it("the displacement allowance: a displacement off by what 1 K gives passes with the 1 K allowance and fails with none", () => {
+    const hot = field(c, (r) => Tref + 900 * (1 - 0.3 * (r / FR) ** 2), () => Tref + 22);
+    const base = independentAtTime(c, hot, 0);
+    const warmer = independentAtTime(c, hot, 0, 1);
+    // OFFBEAT's temperatures 1 K above the independent ones: its displacement is the warmer solution's
+    const rec = resultFrom(c, warmer);
+    const results = [{ time: 0, field: hot, record: rec }];
+    expect(resultFrom(c, base).points[10]!.ur).not.toBe(rec.points[10]!.ur);
+    // the shift is below 1 % of the largest displacement, so use a damaged scale: 10 K
+    const way = resultFrom(c, independentAtTime(c, hot, 0, 10));
+    expect(verdicts(transientMechanicsChecks(c, [{ time: 0, field: hot, record: way }], 0)).mechanicsDisplacement).toBe("fail");
+    expect(verdicts(transientMechanicsChecks(c, [{ time: 0, field: hot, record: way }], 10)).mechanicsDisplacement).toBe("pass");
+    expect(verdicts(transientMechanicsChecks(c, results, 1)).mechanicsDisplacement).toBe("pass");
+  });
+  it("the contact allowance: a pressure just past the closure, which 8 K of temperature moves by more than 3 % + 10 kPa, passes with the 8 K allowance and fails with none", () => {
+    const hot = uniform(c, Tref + 1502, Tref); // 1 K past the closure of the gap, where the pressure is a few kPa
+    const sol = independentAtTime(c, hot, 0);
+    const warmer = independentAtTime(c, hot, 0, 8);
+    expect(sol.contact && warmer.contact).toBe(true);
+    expect(Math.abs(warmer.contactPressure - sol.contactPressure)).toBeGreaterThan(0.03 * sol.contactPressure + 1e4);
+    const rec = resultFrom(c, sol);
+    const results = [{ time: 0, field: hot, record: { ...rec, summary: { ...rec.summary, contactPressure: warmer.contactPressure } } }];
+    expect(verdicts(transientMechanicsChecks(c, results, 0)).mechanicsContact).toBe("fail");
+    expect(verdicts(transientMechanicsChecks(c, results, 8)).mechanicsContact).toBe("pass");
+  });
+  it("the end load of the fuel under a gas pressure (free axially): the solution agrees with thermoElastic.ts when the gas is 5 MPa", () => {
+    const cf = fixture({ plane: "free-axial", fuelCells: 120, claddingCells: 30 });
+    const hot = field(cf, (r) => Tref + 600 * (1 - 0.2 * (r / FR) ** 2), () => Tref + 20);
+    const mine = independentAtTime(cf, hot, 5e6);
+    // thermoElastic.ts: the same solids with the continuous profile and the constants
+    const ref = solveSlice(
+      { a: 0, b: FR, E, nu, alpha, theta: (r) => 600 * (1 - 0.2 * (r / FR) ** 2) },
+      { a: CI, b: CO, E, nu, alpha, theta: () => 20 },
+      "free-axial",
+      0,
+      5e6,
+    );
+    expect(mine.contact).toBe(ref.contact);
+    for (const r of [1e-3, 2.5e-3, 4e-3]) {
+      expect(Math.abs(mine.fuel.at(r).sigmaZ - ref.fuel.at(r).sigmaZ) / 1e6).toBeLessThan(1.5);
+    }
+    // the gas on the end of the fuel makes its axial stress +p (tension) in OFFBEAT's convention: the mean over the area is about +5 MPa
+    expect(mine.fuel.axialStrain).toBeCloseTo(ref.fuel.axialStrain, 6);
   });
 });
