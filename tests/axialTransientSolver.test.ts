@@ -49,7 +49,7 @@ async function run(d: unknown, save?: string) {
       writeFileSync(join(save, "times", String(f.time), "T"), f.T);
     }
   }
-  return { res: mgr.results(s.id) as unknown as StackTransientRecord, fields, C, normalized };
+  return { res: mgr.results(s.id) as unknown as StackTransientRecord, fields, C, normalized, notes: rec.notes };
 }
 const failing = (r: TransientResultsRecord) => r.checks.filter((c) => c.verdict === "fail").map((c) => c.id + " " + c.value + ": " + c.note.slice(0, 220));
 
@@ -78,9 +78,11 @@ describe.skipIf(!solverOn)("a transient on an axial stack through the real solve
   it("a pulse on a short operating stack (0.06 m, 12 slices), where the axial conduction is 4 % of the rise: the checks pass, judged against the stack's two-dimensional solution because the heat along the height exceeds the pin's radial bound (plan 19 D1; the run manager started the reference job; golden output kept)", async () => {
     const d = example("synthetic-pulse-operating");
     d.axial = cosine(0.06, 12);
-    const { res } = await run(d, GOLDEN ? join(GOLDEN, "short") : undefined);
+    const { res, notes } = await run(d, GOLDEN ? join(GOLDEN, "short") : undefined);
     expect(failing(res)).toEqual([]);
     expect(res.axial.conduction!.fraction).toBeGreaterThan(0.02);
+    // the run manager started the reference as a job of its own (a worker thread), not the results builder in the server's thread
+    expect(notes.some((n) => /two-dimensional reference of the stack took/.test(n))).toBe(true);
     expect((res.axial as unknown as { reference?: { kind: string } }).reference?.kind).toBe("two-dimensional");
   }, 600_000);
 
