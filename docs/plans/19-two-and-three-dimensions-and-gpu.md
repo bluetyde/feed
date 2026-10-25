@@ -16,7 +16,7 @@ So two dimensions already **exist**: OFFBEAT solves (r, z) for every stack, and 
 
 ## 2. What "2D and 3D coming into play" can mean, and the gate for each
 
-**(a) Pins on the 2D reference (small).** Plan 15's kernel (`geometry.ts`) already serves pins and plates; only the decision "pins keep the allowance" holds it back. Reopening it replaces the allowance by a measured reference for pins, as for plates. Needs the owner's word. Cost: a few sessions, no new physics.
+**(a) Pins on the 2D reference (small, and worth less than for plates).** Plan 15's kernel (`geometry.ts`) already serves pins and plates; the owner's decision after B0 (2026-10-16) was that a pin keeps the allowance, **because at TRIGA length the axial effect (1.06 K at 0.381 m) is smaller than the pin's own radial offset (about 3.4 K, from the cell-middle nodes with a logarithmic conductance, the same in the one-dimensional reference)**, so a 2D reference would not tighten the check there. It would pay for **short pins and steep power shapes**, where the allowance is large against the real effect (a 0.06 m plate: allowance 48 K for a 22.4 K deviation). The plan's own middle option is a reference used for a pin **only where the axial effect exceeds the radial bound**. It is also the base the 2D mechanics reference (D2) would stand on. Needs the owner's word. Cost: a few sessions, no new physics.
 
 **(b) Two-dimensional mechanics (medium).** OFFBEAT's (r, z) mechanics with axial strain, an axial gap and contact at the pellet ends, and a stack with mechanics (today refused). The independent check needs an **axisymmetric finite-element solution** written in FEED (plan 17's M3 will already write a numerical solution with a modulus that varies with radius, in one dimension; (b) extends it). **Gate: plan 17 reaches M3**, because it fixes how mechanics results over time and the contact are checked.
 
@@ -52,7 +52,8 @@ From TODO.md (14 open lines on 2026-10-24) and the 2026-10-20 decisions: plan 17
 **A limit of the card.** A GeForce card runs double precision (the precision these solvers use) at a small fraction of its single-precision rate (the usual figure for recent GeForce cards is 1/64; to be measured on this card, not assumed). The usual workaround is a single-precision multigrid preconditioner with a double-precision outer iteration; whether the library route supports it is UNVERIFIED.
 
 **Cheaper speed-ups first, none needing a GPU.**
-- The three runs of a job (the case and two independent runs) one after another: run them in parallel (a TODO line since the transient plan).
+- **Overlap the independent runs with OFFBEAT.** Today a transient's independent runs start only **after** OFFBEAT has finished (`runManager.ts`, the post-run reading), although they need only the normalised case, not OFFBEAT's output. Starting them with the solver makes the wall time the larger of the two instead of their sum. The gain is the smaller of the two times: a few seconds for a pulse, up to about 25 s for a large plate stack's reference, nothing for a steady case (no independent runs: closed forms) and little for a mechanics pulse (the solver's 70 to 130 s dominate and the independent solution is a closed form).
+- **Split the "full" job** (the same-mesh run, the doubled-mesh run and the half-step run, one worker thread, one after another; a TODO line since the transient plan) into three threads, and the 2D reference's base, half-step and doubled-mesh solves likewise: the wall time falls from the sum to the longest (for the 2D reference from 7 units of work to 4, the doubled mesh being the longest: a factor 1.75 at most).
 - MPI decomposition of one OFFBEAT run across the 16 cores (`mpirun` is in the distro; whether OFFBEAT's contact and the case writer survive `decomposePar` is UNVERIFIED and needs a probe on a 2D or 3D mesh).
 - Fewer contact iterations: the plan 17 M0 finding (implicit contact converges where the explicit penalty does not) is itself the largest saving.
 - The 2D reference's cost: now about 7 times the work after the coupled error estimates; the factorisation can be reused between the base, half-step and doubled-mesh solves.
@@ -68,13 +69,13 @@ From TODO.md (14 open lines on 2026-10-24) and the 2026-10-20 decisions: plan 17
 | **D2** Two-dimensional mechanics | an axisymmetric finite-element independent solution, a stack with mechanics, the end contact | plan 17 M3 done |
 | **D3** Shaped 2D geometry | non-uniform (r, z) meshes in the writer and the references | D1 |
 | **D4** Three dimensions, thermal | a 3D case type, the degenerate-3D oracle, the series-solution oracles, fields on the 3D view | D0 gate met, D1 done |
-| **D5** Parallel runs | the job's three runs in parallel; MPI decomposition if D0 shows it works | none (can come first) |
+| **D5** Parallel runs | start a transient's independent runs together with OFFBEAT instead of after it; split the job's runs and the 2D reference's solves over threads; MPI decomposition of OFFBEAT only if D0 shows it works (and the meshes are large enough for it to matter) | none (can come first); helps transients, not steady cases or mechanics pulses |
 | **D6** GPU probe | only under the decision rule above | a 3D case slower than about 30 minutes on 16 cores |
 | **D7** Three dimensions, mechanics | after D2 and D4 | later |
 
 ## 6. Questions for the owner
 
-1. Reopen "pins keep the allowance" (D1)?
+1. Reopen "pins keep the allowance" (D1): wholesale, only for short pins and steep shapes (the plan 15 middle option), or not until 2D mechanics (D2) needs it?
 2. Install the CUDA Toolkit in the `feed-solver` distro now (several GB), or only after D0 shows a case that needs it? (The MATLAB timing in D0 needs no installation.)
 3. Which 3D case first, if any is wanted: an eccentric pellet, one-sided cooling, or a plate with a non-uniform face?
-4. D5 (parallel runs) first, since it helps every case today?
+4. D5 (overlap and split the independent runs) first? It helps every **transient**, not every case.
