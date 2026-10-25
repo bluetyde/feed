@@ -2,16 +2,44 @@
 // coolant, joined along the height), and its steady solution cut back into the slices the checks judge. A stack of PLATES is judged against it (owner's decision after B0); a pin keeps
 // the allowance of stackResults.ts. When the reference cannot be computed (too many unknowns, an iteration that does not settle) the result says why and the caller falls back to the allowance.
 
-import { sliceCase, sliceLoads } from "./axial";
+import { axialSummary, sliceCase, sliceLoads } from "./axial";
 import { StackModel, StackSteady, StackTransient, solveStackSteady, solveStackTransient } from "./axialFv";
 import { boundaryAtTime } from "./boundaryHistory";
 import { lawOf } from "./conductivity";
 import { heatCapacityLaw } from "./heatCapacity";
-import type { ProfilePoint } from "./quickLook";
+import { quickLook, type ProfilePoint } from "./quickLook";
 import { SliceReference } from "./resultsParser";
 import { IndependentSet, initialState } from "./transientResults";
 import { FvTransient, TransientPin } from "./transientFv";
 import { NormalizedCase } from "./validate";
+
+/**
+ * Whether a stack is judged against the two-dimensional reference (plan 15, plan 19 D1). A stack of PLATES always is. A PIN keeps the allowance, unless the heat flow along the height is
+ * larger than the pin's radial mesh bound: then the allowance (3 times the estimate) is larger than anything the radial scheme can hide, and a reference tightens the checks (a 0.06 m pin
+ * with a lost cooling: a cross-check bound of about 136 K falls to about 6 K). At the length of a TRIGA rod (0.381 m) the effect is about 1 K against a radial bound of several K, and the
+ * pin keeps the allowance (the owner's decision after plan 15 B0). The estimate is the fin-model one of src/core/axial.ts times the hottest slice's rise; the bound is the fuel's mesh bound
+ * 5 dT / N^2 of the hottest slice (the bound the checks use).
+ */
+export interface PinReferenceDecision {
+  use: boolean;
+  /** The estimated change the heat along the height makes to the cells (K), and the radial mesh bound it is compared with (K). Zero for a plate (not compared). */
+  axialEstimate: number;
+  radialBound: number;
+}
+export function pinReferenceDecision(c: NormalizedCase): PinReferenceDecision {
+  if (!c.axial) return { use: false, axialEstimate: 0, radialBound: 0 };
+  if (c.plate) return { use: true, axialEstimate: 0, radialBound: 0 };
+  const summary = axialSummary(c);
+  const loads = sliceLoads(c);
+  if (!summary || !summary.conduction) return { use: false, axialEstimate: 0, radialBound: 0 };
+  const coolant = (b: NormalizedCase["boundary"]) => (b.kind === "convective" ? b.bulkTemperature : b.surfaceTemperature);
+  const rises = summary.slices.map((s, i) => s.centreT - coolant(loads[i]!.boundary));
+  const hot = rises.indexOf(Math.max(...rises));
+  const estimate = summary.conduction.fraction * rises[hot]!;
+  const look = quickLook(sliceCase(c, loads[hot]!));
+  const bound = (5 * (look.temperatures.centreT - look.temperatures.fuelSurfaceT)) / (c.mesh.fuelCells * c.mesh.fuelCells);
+  return { use: estimate > bound, axialEstimate: estimate, radialBound: bound };
+}
 
 /** The radial model of the case for the stack solver: its geometry, mesh, gap and property laws. A steady case has no heat capacity, and the steady solution does not read one. */
 export function stackPinOf(c: NormalizedCase): TransientPin {

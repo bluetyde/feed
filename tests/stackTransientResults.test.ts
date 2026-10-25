@@ -105,7 +105,8 @@ describe("real OFFBEAT output of a transient stack, read slice by slice", () => 
   const judge = (x: ReturnType<typeof g>, mutate?: (n: any) => void, over: Partial<ReturnType<typeof g>> = {}) => {
     const n = JSON.parse(JSON.stringify(x.n));
     mutate?.(n);
-    return buildStackTransientResults(n, { C: over.C ?? x.C, fields: over.fields ?? x.fields }, computeIndependentStack(n));
+    // the allowance regime, forced (null): the fallback, and the regime of a long pin; a short pin's default is the reference of plan 19 D1 (tests/pinReference.test.ts)
+    return buildStackTransientResults(n, { C: over.C ?? x.C, fields: over.fields ?? x.fields }, computeIndependentStack(n), null);
   };
   it("a pulse on an operating stack, a pump coastdown and an asymmetric shape: every check passes, the record has one series per slice and the hottest slice's profiles", () => {
     for (const x of [pulse, cool, asym]) {

@@ -3,8 +3,8 @@
 // one-dimensional closed forms do not (src/core/axial.ts, docs/spike/axial-plate-probe.md). Incomplete or inconsistent output is refused, never turned into a partial result.
 
 import { AxialEstimate, axialConductionEstimate, axialSummary, sliceCase, sliceLoads } from "./axial";
-import { BALANCE_TOLERANCE, Check, DomainFinding, ParseInput, RadialPoint, ResultsError, ResultsRecord, SliceAllowance, SliceReference, THERMAL_ONLY_TEXT, assertWholeFoamFile, finishResults, parsePatchValues, parseScalarField, parseVectorField, radialSplit, wallFlux } from "./resultsParser";
-import { StackReferenceResult, stackReference } from "./stackReference";
+import { BALANCE_TOLERANCE, Check, DomainFinding, ParseInput, RadialPoint, ResultsError, ResultsRecord, SliceAllowance, SliceReference, THERMAL_ONLY_TEXT, assertWholeFoamFile, finishResults, sliceClosedForm, parsePatchValues, parseScalarField, parseVectorField, radialSplit, wallFlux } from "./resultsParser";
+import { StackReferenceResult, pinReferenceDecision, stackReference } from "./stackReference";
 import { NormalizedCase } from "./validate";
 
 const bad = (message: string): never => {
@@ -20,7 +20,9 @@ export const STACK_TEXT = "One radial solution per axial slice, with the heat fl
 export const STACK_TEXT_PLATE = "One through-thickness solution per axial slice of the plate, with the heat flow along the height that the solver includes. The checks compare each slice with its own one-dimensional slab closed form within a bound that includes an estimate of that heat flow.";
 /** The statement for a stack of plates judged against the two-dimensional reference (plan 15): the heat flow along the height is in the reference, not in a widened bound. */
 export const STACK_TEXT_PLATE_2D = "One through-thickness solution per axial slice of the plate, with the heat flow along the height that the solver includes. The checks compare the cells with FEED's own two-dimensional finite-volume solution of the whole stack on the same mesh, which includes that heat flow, within the mesh bound and with no allowance for it. The reference is a second method on the same discretisation, not a measurement.";
-export const stackText = (c: NormalizedCase, twoDimensional = false): string => (c.plate ? (twoDimensional ? STACK_TEXT_PLATE_2D : STACK_TEXT_PLATE) : STACK_TEXT);
+/** The statement for a stack of PINS judged with the heat flow along the height added (plan 19 D1): used only where that flow is larger than the pin's radial mesh bound (src/core/stackReference.ts, pinReferenceDecision). */
+export const STACK_TEXT_2D = "One radial solution per axial slice of the pin, with the heat flow along the pin that the solver includes. The checks compare each slice with its own one-dimensional closed form plus the effect of that heat flow, taken from FEED's own two-dimensional finite-volume solution of the whole stack (the stack solved with and without conduction between the layers: only the difference is added, so the two-dimensional scheme's own radial offset from the solver's cells does not enter), within the radial mesh bound and with no allowance. A pin is judged this way when the heat flow along the height is larger than that bound, as in a short pin; a long pin keeps the widened bound. FEED's second method on the writer's mesh, not a measurement of the pin. A thermal-only result never implies stress, failure or fuel integrity.";
+export const stackText = (c: NormalizedCase, twoDimensional = false): string => (c.plate ? (twoDimensional ? STACK_TEXT_PLATE_2D : STACK_TEXT_PLATE) : twoDimensional ? STACK_TEXT_2D : STACK_TEXT);
 
 export interface SliceResult {
   index: number;
@@ -114,9 +116,13 @@ export function buildStackResults(c: NormalizedCase, input: ParseInput, referenc
   const peakQ = Math.max(...loads.map((l) => l.linearHeatRate));
   const wallRise = Math.max(...summary.slices.map((s, i) => s.claddingOuterT - coolantRef(loads[i]!.boundary)));
   const estimate: SliceAllowance = { field: AXIAL_TOLERANCE_FACTOR * fraction * peakRise, flux: AXIAL_TOLERANCE_FACTOR * fraction * peakQ, wall: AXIAL_TOLERANCE_FACTOR * fraction * wallRise };
-  const choice = reference === undefined ? (c.plate ? stackReference(c) : null) : reference;
-  const ref = choice && "reference" in choice ? choice.reference : undefined;
-  const fallbackReason = ref ? "" : choice && "fallback" in choice ? choice.fallback : c.plate ? "the allowance was asked for" : "a pin keeps the allowance (plan 15: plates first)";
+  const choice = reference === undefined ? (c.plate || pinReferenceDecision(c).use ? stackReference(c) : null) : reference;
+  let ref = choice && "reference" in choice ? choice.reference : undefined;
+  // a pin is judged with the heat along the height added to its closed form: the stack's two-dimensional solution minus the same solution with no conduction between the layers (plan 19 D1);
+  // without that second solution the pin keeps the allowance
+  const decoupled = ref ? stackReference(c, { axialConduction: false }) : undefined;
+  if (!c.plate && !(decoupled && "reference" in decoupled)) ref = undefined;
+  const fallbackReason = ref ? "" : choice && "fallback" in choice ? choice.fallback : c.plate ? "the allowance was asked for" : "a pin keeps the allowance (the heat along the height does not exceed its radial mesh bound)";
   // judged against the two-dimensional reference there is no allowance on any tolerance
   const allow: SliceAllowance = ref ? { field: 0, flux: 0, wall: 0 } : estimate;
 
@@ -125,7 +131,6 @@ export function buildStackResults(c: NormalizedCase, input: ParseInput, referenc
   const perSlice: { rec: ResultsRecord; load: (typeof loads)[number]; flux: number | null }[] = [];
   let deviation = 0;
   let oneDimensionalDeviation = 0;
-  const decoupled = ref ? stackReference(c, { axialConduction: false }) : undefined;
   for (let k = 0; k < N; k++) {
     const fi = Array.from({ length: nf }, (_, i) => k * nf + i);
     const ci = Array.from({ length: nc }, (_, i) => N * nf + k * nc + i);
@@ -138,7 +143,19 @@ export function buildStackResults(c: NormalizedCase, input: ParseInput, referenc
     const sc = sliceCase(c, loads[k]!);
     const { radial, fuel, clad } = radialSplit(sc, Tk, Ck);
     let sliceRef: SliceReference | undefined;
-    if (ref) {
+    if (ref && !c.plate) {
+      // a pin: the closed form at the cell's own radius plus the effect of the heat along the height at that cell; the two-dimensional scheme's cell-middle nodes sit elsewhere than the solver's
+      // cell centres (3 to 4 K in a pin, plan 15), and the difference of the two solutions cancels that
+      const at = [...fuel, ...clad];
+      const two = ref.slice(k);
+      const one = (decoupled as { reference: { slice(k: number): SliceReference } }).reference.slice(k);
+      const cf = sliceClosedForm(sc);
+      sliceRef = { fuel: fuel.map((p, i) => cf.fuelAt(p.r) + two.fuel[i]! - one.fuel[i]!), clad: clad.map((p, i) => cf.claddingAt(p.r) + two.clad[i]! - one.clad[i]!), wall: cf.tOuter + two.wall - one.wall };
+      at.forEach((p, i) => {
+        deviation = Math.max(deviation, Math.abs(p.T - (i < nf ? sliceRef!.fuel[i]! : sliceRef!.clad[i - nf]!)));
+        oneDimensionalDeviation = Math.max(oneDimensionalDeviation, Math.abs(p.T - (i < nf ? cf.fuelAt(p.r) : cf.claddingAt(p.r))));
+      });
+    } else if (ref) {
       // the reference's cells are at the writer's cell centres: a cell that is not there is a different mesh, not a deviation
       const at = [...fuel, ...clad];
       sliceRef = ref.slice(k);
@@ -231,7 +248,7 @@ export function buildStackResults(c: NormalizedCase, input: ParseInput, referenc
       sampledAverageLinearHeatRate: sumQ / N,
       conduction: est,
       allowance: estimate,
-      ...(c.plate ? { reference: ref ? ({ kind: "two-dimensional", axialEffect, oneDimensionalDeviation, deviation } as StackReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackReferenceInfo) } : {}),
+      ...(c.plate || ref ? { reference: ref ? ({ kind: "two-dimensional", axialEffect, oneDimensionalDeviation, deviation } as StackReferenceInfo) : ({ kind: "allowance", reason: fallbackReason } as StackReferenceInfo) } : {}),
     },
   };
 }

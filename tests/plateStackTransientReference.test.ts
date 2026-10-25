@@ -231,16 +231,24 @@ describe("the fallback to the allowance and the exchange bound", () => {
   });
 });
 
-describe("a pin's transient stack record is not changed by plan 15", () => {
+describe("a pin's transient stack record is not changed by plan 15 (the allowance regime; plan 19 D1 makes the reference the default for a SHORT pin only)", () => {
   const saved = JSON.parse(read("tests/fixtures/pin-stack-transient-hashes-0b60d93.json"));
   for (const name of ["asym", "coastdown", "pulse", "short", "shortcool"]) {
-    it(`pin ${name}: the record's hash equals the one computed before plan 15, and it has no reference section`, () => {
+    it(`pin ${name}: the allowance regime's record hash equals the one computed before plan 15, and it has no reference section`, () => {
       const x = gdir("offbeat-stack-transient", name);
-      const r = buildStackTransientResults(x.n, { C: x.C, fields: x.fields }, computeIndependentStack(x.n));
+      const r = buildStackTransientResults(x.n, { C: x.C, fields: x.fields }, computeIndependentStack(x.n), null);
       const js = JSON.stringify(r);
       expect(js.length).toBe(saved[name].bytes);
       expect(createHash("sha256").update(js).digest("hex")).toBe(saved[name].sha256);
       expect(r.axial.reference).toBeUndefined();
+    });
+  }
+  for (const name of ["asym", "coastdown", "pulse"]) {
+    it(`pin ${name} (0.381 m): the default is still the allowance regime, the same hash`, () => {
+      const x = gdir("offbeat-stack-transient", name);
+      const js = JSON.stringify(buildStackTransientResults(x.n, { C: x.C, fields: x.fields }, computeIndependentStack(x.n)));
+      expect(js.length).toBe(saved[name].bytes);
+      expect(createHash("sha256").update(js).digest("hex")).toBe(saved[name].sha256);
     });
   }
 });
