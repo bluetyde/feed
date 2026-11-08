@@ -1,5 +1,5 @@
 // docs/licences (F0 exit review, finding 9): the saved licence texts are the ones recorded, the inventory names the pins and every saved
-// file, FEED's own licence fields are MIT, and the licences of the npm packages FEED runs on are the ones the inventory states.
+// file, FEED's own licence fields are AGPL-3.0-or-later, and the licences of the npm packages FEED runs on are the ones the inventory states.
 import { createHash } from "crypto";
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
@@ -85,11 +85,13 @@ describe("the inventory (docs/licences/README.md)", () => {
 describe("FEED's own licence and its npm packages", () => {
   const pkg = JSON.parse(read(join(root, "package.json")));
 
-  it("FEED is MIT: the LICENSE file and the package.json field agree, with the holder named", () => {
-    expect(pkg.license).toBe("MIT");
+  it("FEED is AGPL-3.0-or-later: the LICENSE file and the package.json field agree, with the holder named in AUTHORS", () => {
+    expect(pkg.license).toBe("AGPL-3.0-or-later");
     const l = read(join(root, "LICENSE"));
-    expect(l).toMatch(/^MIT License/);
-    expect(l).toContain("bluetyde");
+    expect(l).toMatch(/^\s*GNU AFFERO GENERAL PUBLIC LICENSE\s+Version 3/);
+    const a = read(join(root, "AUTHORS"));
+    expect(a).toContain("Copyright 2026 bluetyde");
+    expect(a).toContain("section 7(b)");
   });
 
   /** package.json of an installed package, found the way node resolves it. */
@@ -138,7 +140,7 @@ describe("THIRD_PARTY_NOTICES.md", () => {
   const lock = JSON.parse(read(join(root, "package-lock.json"))).packages as Record<string, { version: string; license?: string; dev?: boolean; optional?: boolean }>;
 
   it("names FEED's licence holder, the pinned OFFBEAT commit and the OpenFOAM package and version", () => {
-    expect(notices).toContain("Copyright (c) 2026 bluetyde");
+    expect(notices).toContain("Copyright 2026 bluetyde");
     expect(notices).toContain(pins.OFFBEAT_COMMIT!);
     expect(notices).toContain(pins.OPENFOAM_PACKAGE!);
     expect(notices).toContain(pins.OPENFOAM_VERSION!);

@@ -1,6 +1,6 @@
 # Third-party notices
 
-FEED's own code is MIT licensed (see [LICENSE](LICENSE), "Copyright (c) 2026 bluetyde"). This file lists the third-party software and material FEED depends on or draws from, the licence of each, and whether it ships in this repository. It records what each project's own files say; it is not legal advice. The working notes behind it, with the licence texts kept for the pinned versions and how each was read, are in [docs/licences](docs/licences/README.md). A test (`tests/licences.test.ts`) checks the kept texts against their recorded hashes and checks this file against the package files.
+FEED's own code is licensed under the GNU AGPL, version 3 or later (see [LICENSE](LICENSE) and [AUTHORS](AUTHORS), "Copyright 2026 bluetyde"). This file lists the third-party software and material FEED depends on or draws from, the licence of each, and whether it ships in this repository. It records what each project's own files say; it is not legal advice. The working notes behind it, with the licence texts kept for the pinned versions and how each was read, are in [docs/licences](docs/licences/README.md). A test (`tests/licences.test.ts`) checks the kept texts against their recorded hashes and checks this file against the package files.
 
 ## 1. In this repository: nothing third-party is bundled as code
 

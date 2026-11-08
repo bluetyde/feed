@@ -8,7 +8,7 @@ Everything about the solver is for the pinned versions in [solver/pins.env](../.
 
 | Component | Licence as stated | Evidence (read 2026-10-06) | Text kept |
 |---|---|---|---|
-| **FEED** (this repo) | MIT, holder "bluetyde" | [LICENSE](../../LICENSE); `package.json` `license` field | in the repo |
+| **FEED** (this repo) | AGPL-3.0-or-later (MIT until 2026-11-07), holder "bluetyde" in `AUTHORS` | [LICENSE](../../LICENSE); `package.json` `license` field | in the repo |
 | FEED's npm packages that run (5, with their own dependencies) | MIT (ajv, fast-deep-equal, json-schema-traverse, require-from-string); BSD-3-Clause (fast-uri) | the `license` field of each installed package | not bundled by FEED |
 | FEED's build and test tools (`typescript`, `vitest`, `@types/node`) | Apache-2.0, MIT, MIT | same | not bundled |
 | **OFFBEAT** at the pinned commit | GNU GPL, version 3 or later | `LICENSE` is the GPL v3 text; every one of the 776 files in the checkout that mention the GPL (sources, scripts, tests) carries the grant "either version 3 of the License, or (at your option) any later version"; none says version 3 only. OFFBEAT's documentation page also says GPL-3.0-or-later (read 2026-10-05) | [third-party/OFFBEAT-LICENSE.txt](third-party/OFFBEAT-LICENSE.txt) |
@@ -40,9 +40,9 @@ OpenFOAM's trademark is not addressed on the Foundation's licence page, and no t
 - [x] This inventory exists.
 - [ ] SEED's installer and its documentation say OpenFOAM and OFFBEAT are fetched, not bundled (SEED agent's item).
 
-**B. Source distribution of FEED (publishing the repository).** The MIT notice stays with FEED. Checklist:
+**B. Source distribution of FEED (publishing the repository).** The AGPL notice (`LICENSE`, `AUTHORS`) stays with FEED. Checklist:
 
-- [x] `LICENSE` and the `license` field are MIT.
+- [x] `LICENSE` is the AGPL v3 text and the `license` field is `AGPL-3.0-or-later`.
 - [x] `docs/licences/third-party/` holds reference copies of other parties' licences; they do not apply to FEED's own code and the README says so.
 - [x] The solver-output fixtures (section 2) are kept as written, banners included, and say so in [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) section 4 (decided 2026-10-10: both projects are open source and the files are data).
 - [x] [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) lists the packages, the solver stack with its licences and the published sources, and is checked by a test.
@@ -67,7 +67,7 @@ Route A is the distribution model. It needs none of the items marked **missing**
 ## 4. Verifying and regenerating
 
 - `solver/collect-licences.sh <dir>` copies the texts out of a pinned installation and writes `SHA256SUMS`; it was run again on the clean-distro rebuild (2026-10-06) and the hashes did not change.
-- `tests/licences.test.ts` checks the saved files against `SHA256SUMS`, that this inventory names the pins and every saved file, that FEED's own licence fields are MIT, and that the licences of FEED's production npm packages are among those named here.
+- `tests/licences.test.ts` checks the saved files against `SHA256SUMS`, that this inventory names the pins and every saved file, that FEED's own licence fields are AGPL-3.0-or-later, and that the licences of FEED's production npm packages are among those named here.
 
 ## 5. Items that do not apply to the plan, and what would bring each back
 
